@@ -1,0 +1,98 @@
+//
+//  Persistence.swift
+//  Swiss Coin
+//
+//  Created by Naren Reddy on 1/9/26.
+//
+
+import CoreData
+
+struct PersistenceController {
+    static let shared = PersistenceController()
+
+    @MainActor
+    static let preview: PersistenceController = {
+        let result = PersistenceController(inMemory: true)
+        let viewContext = result.container.viewContext
+        // Create sample data for preview
+        let person = Person(context: viewContext)
+        person.id = UUID()
+        person.name = "Alice"
+        person.phoneNumber = "123-456-7890"
+
+        let group = UserGroup(context: viewContext)
+        group.id = UUID()
+        group.name = "Ski Trip"
+        group.createdDate = Date()
+
+        do {
+            try viewContext.save()
+        } catch {
+            // Replace this implementation with code to handle the error appropriately.
+            // fatalError() causes the application to generate a crash log and terminate. You should not use this function in a shipping application, although it may be useful during development.
+            let nsError = error as NSError
+            fatalError("Unresolved error \(nsError), \(nsError.userInfo)")
+        }
+        return result
+    }()
+
+    let container: NSPersistentContainer
+
+    init(inMemory: Bool = false) {
+        let container = NSPersistentContainer(name: "Swiss_Coin")
+        if inMemory {
+            container.persistentStoreDescriptions.first!.url = URL(fileURLWithPath: "/dev/null")
+        }
+
+        // Enable lightweight migration
+        if let description = container.persistentStoreDescriptions.first {
+            description.shouldMigrateStoreAutomatically = true
+            description.shouldInferMappingModelAutomatically = true
+        }
+
+        self.container = container
+
+        let loadPersistentStores = { [container] in
+            container.loadPersistentStores { (storeDescription, error) in
+                if let error = error as NSError? {
+                    // Check for migration errors (source/destination incompatibility, missing mapping)
+                    if let storeURL = storeDescription.url,
+                        error.domain == NSCocoaErrorDomain
+                            && (error.code == 134140 || error.code == 134130
+                                || error.code == 134110)
+                    {
+
+                        // DEV MODE: Automatically destroy store if migration fails
+                        do {
+                            try container.persistentStoreCoordinator.destroyPersistentStore(
+                                at: storeURL, ofType: storeDescription.type, options: nil)
+
+                            // Retry loading safely
+                            container.loadPersistentStores { _, secondError in
+                                if let secondError = secondError {
+                                    fatalError("Unresolved error after reset \(secondError)")
+                                }
+                            }
+                            return
+                        } catch {
+                            fatalError("Failed to destroy persistent store: \(error)")
+                        }
+                    }
+
+                    /*
+                     Typical reasons for an error here include:
+                     * The parent directory does not exist, cannot be created, or disallows writing.
+                     * The persistent store is not accessible, due to permissions or data protection when the device is locked.
+                     * The device is out of space.
+                     * The store could not be migrated to the current model version.
+                     Check the error message to determine what the actual problem was.
+                     */
+                    fatalError("Unresolved error \(error), \(error.userInfo)")
+                }
+            }
+        }
+
+        loadPersistentStores()
+        container.viewContext.automaticallyMergesChangesFromParent = true
+    }
+}

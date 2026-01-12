@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="1" systemVersion="11A491" minimumToolsVersion="Automatic" sourceLanguage="Swift" usedWithCloudKit="false" userDefinedModelVersionIdentifier="">
+    <entity name="Person" representedClassName="Person" syncable="YES">
+        <attribute name="id" optional="NO" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="name" optional="NO" attributeType="String"/>
+        <attribute name="phoneNumber" optional="YES" attributeType="String"/>
+        <attribute name="photoData" optional="YES" attributeType="Binary"/>
+        <attribute name="colorHex" optional="YES" attributeType="String"/>
+        <relationship name="toTransactions" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="FinancialTransaction" inverseName="payer" inverseEntity="FinancialTransaction"/>
+        <relationship name="toGroups" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="UserGroup" inverseName="members" inverseEntity="UserGroup"/>
+        <relationship name="toSubscriptions" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="Subscription" inverseName="subscribers" inverseEntity="Subscription"/>
+        <relationship name="owedSplits" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="TransactionSplit" inverseName="owedBy" inverseEntity="TransactionSplit"/>
+    </entity>
+    <entity name="UserGroup" representedClassName="UserGroup" syncable="YES">
+        <attribute name="id" optional="NO" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="name" optional="NO" attributeType="String"/>
+        <attribute name="photoData" optional="YES" attributeType="Binary"/>
+        <attribute name="colorHex" optional="YES" attributeType="String"/>
+        <attribute name="createdDate" optional="NO" attributeType="Date" usesScalarValueType="NO"/>
+        <relationship name="members" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="Person" inverseName="toGroups" inverseEntity="Person"/>
+        <relationship name="transactions" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="FinancialTransaction" inverseName="group" inverseEntity="FinancialTransaction"/>
+    </entity>
+    <entity name="Subscription" representedClassName="Subscription" syncable="YES">
+        <attribute name="id" optional="NO" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="name" optional="NO" attributeType="String"/>
+        <attribute name="amount" optional="NO" attributeType="Double" usesScalarValueType="YES"/>
+        <attribute name="cycle" optional="NO" attributeType="String"/>
+        <attribute name="startDate" optional="NO" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="isShared" optional="NO" attributeType="Boolean" usesScalarValueType="YES"/>
+        <relationship name="subscribers" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="Person" inverseName="toSubscriptions" inverseEntity="Person"/>
+    </entity>
+    <entity name="FinancialTransaction" representedClassName="FinancialTransaction" syncable="YES">
+        <attribute name="id" optional="NO" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="title" optional="NO" attributeType="String"/>
+        <attribute name="amount" optional="NO" attributeType="Double" usesScalarValueType="YES"/>
+        <attribute name="date" optional="NO" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="splitMethod" optional="YES" attributeType="String"/>
+        <relationship name="payer" optional="YES" maxCount="1" toMany="NO" deletionRule="Nullify" destinationEntity="Person" inverseName="toTransactions" inverseEntity="Person"/>
+        <relationship name="group" optional="YES" maxCount="1" toMany="NO" deletionRule="Nullify" destinationEntity="UserGroup" inverseName="transactions" inverseEntity="UserGroup"/>
+        <relationship name="splits" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="TransactionSplit" inverseName="transaction" inverseEntity="TransactionSplit"/>
+    </entity>
+    <entity name="TransactionSplit" representedClassName="TransactionSplit" syncable="YES">
+        <attribute name="amount" optional="NO" attributeType="Double" usesScalarValueType="YES"/>
+        <attribute name="rawAmount" optional="YES" attributeType="Double" usesScalarValueType="YES"/>
+        <relationship name="owedBy" optional="YES" maxCount="1" toMany="NO" deletionRule="Nullify" destinationEntity="Person" inverseName="owedSplits" inverseEntity="Person"/>
+        <relationship name="transaction" optional="YES" maxCount="1" toMany="NO" deletionRule="Nullify" destinationEntity="FinancialTransaction" inverseName="splits" inverseEntity="FinancialTransaction"/>
+    </entity>
+    <elements>
+        <element name="Person" positionX="0" positionY="0" width="128" height="200"/>
+        <element name="UserGroup" positionX="200" positionY="0" width="128" height="150"/>
+        <element name="Subscription" positionX="400" positionY="0" width="128" height="150"/>
+        <element name="FinancialTransaction" positionX="0" positionY="250" width="128" height="150"/>
+        <element name="TransactionSplit" positionX="200" positionY="250" width="128" height="100"/>
+    </elements>
+</model>
