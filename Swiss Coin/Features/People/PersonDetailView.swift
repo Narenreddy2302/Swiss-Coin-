@@ -33,34 +33,22 @@ struct PersonDetailView: View {
                     }
 
                     // Action Buttons (Simulating "Follow" / "Latest Episode")
-                    HStack(spacing: 20) {
-                        Button(action: {
+                    HStack(spacing: 12) {
+                        ActionHeaderButton(
+                            title: "Pay",
+                            icon: "arrow.up.right.circle.fill",
+                            color: Color.green
+                        ) {
                             showingAddTransaction = true
-                        }) {
-                            HStack {
-                                Image(systemName: "arrow.up.right.circle.fill")
-                                Text("Pay")
-                            }
-                            .frame(minWidth: 100)
-                            .padding(.vertical, 8)
-                            .background(Color(uiColor: .tertiarySystemGroupedBackground))
-                            .cornerRadius(20)
                         }
-                        .buttonStyle(PlainButtonStyle())
 
-                        Button(action: {
+                        ActionHeaderButton(
+                            title: "Request",
+                            icon: "arrow.down.left.circle.fill",
+                            color: Color.green
+                        ) {
                             showingAddTransaction = true
-                        }) {
-                            HStack {
-                                Image(systemName: "arrow.down.left.circle.fill")
-                                Text("Request")
-                            }
-                            .frame(minWidth: 100)
-                            .padding(.vertical, 8)
-                            .background(Color(uiColor: .tertiarySystemGroupedBackground))
-                            .cornerRadius(20)
                         }
-                        .buttonStyle(PlainButtonStyle())
                     }
                     .padding(.bottom, 8)
                 }

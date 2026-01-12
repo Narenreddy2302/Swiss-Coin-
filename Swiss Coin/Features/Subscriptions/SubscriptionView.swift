@@ -25,12 +25,25 @@ struct SubscriptionView: View {
     var body: some View {
         NavigationView {
             VStack {
-                Picker("Type", selection: $filterSegment) {
-                    Text("Personal").tag(0)
-                    Text("Shared").tag(1)
+                HStack(spacing: 12) {
+                    ActionHeaderButton(
+                        title: "Personal",
+                        icon: "person.fill",
+                        color: filterSegment == 0 ? .green : .primary
+                    ) {
+                        filterSegment = 0
+                    }
+
+                    ActionHeaderButton(
+                        title: "Shared",
+                        icon: "person.2.fill",
+                        color: filterSegment == 1 ? .green : .primary
+                    ) {
+                        filterSegment = 1
+                    }
                 }
-                .pickerStyle(SegmentedPickerStyle())
-                .padding()
+                .padding(.horizontal)
+                .padding(.top)
 
                 List {
                     ForEach(filteredSubscriptions) { sub in

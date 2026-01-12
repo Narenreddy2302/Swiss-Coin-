@@ -9,12 +9,25 @@ struct PeopleView: View {
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
-                Picker("View", selection: $selectedSegment) {
-                    Text("People").tag(0)
-                    Text("Groups").tag(1)
+                HStack(spacing: 12) {
+                    ActionHeaderButton(
+                        title: "People",
+                        icon: "person.2.fill",
+                        color: selectedSegment == 0 ? .green : .primary
+                    ) {
+                        selectedSegment = 0
+                    }
+
+                    ActionHeaderButton(
+                        title: "Groups",
+                        icon: "person.3.fill",
+                        color: selectedSegment == 1 ? .green : .primary
+                    ) {
+                        selectedSegment = 1
+                    }
                 }
-                .pickerStyle(SegmentedPickerStyle())
-                .padding()
+                .padding(.horizontal)
+                .padding(.top)
                 .background(Color(uiColor: .secondarySystemBackground))
 
                 if selectedSegment == 0 {
