@@ -14,17 +14,20 @@ struct TransactionHistoryView: View {
             ZStack {
                 List {
                     ForEach(transactions) { transaction in
-                        TransactionRow(transaction: transaction)
+                        TransactionRowView(transaction: transaction)
+                            .listRowInsets(EdgeInsets())
+                            .listRowBackground(Color(uiColor: .secondarySystemBackground))
+                            .alignmentGuide(.listRowSeparatorLeading) { _ in 0 }
                     }
                     .onDelete(perform: deleteItems)
                 }
-                .listStyle(.insetGrouped)
+                .listStyle(.plain)
                 .scrollContentBackground(.hidden)
-                .background(Color(uiColor: .secondarySystemBackground))
 
                 // Overlay the Quick Action FAB
                 FinanceQuickActionView()
             }
+            .background(Color(uiColor: .secondarySystemBackground))
             .navigationTitle("History")
             .navigationBarTitleDisplayMode(.large)
         }

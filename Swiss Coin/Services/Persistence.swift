@@ -15,15 +15,7 @@ struct PersistenceController {
         let result = PersistenceController(inMemory: true)
         let viewContext = result.container.viewContext
         // Create sample data for preview
-        let person = Person(context: viewContext)
-        person.id = UUID()
-        person.name = "Alice"
-        person.phoneNumber = "123-456-7890"
-
-        let group = UserGroup(context: viewContext)
-        group.id = UUID()
-        group.name = "Ski Trip"
-        group.createdDate = Date()
+        MockDataGenerator.seed(context: viewContext)
 
         do {
             try viewContext.save()
@@ -94,5 +86,8 @@ struct PersistenceController {
 
         loadPersistentStores()
         container.viewContext.automaticallyMergesChangesFromParent = true
+
+        // Seed mock data for development (has duplicate prevention built-in)
+        MockDataGenerator.seed(context: container.viewContext)
     }
 }
