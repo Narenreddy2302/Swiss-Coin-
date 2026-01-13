@@ -10,6 +10,8 @@ struct HomeView: View {
         animation: .default)
     private var recentTransactions: FetchedResults<FinancialTransaction>
 
+    @State private var showingProfile = false
+
     var body: some View {
         NavigationView {
             ZStack {
@@ -79,6 +81,16 @@ struct HomeView: View {
             }
             .navigationTitle("Home")
             .navigationBarTitleDisplayMode(.large)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    ProfileButton {
+                        showingProfile = true
+                    }
+                }
+            }
+            .sheet(isPresented: $showingProfile) {
+                ProfileView()
+            }
         }
     }
 }
