@@ -75,31 +75,8 @@ struct PersonListView: View {
     var body: some View {
         List {
             ForEach(people) { person in
-                NavigationLink(destination: PersonDetailView(person: person)) {
-                    HStack(spacing: 12) {
-                        Circle()
-                            .fill(Color.green.opacity(0.2))  // Brand color
-                            .frame(width: 48, height: 48)
-                            .overlay(
-                                Text(person.name?.prefix(1).uppercased() ?? "?")
-                                    .font(.title3)
-                                    .fontWeight(.semibold)
-                                    .foregroundColor(.green)
-                            )
-
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text(person.name ?? "Unknown")
-                                .font(.headline)
-                                .foregroundColor(.primary)
-
-                            // Subtitle simulating "Latest Episode" or similar context
-                            Text("See transactions")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                    .padding(.vertical, 16)
-                    .padding(.horizontal, 16)
+                NavigationLink(destination: PersonConversationView(person: person)) {
+                    PersonListRowView(person: person)
                 }
                 .listRowInsets(EdgeInsets())
                 .listRowBackground(Color(uiColor: .secondarySystemBackground))
@@ -108,6 +85,74 @@ struct PersonListView: View {
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
         .background(Color(uiColor: .secondarySystemBackground))
+    }
+}
+
+struct PersonListRowView: View {
+    @ObservedObject var person: Person
+
+    private var balance: Double {
+        person.calculateBalance()
+    }
+
+    private var balanceText: String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .currency
+        formatter.currencyCode = "USD"
+        let formatted = formatter.string(from: NSNumber(value: abs(balance))) ?? "$0.00"
+
+        if balance > 0.01 {
+            return "owes you \(formatted)"
+        } else if balance < -0.01 {
+            return "you owe \(formatted)"
+        } else {
+            return "settled up"
+        }
+    }
+
+    private var balanceColor: Color {
+        if balance > 0.01 {
+            return .green
+        } else if balance < -0.01 {
+            return .red
+        } else {
+            return .secondary
+        }
+    }
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Circle()
+                .fill(Color(hex: person.colorHex ?? "#34C759").opacity(0.2))
+                .frame(width: 48, height: 48)
+                .overlay(
+                    Text(person.initials)
+                        .font(.title3)
+                        .fontWeight(.semibold)
+                        .foregroundColor(Color(hex: person.colorHex ?? "#34C759"))
+                )
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text(person.name ?? "Unknown")
+                    .font(.headline)
+                    .foregroundColor(.primary)
+
+                Text(balanceText)
+                    .font(.subheadline)
+                    .foregroundColor(balanceColor)
+            }
+
+            Spacer()
+
+            if abs(balance) > 0.01 {
+                Text(NumberFormatter.localizedString(from: NSNumber(value: abs(balance)), number: .currency))
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundColor(balanceColor)
+            }
+        }
+        .padding(.vertical, 16)
+        .padding(.horizontal, 16)
     }
 }
 
