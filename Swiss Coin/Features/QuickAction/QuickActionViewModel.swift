@@ -60,8 +60,8 @@ class QuickActionViewModel: ObservableObject {
     // Actually the reference allows toggling "You" in the list.
 
     // To properly support "Me" which isn't in CoreData Person list usually:
-    // We will use a special UUID for "Me".
-    let currentUserUUID = UUID(uuidString: "00000000-0000-0000-0000-000000000000")!
+    // We use the centralized CurrentUser.uuid for consistency across the app.
+    var currentUserUUID: UUID { CurrentUser.uuid }
 
     @Published var participantIds: Set<UUID> = []
 
@@ -396,10 +396,32 @@ class QuickActionViewModel: ObservableObject {
         return result
     }
 
+    // MARK: - Error State
+
+    @Published var showingError = false
+    @Published var errorMessage = ""
+
     // MARK: - Submission
 
     func submitTransaction() {
+        // Validate amount
+        guard amount > 0 else {
+            errorMessage = "Amount must be greater than zero"
+            showingError = true
+            return
+        }
+
+        // Validate transaction name
+        guard !transactionName.trimmingCharacters(in: .whitespaces).isEmpty else {
+            errorMessage = "Please enter a transaction name"
+            showingError = true
+            return
+        }
+
         let splits = calculateSplits()
+
+        // Get or create current user for proper payer reference
+        let currentUser = CurrentUser.getOrCreate(in: viewContext)
 
         let transaction = FinancialTransaction(context: viewContext)
         transaction.id = UUID()
@@ -409,8 +431,8 @@ class QuickActionViewModel: ObservableObject {
         // transaction.currency = selectedCurrency.code // If entity has currency
         // transaction.category = selectedCategory?.id // If entity has category
 
-        // Payer
-        transaction.payer = paidByPerson  // Nil is Me
+        // Payer: Use current user if paidByPerson is nil
+        transaction.payer = paidByPerson ?? currentUser
         transaction.splitMethod = splitMethod.rawValue
 
         if isSplit {
@@ -420,25 +442,11 @@ class QuickActionViewModel: ObservableObject {
                 split.transaction = transaction
                 split.amount = detail.amount
 
-                if userId != currentUserUUID {
-                    split.owedBy = getPerson(byId: userId)
+                if userId == currentUserUUID {
+                    // Current user owes this amount (their share of the expense)
+                    split.owedBy = currentUser
                 } else {
-                    split.owedBy = nil/// Representing Me? Or handle differently.
-                    // Current TransactionSplit entity expects `owedBy` to be `Person?`.
-                    // If it's nil, does it mean Me?
-                    // In my `TransactionViewModel`, `selectedParticipants` included people.
-                    // If I paid, and split with Bob.
-                    // Me: Paid +50, Owe 25. Net +25.
-                    // Bob: Paid 0, Owe 25. Net -25.
-                    // Standard Splitwise model: Transaction has one Payer. Splits define who owes what (Expense share).
-                    // If I paid $50. Split equally.
-                    // Me expense: $25. Bob expense: $25.
-                    // FinancialTransaction stores total $50. Payer = Me.
-                    // TransactionSplit for Bob: amount $25. owedBy = Bob.
-                    // Do we need TransactionSplit for Me?
-                    // Usually yes, if we want to track my expense.
-                    // But if `owedBy` is nil, it might be ambiguous.
-                    // Let's assume `owedBy` nil means Me for now.
+                    split.owedBy = getPerson(byId: userId)
                 }
             }
         }
@@ -447,6 +455,11 @@ class QuickActionViewModel: ObservableObject {
             try viewContext.save()
             closeSheet()
         } catch {
+            // Rollback failed changes
+            viewContext.rollback()
+
+            errorMessage = "Failed to save transaction. Please try again."
+            showingError = true
             print("Error creating transaction: \(error)")
         }
     }

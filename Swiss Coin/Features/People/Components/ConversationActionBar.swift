@@ -71,14 +71,13 @@ private struct ActionButton: View {
     let isEnabled: Bool
     let action: () -> Void
 
-    @State private var isPressed = false
+    // Retained haptic generator for reliable feedback
+    private let hapticGenerator = UIImpactFeedbackGenerator(style: .medium)
 
     var body: some View {
         Button(action: {
-            if isEnabled {
-                // Haptic feedback
-                let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
-                impactFeedback.impactOccurred()
+            if isEnabled || isPrimary {
+                hapticGenerator.impactOccurred()
                 action()
             }
         }) {
@@ -113,6 +112,9 @@ private struct ActionButton: View {
         }
         .buttonStyle(ScaleButtonStyle())
         .disabled(!isEnabled && !isPrimary)
+        .onAppear {
+            hapticGenerator.prepare()
+        }
     }
 }
 

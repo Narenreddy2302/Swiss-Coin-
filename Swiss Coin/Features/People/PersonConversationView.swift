@@ -15,6 +15,11 @@ struct PersonConversationView: View {
     @State private var showingReminder = false
     @State private var showingPersonDetail = false
     @State private var messageText = ""
+    @State private var showingError = false
+    @State private var errorMessage = ""
+
+    // Retained haptic generator for reliable feedback
+    private let hapticGenerator = UIImpactFeedbackGenerator(style: .light)
 
     private var balance: Double {
         person.calculateBalance()
@@ -61,6 +66,7 @@ struct PersonConversationView: View {
                 }
                 .background(Color.black)
                 .onAppear {
+                    hapticGenerator.prepare()
                     scrollToBottom(proxy)
                 }
                 .onChange(of: groupedItems.count) { _, _ in
@@ -108,6 +114,11 @@ struct PersonConversationView: View {
                         }
                     }
             }
+        }
+        .alert("Error", isPresented: $showingError) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(errorMessage)
         }
     }
 
@@ -176,6 +187,13 @@ struct PersonConversationView: View {
         let trimmedText = messageText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedText.isEmpty else { return }
 
+        // Verify the person object is still valid
+        guard !person.isDeleted && person.managedObjectContext != nil else {
+            errorMessage = "Unable to send message. Please try again."
+            showingError = true
+            return
+        }
+
         // Create new chat message
         let newMessage = ChatMessage(context: viewContext)
         newMessage.id = UUID()
@@ -184,15 +202,20 @@ struct PersonConversationView: View {
         newMessage.isFromUser = true
         newMessage.withPerson = person
 
-        // Save context
+        // Save context with proper error handling
         do {
             try viewContext.save()
 
             // Clear input and provide haptic feedback
             messageText = ""
-            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-            impactFeedback.impactOccurred()
+            hapticGenerator.impactOccurred()
         } catch {
+            // Rollback the failed save
+            viewContext.rollback()
+
+            // Show error to user
+            errorMessage = "Failed to send message. Please try again."
+            showingError = true
             print("Error saving message: \(error)")
         }
     }

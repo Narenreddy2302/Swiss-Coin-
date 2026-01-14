@@ -21,10 +21,7 @@ struct ConversationHeaderView: View {
     }
 
     private var balanceAmount: String {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .currency
-        formatter.currencyCode = "USD"
-        return formatter.string(from: NSNumber(value: abs(balance))) ?? "$0.00"
+        CurrencyFormatter.formatAbsolute(balance)
     }
 
     private var balanceColor: Color {
@@ -43,7 +40,7 @@ struct ConversationHeaderView: View {
             Button(action: onAvatarTap) {
                 HStack(spacing: 10) {
                     Circle()
-                        .fill(Color(hex: person.colorHex ?? "#34C759"))
+                        .fill(Color(hex: person.colorHex ?? CurrentUser.defaultColorHex))
                         .frame(width: 36, height: 36)
                         .overlay(
                             Text(person.initials)

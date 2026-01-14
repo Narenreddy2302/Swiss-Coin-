@@ -10,7 +10,7 @@ struct TransactionCardView: View {
     let person: Person
 
     private var isUserPayer: Bool {
-        transaction.payer?.id == Person.currentUserUUID
+        CurrentUser.isCurrentUser(transaction.payer?.id)
     }
 
     private var isPersonPayer: Bool {
@@ -23,7 +23,7 @@ struct TransactionCardView: View {
         } else if isPersonPayer {
             return person.firstName
         } else {
-            return transaction.payer?.firstName ?? "Unknown"
+            return transaction.payer?.firstName ?? "Someone"
         }
     }
 
@@ -37,12 +37,12 @@ struct TransactionCardView: View {
             }
         } else if isPersonPayer {
             // They paid - show what you owe (your share)
-            if let mySplit = splits.first(where: { $0.owedBy?.id == Person.currentUserUUID }) {
+            if let mySplit = splits.first(where: { CurrentUser.isCurrentUser($0.owedBy?.id) }) {
                 return mySplit.amount
             }
         } else {
             // Third party paid (group expense) - show your share
-            if let mySplit = splits.first(where: { $0.owedBy?.id == Person.currentUserUUID }) {
+            if let mySplit = splits.first(where: { CurrentUser.isCurrentUser($0.owedBy?.id) }) {
                 return mySplit.amount
             }
         }
@@ -50,19 +50,16 @@ struct TransactionCardView: View {
     }
 
     private var amountText: String {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .currency
-        formatter.currencyCode = "USD"
-        let formatted = formatter.string(from: NSNumber(value: displayAmount)) ?? "$0.00"
+        let formatted = CurrencyFormatter.format(displayAmount)
 
-        if isUserPayer {
+        if isUserPayer && displayAmount > 0 {
             return "+\(formatted)"
         }
         return formatted
     }
 
     private var amountColor: Color {
-        if isUserPayer {
+        if isUserPayer && displayAmount > 0 {
             return .green
         }
         return .red
@@ -70,6 +67,7 @@ struct TransactionCardView: View {
 
     private var splitCount: Int {
         let splits = transaction.splits as? Set<TransactionSplit> ?? []
+
         // Count unique participants (payer + those who owe)
         var participants = Set<UUID>()
         if let payerId = transaction.payer?.id {
@@ -80,14 +78,22 @@ struct TransactionCardView: View {
                 participants.insert(owedById)
             }
         }
+
+        // Ensure we return at least 1 if there are splits but no identifiable participants
+        if participants.isEmpty && !splits.isEmpty {
+            return splits.count
+        }
+
         return max(participants.count, 1)
     }
 
+    private var splitCountText: String {
+        let count = splitCount
+        return count == 1 ? "1 Person" : "\(count) People"
+    }
+
     private var totalAmountText: String {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .currency
-        formatter.currencyCode = "USD"
-        return formatter.string(from: NSNumber(value: transaction.amount)) ?? "$0.00"
+        CurrencyFormatter.format(transaction.amount)
     }
 
     private var dateText: String {
@@ -108,7 +114,7 @@ struct TransactionCardView: View {
         HStack(alignment: .center, spacing: 12) {
             // Left side - Title and Meta
             VStack(alignment: .leading, spacing: 4) {
-                Text(transaction.title ?? "Unknown")
+                Text(transaction.title ?? "Untitled Transaction")
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundColor(.white)
                     .lineLimit(2)
@@ -126,7 +132,7 @@ struct TransactionCardView: View {
                     .font(.system(size: 18, weight: .bold))
                     .foregroundColor(amountColor)
 
-                Text("\(totalAmountText) / \(splitCount) People")
+                Text("\(totalAmountText) / \(splitCountText)")
                     .font(.system(size: 13, weight: .regular))
                     .foregroundColor(.secondary)
             }

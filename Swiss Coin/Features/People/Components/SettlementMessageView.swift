@@ -10,15 +10,33 @@ struct SettlementMessageView: View {
     let person: Person
 
     private var messageText: String {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .currency
-        formatter.currencyCode = "USD"
-        let formatted = formatter.string(from: NSNumber(value: settlement.amount)) ?? "$0.00"
+        let formatted = CurrencyFormatter.format(settlement.amount)
 
-        if settlement.fromPerson?.id == Person.currentUserUUID {
-            return "You paid \(person.firstName) \(formatted)"
+        // Determine the message based on who paid whom
+        let fromPersonId = settlement.fromPerson?.id
+        let toPersonId = settlement.toPerson?.id
+
+        if CurrentUser.isCurrentUser(fromPersonId) {
+            // Current user paid someone
+            if toPersonId == person.id {
+                return "You paid \(person.firstName) \(formatted)"
+            } else {
+                // Edge case: settlement to someone else (shouldn't appear in this conversation)
+                return "You paid \(settlement.toPerson?.firstName ?? "someone") \(formatted)"
+            }
+        } else if CurrentUser.isCurrentUser(toPersonId) {
+            // Someone paid current user
+            if fromPersonId == person.id {
+                return "\(person.firstName) paid you \(formatted)"
+            } else {
+                // Edge case: payment from someone else
+                return "\(settlement.fromPerson?.firstName ?? "Someone") paid you \(formatted)"
+            }
         } else {
-            return "\(person.firstName) paid you \(formatted)"
+            // Neither party is current user (shouldn't happen in normal flow)
+            let fromName = settlement.fromPerson?.firstName ?? "Someone"
+            let toName = settlement.toPerson?.firstName ?? "someone"
+            return "\(fromName) paid \(toName) \(formatted)"
         }
     }
 

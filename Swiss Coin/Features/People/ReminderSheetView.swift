@@ -18,10 +18,7 @@ struct ReminderSheetView: View {
     @State private var errorMessage = ""
 
     private var formattedAmount: String {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .currency
-        formatter.currencyCode = "USD"
-        return formatter.string(from: NSNumber(value: amount)) ?? "$0.00"
+        CurrencyFormatter.format(amount)
     }
 
     var body: some View {

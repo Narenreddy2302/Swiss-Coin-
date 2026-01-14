@@ -96,10 +96,7 @@ struct PersonListRowView: View {
     }
 
     private var balanceText: String {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .currency
-        formatter.currencyCode = "USD"
-        let formatted = formatter.string(from: NSNumber(value: abs(balance))) ?? "$0.00"
+        let formatted = CurrencyFormatter.formatAbsolute(balance)
 
         if balance > 0.01 {
             return "owes you \(formatted)"
@@ -145,7 +142,7 @@ struct PersonListRowView: View {
             Spacer()
 
             if abs(balance) > 0.01 {
-                Text(NumberFormatter.localizedString(from: NSNumber(value: abs(balance)), number: .currency))
+                Text(CurrencyFormatter.formatAbsolute(balance))
                     .font(.subheadline)
                     .fontWeight(.semibold)
                     .foregroundColor(balanceColor)

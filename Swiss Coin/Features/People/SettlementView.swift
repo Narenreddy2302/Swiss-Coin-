@@ -18,14 +18,18 @@ struct SettlementView: View {
     @State private var showingError = false
     @State private var errorMessage = ""
 
+    // Retained haptic generator for reliable feedback
+    private let hapticGenerator = UINotificationFeedbackGenerator()
+
     private var parsedAmount: Double? {
-        Double(customAmount.replacingOccurrences(of: "$", with: "")
-            .replacingOccurrences(of: ",", with: ""))
+        CurrencyFormatter.parse(customAmount)
     }
 
     private var isValidAmount: Bool {
         guard let amount = parsedAmount else { return false }
-        return amount > 0 && amount <= abs(currentBalance) + 0.01
+        // Amount must be positive and not exceed the absolute balance
+        // Using small epsilon for floating point comparison
+        return amount > 0.001 && amount <= abs(currentBalance) + 0.001
     }
 
     private var directionText: String {
@@ -37,10 +41,7 @@ struct SettlementView: View {
     }
 
     private var formattedBalance: String {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .currency
-        formatter.currencyCode = "USD"
-        return formatter.string(from: NSNumber(value: abs(currentBalance))) ?? "$0.00"
+        CurrencyFormatter.formatAbsolute(currentBalance)
     }
 
     var body: some View {
@@ -107,6 +108,19 @@ struct SettlementView: View {
                             RoundedRectangle(cornerRadius: 12)
                                 .fill(Color(UIColor.tertiarySystemGroupedBackground))
                         )
+
+                    // Validation hint
+                    if let amount = parsedAmount {
+                        if amount > abs(currentBalance) + 0.001 {
+                            Text("Amount cannot exceed \(formattedBalance)")
+                                .font(.caption)
+                                .foregroundColor(.red)
+                        } else if amount <= 0.001 {
+                            Text("Amount must be greater than $0.00")
+                                .font(.caption)
+                                .foregroundColor(.red)
+                        }
+                    }
                 }
                 .padding(.horizontal, 24)
 
@@ -159,6 +173,9 @@ struct SettlementView: View {
             } message: {
                 Text(errorMessage)
             }
+            .onAppear {
+                hapticGenerator.prepare()
+            }
         }
     }
 
@@ -178,8 +195,15 @@ struct SettlementView: View {
     }
 
     private func createSettlement(amount: Double, isFullSettlement: Bool) {
-        // Fetch the current user Person entity
-        let currentUser = fetchCurrentUser()
+        // Validate amount
+        guard amount > 0 else {
+            errorMessage = "Settlement amount must be greater than zero"
+            showingError = true
+            return
+        }
+
+        // Get or create the current user (ensures it exists)
+        let currentUser = CurrentUser.getOrCreate(in: viewContext)
 
         let settlement = Settlement(context: viewContext)
         settlement.id = UUID()
@@ -203,26 +227,15 @@ struct SettlementView: View {
             try viewContext.save()
 
             // Haptic feedback
-            let generator = UINotificationFeedbackGenerator()
-            generator.notificationOccurred(.success)
+            hapticGenerator.notificationOccurred(.success)
 
             dismiss()
         } catch {
+            // Rollback on failure
+            viewContext.rollback()
+
             errorMessage = "Failed to save settlement: \(error.localizedDescription)"
             showingError = true
-        }
-    }
-
-    private func fetchCurrentUser() -> Person? {
-        let fetchRequest: NSFetchRequest<Person> = Person.fetchRequest()
-        fetchRequest.predicate = NSPredicate(format: "id == %@", Person.currentUserUUID as CVarArg)
-        fetchRequest.fetchLimit = 1
-
-        do {
-            let results = try viewContext.fetch(fetchRequest)
-            return results.first
-        } catch {
-            return nil
         }
     }
 }

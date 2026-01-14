@@ -4,10 +4,6 @@ import SwiftUI
 struct TransactionRowView: View {
     let transaction: FinancialTransaction
 
-    // Assuming "You" is the name for the current user for now, or logic will need to handle it.
-    // In a real app, we'd have a UserSession or ID.
-    private let currentUserName = "You"
-
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
             // Main Content
@@ -32,7 +28,7 @@ struct TransactionRowView: View {
 
             // Amount and Details
             VStack(alignment: .trailing, spacing: 4) {
-                Text(formatCurrency(amountToShow))
+                Text(CurrencyFormatter.format(amountToShow))
                     .font(.headline)
                     .fontWeight(.bold)
                     .foregroundColor(amountColor)
@@ -61,8 +57,11 @@ struct TransactionRowView: View {
         // Assuming Payer is the creator for this context, or we just display Payer.
         // The image says "Created by You" etc.
         // We will use the Payer's name.
-        if let name = transaction.payer?.name {
-            return name == currentUserName ? "You" : name
+        if let payerId = transaction.payer?.id {
+            if CurrentUser.isCurrentUser(payerId) {
+                return "You"
+            }
+            return transaction.payer?.name ?? "Unknown"
         }
         return "Unknown"
     }
@@ -70,12 +69,9 @@ struct TransactionRowView: View {
     // MARK: - Amount Logic
 
     private var myShare: Double {
-        // Find split for "You"
+        // Find split for current user
         if let splits = transaction.splits?.allObjects as? [TransactionSplit] {
-            // Try to find a person named "You" or assume current user.
-            // If we can't find "You", maybe we are not involved?
-            // For now, let's search for name "You"
-            if let mySplit = splits.first(where: { $0.owedBy?.name == currentUserName }) {
+            if let mySplit = splits.first(where: { CurrentUser.isCurrentUser($0.owedBy?.id) }) {
                 return mySplit.amount
             }
         }
@@ -83,7 +79,7 @@ struct TransactionRowView: View {
     }
 
     private var isPayer: Bool {
-        return transaction.payer?.name == currentUserName
+        CurrentUser.isCurrentUser(transaction.payer?.id)
     }
 
     private var amountToShow: Double {
@@ -115,27 +111,21 @@ struct TransactionRowView: View {
         let total = transaction.amount
         let peopleCount = transaction.splits?.count ?? 0
 
-        let formattedTotal = formatCurrency(total)
+        let formattedTotal = CurrencyFormatter.format(total)
 
         if peopleCount == 0 {
             return formattedTotal
         } else if peopleCount == 1 {
             // Check who is the 1 person
             if let split = (transaction.splits?.allObjects as? [TransactionSplit])?.first,
-                let name = split.owedBy?.name
+               let owedBy = split.owedBy
             {
-                let display = name == currentUserName ? "You" : name
+                let display = CurrentUser.isCurrentUser(owedBy.id) ? "You" : (owedBy.name ?? "Unknown")
                 return "\(formattedTotal) / \(display)"
             }
             return "\(formattedTotal) / 1 Person"
         } else {
             return "\(formattedTotal) / \(peopleCount) People"
         }
-    }
-
-    private func formatCurrency(_ value: Double) -> String {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .currency
-        return formatter.string(from: NSNumber(value: value)) ?? "$0.00"
     }
 }
