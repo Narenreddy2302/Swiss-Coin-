@@ -15,3 +15,4 @@ struct Swiss_CoinTests {
     }
 
 }
+

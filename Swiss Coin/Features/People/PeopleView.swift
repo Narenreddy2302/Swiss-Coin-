@@ -87,7 +87,7 @@ struct PersonListView: View {
                                     .foregroundColor(.green)
                             )
 
-                        VStack(alignment: .leading, spacing: 4) {
+                        VStack(alignment: .leading, spacing: 6) {
                             Text(person.name ?? "Unknown")
                                 .font(.headline)
                                 .foregroundColor(.primary)
@@ -98,11 +98,14 @@ struct PersonListView: View {
                                 .foregroundColor(.secondary)
                         }
                     }
-                    .padding(.vertical, 4)
+                    .padding(.vertical, 16)
+                    .padding(.horizontal, 16)
                 }
+                .listRowInsets(EdgeInsets())
+                .listRowBackground(Color(uiColor: .secondarySystemBackground))
             }
         }
-        .listStyle(.insetGrouped)
+        .listStyle(.plain)
         .scrollContentBackground(.hidden)
         .background(Color(uiColor: .secondarySystemBackground))
     }
@@ -128,7 +131,7 @@ struct GroupListView: View {
                                     .foregroundColor(.blue)
                             )
 
-                        VStack(alignment: .leading, spacing: 4) {
+                        VStack(alignment: .leading, spacing: 6) {
                             Text(group.name ?? "Unknown Group")
                                 .font(.headline)
                                 .foregroundColor(.primary)
@@ -137,11 +140,14 @@ struct GroupListView: View {
                                 .foregroundColor(.secondary)
                         }
                     }
-                    .padding(.vertical, 4)
+                    .padding(.vertical, 16)
+                    .padding(.horizontal, 16)
                 }
+                .listRowInsets(EdgeInsets())
+                .listRowBackground(Color(uiColor: .secondarySystemBackground))
             }
         }
-        .listStyle(.insetGrouped)
+        .listStyle(.plain)
         .scrollContentBackground(.hidden)
         .background(Color(uiColor: .secondarySystemBackground))
     }
