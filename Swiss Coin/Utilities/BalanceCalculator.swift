@@ -72,7 +72,7 @@ extension Person {
         }.sorted { ($0.date ?? Date()) > ($1.date ?? Date()) }
     }
 
-    /// Get all conversation items (transactions, settlements, reminders) sorted by date
+    /// Get all conversation items (transactions, settlements, reminders, messages) sorted by date
     func getConversationItems() -> [ConversationItem] {
         var items: [ConversationItem] = []
 
@@ -89,6 +89,10 @@ extension Person {
         // Add reminders sent to this person
         let reminders = receivedReminders as? Set<Reminder> ?? []
         items.append(contentsOf: reminders.map { ConversationItem.reminder($0) })
+
+        // Add chat messages with this person
+        let messages = chatMessages as? Set<ChatMessage> ?? []
+        items.append(contentsOf: messages.map { ConversationItem.message($0) })
 
         // Sort by date ascending (oldest first, like iMessage)
         return items.sorted { $0.date < $1.date }
@@ -121,12 +125,14 @@ enum ConversationItem: Identifiable {
     case transaction(FinancialTransaction)
     case settlement(Settlement)
     case reminder(Reminder)
+    case message(ChatMessage)
 
     var id: UUID {
         switch self {
         case .transaction(let t): return t.id ?? UUID()
         case .settlement(let s): return s.id ?? UUID()
         case .reminder(let r): return r.id ?? UUID()
+        case .message(let m): return m.id ?? UUID()
         }
     }
 
@@ -135,6 +141,7 @@ enum ConversationItem: Identifiable {
         case .transaction(let t): return t.date ?? Date()
         case .settlement(let s): return s.date ?? Date()
         case .reminder(let r): return r.createdDate ?? Date()
+        case .message(let m): return m.timestamp ?? Date()
         }
     }
 }

@@ -29,6 +29,7 @@ extension Person {
     @NSManaged public var sentSettlements: NSSet?
     @NSManaged public var receivedSettlements: NSSet?
     @NSManaged public var receivedReminders: NSSet?
+    @NSManaged public var chatMessages: NSSet?
 
 }
 
@@ -105,6 +106,21 @@ extension Person {
 
     @objc(removeReceivedReminders:)
     @NSManaged public func removeFromReceivedReminders(_ values: NSSet)
+}
+
+// MARK: Generated accessors for chatMessages
+extension Person {
+    @objc(addChatMessagesObject:)
+    @NSManaged public func addToChatMessages(_ value: ChatMessage)
+
+    @objc(removeChatMessagesObject:)
+    @NSManaged public func removeFromChatMessages(_ value: ChatMessage)
+
+    @objc(addChatMessages:)
+    @NSManaged public func addToChatMessages(_ values: NSSet)
+
+    @objc(removeChatMessages:)
+    @NSManaged public func removeFromChatMessages(_ values: NSSet)
 }
 
 extension Person: Identifiable {
