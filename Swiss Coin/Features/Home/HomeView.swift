@@ -60,14 +60,10 @@ struct HomeView: View {
                             } else {
                                 LazyVStack(spacing: 0) {
                                     ForEach(recentTransactions.prefix(5)) { transaction in
-                                        TransactionRow(transaction: transaction)
+                                        TransactionRowView(transaction: transaction)
                                         Divider()
-                                            .padding(.leading, 20)
                                     }
                                 }
-                                .background(Color(uiColor: .tertiarySystemGroupedBackground))
-                                .cornerRadius(12)
-                                .padding(.horizontal)
                             }
                         }
                     }
