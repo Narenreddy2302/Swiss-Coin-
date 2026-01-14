@@ -26,6 +26,9 @@ extension Person {
     @NSManaged public var toGroups: NSSet?
     @NSManaged public var toSubscriptions: NSSet?
     @NSManaged public var owedSplits: NSSet?
+    @NSManaged public var sentSettlements: NSSet?
+    @NSManaged public var receivedSettlements: NSSet?
+    @NSManaged public var receivedReminders: NSSet?
 
 }
 
@@ -57,6 +60,51 @@ extension Person {
 
     @objc(removeToGroups:)
     @NSManaged public func removeFromToGroups(_ values: NSSet)
+}
+
+// MARK: Generated accessors for sentSettlements
+extension Person {
+    @objc(addSentSettlementsObject:)
+    @NSManaged public func addToSentSettlements(_ value: Settlement)
+
+    @objc(removeSentSettlementsObject:)
+    @NSManaged public func removeFromSentSettlements(_ value: Settlement)
+
+    @objc(addSentSettlements:)
+    @NSManaged public func addToSentSettlements(_ values: NSSet)
+
+    @objc(removeSentSettlements:)
+    @NSManaged public func removeFromSentSettlements(_ values: NSSet)
+}
+
+// MARK: Generated accessors for receivedSettlements
+extension Person {
+    @objc(addReceivedSettlementsObject:)
+    @NSManaged public func addToReceivedSettlements(_ value: Settlement)
+
+    @objc(removeReceivedSettlementsObject:)
+    @NSManaged public func removeFromReceivedSettlements(_ value: Settlement)
+
+    @objc(addReceivedSettlements:)
+    @NSManaged public func addToReceivedSettlements(_ values: NSSet)
+
+    @objc(removeReceivedSettlements:)
+    @NSManaged public func removeFromReceivedSettlements(_ values: NSSet)
+}
+
+// MARK: Generated accessors for receivedReminders
+extension Person {
+    @objc(addReceivedRemindersObject:)
+    @NSManaged public func addToReceivedReminders(_ value: Reminder)
+
+    @objc(removeReceivedRemindersObject:)
+    @NSManaged public func removeFromReceivedReminders(_ value: Reminder)
+
+    @objc(addReceivedReminders:)
+    @NSManaged public func addToReceivedReminders(_ values: NSSet)
+
+    @objc(removeReceivedReminders:)
+    @NSManaged public func removeFromReceivedReminders(_ values: NSSet)
 }
 
 extension Person: Identifiable {

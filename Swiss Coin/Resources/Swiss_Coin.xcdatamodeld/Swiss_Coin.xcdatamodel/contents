@@ -10,6 +10,9 @@
         <relationship name="toGroups" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="UserGroup" inverseName="members" inverseEntity="UserGroup"/>
         <relationship name="toSubscriptions" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="Subscription" inverseName="subscribers" inverseEntity="Subscription"/>
         <relationship name="owedSplits" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="TransactionSplit" inverseName="owedBy" inverseEntity="TransactionSplit"/>
+        <relationship name="sentSettlements" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="Settlement" inverseName="fromPerson" inverseEntity="Settlement"/>
+        <relationship name="receivedSettlements" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="Settlement" inverseName="toPerson" inverseEntity="Settlement"/>
+        <relationship name="receivedReminders" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="Reminder" inverseName="toPerson" inverseEntity="Reminder"/>
     </entity>
     <entity name="UserGroup" representedClassName="UserGroup" syncable="YES">
         <attribute name="id" optional="NO" attributeType="UUID" usesScalarValueType="NO"/>
@@ -45,11 +48,31 @@
         <relationship name="owedBy" optional="YES" maxCount="1" toMany="NO" deletionRule="Nullify" destinationEntity="Person" inverseName="owedSplits" inverseEntity="Person"/>
         <relationship name="transaction" optional="YES" maxCount="1" toMany="NO" deletionRule="Nullify" destinationEntity="FinancialTransaction" inverseName="splits" inverseEntity="FinancialTransaction"/>
     </entity>
+    <entity name="Settlement" representedClassName="Settlement" syncable="YES">
+        <attribute name="id" optional="NO" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="amount" optional="NO" attributeType="Double" usesScalarValueType="YES"/>
+        <attribute name="date" optional="NO" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="note" optional="YES" attributeType="String"/>
+        <attribute name="isFullSettlement" optional="NO" attributeType="Boolean" usesScalarValueType="YES"/>
+        <relationship name="fromPerson" optional="YES" maxCount="1" toMany="NO" deletionRule="Nullify" destinationEntity="Person" inverseName="sentSettlements" inverseEntity="Person"/>
+        <relationship name="toPerson" optional="YES" maxCount="1" toMany="NO" deletionRule="Nullify" destinationEntity="Person" inverseName="receivedSettlements" inverseEntity="Person"/>
+    </entity>
+    <entity name="Reminder" representedClassName="Reminder" syncable="YES">
+        <attribute name="id" optional="NO" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="createdDate" optional="NO" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="amount" optional="NO" attributeType="Double" usesScalarValueType="YES"/>
+        <attribute name="message" optional="YES" attributeType="String"/>
+        <attribute name="isRead" optional="NO" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="isCleared" optional="NO" attributeType="Boolean" usesScalarValueType="YES"/>
+        <relationship name="toPerson" optional="YES" maxCount="1" toMany="NO" deletionRule="Nullify" destinationEntity="Person" inverseName="receivedReminders" inverseEntity="Person"/>
+    </entity>
     <elements>
-        <element name="Person" positionX="0" positionY="0" width="128" height="200"/>
+        <element name="Person" positionX="0" positionY="0" width="128" height="224"/>
         <element name="UserGroup" positionX="200" positionY="0" width="128" height="150"/>
         <element name="Subscription" positionX="400" positionY="0" width="128" height="150"/>
         <element name="FinancialTransaction" positionX="0" positionY="250" width="128" height="150"/>
         <element name="TransactionSplit" positionX="200" positionY="250" width="128" height="100"/>
+        <element name="Settlement" positionX="400" positionY="250" width="128" height="150"/>
+        <element name="Reminder" positionX="0" positionY="450" width="128" height="150"/>
     </elements>
 </model>
