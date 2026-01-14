@@ -3,44 +3,89 @@ import SwiftUI
 
 struct TransactionRowView: View {
     let transaction: FinancialTransaction
+    var onEdit: (() -> Void)? = nil
+    var onDelete: (() -> Void)? = nil
+
+    @State private var isPressed = false
 
     var body: some View {
-        HStack(alignment: .center, spacing: 12) {
+        HStack(alignment: .center, spacing: Spacing.md) {
             // Main Content
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: Spacing.xs) {
                 Text(transaction.title ?? "Unknown")
-                    .font(.headline)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.primary)
+                    .font(AppTypography.headline())
+                    .foregroundColor(AppColors.textPrimary)
                     .lineLimit(2)
 
-                HStack(spacing: 4) {
+                HStack(spacing: Spacing.xxs) {
                     Text(dateString)
                     Text("|")
                     Text("Created by \(creatorName)")
                 }
-                .font(.footnote)
-                .foregroundColor(.secondary)
-                .fontWeight(.medium)
+                .font(AppTypography.footnote())
+                .foregroundColor(AppColors.textSecondary)
             }
 
             Spacer()
 
             // Amount and Details
-            VStack(alignment: .trailing, spacing: 4) {
+            VStack(alignment: .trailing, spacing: Spacing.xxs) {
                 Text(CurrencyFormatter.format(amountToShow))
-                    .font(.headline)
-                    .fontWeight(.bold)
+                    .font(AppTypography.amount())
                     .foregroundColor(amountColor)
 
                 Text(splitDetails)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                    .fontWeight(.medium)
+                    .font(AppTypography.caption())
+                    .foregroundColor(AppColors.textSecondary)
             }
         }
-        .padding(.vertical, 16)
-        .padding(.horizontal, 16)
+        .padding(.vertical, Spacing.lg)
+        .padding(.horizontal, Spacing.lg)
+        .background(AppColors.backgroundSecondary)
+        .scaleEffect(isPressed ? 0.98 : 1.0)
+        .animation(AppAnimation.quick, value: isPressed)
+        .contentShape(Rectangle())
+        .contextMenu {
+            if onEdit != nil {
+                Button {
+                    HapticManager.tap()
+                    onEdit?()
+                } label: {
+                    Label("Edit Transaction", systemImage: "pencil")
+                }
+            }
+
+            Button {
+                HapticManager.tap()
+            } label: {
+                Label("Share", systemImage: "square.and.arrow.up")
+            }
+
+            Button {
+                HapticManager.tap()
+            } label: {
+                Label("View Details", systemImage: "info.circle")
+            }
+
+            if onDelete != nil {
+                Divider()
+
+                Button(role: .destructive) {
+                    HapticManager.delete()
+                    onDelete?()
+                } label: {
+                    Label("Delete Transaction", systemImage: "trash")
+                }
+            }
+        }
+        .onLongPressGesture(minimumDuration: 0.5, pressing: { pressing in
+            withAnimation(AppAnimation.quick) {
+                isPressed = pressing
+            }
+            if pressing {
+                HapticManager.longPress()
+            }
+        }, perform: {})
     }
 
     // MARK: - Helpers
@@ -53,10 +98,6 @@ struct TransactionRowView: View {
     }
 
     private var creatorName: String {
-        // "Created by" logic.
-        // Assuming Payer is the creator for this context, or we just display Payer.
-        // The image says "Created by You" etc.
-        // We will use the Payer's name.
         if let payerId = transaction.payer?.id {
             if CurrentUser.isCurrentUser(payerId) {
                 return "You"
@@ -69,7 +110,6 @@ struct TransactionRowView: View {
     // MARK: - Amount Logic
 
     private var myShare: Double {
-        // Find split for current user
         if let splits = transaction.splits?.allObjects as? [TransactionSplit] {
             if let mySplit = splits.first(where: { CurrentUser.isCurrentUser($0.owedBy?.id) }) {
                 return mySplit.amount
@@ -85,11 +125,8 @@ struct TransactionRowView: View {
     private var amountToShow: Double {
         if isPayer {
             let lent = transaction.amount - myShare
-            // If I paid for others, show what I am owed (lent).
-            // If I paid only for myself, show the expense.
             return lent > 0 ? lent : transaction.amount
         } else {
-            // I owe my share
             return myShare
         }
     }
@@ -98,12 +135,12 @@ struct TransactionRowView: View {
         if isPayer {
             let lent = transaction.amount - myShare
             if lent > 0 {
-                return Color.green
+                return AppColors.positive
             } else {
-                return Color.red  // Personal Expense
+                return AppColors.negative
             }
         } else {
-            return Color.red  // I owe
+            return AppColors.negative
         }
     }
 
@@ -116,7 +153,6 @@ struct TransactionRowView: View {
         if peopleCount == 0 {
             return formattedTotal
         } else if peopleCount == 1 {
-            // Check who is the 1 person
             if let split = (transaction.splits?.allObjects as? [TransactionSplit])?.first,
                let owedBy = split.owedBy
             {

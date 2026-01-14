@@ -8,6 +8,10 @@ import SwiftUI
 struct TransactionCardView: View {
     let transaction: FinancialTransaction
     let person: Person
+    var onEdit: (() -> Void)? = nil
+    var onDelete: (() -> Void)? = nil
+
+    @State private var isPressed = false
 
     private var isUserPayer: Bool {
         CurrentUser.isCurrentUser(transaction.payer?.id)
@@ -60,9 +64,9 @@ struct TransactionCardView: View {
 
     private var amountColor: Color {
         if isUserPayer && displayAmount > 0 {
-            return .green
+            return AppColors.positive
         }
-        return .red
+        return AppColors.negative
     }
 
     private var splitCount: Int {
@@ -111,38 +115,84 @@ struct TransactionCardView: View {
     }
 
     var body: some View {
-        HStack(alignment: .center, spacing: 12) {
+        HStack(alignment: .center, spacing: Spacing.md) {
             // Left side - Title and Meta
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text(transaction.title ?? "Untitled Transaction")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(.white)
+                    .font(AppTypography.bodyBold())
+                    .foregroundColor(AppColors.textPrimary)
                     .lineLimit(2)
 
                 Text(metaText)
-                    .font(.system(size: 13, weight: .regular))
-                    .foregroundColor(.secondary)
+                    .font(AppTypography.footnote())
+                    .foregroundColor(AppColors.textSecondary)
             }
 
             Spacer()
 
             // Right side - Amount and Split Info
-            VStack(alignment: .trailing, spacing: 4) {
+            VStack(alignment: .trailing, spacing: Spacing.xxs) {
                 Text(amountText)
-                    .font(.system(size: 18, weight: .bold))
+                    .font(AppTypography.amount())
                     .foregroundColor(amountColor)
 
                 Text("\(totalAmountText) / \(splitCountText)")
-                    .font(.system(size: 13, weight: .regular))
-                    .foregroundColor(.secondary)
+                    .font(AppTypography.footnote())
+                    .foregroundColor(AppColors.textSecondary)
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 14)
+        .padding(.horizontal, Spacing.lg)
+        .padding(.vertical, Spacing.md)
         .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color(UIColor.systemGray6).opacity(0.3))
+            RoundedRectangle(cornerRadius: CornerRadius.md)
+                .fill(AppColors.cardBackground)
         )
-        .padding(.horizontal, 16)
+        .scaleEffect(isPressed ? 0.98 : 1.0)
+        .animation(AppAnimation.quick, value: isPressed)
+        .padding(.horizontal, Spacing.lg)
+        .contentShape(RoundedRectangle(cornerRadius: CornerRadius.md))
+        .contextMenu {
+            if onEdit != nil {
+                Button {
+                    HapticManager.tap()
+                    onEdit?()
+                } label: {
+                    Label("Edit Transaction", systemImage: "pencil")
+                }
+            }
+
+            Button {
+                HapticManager.tap()
+                // Share action
+            } label: {
+                Label("Share", systemImage: "square.and.arrow.up")
+            }
+
+            Button {
+                HapticManager.tap()
+                // View details action
+            } label: {
+                Label("View Details", systemImage: "info.circle")
+            }
+
+            if onDelete != nil {
+                Divider()
+
+                Button(role: .destructive) {
+                    HapticManager.delete()
+                    onDelete?()
+                } label: {
+                    Label("Delete Transaction", systemImage: "trash")
+                }
+            }
+        }
+        .onLongPressGesture(minimumDuration: 0.5, pressing: { pressing in
+            withAnimation(AppAnimation.quick) {
+                isPressed = pressing
+            }
+            if pressing {
+                HapticManager.longPress()
+            }
+        }, perform: {})
     }
 }

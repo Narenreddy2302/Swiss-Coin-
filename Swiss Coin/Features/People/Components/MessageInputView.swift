@@ -14,33 +14,38 @@ struct MessageInputView: View {
     }
 
     var body: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: Spacing.sm) {
             // Text Input Field
             TextField("iMessage", text: $messageText, axis: .vertical)
-                .font(.system(size: 16))
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
+                .font(AppTypography.body())
+                .padding(.horizontal, Spacing.md)
+                .padding(.vertical, Spacing.sm)
                 .background(
-                    RoundedRectangle(cornerRadius: 20)
+                    RoundedRectangle(cornerRadius: CornerRadius.xl)
                         .fill(Color(UIColor.systemGray6))
                 )
                 .lineLimit(1...5)
 
             // Send Button
-            Button(action: {
+            Button {
                 if canSend {
+                    HapticManager.sendMessage()
                     onSend()
                 }
-            }) {
+            } label: {
                 Image(systemName: "arrow.up.circle.fill")
-                    .font(.system(size: 32))
-                    .foregroundColor(canSend ? .green : .green.opacity(0.3))
+                    .font(.system(size: IconSize.xl))
+                    .foregroundColor(canSend ? AppColors.accent : AppColors.accent.opacity(0.3))
             }
             .disabled(!canSend)
-            .animation(.easeInOut(duration: 0.15), value: canSend)
+            .buttonStyle(AppButtonStyle(haptic: .none)) // Haptic handled in action
+            .animation(AppAnimation.quick, value: canSend)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background(Color.black)
+        .padding(.horizontal, Spacing.md)
+        .padding(.vertical, Spacing.sm)
+        .background(AppColors.background)
+        .onAppear {
+            HapticManager.prepare()
+        }
     }
 }

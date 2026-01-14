@@ -26,22 +26,25 @@ struct ConversationHeaderView: View {
 
     private var balanceColor: Color {
         if balance > 0.01 {
-            return .green
+            return AppColors.positive
         } else if balance < -0.01 {
-            return .red
+            return AppColors.negative
         } else {
-            return .secondary
+            return AppColors.neutral
         }
     }
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: Spacing.md) {
             // Avatar and Name (left side)
-            Button(action: onAvatarTap) {
-                HStack(spacing: 10) {
+            Button {
+                HapticManager.navigate()
+                onAvatarTap()
+            } label: {
+                HStack(spacing: Spacing.sm) {
                     Circle()
                         .fill(Color(hex: person.colorHex ?? CurrentUser.defaultColorHex))
-                        .frame(width: 36, height: 36)
+                        .frame(width: AvatarSize.sm, height: AvatarSize.sm)
                         .overlay(
                             Text(person.initials)
                                 .font(.system(size: 14, weight: .bold))
@@ -49,27 +52,27 @@ struct ConversationHeaderView: View {
                         )
 
                     Text(person.displayName)
-                        .font(.system(size: 17, weight: .semibold))
-                        .foregroundColor(.primary)
+                        .font(AppTypography.bodyBold())
+                        .foregroundColor(AppColors.textPrimary)
                 }
             }
-            .buttonStyle(PlainButtonStyle())
+            .buttonStyle(AppButtonStyle(haptic: .none))
 
             Spacer()
 
             // Balance (right side)
             VStack(alignment: .trailing, spacing: 2) {
                 Text(balanceLabel)
-                    .font(.system(size: 12, weight: .regular))
-                    .foregroundColor(.secondary)
+                    .font(AppTypography.caption())
+                    .foregroundColor(AppColors.textSecondary)
 
                 Text(balanceAmount)
-                    .font(.system(size: 17, weight: .bold))
+                    .font(AppTypography.amount())
                     .foregroundColor(balanceColor)
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 10)
-        .background(Color.black)
+        .padding(.horizontal, Spacing.lg)
+        .padding(.vertical, Spacing.sm)
+        .background(AppColors.background)
     }
 }

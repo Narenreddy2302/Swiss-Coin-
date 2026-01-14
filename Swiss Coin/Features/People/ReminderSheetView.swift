@@ -23,73 +23,81 @@ struct ReminderSheetView: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 24) {
+            VStack(spacing: Spacing.xxl) {
                 // Header
-                VStack(spacing: 16) {
+                VStack(spacing: Spacing.lg) {
                     Image(systemName: "bell.badge.fill")
-                        .font(.system(size: 48))
-                        .foregroundColor(.orange)
+                        .font(.system(size: IconSize.xxl))
+                        .foregroundColor(AppColors.warning)
 
                     Text("Send Reminder")
-                        .font(.title2)
-                        .fontWeight(.bold)
+                        .font(AppTypography.title2())
 
                     Text("\(person.firstName) owes you \(formattedAmount)")
-                        .font(.headline)
-                        .foregroundColor(.secondary)
+                        .font(AppTypography.headline())
+                        .foregroundColor(AppColors.textSecondary)
                 }
-                .padding(.top, 30)
+                .padding(.top, Spacing.section)
 
                 // Message Field
-                VStack(alignment: .leading, spacing: 12) {
+                VStack(alignment: .leading, spacing: Spacing.md) {
                     Text("Message (optional)")
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                        .foregroundColor(.secondary)
+                        .font(AppTypography.subheadlineMedium())
+                        .foregroundColor(AppColors.textSecondary)
 
                     TextField("Add a friendly reminder message...", text: $message, axis: .vertical)
+                        .font(AppTypography.body())
                         .lineLimit(3...6)
-                        .padding()
+                        .padding(Spacing.lg)
                         .background(
-                            RoundedRectangle(cornerRadius: 12)
-                                .fill(Color(UIColor.tertiarySystemGroupedBackground))
+                            RoundedRectangle(cornerRadius: CornerRadius.md)
+                                .fill(AppColors.backgroundTertiary)
                         )
                 }
-                .padding(.horizontal, 24)
+                .padding(.horizontal, Spacing.xxl)
 
                 Spacer()
 
                 // Send Button
                 Button {
+                    HapticManager.buttonPress()
                     sendReminder()
                 } label: {
                     HStack {
                         Image(systemName: "bell.fill")
+                            .font(.system(size: IconSize.sm))
                         Text("Send Reminder")
-                            .fontWeight(.semibold)
+                            .font(AppTypography.bodyBold())
                     }
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
-                    .frame(height: 50)
-                    .background(Color.orange)
-                    .cornerRadius(12)
+                    .frame(height: ButtonHeight.lg)
+                    .background(AppColors.warning)
+                    .cornerRadius(CornerRadius.md)
                 }
-                .padding(.horizontal, 24)
-                .padding(.bottom, 20)
+                .buttonStyle(AppButtonStyle(haptic: .none))
+                .padding(.horizontal, Spacing.xxl)
+                .padding(.bottom, Spacing.xl)
             }
-            .background(Color(UIColor.secondarySystemBackground))
+            .background(AppColors.backgroundSecondary)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") {
+                        HapticManager.cancel()
                         dismiss()
                     }
                 }
             }
             .alert("Error", isPresented: $showingError) {
-                Button("OK", role: .cancel) {}
+                Button("OK", role: .cancel) {
+                    HapticManager.tap()
+                }
             } message: {
                 Text(errorMessage)
+            }
+            .onAppear {
+                HapticManager.prepare()
             }
         }
     }
@@ -108,13 +116,10 @@ struct ReminderSheetView: View {
 
         do {
             try viewContext.save()
-
-            // Haptic feedback
-            let generator = UINotificationFeedbackGenerator()
-            generator.notificationOccurred(.warning)
-
+            HapticManager.warning()
             dismiss()
         } catch {
+            HapticManager.error()
             errorMessage = "Failed to send reminder: \(error.localizedDescription)"
             showingError = true
         }

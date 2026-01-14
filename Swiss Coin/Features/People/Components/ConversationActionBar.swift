@@ -20,7 +20,7 @@ struct ConversationActionBar: View {
     }
 
     var body: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: Spacing.sm) {
             // Add Transaction Button (Primary - Green Accent)
             ActionButton(
                 title: "Add",
@@ -56,9 +56,12 @@ struct ConversationActionBar: View {
                 }
             )
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .background(Color.black)
+        .padding(.horizontal, Spacing.lg)
+        .padding(.vertical, Spacing.md)
+        .background(AppColors.background)
+        .onAppear {
+            HapticManager.prepare()
+        }
     }
 }
 
@@ -71,59 +74,43 @@ private struct ActionButton: View {
     let isEnabled: Bool
     let action: () -> Void
 
-    // Retained haptic generator for reliable feedback
-    private let hapticGenerator = UIImpactFeedbackGenerator(style: .medium)
-
     var body: some View {
         Button(action: {
             if isEnabled || isPrimary {
-                hapticGenerator.impactOccurred()
+                HapticManager.buttonPress()
                 action()
             }
         }) {
-            HStack(spacing: 8) {
+            HStack(spacing: Spacing.sm) {
                 if isPrimary {
                     // Green circle with plus icon for Add button
                     ZStack {
                         Circle()
-                            .fill(Color.green)
-                            .frame(width: 24, height: 24)
+                            .fill(AppColors.accent)
+                            .frame(width: IconSize.lg, height: IconSize.lg)
 
                         Image(systemName: icon)
-                            .font(.system(size: 12, weight: .bold))
+                            .font(.system(size: IconSize.xs, weight: .bold))
                             .foregroundColor(.black)
                     }
                 } else {
                     Image(systemName: icon)
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(isEnabled ? .secondary : .secondary.opacity(0.4))
+                        .font(.system(size: IconSize.sm, weight: .medium))
+                        .foregroundColor(isEnabled ? AppColors.textSecondary : AppColors.disabled)
                 }
 
                 Text(title)
-                    .font(.system(size: 15, weight: .medium))
-                    .foregroundColor(isPrimary ? .green : (isEnabled ? .secondary : .secondary.opacity(0.4)))
+                    .font(AppTypography.subheadlineMedium())
+                    .foregroundColor(isPrimary ? AppColors.accent : (isEnabled ? AppColors.textSecondary : AppColors.disabled))
             }
             .frame(maxWidth: .infinity)
-            .frame(height: 50)
+            .frame(height: ButtonHeight.lg)
             .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(Color(UIColor.systemGray6).opacity(0.3))
+                RoundedRectangle(cornerRadius: CornerRadius.md)
+                    .fill(AppColors.cardBackground)
             )
         }
-        .buttonStyle(ScaleButtonStyle())
+        .buttonStyle(AppButtonStyle(haptic: .none)) // Haptic handled in action
         .disabled(!isEnabled && !isPrimary)
-        .onAppear {
-            hapticGenerator.prepare()
-        }
-    }
-}
-
-// MARK: - Scale Button Style
-
-private struct ScaleButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .scaleEffect(configuration.isPressed ? 0.96 : 1.0)
-            .animation(.easeOut(duration: 0.15), value: configuration.isPressed)
     }
 }
