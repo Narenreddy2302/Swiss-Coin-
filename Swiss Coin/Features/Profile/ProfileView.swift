@@ -3,9 +3,9 @@ import SwiftUI
 struct ProfileView: View {
     @Environment(\.dismiss) var dismiss
 
-    // TODO: Replace with actual authenticated user data
-    let userName = "No user logged in"
-    let userEmail = ""
+    // Profile data - replace with actual authenticated user data when available
+    let userName = "Naren Reddy"
+    let userEmail = "naren@example.com"
 
     var body: some View {
         NavigationView {
@@ -17,17 +17,15 @@ struct ProfileView: View {
                             .resizable()
                             .aspectRatio(contentMode: .fill)
                             .frame(width: 60, height: 60)
-                            .foregroundColor(.gray)
+                            .foregroundColor(.blue)
 
                         VStack(alignment: .leading, spacing: 4) {
                             Text(userName)
                                 .font(.title2)
                                 .fontWeight(.semibold)
-                            if !userEmail.isEmpty {
-                                Text(userEmail)
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
-                            }
+                            Text(userEmail)
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
                         }
                     }
                     .padding(.vertical, 8)
