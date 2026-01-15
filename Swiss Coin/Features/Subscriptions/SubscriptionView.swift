@@ -25,55 +25,8 @@ struct SubscriptionView: View {
     var body: some View {
         NavigationView {
             VStack {
-                HStack(spacing: 12) {
-                    ActionHeaderButton(
-                        title: "Personal",
-                        icon: "person.fill",
-                        color: filterSegment == 0 ? .green : .primary
-                    ) {
-                        filterSegment = 0
-                    }
-
-                    ActionHeaderButton(
-                        title: "Shared",
-                        icon: "person.2.fill",
-                        color: filterSegment == 1 ? .green : .primary
-                    ) {
-                        filterSegment = 1
-                    }
-                }
-                .padding(.horizontal)
-                .padding(.top)
-
-                List {
-                    ForEach(filteredSubscriptions) { sub in
-                        HStack {
-                            VStack(alignment: .leading) {
-                                Text(sub.name ?? "Unknown Subscription")
-                                    .font(.headline)
-                                Text(sub.cycle ?? "Monthly")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
-                            Spacer()
-                            Text(
-                                Formatters.currency.string(from: NSNumber(value: sub.amount))
-                                    ?? "$0.00")
-                        }
-                    }
-                    .onDelete(perform: deleteItems)
-                }
-                .overlay(
-                    SwiftUI.Group {
-                        if filteredSubscriptions.isEmpty {
-                            Text("No subscriptions found")
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                )
-                .listStyle(.insetGrouped)
-                .scrollContentBackground(.hidden)
-                .background(Color(uiColor: .secondarySystemBackground))
+                filterHeader
+                subscriptionList
             }
             .background(Color(uiColor: .secondarySystemBackground))
             .navigationTitle("Subscriptions")
@@ -84,6 +37,63 @@ struct SubscriptionView: View {
                     }
                 }
             }
+        }
+    }
+
+    private var filterHeader: some View {
+        HStack(spacing: 12) {
+            ActionHeaderButton(
+                title: "Personal",
+                icon: "person.fill",
+                color: filterSegment == 0 ? .green : .primary
+            ) {
+                filterSegment = 0
+            }
+
+            ActionHeaderButton(
+                title: "Shared",
+                icon: "person.2.fill",
+                color: filterSegment == 1 ? .green : .primary
+            ) {
+                filterSegment = 1
+            }
+        }
+        .padding(.horizontal)
+        .padding(.top)
+    }
+
+    private var subscriptionList: some View {
+        List {
+            ForEach(filteredSubscriptions) { sub in
+                subscriptionRow(for: sub)
+            }
+            .onDelete(perform: deleteItems)
+        }
+        .overlay(emptyStateOverlay)
+        .listStyle(.insetGrouped)
+        .scrollContentBackground(.hidden)
+        .background(Color(uiColor: .secondarySystemBackground))
+    }
+
+    private func subscriptionRow(for sub: Subscription) -> some View {
+        HStack {
+            VStack(alignment: .leading) {
+                Text(sub.name ?? "Unknown Subscription")
+                    .font(.headline)
+                Text(sub.cycle ?? "Monthly")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            Spacer()
+            Text(CurrencyFormatter.format(sub.amount))
+        }
+    }
+
+    @ViewBuilder
+    private var emptyStateOverlay: some View {
+        if filteredSubscriptions.isEmpty {
+            Text("No subscriptions found")
+                .foregroundColor(.secondary)
         }
     }
 

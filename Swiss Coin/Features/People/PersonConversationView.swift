@@ -9,6 +9,7 @@ import SwiftUI
 struct PersonConversationView: View {
     @ObservedObject var person: Person
     @Environment(\.managedObjectContext) private var viewContext
+    @Environment(\.dismiss) var dismiss
 
     @State private var showingAddTransaction = false
     @State private var showingSettlement = false
@@ -29,20 +30,25 @@ struct PersonConversationView: View {
         person.getGroupedConversationItems()
     }
 
+    // Balance display properties (for navigation bar)
+    private var balanceLabel: String {
+        if balance > 0.01 { return "owes you" }
+        else if balance < -0.01 { return "you owe" }
+        else { return "settled" }
+    }
+
+    private var balanceAmount: String {
+        CurrencyFormatter.formatAbsolute(balance)
+    }
+
+    private var balanceColor: Color {
+        if balance > 0.01 { return AppColors.positive }
+        else if balance < -0.01 { return AppColors.negative }
+        else { return AppColors.neutral }
+    }
+
     var body: some View {
         VStack(spacing: 0) {
-            // Compact Header
-            ConversationHeaderView(
-                person: person,
-                balance: balance,
-                onAvatarTap: {
-                    showingPersonDetail = true
-                }
-            )
-
-            Divider()
-                .background(Color(UIColor.systemGray4))
-
             // Messages Area
             ScrollViewReader { proxy in
                 ScrollView {
@@ -91,11 +97,64 @@ struct PersonConversationView: View {
             )
         }
         .background(Color.black)
+        .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(Color.black, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
         .toolbar(.hidden, for: .tabBar) // Hide tab bar like iMessage
-        .tint(Color(UIColor.systemGray)) // Light gray back button
+        .tint(Color(UIColor.systemGray))
+        .navigationBarBackButtonHidden(true)
+        .toolbar {
+            // Leading: Back button + Avatar + Name
+            ToolbarItem(placement: .topBarLeading) {
+                HStack(spacing: Spacing.sm) {
+                    // Custom back button (chevron only)
+                    Button {
+                        dismiss()
+                    } label: {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 17, weight: .semibold))
+                            .foregroundColor(Color(UIColor.systemGray))
+                    }
+
+                    // Avatar + Name (tappable for profile)
+                    Button {
+                        HapticManager.navigate()
+                        showingPersonDetail = true
+                    } label: {
+                        HStack(spacing: Spacing.sm) {
+                            Circle()
+                                .fill(Color(UIColor.systemGray3))
+                                .frame(width: AvatarSize.xs, height: AvatarSize.xs)
+                                .overlay(
+                                    Text(person.initials)
+                                        .font(.system(size: 13, weight: .semibold))
+                                        .foregroundColor(Color(UIColor.systemGray))
+                                )
+
+                            Text(person.displayName)
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundColor(.white)
+                                .lineLimit(1)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+
+            // Trailing: Balance info
+            ToolbarItem(placement: .topBarTrailing) {
+                VStack(alignment: .trailing, spacing: 1) {
+                    Text(balanceLabel)
+                        .font(.system(size: 11, weight: .regular))
+                        .foregroundColor(Color(UIColor.systemGray))
+
+                    Text(balanceAmount)
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundColor(balanceColor)
+                }
+            }
+        }
         .sheet(isPresented: $showingAddTransaction) {
             AddTransactionView(initialParticipant: person)
         }
