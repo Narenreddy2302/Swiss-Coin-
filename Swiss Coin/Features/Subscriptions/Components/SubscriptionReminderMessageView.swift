@@ -1,0 +1,52 @@
+//
+//  SubscriptionReminderMessageView.swift
+//  Swiss Coin
+//
+//  Message view for displaying a reminder in the subscription conversation.
+//
+
+import SwiftUI
+
+struct SubscriptionReminderMessageView: View {
+    let reminder: SubscriptionReminder
+
+    private var messageText: String {
+        let formatted = CurrencyFormatter.format(reminder.amount)
+        let personName = reminder.toPerson?.firstName ?? "Someone"
+        return "Reminder sent to \(personName) for \(formatted)"
+    }
+
+    var body: some View {
+        VStack(spacing: 4) {
+            HStack(spacing: 6) {
+                Image(systemName: "bell.fill")
+                    .font(.system(size: 12))
+                    .foregroundColor(.orange)
+
+                Text(messageText)
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .foregroundColor(.secondary)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .background(
+                Capsule()
+                    .fill(Color.orange.opacity(0.15))
+            )
+
+            if let message = reminder.message, !message.isEmpty {
+                Text("\"\(message)\"")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                    .italic()
+            }
+
+            Text(reminder.createdDate ?? Date(), style: .date)
+                .font(.caption2)
+                .foregroundColor(.secondary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 8)
+    }
+}

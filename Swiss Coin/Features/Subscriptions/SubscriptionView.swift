@@ -1,109 +1,76 @@
+//
+//  SubscriptionView.swift
+//  Swiss Coin
+//
+//  Main subscription view with segmented control for Personal and Shared subscriptions.
+//  Follows the PeopleView pattern exactly for consistency.
+//
+
 import CoreData
 import SwiftUI
 
 struct SubscriptionView: View {
+    @State private var selectedSegment = 0  // 0 = Personal, 1 = Shared
     @Environment(\.managedObjectContext) private var viewContext
-
-    // 0 = Personal, 1 = Shared
-    @State private var filterSegment = 0
-
-    @FetchRequest(
-        sortDescriptors: [NSSortDescriptor(keyPath: \Subscription.name, ascending: true)],
-        animation: .default)
-    private var subscriptions: FetchedResults<Subscription>
-
-    var filteredSubscriptions: [Subscription] {
-        subscriptions.filter { sub in
-            if filterSegment == 0 {
-                return !sub.isShared
-            } else {
-                return sub.isShared
-            }
-        }
-    }
+    @State private var showingAddSubscription = false
 
     var body: some View {
-        NavigationView {
-            VStack {
-                filterHeader
-                subscriptionList
+        NavigationStack {
+            VStack(spacing: 0) {
+                // Segment Header (matching People's page)
+                HStack(spacing: Spacing.md) {
+                    ActionHeaderButton(
+                        title: "Personal",
+                        icon: "person.fill",
+                        color: selectedSegment == 0 ? AppColors.accent : AppColors.textPrimary
+                    ) {
+                        HapticManager.selectionChanged()
+                        selectedSegment = 0
+                    }
+
+                    ActionHeaderButton(
+                        title: "Shared",
+                        icon: "person.2.fill",
+                        color: selectedSegment == 1 ? AppColors.accent : AppColors.textPrimary
+                    ) {
+                        HapticManager.selectionChanged()
+                        selectedSegment = 1
+                    }
+                }
+                .padding(.horizontal)
+                .padding(.top)
+                .background(AppColors.backgroundSecondary)
+
+                // Content with animation
+                Group {
+                    if selectedSegment == 0 {
+                        PersonalSubscriptionListView()
+                    } else {
+                        SharedSubscriptionListView()
+                    }
+                }
+                .animation(AppAnimation.standard, value: selectedSegment)
             }
-            .background(Color(uiColor: .secondarySystemBackground))
+            .background(AppColors.backgroundSecondary)
             .navigationTitle("Subscriptions")
+            .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: { /* Add Subscription Action */  }) {
+                    Button {
+                        HapticManager.tap()
+                        showingAddSubscription = true
+                    } label: {
                         Image(systemName: "plus")
+                            .font(.system(size: 17, weight: .semibold))
                     }
                 }
             }
-        }
-    }
-
-    private var filterHeader: some View {
-        HStack(spacing: 12) {
-            ActionHeaderButton(
-                title: "Personal",
-                icon: "person.fill",
-                color: filterSegment == 0 ? .green : .primary
-            ) {
-                filterSegment = 0
+            .sheet(isPresented: $showingAddSubscription) {
+                AddSubscriptionView(isSharedDefault: selectedSegment == 1)
+                    .environment(\.managedObjectContext, viewContext)
             }
-
-            ActionHeaderButton(
-                title: "Shared",
-                icon: "person.2.fill",
-                color: filterSegment == 1 ? .green : .primary
-            ) {
-                filterSegment = 1
-            }
-        }
-        .padding(.horizontal)
-        .padding(.top)
-    }
-
-    private var subscriptionList: some View {
-        List {
-            ForEach(filteredSubscriptions) { sub in
-                subscriptionRow(for: sub)
-            }
-            .onDelete(perform: deleteItems)
-        }
-        .overlay(emptyStateOverlay)
-        .listStyle(.insetGrouped)
-        .scrollContentBackground(.hidden)
-        .background(Color(uiColor: .secondarySystemBackground))
-    }
-
-    private func subscriptionRow(for sub: Subscription) -> some View {
-        HStack {
-            VStack(alignment: .leading) {
-                Text(sub.name ?? "Unknown Subscription")
-                    .font(.headline)
-                Text(sub.cycle ?? "Monthly")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
-            Spacer()
-            Text(CurrencyFormatter.format(sub.amount))
-        }
-    }
-
-    @ViewBuilder
-    private var emptyStateOverlay: some View {
-        if filteredSubscriptions.isEmpty {
-            Text("No subscriptions found")
-                .foregroundColor(.secondary)
-        }
-    }
-
-    private func deleteItems(offsets: IndexSet) {
-        withAnimation {
-            offsets.map { filteredSubscriptions[$0] }.forEach(viewContext.delete)
-            do {
-                try viewContext.save()
-            } catch {
-                print(error)
+            .onAppear {
+                HapticManager.prepare()
             }
         }
     }
