@@ -18,9 +18,6 @@ struct PersonConversationView: View {
     @State private var showingError = false
     @State private var errorMessage = ""
 
-    // Retained haptic generator for reliable feedback
-    private let hapticGenerator = UIImpactFeedbackGenerator(style: .light)
-
     private var balance: Double {
         person.calculateBalance()
     }
@@ -29,31 +26,43 @@ struct PersonConversationView: View {
         person.getGroupedConversationItems()
     }
 
+    private var balanceLabel: String {
+        if balance > 0.01 {
+            return "owes you"
+        } else if balance < -0.01 {
+            return "you owe"
+        } else {
+            return "settled"
+        }
+    }
+
+    private var balanceColor: Color {
+        if balance > 0.01 {
+            return AppColors.positive
+        } else if balance < -0.01 {
+            return AppColors.negative
+        } else {
+            return AppColors.neutral
+        }
+    }
+
     var body: some View {
         VStack(spacing: 0) {
-            // Compact Header
-            ConversationHeaderView(
-                person: person,
-                balance: balance,
-                onAvatarTap: {
-                    showingPersonDetail = true
-                }
-            )
-
+            // Divider below navigation bar
             Divider()
                 .background(Color(UIColor.systemGray4))
 
             // Messages Area
             ScrollViewReader { proxy in
                 ScrollView {
-                    LazyVStack(spacing: 8) {
+                    LazyVStack(spacing: Spacing.sm) {
                         if groupedItems.isEmpty {
                             emptyStateView
                         } else {
                             ForEach(groupedItems) { group in
                                 DateHeaderView(dateString: group.dateDisplayString)
-                                    .padding(.top, 16)
-                                    .padding(.bottom, 8)
+                                    .padding(.top, Spacing.lg)
+                                    .padding(.bottom, Spacing.sm)
 
                                 ForEach(group.items) { item in
                                     conversationItemView(for: item)
@@ -62,15 +71,15 @@ struct PersonConversationView: View {
                             }
                         }
                     }
-                    .padding(.vertical, 16)
+                    .padding(.vertical, Spacing.lg)
                 }
-                .background(Color.black)
+                .background(AppColors.background)
                 .onAppear {
-                    hapticGenerator.prepare()
+                    HapticManager.prepare()
                     scrollToBottom(proxy)
                 }
                 .onChange(of: groupedItems.count) { _, _ in
-                    withAnimation {
+                    withAnimation(AppAnimation.standard) {
                         scrollToBottom(proxy)
                     }
                 }
@@ -90,11 +99,51 @@ struct PersonConversationView: View {
                 onSend: sendMessage
             )
         }
-        .background(Color.black)
+        .background(AppColors.background)
         .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(Color.black, for: .navigationBar)
+        .toolbarBackground(AppColors.background, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
-        .toolbar(.hidden, for: .tabBar) // Hide tab bar like iMessage
+        .toolbar(.hidden, for: .tabBar)
+        .toolbar {
+            // Center: Avatar + Name (tappable)
+            ToolbarItem(placement: .principal) {
+                Button {
+                    HapticManager.navigate()
+                    showingPersonDetail = true
+                } label: {
+                    HStack(spacing: Spacing.sm) {
+                        // Avatar
+                        Circle()
+                            .fill(Color(UIColor.systemGray3))
+                            .frame(width: AvatarSize.sm, height: AvatarSize.sm)
+                            .overlay(
+                                Text(person.initials)
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundColor(.white.opacity(0.8))
+                            )
+
+                        // Name
+                        Text(person.displayName)
+                            .font(AppTypography.bodyBold())
+                            .foregroundColor(AppColors.textPrimary)
+                    }
+                }
+                .buttonStyle(.plain)
+            }
+
+            // Trailing: Balance info
+            ToolbarItem(placement: .topBarTrailing) {
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text(balanceLabel)
+                        .font(AppTypography.caption())
+                        .foregroundColor(AppColors.textSecondary)
+
+                    Text(CurrencyFormatter.formatAbsolute(balance))
+                        .font(AppTypography.amount())
+                        .foregroundColor(balanceColor)
+                }
+            }
+        }
         .sheet(isPresented: $showingAddTransaction) {
             AddTransactionView(initialParticipant: person)
         }
@@ -110,6 +159,7 @@ struct PersonConversationView: View {
                     .toolbar {
                         ToolbarItem(placement: .navigationBarTrailing) {
                             Button("Done") {
+                                HapticManager.tap()
                                 showingPersonDetail = false
                             }
                         }
@@ -117,7 +167,9 @@ struct PersonConversationView: View {
             }
         }
         .alert("Error", isPresented: $showingError) {
-            Button("OK", role: .cancel) {}
+            Button("OK", role: .cancel) {
+                HapticManager.tap()
+            }
         } message: {
             Text(errorMessage)
         }
@@ -126,20 +178,20 @@ struct PersonConversationView: View {
     // MARK: - Empty State
 
     private var emptyStateView: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: Spacing.lg) {
             Spacer()
 
             Image(systemName: "message.fill")
-                .font(.system(size: 48))
-                .foregroundColor(.secondary.opacity(0.5))
+                .font(.system(size: IconSize.xxl))
+                .foregroundColor(AppColors.textSecondary.opacity(0.5))
 
             Text("No conversations yet")
-                .font(.headline)
-                .foregroundColor(.secondary)
+                .font(AppTypography.headline())
+                .foregroundColor(AppColors.textSecondary)
 
             Text("Start a conversation with \(person.firstName) or add an expense")
-                .font(.subheadline)
-                .foregroundColor(.secondary)
+                .font(AppTypography.subheadline())
+                .foregroundColor(AppColors.textSecondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 40)
 
@@ -159,15 +211,15 @@ struct PersonConversationView: View {
                 transaction: transaction,
                 person: person
             )
-            .padding(.vertical, 4)
+            .padding(.vertical, Spacing.xxs)
 
         case .settlement(let settlement):
             SettlementMessageView(settlement: settlement, person: person)
-                .padding(.vertical, 4)
+                .padding(.vertical, Spacing.xxs)
 
         case .reminder(let reminder):
             ReminderMessageView(reminder: reminder, person: person)
-                .padding(.vertical, 4)
+                .padding(.vertical, Spacing.xxs)
 
         case .message(let chatMessage):
             MessageBubbleView(message: chatMessage)
@@ -188,14 +240,13 @@ struct PersonConversationView: View {
         let trimmedText = messageText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedText.isEmpty else { return }
 
-        // Verify the person object is still valid
         guard !person.isDeleted && person.managedObjectContext != nil else {
+            HapticManager.error()
             errorMessage = "Unable to send message. Please try again."
             showingError = true
             return
         }
 
-        // Create new chat message
         let newMessage = ChatMessage(context: viewContext)
         newMessage.id = UUID()
         newMessage.content = trimmedText
@@ -203,21 +254,15 @@ struct PersonConversationView: View {
         newMessage.isFromUser = true
         newMessage.withPerson = person
 
-        // Save context with proper error handling
         do {
             try viewContext.save()
-
-            // Clear input and provide haptic feedback
             messageText = ""
-            hapticGenerator.impactOccurred()
+            HapticManager.sendMessage()
         } catch {
-            // Rollback the failed save
             viewContext.rollback()
-
-            // Show error to user
+            HapticManager.error()
             errorMessage = "Failed to send message. Please try again."
             showingError = true
-            print("Error saving message: \(error)")
         }
     }
 }
