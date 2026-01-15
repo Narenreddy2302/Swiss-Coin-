@@ -197,28 +197,8 @@ struct GroupListView: View {
     var body: some View {
         List {
             ForEach(groups) { group in
-                NavigationLink(destination: GroupDetailView(group: group)) {
-                    HStack(spacing: Spacing.md) {
-                        RoundedRectangle(cornerRadius: CornerRadius.sm)
-                            .fill(Color.blue.opacity(0.15))
-                            .frame(width: AvatarSize.lg, height: AvatarSize.lg)
-                            .overlay(
-                                Image(systemName: "person.3.fill")
-                                    .font(AppTypography.headline())
-                                    .foregroundColor(.blue)
-                            )
-
-                        VStack(alignment: .leading, spacing: Spacing.xs) {
-                            Text(group.name ?? "Unknown Group")
-                                .font(AppTypography.headline())
-                                .foregroundColor(AppColors.textPrimary)
-                            Text("\(group.members?.count ?? 0) members")
-                                .font(AppTypography.subheadline())
-                                .foregroundColor(AppColors.textSecondary)
-                        }
-                    }
-                    .padding(.vertical, Spacing.lg)
-                    .padding(.horizontal, Spacing.lg)
+                NavigationLink(destination: GroupConversationView(group: group)) {
+                    GroupListRowView(group: group)
                 }
                 .listRowInsets(EdgeInsets())
                 .listRowBackground(AppColors.backgroundSecondary)
@@ -227,5 +207,105 @@ struct GroupListView: View {
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
         .background(AppColors.backgroundSecondary)
+    }
+}
+
+struct GroupListRowView: View {
+    @ObservedObject var group: UserGroup
+    @State private var isPressed = false
+
+    private var balance: Double {
+        group.calculateBalance()
+    }
+
+    private var balanceText: String {
+        let formatted = CurrencyFormatter.formatAbsolute(balance)
+
+        if balance > 0.01 {
+            return "you're owed \(formatted)"
+        } else if balance < -0.01 {
+            return "you owe \(formatted)"
+        } else {
+            return "settled up"
+        }
+    }
+
+    private var balanceColor: Color {
+        if balance > 0.01 {
+            return AppColors.positive
+        } else if balance < -0.01 {
+            return AppColors.negative
+        } else {
+            return AppColors.neutral
+        }
+    }
+
+    private var memberCount: Int {
+        group.members?.count ?? 0
+    }
+
+    var body: some View {
+        HStack(spacing: Spacing.md) {
+            RoundedRectangle(cornerRadius: CornerRadius.sm)
+                .fill(Color(hex: group.colorHex ?? "#007AFF").opacity(0.2))
+                .frame(width: AvatarSize.lg, height: AvatarSize.lg)
+                .overlay(
+                    Image(systemName: "person.3.fill")
+                        .font(AppTypography.headline())
+                        .foregroundColor(Color(hex: group.colorHex ?? "#007AFF"))
+                )
+
+            VStack(alignment: .leading, spacing: Spacing.xs) {
+                Text(group.name ?? "Unknown Group")
+                    .font(AppTypography.headline())
+                    .foregroundColor(AppColors.textPrimary)
+
+                HStack(spacing: Spacing.xs) {
+                    Text("\(memberCount) members")
+                        .font(AppTypography.subheadline())
+                        .foregroundColor(AppColors.textSecondary)
+
+                    Text("•")
+                        .font(AppTypography.subheadline())
+                        .foregroundColor(AppColors.textSecondary)
+
+                    Text(balanceText)
+                        .font(AppTypography.subheadline())
+                        .foregroundColor(balanceColor)
+                }
+            }
+
+            Spacer()
+
+            if abs(balance) > 0.01 {
+                Text(CurrencyFormatter.formatAbsolute(balance))
+                    .font(AppTypography.amountSmall())
+                    .foregroundColor(balanceColor)
+            }
+        }
+        .padding(.vertical, Spacing.lg)
+        .padding(.horizontal, Spacing.lg)
+        .scaleEffect(isPressed ? 0.98 : 1.0)
+        .animation(AppAnimation.quick, value: isPressed)
+        .contentShape(Rectangle())
+        .contextMenu {
+            Button {
+                HapticManager.tap()
+            } label: {
+                Label("View Group Info", systemImage: "info.circle")
+            }
+
+            Button {
+                HapticManager.tap()
+            } label: {
+                Label("Add Expense", systemImage: "plus.circle")
+            }
+
+            Button {
+                HapticManager.tap()
+            } label: {
+                Label("Send Reminders", systemImage: "bell")
+            }
+        }
     }
 }

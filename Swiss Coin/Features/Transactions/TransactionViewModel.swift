@@ -35,6 +35,9 @@ final class TransactionViewModel: ObservableObject {
     // Map PersonID -> Double
     @Published var rawInputs: [UUID: String] = [:]
 
+    // Optional group for group transactions
+    var selectedGroup: UserGroup?
+
     private var viewContext: NSManagedObjectContext
 
     init(context: NSManagedObjectContext) {
@@ -157,6 +160,11 @@ final class TransactionViewModel: ObservableObject {
         transaction.date = date
         transaction.payer = selectedPayer
         transaction.splitMethod = splitMethod.rawValue
+
+        // Assign group if this is a group transaction
+        if let group = selectedGroup {
+            transaction.group = group
+        }
 
         // Save Splits
         for person in selectedParticipants {

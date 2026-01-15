@@ -13,9 +13,11 @@ struct AddTransactionView: View {
     // Let's use a custom init.
 
     var initialParticipant: Person?
+    var initialGroup: UserGroup?
 
-    init(viewContext: NSManagedObjectContext? = nil, initialParticipant: Person? = nil) {
+    init(viewContext: NSManagedObjectContext? = nil, initialParticipant: Person? = nil, initialGroup: UserGroup? = nil) {
         self.initialParticipant = initialParticipant
+        self.initialGroup = initialGroup
         // We can't access Environment here easily for the default init used by navigation.
         // So we will rely on ".onAppear" pattern or just passing it if possible.
         // Actually, let's just make it ObservedObject and create it in the wrapper? No, that's messy.
@@ -127,6 +129,14 @@ struct AddTransactionView: View {
             .onAppear {
                 if let person = initialParticipant {
                     viewModel.selectedParticipants.insert(person)
+                }
+                if let group = initialGroup {
+                    viewModel.selectedGroup = group
+                    // Pre-populate participants with group members
+                    let members = group.members as? Set<Person> ?? []
+                    for member in members {
+                        viewModel.selectedParticipants.insert(member)
+                    }
                 }
             }
             .scrollContentBackground(.hidden)

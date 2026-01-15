@@ -24,6 +24,7 @@ extension UserGroup {
     @NSManaged public var createdDate: Date?
     @NSManaged public var members: NSSet?
     @NSManaged public var transactions: NSSet?
+    @NSManaged public var chatMessages: NSSet?
 
 }
 
@@ -40,6 +41,21 @@ extension UserGroup {
 
     @objc(removeMembers:)
     @NSManaged public func removeFromMembers(_ values: NSSet)
+}
+
+// MARK: Generated accessors for chatMessages
+extension UserGroup {
+    @objc(addChatMessagesObject:)
+    @NSManaged public func addToChatMessages(_ value: ChatMessage)
+
+    @objc(removeChatMessagesObject:)
+    @NSManaged public func removeFromChatMessages(_ value: ChatMessage)
+
+    @objc(addChatMessages:)
+    @NSManaged public func addToChatMessages(_ values: NSSet)
+
+    @objc(removeChatMessages:)
+    @NSManaged public func removeFromChatMessages(_ values: NSSet)
 }
 
 extension UserGroup: Identifiable {
