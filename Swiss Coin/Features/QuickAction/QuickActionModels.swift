@@ -59,14 +59,8 @@ struct Currency: Identifiable, Hashable {
     let name: String  // Full name (e.g., "US Dollar")
     let flag: String  // Country flag emoji
 
-    static let all: [Currency] = [
-        Currency(id: "USD", code: "USD", symbol: "$", name: "US Dollar", flag: "🇺🇸"),
-        Currency(id: "EUR", code: "EUR", symbol: "€", name: "Euro", flag: "🇪🇺"),
-        Currency(id: "GBP", code: "GBP", symbol: "£", name: "British Pound", flag: "🇬🇧"),
-        Currency(id: "INR", code: "INR", symbol: "₹", name: "Indian Rupee", flag: "🇮🇳"),
-        Currency(id: "JPY", code: "JPY", symbol: "¥", name: "Japanese Yen", flag: "🇯🇵"),
-        Currency(id: "AUD", code: "AUD", symbol: "A$", name: "Australian Dollar", flag: "🇦🇺"),
-    ]
+    // TODO: Populate from API or configuration
+    static let all: [Currency] = []
 }
 
 /// Transaction categories for organizing expenses/income
@@ -76,16 +70,8 @@ struct Category: Identifiable, Hashable {
     let icon: String  // Emoji icon
     let color: Color  // Theme color
 
-    static let all: [Category] = [
-        Category(id: "food", name: "Food & Drinks", icon: "🍽️", color: .orange),
-        Category(id: "transport", name: "Transport", icon: "🚗", color: .blue),
-        Category(id: "shopping", name: "Shopping", icon: "🛍️", color: .pink),
-        Category(id: "entertainment", name: "Entertainment", icon: "🎬", color: .purple),
-        Category(id: "bills", name: "Bills", icon: "📄", color: .indigo),
-        Category(id: "health", name: "Health", icon: "💊", color: .red),
-        Category(id: "travel", name: "Travel", icon: "✈️", color: .green),
-        Category(id: "other", name: "Other", icon: "📦", color: .gray),
-    ]
+    // TODO: Populate from API or configuration
+    static let all: [Category] = []
 }
 
 /// Stores the calculated split details for each participant

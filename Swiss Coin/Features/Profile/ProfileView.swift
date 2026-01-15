@@ -2,11 +2,10 @@ import SwiftUI
 
 struct ProfileView: View {
     @Environment(\.dismiss) var dismiss
-    
-    // Hardcoded for now as per plan, since we don't have a structured "Me" user model yet
-    let profileImageName = "person.crop.circle.fill" 
-    let userName = "Naren Reddy"
-    let userEmail = "naren@example.com"
+
+    // TODO: Replace with actual authenticated user data
+    let userName = "No user logged in"
+    let userEmail = ""
 
     var body: some View {
         NavigationView {
@@ -14,29 +13,26 @@ struct ProfileView: View {
                 // Header Profile Section
                 Section {
                     HStack(spacing: 16) {
-                        Image("uploaded_image_1768262251873") // Try to use asset if available, otherwise fallback handles it
+                        Image(systemName: "person.crop.circle.fill")
                             .resizable()
                             .aspectRatio(contentMode: .fill)
                             .frame(width: 60, height: 60)
-                            .clipShape(Circle())
-                            .overlay(Circle().stroke(Color.gray.opacity(0.2), lineWidth: 1))
-                            .onAppear {
-                                // Fallback logic if image load fails would go here in a real app
-                                // For now we rely on the system to handle missing assets or use a placeholder in ProfileButton
-                            }
-                        
+                            .foregroundColor(.gray)
+
                         VStack(alignment: .leading, spacing: 4) {
                             Text(userName)
                                 .font(.title2)
                                 .fontWeight(.semibold)
-                            Text(userEmail)
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
+                            if !userEmail.isEmpty {
+                                Text(userEmail)
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                            }
                         }
                     }
                     .padding(.vertical, 8)
                 }
-                
+
                 // Account Settings
                 Section("Account") {
                     NavigationLink(destination: Text("Personal Details")) {
@@ -49,7 +45,7 @@ struct ProfileView: View {
                         Label("Privacy & Security", systemImage: "lock")
                     }
                 }
-                
+
                 // App Settings
                 Section("Preferences") {
                     NavigationLink(destination: Text("Appearance")) {
@@ -59,7 +55,7 @@ struct ProfileView: View {
                         Label("Currency", systemImage: "dollarsign.circle")
                     }
                 }
-                
+
                 Section {
                     Button(action: {
                         // Sign out logic

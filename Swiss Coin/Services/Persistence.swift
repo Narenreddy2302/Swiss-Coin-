@@ -13,18 +13,7 @@ struct PersistenceController {
     @MainActor
     static let preview: PersistenceController = {
         let result = PersistenceController(inMemory: true)
-        let viewContext = result.container.viewContext
-        // Create sample data for preview
-        MockDataGenerator.seed(context: viewContext)
-
-        do {
-            try viewContext.save()
-        } catch {
-            // Replace this implementation with code to handle the error appropriately.
-            // fatalError() causes the application to generate a crash log and terminate. You should not use this function in a shipping application, although it may be useful during development.
-            let nsError = error as NSError
-            fatalError("Unresolved error \(nsError), \(nsError.userInfo)")
-        }
+        // Preview uses empty CoreData store - no mock data seeding
         return result
     }()
 
@@ -86,8 +75,6 @@ struct PersistenceController {
 
         loadPersistentStores()
         container.viewContext.automaticallyMergesChangesFromParent = true
-
-        // Seed mock data for development (has duplicate prevention built-in)
-        MockDataGenerator.seed(context: container.viewContext)
+        // App launches with empty CoreData store - ready for real data
     }
 }

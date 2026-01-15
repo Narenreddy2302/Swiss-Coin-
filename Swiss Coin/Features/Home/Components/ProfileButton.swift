@@ -6,7 +6,7 @@ struct ProfileButton: View {
     var body: some View {
         Button(action: action) {
             ZStack {
-                // Placeholder gradient/color if no image
+                // Gradient background
                 Circle()
                     .fill(
                         LinearGradient(
@@ -17,13 +17,12 @@ struct ProfileButton: View {
                     )
                     .frame(width: 32, height: 32)
 
-                // User Initials or Image
-                // Using an image from assets if available to match the reference
-                // Ideally this would come from a user model
-                Image("uploaded_image_1768262251873")  // Assuming this might be added to assets, strictly based on user context
+                // System icon for profile (ready for real user image from auth)
+                Image(systemName: "person.crop.circle.fill")
                     .resizable()
                     .aspectRatio(contentMode: .fill)
                     .frame(width: 32, height: 32)
+                    .foregroundColor(.white)
                     .clipShape(Circle())
                     .overlay(
                         Circle()
