@@ -158,7 +158,15 @@ final class TransactionViewModel: ObservableObject {
         transaction.title = title
         transaction.amount = totalAmountDouble
         transaction.date = date
-        transaction.payer = selectedPayer
+
+        // If no payer selected ("Me"), use current user; otherwise use selected person
+        if let payer = selectedPayer {
+            transaction.payer = payer
+        } else {
+            // "Me" was selected - use current user
+            transaction.payer = CurrentUser.getOrCreate(in: viewContext)
+        }
+
         transaction.splitMethod = splitMethod.rawValue
 
         // Assign group if this is a group transaction

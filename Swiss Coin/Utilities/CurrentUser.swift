@@ -2,7 +2,8 @@
 //  CurrentUser.swift
 //  Swiss Coin
 //
-//  Centralized current user management to ensure consistent UUID usage across the app.
+//  Centralized current user identity management.
+//  Uses a fixed UUID to identify the current user across all views and calculations.
 //
 
 import CoreData
@@ -10,14 +11,13 @@ import Foundation
 
 /// Centralized current user identity management
 struct CurrentUser {
-    /// The fixed UUID for the current user ("You"/"Me")
-    /// This UUID is used throughout the app to identify the current user
+    /// Fixed UUID for the current user - ensures consistency across the app
     static let uuid = UUID(uuidString: "00000000-0000-0000-0000-000000000000")!
 
-    /// The display name for the current user
+    /// Display name for the current user
     static let displayName = "You"
 
-    /// The initials for the current user
+    /// Initials for the current user
     static let initials = "ME"
 
     /// Default color hex for the current user's avatar
@@ -29,11 +29,7 @@ struct CurrentUser {
     @discardableResult
     static func getOrCreate(in context: NSManagedObjectContext) -> Person {
         // Try to fetch existing current user
-        let fetchRequest: NSFetchRequest<Person> = Person.fetchRequest()
-        fetchRequest.predicate = NSPredicate(format: "id == %@", uuid as CVarArg)
-        fetchRequest.fetchLimit = 1
-
-        if let existingUser = try? context.fetch(fetchRequest).first {
+        if let existingUser = fetch(from: context) {
             return existingUser
         }
 
