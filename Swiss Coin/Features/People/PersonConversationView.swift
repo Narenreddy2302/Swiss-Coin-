@@ -95,6 +95,7 @@ struct PersonConversationView: View {
         .toolbarBackground(Color.black, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
         .toolbar(.hidden, for: .tabBar) // Hide tab bar like iMessage
+        .tint(Color(UIColor.systemGray)) // Light gray back button
         .sheet(isPresented: $showingAddTransaction) {
             AddTransactionView(initialParticipant: person)
         }

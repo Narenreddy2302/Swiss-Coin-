@@ -41,33 +41,34 @@ struct ConversationHeaderView: View {
                 HapticManager.navigate()
                 onAvatarTap()
             } label: {
-                HStack(spacing: Spacing.sm) {
+                HStack(spacing: Spacing.md) {
+                    // Gray avatar with gray initials (matching iMessage style)
                     Circle()
-                        .fill(Color(hex: person.colorHex ?? CurrentUser.defaultColorHex))
-                        .frame(width: AvatarSize.sm, height: AvatarSize.sm)
+                        .fill(Color(UIColor.systemGray3))
+                        .frame(width: AvatarSize.md, height: AvatarSize.md)
                         .overlay(
                             Text(person.initials)
-                                .font(.system(size: 14, weight: .bold))
-                                .foregroundColor(.white)
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundColor(Color(UIColor.systemGray))
                         )
 
                     Text(person.displayName)
-                        .font(AppTypography.bodyBold())
-                        .foregroundColor(AppColors.textPrimary)
+                        .font(.system(size: 18, weight: .regular))
+                        .foregroundColor(.white)
                 }
             }
             .buttonStyle(AppButtonStyle(haptic: .none))
 
             Spacer()
 
-            // Balance (right side)
+            // Balance (right side) - "owes you" above amount
             VStack(alignment: .trailing, spacing: 2) {
                 Text(balanceLabel)
-                    .font(AppTypography.caption())
-                    .foregroundColor(AppColors.textSecondary)
+                    .font(.system(size: 13, weight: .regular))
+                    .foregroundColor(Color(UIColor.systemGray))
 
                 Text(balanceAmount)
-                    .font(AppTypography.amount())
+                    .font(.system(size: 18, weight: .semibold))
                     .foregroundColor(balanceColor)
             }
         }
