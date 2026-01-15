@@ -35,10 +35,17 @@ struct ParticipantSelectorView: View {
                             toggle(person)
                         }) {
                             HStack {
-                                Text(person.name ?? "Unknown")
+                                // Show "Me" for current user, otherwise show name
+                                if CurrentUser.isCurrentUser(person) {
+                                    Text("Me")
+                                        .fontWeight(.medium)
+                                } else {
+                                    Text(person.name ?? "Unknown")
+                                }
                                 Spacer()
                                 if selectedParticipants.contains(person) {
                                     Image(systemName: "checkmark")
+                                        .foregroundColor(.green)
                                 }
                             }
                         }

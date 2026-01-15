@@ -153,10 +153,15 @@ struct PayerPicker: View {
         animation: .default)
     private var people: FetchedResults<Person>
 
+    // Filter out current user since "Me" is already shown as an option
+    private var otherPeople: [Person] {
+        people.filter { !CurrentUser.isCurrentUser($0) }
+    }
+
     var body: some View {
         Picker("Who Paid?", selection: $selection) {
             Text("Me").tag(Person?.none)
-            ForEach(people) { person in
+            ForEach(otherPeople) { person in
                 Text(person.name ?? "Unknown").tag(person as Person?)
             }
         }
