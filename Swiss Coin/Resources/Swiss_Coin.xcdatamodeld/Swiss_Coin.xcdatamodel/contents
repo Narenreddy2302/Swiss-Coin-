@@ -14,6 +14,7 @@
         <relationship name="receivedSettlements" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="Settlement" inverseName="toPerson" inverseEntity="Settlement"/>
         <relationship name="receivedReminders" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="Reminder" inverseName="toPerson" inverseEntity="Reminder"/>
         <relationship name="chatMessages" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="ChatMessage" inverseName="withPerson" inverseEntity="ChatMessage"/>
+        <relationship name="subscriptionPayments" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="SubscriptionPayment" inverseName="payer" inverseEntity="SubscriptionPayment"/>
     </entity>
     <entity name="ChatMessage" representedClassName="ChatMessage" syncable="YES">
         <attribute name="id" optional="NO" attributeType="UUID" usesScalarValueType="NO"/>
@@ -22,6 +23,7 @@
         <attribute name="isFromUser" optional="NO" attributeType="Boolean" usesScalarValueType="YES"/>
         <relationship name="withPerson" optional="YES" maxCount="1" toMany="NO" deletionRule="Nullify" destinationEntity="Person" inverseName="chatMessages" inverseEntity="Person"/>
         <relationship name="withGroup" optional="YES" maxCount="1" toMany="NO" deletionRule="Nullify" destinationEntity="UserGroup" inverseName="chatMessages" inverseEntity="UserGroup"/>
+        <relationship name="withSubscription" optional="YES" maxCount="1" toMany="NO" deletionRule="Nullify" destinationEntity="Subscription" inverseName="chatMessages" inverseEntity="Subscription"/>
     </entity>
     <entity name="UserGroup" representedClassName="UserGroup" syncable="YES">
         <attribute name="id" optional="NO" attributeType="UUID" usesScalarValueType="NO"/>
@@ -38,9 +40,50 @@
         <attribute name="name" optional="NO" attributeType="String"/>
         <attribute name="amount" optional="NO" attributeType="Double" usesScalarValueType="YES"/>
         <attribute name="cycle" optional="NO" attributeType="String"/>
+        <attribute name="customCycleDays" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="startDate" optional="NO" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="nextBillingDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="isShared" optional="NO" attributeType="Boolean" usesScalarValueType="YES"/>
-        <relationship name="subscribers" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="Person" inverseName="toSubscriptions" inverseEntity="Person"/>
+        <attribute name="isActive" optional="NO" attributeType="Boolean" defaultValueString="YES" usesScalarValueType="YES"/>
+        <attribute name="category" optional="YES" attributeType="String"/>
+        <attribute name="iconName" optional="YES" attributeType="String"/>
+        <attribute name="colorHex" optional="YES" attributeType="String"/>
+        <attribute name="notes" optional="YES" attributeType="String"/>
+        <attribute name="notificationEnabled" optional="NO" attributeType="Boolean" defaultValueString="YES" usesScalarValueType="YES"/>
+        <attribute name="notificationDaysBefore" optional="NO" attributeType="Integer 16" defaultValueString="3" usesScalarValueType="YES"/>
+        <relationship name="subscribers" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="Person" inverseName="toSubscriptions" inverseEntity="Subscription"/>
+        <relationship name="payments" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="SubscriptionPayment" inverseName="subscription" inverseEntity="SubscriptionPayment"/>
+        <relationship name="chatMessages" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="ChatMessage" inverseName="withSubscription" inverseEntity="ChatMessage"/>
+        <relationship name="reminders" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="SubscriptionReminder" inverseName="subscription" inverseEntity="SubscriptionReminder"/>
+        <relationship name="settlements" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="SubscriptionSettlement" inverseName="subscription" inverseEntity="SubscriptionSettlement"/>
+    </entity>
+    <entity name="SubscriptionPayment" representedClassName="SubscriptionPayment" syncable="YES">
+        <attribute name="id" optional="NO" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="amount" optional="NO" attributeType="Double" usesScalarValueType="YES"/>
+        <attribute name="date" optional="NO" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="billingPeriodStart" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="billingPeriodEnd" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="note" optional="YES" attributeType="String"/>
+        <relationship name="subscription" optional="YES" maxCount="1" toMany="NO" deletionRule="Nullify" destinationEntity="Subscription" inverseName="payments" inverseEntity="Subscription"/>
+        <relationship name="payer" optional="YES" maxCount="1" toMany="NO" deletionRule="Nullify" destinationEntity="Person" inverseName="subscriptionPayments" inverseEntity="Person"/>
+    </entity>
+    <entity name="SubscriptionSettlement" representedClassName="SubscriptionSettlement" syncable="YES">
+        <attribute name="id" optional="NO" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="amount" optional="NO" attributeType="Double" usesScalarValueType="YES"/>
+        <attribute name="date" optional="NO" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="note" optional="YES" attributeType="String"/>
+        <relationship name="subscription" optional="YES" maxCount="1" toMany="NO" deletionRule="Nullify" destinationEntity="Subscription" inverseName="settlements" inverseEntity="Subscription"/>
+        <relationship name="fromPerson" optional="YES" maxCount="1" toMany="NO" deletionRule="Nullify" destinationEntity="Person"/>
+        <relationship name="toPerson" optional="YES" maxCount="1" toMany="NO" deletionRule="Nullify" destinationEntity="Person"/>
+    </entity>
+    <entity name="SubscriptionReminder" representedClassName="SubscriptionReminder" syncable="YES">
+        <attribute name="id" optional="NO" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="createdDate" optional="NO" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="amount" optional="NO" attributeType="Double" usesScalarValueType="YES"/>
+        <attribute name="message" optional="YES" attributeType="String"/>
+        <attribute name="isRead" optional="NO" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <relationship name="subscription" optional="YES" maxCount="1" toMany="NO" deletionRule="Nullify" destinationEntity="Subscription" inverseName="reminders" inverseEntity="Subscription"/>
+        <relationship name="toPerson" optional="YES" maxCount="1" toMany="NO" deletionRule="Nullify" destinationEntity="Person"/>
     </entity>
     <entity name="FinancialTransaction" representedClassName="FinancialTransaction" syncable="YES">
         <attribute name="id" optional="NO" attributeType="UUID" usesScalarValueType="NO"/>
@@ -77,13 +120,16 @@
         <relationship name="toPerson" optional="YES" maxCount="1" toMany="NO" deletionRule="Nullify" destinationEntity="Person" inverseName="receivedReminders" inverseEntity="Person"/>
     </entity>
     <elements>
-        <element name="Person" positionX="0" positionY="0" width="128" height="239"/>
+        <element name="Person" positionX="0" positionY="0" width="128" height="254"/>
         <element name="UserGroup" positionX="200" positionY="0" width="128" height="165"/>
-        <element name="Subscription" positionX="400" positionY="0" width="128" height="150"/>
-        <element name="FinancialTransaction" positionX="0" positionY="250" width="128" height="150"/>
-        <element name="TransactionSplit" positionX="200" positionY="250" width="128" height="100"/>
-        <element name="Settlement" positionX="400" positionY="250" width="128" height="150"/>
-        <element name="Reminder" positionX="0" positionY="450" width="128" height="150"/>
-        <element name="ChatMessage" positionX="200" positionY="450" width="128" height="135"/>
+        <element name="Subscription" positionX="400" positionY="0" width="128" height="329"/>
+        <element name="SubscriptionPayment" positionX="600" positionY="0" width="128" height="165"/>
+        <element name="SubscriptionSettlement" positionX="600" positionY="200" width="128" height="150"/>
+        <element name="SubscriptionReminder" positionX="600" positionY="400" width="128" height="150"/>
+        <element name="FinancialTransaction" positionX="0" positionY="300" width="128" height="150"/>
+        <element name="TransactionSplit" positionX="200" positionY="300" width="128" height="100"/>
+        <element name="Settlement" positionX="400" positionY="400" width="128" height="150"/>
+        <element name="Reminder" positionX="0" positionY="500" width="128" height="150"/>
+        <element name="ChatMessage" positionX="200" positionY="500" width="128" height="150"/>
     </elements>
 </model>
