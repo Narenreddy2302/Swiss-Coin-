@@ -4,33 +4,68 @@ import SwiftUI
 struct HomeView: View {
     @Environment(\.managedObjectContext) private var viewContext
 
-    // Fetch last 5 transactions
+    // Fetch last 5 transactions (limited at fetch level for efficiency)
     @FetchRequest(
         sortDescriptors: [NSSortDescriptor(keyPath: \FinancialTransaction.date, ascending: false)],
         animation: .default)
-    private var recentTransactions: FetchedResults<FinancialTransaction>
+    private var allTransactions: FetchedResults<FinancialTransaction>
+
+    // Fetch all people to calculate balances
+    @FetchRequest(
+        sortDescriptors: [NSSortDescriptor(keyPath: \Person.name, ascending: true)],
+        animation: .default)
+    private var allPeople: FetchedResults<Person>
 
     @State private var showingProfile = false
+
+    // MARK: - Computed Properties
+
+    /// Recent transactions (last 5)
+    private var recentTransactions: [FinancialTransaction] {
+        Array(allTransactions.prefix(5))
+    }
+
+    /// Calculate total amount the current user owes to others
+    private var totalYouOwe: Double {
+        allPeople
+            .filter { !CurrentUser.isCurrentUser($0) }
+            .map { $0.calculateBalance() }
+            .filter { $0 < 0 }  // Negative balance means you owe them
+            .reduce(0) { $0 + abs($1) }
+    }
+
+    /// Calculate total amount others owe to the current user
+    private var totalOwedToYou: Double {
+        allPeople
+            .filter { !CurrentUser.isCurrentUser($0) }
+            .map { $0.calculateBalance() }
+            .filter { $0 > 0 }  // Positive balance means they owe you
+            .reduce(0) { $0 + $1 }
+    }
 
     var body: some View {
         NavigationStack {
             ZStack {
                 ScrollView {
-                    VStack(spacing: 24) {
+                    VStack(spacing: Spacing.xxl) {
                         // Summary Section (Hero-like)
-                        VStack(alignment: .leading, spacing: 12) {
+                        VStack(alignment: .leading, spacing: Spacing.md) {
                             Text("Summary")
-                                .font(.title2)
-                                .fontWeight(.bold)
+                                .font(AppTypography.title2())
+                                .foregroundColor(AppColors.textPrimary)
                                 .padding(.horizontal)
 
                             ScrollView(.horizontal, showsIndicators: false) {
-                                HStack(spacing: 16) {
+                                HStack(spacing: Spacing.lg) {
                                     SummaryCard(
-                                        title: "You Owe", amount: 0, color: .red,
+                                        title: "You Owe",
+                                        amount: totalYouOwe,
+                                        color: AppColors.negative,
                                         icon: "arrow.down.left.circle.fill")
                                     SummaryCard(
-                                        title: "You are Owed", amount: 0, color: .green,
+                                        title: "You are Owed",
+                                        amount: totalOwedToYou,
+                                        color: AppColors.positive,
                                         icon: "arrow.up.right.circle.fill")
                                 }
                                 .padding(.horizontal)
@@ -41,16 +76,16 @@ struct HomeView: View {
                             .padding(.leading)
 
                         // Recent Activity (Up Next style)
-                        VStack(alignment: .leading, spacing: 8) {
+                        VStack(alignment: .leading, spacing: Spacing.sm) {
                             HStack {
                                 Text("Recent Activity")
-                                    .font(.title2)
-                                    .fontWeight(.bold)
+                                    .font(AppTypography.title2())
+                                    .foregroundColor(AppColors.textPrimary)
                                 Spacer()
-                                NavigationLink(destinations: TransactionHistoryView()) {
+                                NavigationLink(destination: TransactionHistoryView()) {
                                     Text("See All")
-                                        .font(.body)
-                                        .foregroundColor(.green)
+                                        .font(AppTypography.body())
+                                        .foregroundColor(AppColors.accent)
                                 }
                             }
                             .padding(.horizontal)
@@ -59,7 +94,7 @@ struct HomeView: View {
                                 EmptyStateView()
                             } else {
                                 LazyVStack(spacing: 0) {
-                                    ForEach(recentTransactions.prefix(5)) { transaction in
+                                    ForEach(recentTransactions, id: \.id) { transaction in
                                         TransactionRowView(transaction: transaction)
                                         Divider()
                                     }
@@ -67,10 +102,10 @@ struct HomeView: View {
                             }
                         }
                     }
-                    .padding(.top)
-                    .padding(.bottom, 40)
+                    .padding(.top, Spacing.lg)
+                    .padding(.bottom, Spacing.section + Spacing.sm)
                 }
-                .background(Color(uiColor: .secondarySystemBackground))
+                .background(AppColors.backgroundSecondary)
 
                 // Overlay the Quick Action FAB
                 FinanceQuickActionView()
@@ -93,21 +128,21 @@ struct HomeView: View {
 
 struct EmptyStateView: View {
     var body: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: Spacing.md) {
             Image(systemName: "list.bullet.rectangle.portrait")
-                .font(.system(size: 48))
-                .foregroundColor(.secondary)
+                .font(.system(size: IconSize.xxl))
+                .foregroundColor(AppColors.textSecondary)
             Text("No recent activity")
-                .font(.headline)
-                .foregroundColor(.primary)
+                .font(AppTypography.headline())
+                .foregroundColor(AppColors.textPrimary)
             Text("Transactions you add will appear here.")
-                .font(.subheadline)
-                .foregroundColor(.secondary)
+                .font(AppTypography.subheadline())
+                .foregroundColor(AppColors.textSecondary)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 40)
-        .background(Color(uiColor: .tertiarySystemGroupedBackground))
-        .cornerRadius(12)
+        .padding(.vertical, Spacing.section + Spacing.sm)
+        .background(AppColors.backgroundTertiary)
+        .cornerRadius(CornerRadius.md)
         .padding(.horizontal)
     }
 }
@@ -116,96 +151,31 @@ struct SummaryCard: View {
     let title: String
     let amount: Double
     let color: Color
-    let icon: String  // Added icon
+    let icon: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: Spacing.md) {
             HStack {
                 Image(systemName: icon)
-                    .font(.title2)
+                    .font(AppTypography.title2())
                     .foregroundColor(color)
                 Spacer()
             }
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text(title)
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                    .foregroundColor(.secondary)
+                    .font(AppTypography.subheadlineMedium())
+                    .foregroundColor(AppColors.textSecondary)
                 Text(CurrencyFormatter.format(amount))
-                    .font(.title2)
-                    .fontWeight(.bold)
-                    .foregroundColor(.primary)
+                    .font(AppTypography.amountLarge())
+                    .foregroundColor(AppColors.textPrimary)
             }
         }
         .frame(width: 160)
-        .padding()
-        .background(Color(uiColor: .tertiarySystemGroupedBackground))
-        .cornerRadius(12)
+        .padding(Spacing.lg)
+        .background(AppColors.backgroundTertiary)
+        .cornerRadius(CornerRadius.md)
         .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
     }
 }
 
-struct TransactionRow: View {
-    let transaction: FinancialTransaction
-
-    var body: some View {
-        HStack(alignment: .center, spacing: 16) {
-            // Date Box (Simulating Album Art/Episode logic)
-            VStack {
-                Text(transaction.date ?? Date(), format: .dateTime.month())
-                    .font(.caption2)
-                    .textCase(.uppercase)
-                    .foregroundColor(.secondary)
-                Text(transaction.date ?? Date(), format: .dateTime.day())
-                    .font(.title3)
-                    .fontWeight(.semibold)
-            }
-            .frame(width: 50, height: 50)
-            .background(Color(.tertiarySystemGroupedBackground))
-            .cornerRadius(8)
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text(transaction.title ?? "Unknown")
-                    .font(.headline)
-                    .lineLimit(2)
-
-                HStack(spacing: 6) {
-                    if let method = transaction.splitMethod {
-                        Text(method)
-                            .font(.caption)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(Color.gray.opacity(0.15))
-                            .cornerRadius(4)
-                    }
-
-                    if let payer = transaction.payer {
-                        Text("Paid by \(payer.name ?? "?")")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                }
-            }
-
-            Spacer()
-
-            Text(CurrencyFormatter.format(transaction.amount))
-                .font(.subheadline)
-                .fontWeight(.bold)
-                .foregroundColor(.primary)
-
-            Image(systemName: "chevron.right")
-                .font(.caption)
-                .foregroundColor(Color(uiColor: .tertiaryLabel))
-        }
-        .padding()
-        .background(Color(uiColor: .tertiarySystemGroupedBackground))  // Ensure touch target
-    }
-}
-
-extension NavigationLink where Label == Text, Destination == TransactionHistoryView {
-    init(destinations: Destination, @ViewBuilder label: () -> Label) {
-        self.init(destination: destinations, label: label)
-    }
-}
