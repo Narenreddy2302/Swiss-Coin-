@@ -4,6 +4,19 @@ import SwiftUI
 struct GroupDetailView: View {
     @ObservedObject var group: UserGroup
     @State private var showingAddTransaction = false
+    @State private var showingSettlement = false
+
+    private var balance: Double {
+        group.calculateBalance()
+    }
+
+    private var canSettle: Bool {
+        abs(balance) > 0.01
+    }
+
+    private var memberBalances: [(member: Person, balance: Double)] {
+        group.getMemberBalances()
+    }
 
     var body: some View {
         List {
@@ -28,11 +41,32 @@ struct GroupDetailView: View {
                         Text("\(group.members?.count ?? 0) Members")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
+
+                        // Balance summary
+                        if abs(balance) > 0.01 {
+                            HStack(spacing: 4) {
+                                if balance > 0 {
+                                    Text("You're owed")
+                                        .foregroundColor(.secondary)
+                                    Text(CurrencyFormatter.format(balance))
+                                        .fontWeight(.semibold)
+                                        .foregroundColor(AppColors.positive)
+                                } else {
+                                    Text("You owe")
+                                        .foregroundColor(.secondary)
+                                    Text(CurrencyFormatter.format(abs(balance)))
+                                        .fontWeight(.semibold)
+                                        .foregroundColor(AppColors.negative)
+                                }
+                            }
+                            .font(.subheadline)
+                        }
                     }
 
                     // Action Buttons
                     HStack(spacing: 20) {
                         Button(action: {
+                            HapticManager.buttonPress()
                             showingAddTransaction = true
                         }) {
                             HStack {
@@ -47,7 +81,8 @@ struct GroupDetailView: View {
                         .buttonStyle(PlainButtonStyle())
 
                         Button(action: {
-                            // Placeholder for future Settle Up logic
+                            HapticManager.buttonPress()
+                            showingSettlement = true
                         }) {
                             HStack {
                                 Image(systemName: "checkmark.circle.fill")
@@ -57,10 +92,10 @@ struct GroupDetailView: View {
                             .padding(.vertical, 8)
                             .background(Color(uiColor: .tertiarySystemGroupedBackground))
                             .cornerRadius(20)
-                            .opacity(0.5)
+                            .opacity(canSettle ? 1.0 : 0.5)
                         }
                         .buttonStyle(PlainButtonStyle())
-                        .disabled(true)
+                        .disabled(!canSettle)
                     }
                     .padding(.bottom, 8)
                 }
@@ -70,18 +105,39 @@ struct GroupDetailView: View {
                 .padding(.top, 20)
             }
             .sheet(isPresented: $showingAddTransaction) {
-                AddTransactionView()
+                AddTransactionView(initialGroup: group)
+            }
+            .sheet(isPresented: $showingSettlement) {
+                GroupSettlementView(group: group)
             }
 
             Section(header: Text("Members")) {
-                ForEach(group.membersArray, id: \.self) { person in
+                ForEach(memberBalances, id: \.member.id) { item in
                     HStack {
                         Circle()
-                            .fill(Color(hex: person.colorHex ?? "#808080").opacity(0.3))
+                            .fill(Color(hex: item.member.colorHex ?? "#808080").opacity(0.3))
                             .frame(width: 32, height: 32)
-                            .overlay(Text(person.initials).font(.caption).foregroundColor(.primary))
+                            .overlay(Text(item.member.initials).font(.caption).foregroundColor(.primary))
 
-                        Text(person.name ?? "Unknown")
+                        Text(item.member.name ?? "Unknown")
+
+                        Spacer()
+
+                        if abs(item.balance) > 0.01 {
+                            if item.balance > 0 {
+                                Text("owes \(CurrencyFormatter.format(item.balance))")
+                                    .font(.caption)
+                                    .foregroundColor(AppColors.positive)
+                            } else {
+                                Text("owed \(CurrencyFormatter.format(abs(item.balance)))")
+                                    .font(.caption)
+                                    .foregroundColor(AppColors.negative)
+                            }
+                        } else {
+                            Text("settled")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
                     }
                 }
             }
@@ -101,6 +157,9 @@ struct GroupDetailView: View {
         .scrollContentBackground(.hidden)
         .background(Color(uiColor: .secondarySystemBackground))
         .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            HapticManager.prepare()
+        }
     }
 }
 
