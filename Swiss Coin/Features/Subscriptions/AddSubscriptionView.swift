@@ -42,7 +42,12 @@ struct AddSubscriptionView: View {
     }
 
     private var canSave: Bool {
-        !name.isEmpty && !amount.isEmpty && (Double(amount) ?? 0) > 0
+        let hasBasicInfo = !name.isEmpty && !amount.isEmpty && (Double(amount) ?? 0) > 0
+        // Shared subscriptions must have at least one member
+        if isShared {
+            return hasBasicInfo && !selectedMembers.isEmpty
+        }
+        return hasBasicInfo
     }
 
     var body: some View {

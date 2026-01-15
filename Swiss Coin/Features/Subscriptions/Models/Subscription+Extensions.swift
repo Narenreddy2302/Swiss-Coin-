@@ -111,7 +111,8 @@ extension Subscription {
             return amount / 12.0
         case "Custom":
             let daysPerMonth = 30.44
-            return amount * (daysPerMonth / Double(customCycleDays))
+            let days = max(1, customCycleDays) // Prevent division by zero
+            return amount * (daysPerMonth / Double(days))
         default:
             return amount
         }

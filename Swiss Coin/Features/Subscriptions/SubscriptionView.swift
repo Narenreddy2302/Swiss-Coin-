@@ -41,12 +41,15 @@ struct SubscriptionView: View {
                 .padding(.top)
                 .background(AppColors.backgroundSecondary)
 
-                // Content
-                if selectedSegment == 0 {
-                    PersonalSubscriptionListView()
-                } else {
-                    SharedSubscriptionListView()
+                // Content with animation
+                Group {
+                    if selectedSegment == 0 {
+                        PersonalSubscriptionListView()
+                    } else {
+                        SharedSubscriptionListView()
+                    }
                 }
+                .animation(AppAnimation.standard, value: selectedSegment)
             }
             .background(AppColors.backgroundSecondary)
             .navigationTitle("Subscriptions")

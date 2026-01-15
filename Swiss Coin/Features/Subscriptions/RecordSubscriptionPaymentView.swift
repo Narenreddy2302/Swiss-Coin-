@@ -155,9 +155,7 @@ struct RecordSubscriptionPaymentView: View {
             }
             .onAppear {
                 // Default to current user as payer
-                if let currentUser = CurrentUser.fetch(from: viewContext) {
-                    selectedPayer = currentUser
-                }
+                selectedPayer = CurrentUser.getOrCreate(in: viewContext)
             }
         }
     }

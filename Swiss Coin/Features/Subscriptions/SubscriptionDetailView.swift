@@ -128,7 +128,7 @@ struct SubscriptionDetailView: View {
 
                             let balance = subscription.calculateBalanceWith(member: member)
                             if abs(balance) > 0.01 {
-                                Text(balance > 0 ? "owes \(CurrencyFormatter.formatAbsolute(balance))" : "owed \(CurrencyFormatter.formatAbsolute(abs(balance)))")
+                                Text(balance > 0 ? "owes you \(CurrencyFormatter.formatAbsolute(balance))" : "you owe \(CurrencyFormatter.formatAbsolute(abs(balance)))")
                                     .font(AppTypography.subheadline())
                                     .foregroundColor(balance > 0 ? AppColors.positive : AppColors.negative)
                             } else {

@@ -9,7 +9,10 @@ import SwiftUI
 
 struct SubscriptionListRowView: View {
     @ObservedObject var subscription: Subscription
+    @Environment(\.managedObjectContext) private var viewContext
     @State private var isPressed = false
+    @State private var showingEditSheet = false
+    @State private var showingDeleteAlert = false
 
     private var billingStatus: BillingStatus {
         subscription.billingStatus
@@ -92,13 +95,14 @@ struct SubscriptionListRowView: View {
         .contextMenu {
             Button {
                 HapticManager.tap()
+                showingEditSheet = true
             } label: {
                 Label("Edit", systemImage: "pencil")
             }
 
             Button {
                 HapticManager.tap()
-                // Mark as paid action
+                markAsPaid()
             } label: {
                 Label("Mark as Paid", systemImage: "checkmark.circle")
             }
@@ -116,20 +120,54 @@ struct SubscriptionListRowView: View {
             Divider()
 
             Button(role: .destructive) {
-                HapticManager.delete()
+                HapticManager.tap()
+                showingDeleteAlert = true
             } label: {
-                Label("Cancel Subscription", systemImage: "xmark.circle")
+                Label("Delete", systemImage: "trash")
             }
+        }
+        .sheet(isPresented: $showingEditSheet) {
+            EditSubscriptionView(subscription: subscription)
+                .environment(\.managedObjectContext, viewContext)
+        }
+        .alert("Delete Subscription", isPresented: $showingDeleteAlert) {
+            Button("Cancel", role: .cancel) {}
+            Button("Delete", role: .destructive) {
+                deleteSubscription()
+            }
+        } message: {
+            Text("Are you sure you want to delete \"\(subscription.name ?? "this subscription")\"? This action cannot be undone.")
         }
     }
 
     private func togglePauseStatus() {
         subscription.isActive.toggle()
         do {
-            try subscription.managedObjectContext?.save()
+            try viewContext.save()
             HapticManager.success()
         } catch {
             print("Error toggling subscription status: \(error)")
+        }
+    }
+
+    private func markAsPaid() {
+        // Update next billing date based on current date
+        subscription.nextBillingDate = subscription.calculateNextBillingDate(from: Date())
+        do {
+            try viewContext.save()
+            HapticManager.success()
+        } catch {
+            print("Error marking subscription as paid: \(error)")
+        }
+    }
+
+    private func deleteSubscription() {
+        HapticManager.delete()
+        viewContext.delete(subscription)
+        do {
+            try viewContext.save()
+        } catch {
+            print("Error deleting subscription: \(error)")
         }
     }
 }

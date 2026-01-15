@@ -92,7 +92,6 @@ struct PersonalSubscriptionListView: View {
                         .listRowInsets(EdgeInsets())
                         .listRowBackground(AppColors.backgroundSecondary)
                     }
-                    .onDelete(perform: deleteSubscription)
                 } header: {
                     Text("Active")
                         .font(AppTypography.subheadlineMedium())
@@ -110,7 +109,6 @@ struct PersonalSubscriptionListView: View {
                         .listRowInsets(EdgeInsets())
                         .listRowBackground(AppColors.backgroundSecondary)
                     }
-                    .onDelete(perform: deletePausedSubscription)
                 } header: {
                     Text("Paused")
                         .font(AppTypography.subheadlineMedium())
@@ -124,30 +122,6 @@ struct PersonalSubscriptionListView: View {
         .overlay {
             if subscriptions.isEmpty {
                 EmptySubscriptionView(isShared: false)
-            }
-        }
-    }
-
-    private func deleteSubscription(offsets: IndexSet) {
-        HapticManager.delete()
-        withAnimation {
-            offsets.map { upcomingSubscriptions[$0] }.forEach(viewContext.delete)
-            do {
-                try viewContext.save()
-            } catch {
-                print("Error deleting subscription: \(error)")
-            }
-        }
-    }
-
-    private func deletePausedSubscription(offsets: IndexSet) {
-        HapticManager.delete()
-        withAnimation {
-            offsets.map { pausedSubscriptions[$0] }.forEach(viewContext.delete)
-            do {
-                try viewContext.save()
-            } catch {
-                print("Error deleting subscription: \(error)")
             }
         }
     }

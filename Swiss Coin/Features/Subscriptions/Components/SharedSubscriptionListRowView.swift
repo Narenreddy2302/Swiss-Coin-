@@ -23,7 +23,7 @@ struct SharedSubscriptionListRowView: View {
     private var balanceText: String {
         let formatted = CurrencyFormatter.formatAbsolute(balance)
         if balance > 0.01 {
-            return "owed \(formatted)"
+            return "you're owed \(formatted)"
         } else if balance < -0.01 {
             return "you owe \(formatted)"
         } else {

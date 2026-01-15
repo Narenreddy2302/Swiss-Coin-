@@ -128,6 +128,7 @@ struct SharedSubscriptionConversationView: View {
                 HStack(spacing: Spacing.sm) {
                     // Custom back button
                     Button {
+                        HapticManager.navigate()
                         dismiss()
                     } label: {
                         Image(systemName: "chevron.left")

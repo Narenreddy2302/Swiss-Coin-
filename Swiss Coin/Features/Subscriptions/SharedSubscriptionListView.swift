@@ -24,20 +24,27 @@ struct SharedSubscriptionListView: View {
             .reduce(0) { $0 + $1.monthlyEquivalent }
     }
 
-    // Your share of all shared subscriptions
+    // Your share of all shared subscriptions (monthly equivalent)
     private var myMonthlyShare: Double {
         subscriptions
             .filter { $0.isActive }
-            .reduce(0) { $0 + $1.myShare * (30.44 / cycleToDays($1.cycle ?? "Monthly")) }
-    }
-
-    private func cycleToDays(_ cycle: String) -> Double {
-        switch cycle {
-        case "Weekly": return 7
-        case "Monthly": return 30.44
-        case "Yearly": return 365.25
-        default: return 30.44
-        }
+            .reduce(0) { total, subscription in
+                // Convert per-cycle share to monthly equivalent
+                let perCycleShare = subscription.myShare
+                switch subscription.cycle {
+                case "Weekly":
+                    return total + (perCycleShare * 4.33)
+                case "Monthly":
+                    return total + perCycleShare
+                case "Yearly":
+                    return total + (perCycleShare / 12.0)
+                case "Custom":
+                    let days = max(1, Int(subscription.customCycleDays))
+                    return total + (perCycleShare * (30.44 / Double(days)))
+                default:
+                    return total + perCycleShare
+                }
+            }
     }
 
     var body: some View {
