@@ -5,6 +5,7 @@
 //  List row for personal subscriptions, matching PersonListRowView pattern.
 //
 
+import CoreData
 import SwiftUI
 
 struct SubscriptionListRowView: View {

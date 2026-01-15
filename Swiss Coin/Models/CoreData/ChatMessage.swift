@@ -23,6 +23,7 @@ extension ChatMessage {
     @NSManaged public var isFromUser: Bool
     @NSManaged public var withPerson: Person?
     @NSManaged public var withGroup: UserGroup?
+    @NSManaged public var withSubscription: Subscription?
 
 }
 

@@ -15,6 +15,9 @@
         <relationship name="receivedReminders" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="Reminder" inverseName="toPerson" inverseEntity="Reminder"/>
         <relationship name="chatMessages" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="ChatMessage" inverseName="withPerson" inverseEntity="ChatMessage"/>
         <relationship name="subscriptionPayments" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="SubscriptionPayment" inverseName="payer" inverseEntity="SubscriptionPayment"/>
+        <relationship name="sentSubscriptionSettlements" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="SubscriptionSettlement" inverseName="fromPerson" inverseEntity="SubscriptionSettlement"/>
+        <relationship name="receivedSubscriptionSettlements" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="SubscriptionSettlement" inverseName="toPerson" inverseEntity="SubscriptionSettlement"/>
+        <relationship name="receivedSubscriptionReminders" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="SubscriptionReminder" inverseName="toPerson" inverseEntity="SubscriptionReminder"/>
     </entity>
     <entity name="ChatMessage" representedClassName="ChatMessage" syncable="YES">
         <attribute name="id" optional="NO" attributeType="UUID" usesScalarValueType="NO"/>
@@ -51,7 +54,7 @@
         <attribute name="notes" optional="YES" attributeType="String"/>
         <attribute name="notificationEnabled" optional="NO" attributeType="Boolean" defaultValueString="YES" usesScalarValueType="YES"/>
         <attribute name="notificationDaysBefore" optional="NO" attributeType="Integer 16" defaultValueString="3" usesScalarValueType="YES"/>
-        <relationship name="subscribers" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="Person" inverseName="toSubscriptions" inverseEntity="Subscription"/>
+        <relationship name="subscribers" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="Person" inverseName="toSubscriptions" inverseEntity="Person"/>
         <relationship name="payments" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="SubscriptionPayment" inverseName="subscription" inverseEntity="SubscriptionPayment"/>
         <relationship name="chatMessages" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="ChatMessage" inverseName="withSubscription" inverseEntity="ChatMessage"/>
         <relationship name="reminders" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="SubscriptionReminder" inverseName="subscription" inverseEntity="SubscriptionReminder"/>
@@ -73,8 +76,8 @@
         <attribute name="date" optional="NO" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="note" optional="YES" attributeType="String"/>
         <relationship name="subscription" optional="YES" maxCount="1" toMany="NO" deletionRule="Nullify" destinationEntity="Subscription" inverseName="settlements" inverseEntity="Subscription"/>
-        <relationship name="fromPerson" optional="YES" maxCount="1" toMany="NO" deletionRule="Nullify" destinationEntity="Person"/>
-        <relationship name="toPerson" optional="YES" maxCount="1" toMany="NO" deletionRule="Nullify" destinationEntity="Person"/>
+        <relationship name="fromPerson" optional="YES" maxCount="1" toMany="NO" deletionRule="Nullify" destinationEntity="Person" inverseName="sentSubscriptionSettlements" inverseEntity="Person"/>
+        <relationship name="toPerson" optional="YES" maxCount="1" toMany="NO" deletionRule="Nullify" destinationEntity="Person" inverseName="receivedSubscriptionSettlements" inverseEntity="Person"/>
     </entity>
     <entity name="SubscriptionReminder" representedClassName="SubscriptionReminder" syncable="YES">
         <attribute name="id" optional="NO" attributeType="UUID" usesScalarValueType="NO"/>
@@ -83,7 +86,7 @@
         <attribute name="message" optional="YES" attributeType="String"/>
         <attribute name="isRead" optional="NO" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <relationship name="subscription" optional="YES" maxCount="1" toMany="NO" deletionRule="Nullify" destinationEntity="Subscription" inverseName="reminders" inverseEntity="Subscription"/>
-        <relationship name="toPerson" optional="YES" maxCount="1" toMany="NO" deletionRule="Nullify" destinationEntity="Person"/>
+        <relationship name="toPerson" optional="YES" maxCount="1" toMany="NO" deletionRule="Nullify" destinationEntity="Person" inverseName="receivedSubscriptionReminders" inverseEntity="Person"/>
     </entity>
     <entity name="FinancialTransaction" representedClassName="FinancialTransaction" syncable="YES">
         <attribute name="id" optional="NO" attributeType="UUID" usesScalarValueType="NO"/>

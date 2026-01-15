@@ -30,6 +30,10 @@ extension Person {
     @NSManaged public var receivedSettlements: NSSet?
     @NSManaged public var receivedReminders: NSSet?
     @NSManaged public var chatMessages: NSSet?
+    @NSManaged public var subscriptionPayments: NSSet?
+    @NSManaged public var sentSubscriptionSettlements: NSSet?
+    @NSManaged public var receivedSubscriptionSettlements: NSSet?
+    @NSManaged public var receivedSubscriptionReminders: NSSet?
 
 }
 
@@ -121,6 +125,96 @@ extension Person {
 
     @objc(removeChatMessages:)
     @NSManaged public func removeFromChatMessages(_ values: NSSet)
+}
+
+// MARK: Generated accessors for toSubscriptions
+extension Person {
+    @objc(addToSubscriptionsObject:)
+    @NSManaged public func addToToSubscriptions(_ value: Subscription)
+
+    @objc(removeToSubscriptionsObject:)
+    @NSManaged public func removeFromToSubscriptions(_ value: Subscription)
+
+    @objc(addToSubscriptions:)
+    @NSManaged public func addToToSubscriptions(_ values: NSSet)
+
+    @objc(removeToSubscriptions:)
+    @NSManaged public func removeFromToSubscriptions(_ values: NSSet)
+}
+
+// MARK: Generated accessors for owedSplits
+extension Person {
+    @objc(addOwedSplitsObject:)
+    @NSManaged public func addToOwedSplits(_ value: TransactionSplit)
+
+    @objc(removeOwedSplitsObject:)
+    @NSManaged public func removeFromOwedSplits(_ value: TransactionSplit)
+
+    @objc(addOwedSplits:)
+    @NSManaged public func addToOwedSplits(_ values: NSSet)
+
+    @objc(removeOwedSplits:)
+    @NSManaged public func removeFromOwedSplits(_ values: NSSet)
+}
+
+// MARK: Generated accessors for subscriptionPayments
+extension Person {
+    @objc(addSubscriptionPaymentsObject:)
+    @NSManaged public func addToSubscriptionPayments(_ value: SubscriptionPayment)
+
+    @objc(removeSubscriptionPaymentsObject:)
+    @NSManaged public func removeFromSubscriptionPayments(_ value: SubscriptionPayment)
+
+    @objc(addSubscriptionPayments:)
+    @NSManaged public func addToSubscriptionPayments(_ values: NSSet)
+
+    @objc(removeSubscriptionPayments:)
+    @NSManaged public func removeFromSubscriptionPayments(_ values: NSSet)
+}
+
+// MARK: Generated accessors for sentSubscriptionSettlements
+extension Person {
+    @objc(addSentSubscriptionSettlementsObject:)
+    @NSManaged public func addToSentSubscriptionSettlements(_ value: SubscriptionSettlement)
+
+    @objc(removeSentSubscriptionSettlementsObject:)
+    @NSManaged public func removeFromSentSubscriptionSettlements(_ value: SubscriptionSettlement)
+
+    @objc(addSentSubscriptionSettlements:)
+    @NSManaged public func addToSentSubscriptionSettlements(_ values: NSSet)
+
+    @objc(removeSentSubscriptionSettlements:)
+    @NSManaged public func removeFromSentSubscriptionSettlements(_ values: NSSet)
+}
+
+// MARK: Generated accessors for receivedSubscriptionSettlements
+extension Person {
+    @objc(addReceivedSubscriptionSettlementsObject:)
+    @NSManaged public func addToReceivedSubscriptionSettlements(_ value: SubscriptionSettlement)
+
+    @objc(removeReceivedSubscriptionSettlementsObject:)
+    @NSManaged public func removeFromReceivedSubscriptionSettlements(_ value: SubscriptionSettlement)
+
+    @objc(addReceivedSubscriptionSettlements:)
+    @NSManaged public func addToReceivedSubscriptionSettlements(_ values: NSSet)
+
+    @objc(removeReceivedSubscriptionSettlements:)
+    @NSManaged public func removeFromReceivedSubscriptionSettlements(_ values: NSSet)
+}
+
+// MARK: Generated accessors for receivedSubscriptionReminders
+extension Person {
+    @objc(addReceivedSubscriptionRemindersObject:)
+    @NSManaged public func addToReceivedSubscriptionReminders(_ value: SubscriptionReminder)
+
+    @objc(removeReceivedSubscriptionRemindersObject:)
+    @NSManaged public func removeFromReceivedSubscriptionReminders(_ value: SubscriptionReminder)
+
+    @objc(addReceivedSubscriptionReminders:)
+    @NSManaged public func addToReceivedSubscriptionReminders(_ values: NSSet)
+
+    @objc(removeReceivedSubscriptionReminders:)
+    @NSManaged public func removeFromReceivedSubscriptionReminders(_ values: NSSet)
 }
 
 extension Person: Identifiable {

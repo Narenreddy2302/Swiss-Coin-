@@ -80,7 +80,7 @@ struct MockDataGenerator {
     private static func deleteAll(entityName: String, context: NSManagedObjectContext) {
         let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: entityName)
         let deleteRequest = NSBatchDeleteRequest(fetchRequest: fetchRequest)
-        try? context.execute(deleteRequest)
+        _ = try? context.execute(deleteRequest)
     }
 
     private static func saveContext(_ context: NSManagedObjectContext) {
