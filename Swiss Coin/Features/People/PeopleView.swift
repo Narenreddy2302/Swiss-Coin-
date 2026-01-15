@@ -7,7 +7,7 @@ struct PeopleView: View {
     @State private var showingNewMessage = false
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             VStack(spacing: 0) {
                 HStack(spacing: Spacing.md) {
                     ActionHeaderButton(

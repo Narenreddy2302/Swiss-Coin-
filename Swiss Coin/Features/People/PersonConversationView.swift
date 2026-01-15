@@ -94,6 +94,7 @@ struct PersonConversationView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(Color.black, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
+        .toolbar(.hidden, for: .tabBar) // Hide tab bar like iMessage
         .sheet(isPresented: $showingAddTransaction) {
             AddTransactionView(initialParticipant: person)
         }

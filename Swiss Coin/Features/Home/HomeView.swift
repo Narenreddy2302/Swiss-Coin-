@@ -13,7 +13,7 @@ struct HomeView: View {
     @State private var showingProfile = false
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             ZStack {
                 ScrollView {
                     VStack(spacing: 24) {
