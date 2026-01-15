@@ -19,13 +19,12 @@ struct SettlementView: View {
     @State private var errorMessage = ""
 
     private var parsedAmount: Double? {
-        Double(customAmount.replacingOccurrences(of: "$", with: "")
-            .replacingOccurrences(of: ",", with: ""))
+        CurrencyFormatter.parse(customAmount)
     }
 
     private var isValidAmount: Bool {
         guard let amount = parsedAmount else { return false }
-        return amount > 0 && amount <= abs(currentBalance) + 0.01
+        return amount > 0.001 && amount <= abs(currentBalance) + 0.001
     }
 
     private var directionText: String {
@@ -37,127 +36,145 @@ struct SettlementView: View {
     }
 
     private var formattedBalance: String {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .currency
-        formatter.currencyCode = "USD"
-        return formatter.string(from: NSNumber(value: abs(currentBalance))) ?? "$0.00"
+        CurrencyFormatter.formatAbsolute(currentBalance)
     }
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 24) {
+            VStack(spacing: Spacing.xxl) {
                 // Header
-                VStack(spacing: 8) {
+                VStack(spacing: Spacing.sm) {
                     Text(directionText)
-                        .font(.headline)
-                        .foregroundColor(.primary)
+                        .font(AppTypography.headline())
+                        .foregroundColor(AppColors.textPrimary)
 
                     Text("Current balance: \(formattedBalance)")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
+                        .font(AppTypography.subheadline())
+                        .foregroundColor(AppColors.textSecondary)
                 }
-                .padding(.top, 20)
+                .padding(.top, Spacing.xl)
 
                 // Settle Full Amount Button
                 Button {
+                    HapticManager.buttonPress()
                     settleFullAmount()
                 } label: {
                     HStack {
                         Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 20))
+                            .font(.system(size: IconSize.md))
                         Text("Settle Full Amount")
-                            .fontWeight(.semibold)
+                            .font(AppTypography.bodyBold())
                     }
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
-                    .frame(height: 50)
-                    .background(Color.green)
-                    .cornerRadius(12)
+                    .frame(height: ButtonHeight.lg)
+                    .background(AppColors.positive)
+                    .cornerRadius(CornerRadius.md)
                 }
-                .padding(.horizontal, 24)
+                .buttonStyle(AppButtonStyle(haptic: .none))
+                .padding(.horizontal, Spacing.xxl)
 
                 // Divider
                 HStack {
                     Rectangle()
-                        .fill(Color.secondary.opacity(0.3))
+                        .fill(AppColors.textSecondary.opacity(0.3))
                         .frame(height: 1)
                     Text("or")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                        .font(AppTypography.caption())
+                        .foregroundColor(AppColors.textSecondary)
                     Rectangle()
-                        .fill(Color.secondary.opacity(0.3))
+                        .fill(AppColors.textSecondary.opacity(0.3))
                         .frame(height: 1)
                 }
-                .padding(.horizontal, 24)
+                .padding(.horizontal, Spacing.xxl)
 
                 // Custom Amount Section
-                VStack(alignment: .leading, spacing: 12) {
+                VStack(alignment: .leading, spacing: Spacing.md) {
                     Text("Custom Amount")
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                        .foregroundColor(.secondary)
+                        .font(AppTypography.subheadlineMedium())
+                        .foregroundColor(AppColors.textSecondary)
 
                     TextField("$0.00", text: $customAmount)
                         .keyboardType(.decimalPad)
-                        .font(.title2)
-                        .fontWeight(.semibold)
+                        .font(AppTypography.title2())
                         .multilineTextAlignment(.center)
-                        .padding()
+                        .padding(Spacing.lg)
                         .background(
-                            RoundedRectangle(cornerRadius: 12)
-                                .fill(Color(UIColor.tertiarySystemGroupedBackground))
+                            RoundedRectangle(cornerRadius: CornerRadius.md)
+                                .fill(AppColors.backgroundTertiary)
                         )
+
+                    // Validation hint
+                    if let amount = parsedAmount {
+                        if amount > abs(currentBalance) + 0.001 {
+                            Text("Amount cannot exceed \(formattedBalance)")
+                                .font(AppTypography.caption())
+                                .foregroundColor(AppColors.negative)
+                        } else if amount <= 0.001 {
+                            Text("Amount must be greater than $0.00")
+                                .font(AppTypography.caption())
+                                .foregroundColor(AppColors.negative)
+                        }
+                    }
                 }
-                .padding(.horizontal, 24)
+                .padding(.horizontal, Spacing.xxl)
 
                 // Note Field
-                VStack(alignment: .leading, spacing: 12) {
+                VStack(alignment: .leading, spacing: Spacing.md) {
                     Text("Note (optional)")
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                        .foregroundColor(.secondary)
+                        .font(AppTypography.subheadlineMedium())
+                        .foregroundColor(AppColors.textSecondary)
 
                     TextField("Add a note...", text: $note)
-                        .padding()
+                        .font(AppTypography.body())
+                        .padding(Spacing.lg)
                         .background(
-                            RoundedRectangle(cornerRadius: 12)
-                                .fill(Color(UIColor.tertiarySystemGroupedBackground))
+                            RoundedRectangle(cornerRadius: CornerRadius.md)
+                                .fill(AppColors.backgroundTertiary)
                         )
                 }
-                .padding(.horizontal, 24)
+                .padding(.horizontal, Spacing.xxl)
 
                 Spacer()
 
                 // Confirm Custom Amount Button
                 Button {
+                    HapticManager.buttonPress()
                     settleCustomAmount()
                 } label: {
                     Text("Confirm Settlement")
-                        .fontWeight(.semibold)
+                        .font(AppTypography.bodyBold())
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
-                        .frame(height: 50)
-                        .background(isValidAmount ? Color.blue : Color.gray)
-                        .cornerRadius(12)
+                        .frame(height: ButtonHeight.lg)
+                        .background(isValidAmount ? Color.blue : AppColors.disabled)
+                        .cornerRadius(CornerRadius.md)
                 }
+                .buttonStyle(AppButtonStyle(haptic: .none))
                 .disabled(!isValidAmount)
-                .padding(.horizontal, 24)
-                .padding(.bottom, 20)
+                .padding(.horizontal, Spacing.xxl)
+                .padding(.bottom, Spacing.xl)
             }
-            .background(Color(UIColor.secondarySystemBackground))
+            .background(AppColors.backgroundSecondary)
             .navigationTitle("Settle Up")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") {
+                        HapticManager.cancel()
                         dismiss()
                     }
                 }
             }
             .alert("Error", isPresented: $showingError) {
-                Button("OK", role: .cancel) {}
+                Button("OK", role: .cancel) {
+                    HapticManager.tap()
+                }
             } message: {
                 Text(errorMessage)
+            }
+            .onAppear {
+                HapticManager.prepare()
             }
         }
     }
@@ -170,6 +187,7 @@ struct SettlementView: View {
 
     private func settleCustomAmount() {
         guard let amount = parsedAmount, isValidAmount else {
+            HapticManager.error()
             errorMessage = "Please enter a valid amount"
             showingError = true
             return
@@ -178,8 +196,14 @@ struct SettlementView: View {
     }
 
     private func createSettlement(amount: Double, isFullSettlement: Bool) {
-        // Fetch the current user Person entity
-        let currentUser = fetchCurrentUser()
+        guard amount > 0 else {
+            HapticManager.error()
+            errorMessage = "Settlement amount must be greater than zero"
+            showingError = true
+            return
+        }
+
+        let currentUser = CurrentUser.getOrCreate(in: viewContext)
 
         let settlement = Settlement(context: viewContext)
         settlement.id = UUID()
@@ -188,41 +212,23 @@ struct SettlementView: View {
         settlement.note = note.isEmpty ? nil : note
         settlement.isFullSettlement = isFullSettlement
 
-        // Determine direction based on balance
         if currentBalance > 0 {
-            // They owe you - they're paying you
             settlement.fromPerson = person
             settlement.toPerson = currentUser
         } else {
-            // You owe them - you're paying them
             settlement.fromPerson = currentUser
             settlement.toPerson = person
         }
 
         do {
             try viewContext.save()
-
-            // Haptic feedback
-            let generator = UINotificationFeedbackGenerator()
-            generator.notificationOccurred(.success)
-
+            HapticManager.success()
             dismiss()
         } catch {
+            viewContext.rollback()
+            HapticManager.error()
             errorMessage = "Failed to save settlement: \(error.localizedDescription)"
             showingError = true
-        }
-    }
-
-    private func fetchCurrentUser() -> Person? {
-        let fetchRequest: NSFetchRequest<Person> = Person.fetchRequest()
-        fetchRequest.predicate = NSPredicate(format: "id == %@", Person.currentUserUUID as CVarArg)
-        fetchRequest.fetchLimit = 1
-
-        do {
-            let results = try viewContext.fetch(fetchRequest)
-            return results.first
-        } catch {
-            return nil
         }
     }
 }

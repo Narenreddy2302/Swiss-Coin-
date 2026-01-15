@@ -11,7 +11,7 @@ struct TransactionBubbleView: View {
     let showTimestamp: Bool
 
     private var isFromUser: Bool {
-        transaction.payer?.id == Person.currentUserUUID
+        CurrentUser.isCurrentUser(transaction.payer?.id)
     }
 
     private var displayAmount: Double {
@@ -25,7 +25,7 @@ struct TransactionBubbleView: View {
         } else {
             // They paid - show what you owe
             let splits = transaction.splits as? Set<TransactionSplit> ?? []
-            if let mySplit = splits.first(where: { $0.owedBy?.id == Person.currentUserUUID }) {
+            if let mySplit = splits.first(where: { CurrentUser.isCurrentUser($0.owedBy?.id) }) {
                 return mySplit.amount
             }
             return 0
@@ -33,10 +33,7 @@ struct TransactionBubbleView: View {
     }
 
     private var amountText: String {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .currency
-        formatter.currencyCode = "USD"
-        let formatted = formatter.string(from: NSNumber(value: displayAmount)) ?? "$0.00"
+        let formatted = CurrencyFormatter.format(displayAmount)
 
         if isFromUser {
             return formatted

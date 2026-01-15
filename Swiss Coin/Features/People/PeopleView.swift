@@ -7,28 +7,30 @@ struct PeopleView: View {
     @State private var showingNewMessage = false
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             VStack(spacing: 0) {
-                HStack(spacing: 12) {
+                HStack(spacing: Spacing.md) {
                     ActionHeaderButton(
                         title: "People",
                         icon: "person.2.fill",
-                        color: selectedSegment == 0 ? .green : .primary
+                        color: selectedSegment == 0 ? AppColors.accent : AppColors.textPrimary
                     ) {
+                        HapticManager.selectionChanged()
                         selectedSegment = 0
                     }
 
                     ActionHeaderButton(
                         title: "Groups",
                         icon: "person.3.fill",
-                        color: selectedSegment == 1 ? .green : .primary
+                        color: selectedSegment == 1 ? AppColors.accent : AppColors.textPrimary
                     ) {
+                        HapticManager.selectionChanged()
                         selectedSegment = 1
                     }
                 }
                 .padding(.horizontal)
                 .padding(.top)
-                .background(Color(uiColor: .secondarySystemBackground))
+                .background(AppColors.backgroundSecondary)
 
                 if selectedSegment == 0 {
                     PersonListView()
@@ -36,23 +38,32 @@ struct PeopleView: View {
                     GroupListView()
                 }
             }
-            .background(Color(uiColor: .secondarySystemBackground))
+            .background(AppColors.backgroundSecondary)
             .navigationTitle("Library")
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     HStack {
                         if selectedSegment == 0 {
-                            Button(action: { showingNewMessage = true }) {
+                            Button {
+                                HapticManager.tap()
+                                showingNewMessage = true
+                            } label: {
                                 Image(systemName: "square.and.pencil")
                             }
                             NavigationLink(destination: AddPersonView()) {
                                 Image(systemName: "plus")
                             }
+                            .simultaneousGesture(TapGesture().onEnded {
+                                HapticManager.navigate()
+                            })
                         } else {
                             NavigationLink(destination: AddGroupView()) {
                                 Image(systemName: "plus")
                             }
+                            .simultaneousGesture(TapGesture().onEnded {
+                                HapticManager.navigate()
+                            })
                         }
                     }
                 }
@@ -60,6 +71,9 @@ struct PeopleView: View {
             .sheet(isPresented: $showingNewMessage) {
                 NewTransactionContactView()
                     .environment(\.managedObjectContext, viewContext)
+            }
+            .onAppear {
+                HapticManager.prepare()
             }
         }
     }
@@ -79,27 +93,25 @@ struct PersonListView: View {
                     PersonListRowView(person: person)
                 }
                 .listRowInsets(EdgeInsets())
-                .listRowBackground(Color(uiColor: .secondarySystemBackground))
+                .listRowBackground(AppColors.backgroundSecondary)
             }
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
-        .background(Color(uiColor: .secondarySystemBackground))
+        .background(AppColors.backgroundSecondary)
     }
 }
 
 struct PersonListRowView: View {
     @ObservedObject var person: Person
+    @State private var isPressed = false
 
     private var balance: Double {
         person.calculateBalance()
     }
 
     private var balanceText: String {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .currency
-        formatter.currencyCode = "USD"
-        let formatted = formatter.string(from: NSNumber(value: abs(balance))) ?? "$0.00"
+        let formatted = CurrencyFormatter.formatAbsolute(balance)
 
         if balance > 0.01 {
             return "owes you \(formatted)"
@@ -112,47 +124,67 @@ struct PersonListRowView: View {
 
     private var balanceColor: Color {
         if balance > 0.01 {
-            return .green
+            return AppColors.positive
         } else if balance < -0.01 {
-            return .red
+            return AppColors.negative
         } else {
-            return .secondary
+            return AppColors.neutral
         }
     }
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: Spacing.md) {
             Circle()
-                .fill(Color(hex: person.colorHex ?? "#34C759").opacity(0.2))
-                .frame(width: 48, height: 48)
+                .fill(Color(hex: person.colorHex ?? CurrentUser.defaultColorHex).opacity(0.2))
+                .frame(width: AvatarSize.lg, height: AvatarSize.lg)
                 .overlay(
                     Text(person.initials)
-                        .font(.title3)
-                        .fontWeight(.semibold)
-                        .foregroundColor(Color(hex: person.colorHex ?? "#34C759"))
+                        .font(AppTypography.title3())
+                        .foregroundColor(Color(hex: person.colorHex ?? CurrentUser.defaultColorHex))
                 )
 
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: Spacing.xs) {
                 Text(person.name ?? "Unknown")
-                    .font(.headline)
-                    .foregroundColor(.primary)
+                    .font(AppTypography.headline())
+                    .foregroundColor(AppColors.textPrimary)
 
                 Text(balanceText)
-                    .font(.subheadline)
+                    .font(AppTypography.subheadline())
                     .foregroundColor(balanceColor)
             }
 
             Spacer()
 
             if abs(balance) > 0.01 {
-                Text(NumberFormatter.localizedString(from: NSNumber(value: abs(balance)), number: .currency))
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
+                Text(CurrencyFormatter.formatAbsolute(balance))
+                    .font(AppTypography.amountSmall())
                     .foregroundColor(balanceColor)
             }
         }
-        .padding(.vertical, 16)
-        .padding(.horizontal, 16)
+        .padding(.vertical, Spacing.lg)
+        .padding(.horizontal, Spacing.lg)
+        .scaleEffect(isPressed ? 0.98 : 1.0)
+        .animation(AppAnimation.quick, value: isPressed)
+        .contentShape(Rectangle())
+        .contextMenu {
+            Button {
+                HapticManager.tap()
+            } label: {
+                Label("View Profile", systemImage: "person.circle")
+            }
+
+            Button {
+                HapticManager.tap()
+            } label: {
+                Label("Add Expense", systemImage: "plus.circle")
+            }
+
+            Button {
+                HapticManager.tap()
+            } label: {
+                Label("Send Reminder", systemImage: "bell")
+            }
+        }
     }
 }
 
@@ -166,34 +198,34 @@ struct GroupListView: View {
         List {
             ForEach(groups) { group in
                 NavigationLink(destination: GroupDetailView(group: group)) {
-                    HStack(spacing: 12) {
-                        RoundedRectangle(cornerRadius: 10)
+                    HStack(spacing: Spacing.md) {
+                        RoundedRectangle(cornerRadius: CornerRadius.sm)
                             .fill(Color.blue.opacity(0.15))
-                            .frame(width: 48, height: 48)
+                            .frame(width: AvatarSize.lg, height: AvatarSize.lg)
                             .overlay(
                                 Image(systemName: "person.3.fill")
-                                    .font(.headline)
+                                    .font(AppTypography.headline())
                                     .foregroundColor(.blue)
                             )
 
-                        VStack(alignment: .leading, spacing: 6) {
+                        VStack(alignment: .leading, spacing: Spacing.xs) {
                             Text(group.name ?? "Unknown Group")
-                                .font(.headline)
-                                .foregroundColor(.primary)
+                                .font(AppTypography.headline())
+                                .foregroundColor(AppColors.textPrimary)
                             Text("\(group.members?.count ?? 0) members")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
+                                .font(AppTypography.subheadline())
+                                .foregroundColor(AppColors.textSecondary)
                         }
                     }
-                    .padding(.vertical, 16)
-                    .padding(.horizontal, 16)
+                    .padding(.vertical, Spacing.lg)
+                    .padding(.horizontal, Spacing.lg)
                 }
                 .listRowInsets(EdgeInsets())
-                .listRowBackground(Color(uiColor: .secondarySystemBackground))
+                .listRowBackground(AppColors.backgroundSecondary)
             }
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
-        .background(Color(uiColor: .secondarySystemBackground))
+        .background(AppColors.backgroundSecondary)
     }
 }

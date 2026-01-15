@@ -13,7 +13,7 @@ struct HomeView: View {
     @State private var showingProfile = false
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             ZStack {
                 ScrollView {
                     VStack(spacing: 24) {
@@ -132,7 +132,7 @@ struct SummaryCard: View {
                     .font(.subheadline)
                     .fontWeight(.medium)
                     .foregroundColor(.secondary)
-                Text(Formatters.currency.string(from: NSNumber(value: amount)) ?? "$0.00")
+                Text(CurrencyFormatter.format(amount))
                     .font(.title2)
                     .fontWeight(.bold)
                     .foregroundColor(.primary)
@@ -190,7 +190,7 @@ struct TransactionRow: View {
 
             Spacer()
 
-            Text(Formatters.currency.string(from: NSNumber(value: transaction.amount)) ?? "$0.00")
+            Text(CurrencyFormatter.format(transaction.amount))
                 .font(.subheadline)
                 .fontWeight(.bold)
                 .foregroundColor(.primary)
@@ -202,14 +202,6 @@ struct TransactionRow: View {
         .padding()
         .background(Color(uiColor: .tertiarySystemGroupedBackground))  // Ensure touch target
     }
-}
-
-struct Formatters {
-    static let currency: NumberFormatter = {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .currency
-        return formatter
-    }()
 }
 
 extension NavigationLink where Label == Text, Destination == TransactionHistoryView {

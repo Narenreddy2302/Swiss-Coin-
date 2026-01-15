@@ -19,8 +19,10 @@ struct MockDataGenerator {
 
     // MARK: - Main Seed Function
     static func seed(context: NSManagedObjectContext) {
-        // Create people for the transactions
-        let me = getPerson(name: "You", context: context)
+        // Create the current user with the correct UUID
+        let me = getOrCreateCurrentUser(context: context)
+
+        // Create other people for the transactions
         let alex = getPerson(name: "Alex", context: context)
         let nick = getPerson(name: "Nick", context: context)
         let sarah = getPerson(name: "Sarah", context: context)
@@ -350,6 +352,11 @@ struct MockDataGenerator {
 
     // MARK: - Helper Functions
 
+    /// Gets or creates the current user with the correct UUID
+    private static func getOrCreateCurrentUser(context: NSManagedObjectContext) -> Person {
+        return CurrentUser.getOrCreate(in: context)
+    }
+
     private static func getPerson(name: String, context: NSManagedObjectContext) -> Person {
         let request = Person.fetchRequest()
         request.predicate = NSPredicate(format: "name == %@", name)
@@ -391,6 +398,8 @@ struct MockDataGenerator {
 
         // Create splits based on participants
         let participantCount = Double(participants.count)
+        guard participantCount > 0 else { return }
+
         let sharePerPerson = amount / participantCount
 
         for participant in participants {
@@ -411,7 +420,7 @@ struct MockDataGenerator {
 
     // MARK: - Clear All Data (for testing purposes)
     static func clearAllData(context: NSManagedObjectContext) {
-        let entities = ["FinancialTransaction", "TransactionSplit", "Person"]
+        let entities = ["FinancialTransaction", "TransactionSplit", "Person", "Settlement", "Reminder", "ChatMessage"]
 
         for entity in entities {
             let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: entity)

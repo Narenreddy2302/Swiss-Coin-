@@ -20,76 +20,97 @@ struct ConversationActionBar: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            Divider()
+        HStack(spacing: Spacing.sm) {
+            // Add Transaction Button (Primary - Green Accent)
+            ActionButton(
+                title: "Add",
+                icon: "plus",
+                isPrimary: true,
+                isEnabled: true,
+                action: onAdd
+            )
 
-            HStack(spacing: 12) {
-                // Add Transaction Button
-                ActionBarButton(
-                    title: "Add",
-                    icon: "plus.circle.fill",
-                    color: .blue
-                ) {
-                    onAdd()
-                }
-
-                // Settle Button
-                ActionBarButton(
-                    title: "Settle",
-                    icon: "checkmark.circle.fill",
-                    color: canSettle ? .green : .gray
-                ) {
-                    if canSettle {
-                        onSettle()
-                    }
-                }
-                .opacity(canSettle ? 1.0 : 0.5)
-                .disabled(!canSettle)
-
-                // Remind Button
-                ActionBarButton(
-                    title: "Remind",
-                    icon: "bell.fill",
-                    color: canRemind ? .orange : .gray
-                ) {
+            // Remind Button
+            ActionButton(
+                title: "Remind",
+                icon: "bell.fill",
+                isPrimary: false,
+                isEnabled: canRemind,
+                action: {
                     if canRemind {
                         onRemind()
                     }
                 }
-                .opacity(canRemind ? 1.0 : 0.5)
-                .disabled(!canRemind)
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .background(Color(UIColor.secondarySystemBackground))
+            )
+
+            // Settle Button
+            ActionButton(
+                title: "Settle",
+                icon: "checkmark",
+                isPrimary: false,
+                isEnabled: canSettle,
+                action: {
+                    if canSettle {
+                        onSettle()
+                    }
+                }
+            )
+        }
+        .padding(.horizontal, Spacing.lg)
+        .padding(.vertical, Spacing.md)
+        .background(AppColors.background)
+        .onAppear {
+            HapticManager.prepare()
         }
     }
 }
 
-// MARK: - Action Bar Button
+// MARK: - Action Button
 
-struct ActionBarButton: View {
+private struct ActionButton: View {
     let title: String
     let icon: String
-    let color: Color
+    let isPrimary: Bool
+    let isEnabled: Bool
     let action: () -> Void
 
     var body: some View {
-        Button(action: action) {
-            HStack(spacing: 6) {
-                Image(systemName: icon)
-                    .font(.system(size: 16, weight: .semibold))
-                Text(title)
-                    .font(.system(size: 15, weight: .semibold))
+        Button(action: {
+            if isEnabled || isPrimary {
+                HapticManager.buttonPress()
+                action()
             }
-            .foregroundColor(color)
+        }) {
+            HStack(spacing: Spacing.sm) {
+                if isPrimary {
+                    // Green circle with plus icon for Add button
+                    ZStack {
+                        Circle()
+                            .fill(AppColors.accent)
+                            .frame(width: IconSize.lg, height: IconSize.lg)
+
+                        Image(systemName: icon)
+                            .font(.system(size: IconSize.xs, weight: .bold))
+                            .foregroundColor(.black)
+                    }
+                } else {
+                    Image(systemName: icon)
+                        .font(.system(size: IconSize.sm, weight: .medium))
+                        .foregroundColor(isEnabled ? AppColors.textSecondary : AppColors.disabled)
+                }
+
+                Text(title)
+                    .font(AppTypography.subheadlineMedium())
+                    .foregroundColor(isPrimary ? AppColors.accent : (isEnabled ? AppColors.textSecondary : AppColors.disabled))
+            }
             .frame(maxWidth: .infinity)
-            .frame(height: 44)
+            .frame(height: ButtonHeight.lg)
             .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(Color(UIColor.tertiarySystemGroupedBackground))
+                RoundedRectangle(cornerRadius: CornerRadius.md)
+                    .fill(AppColors.cardBackground)
             )
         }
-        .buttonStyle(PlainButtonStyle())
+        .buttonStyle(AppButtonStyle(haptic: .none)) // Haptic handled in action
+        .disabled(!isEnabled && !isPrimary)
     }
 }

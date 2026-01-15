@@ -10,10 +10,7 @@ struct ReminderMessageView: View {
     let person: Person
 
     private var messageText: String {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .currency
-        formatter.currencyCode = "USD"
-        let formatted = formatter.string(from: NSNumber(value: reminder.amount)) ?? "$0.00"
+        let formatted = CurrencyFormatter.format(reminder.amount)
         return "Reminder sent for \(formatted)"
     }
 

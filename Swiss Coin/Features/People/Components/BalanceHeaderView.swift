@@ -11,10 +11,7 @@ struct BalanceHeaderView: View {
     let onAvatarTap: () -> Void
 
     private var balanceText: String {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .currency
-        formatter.currencyCode = "USD"
-        let formatted = formatter.string(from: NSNumber(value: abs(balance))) ?? "$0.00"
+        let formatted = CurrencyFormatter.formatAbsolute(balance)
 
         if balance > 0.01 {
             return "\(person.firstName) owes you \(formatted)"

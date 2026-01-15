@@ -8,7 +8,8 @@ import Foundation
 extension Person {
 
     /// The UUID for the current user ("You")
-    static let currentUserUUID = UUID(uuidString: "00000000-0000-0000-0000-000000000000")!
+    /// @deprecated Use CurrentUser.uuid instead for consistency
+    static let currentUserUUID = CurrentUser.uuid
 
     /// Calculate net balance with this person (mutual transactions only)
     /// Positive = they owe you, Negative = you owe them
@@ -22,30 +23,35 @@ extension Person {
             let splits = transaction.splits as? Set<TransactionSplit> ?? []
             let payerId = transaction.payer?.id
 
-            if payerId == Person.currentUserUUID {
+            if CurrentUser.isCurrentUser(payerId) {
                 // YOU paid - they owe you their share
                 if let theirSplit = splits.first(where: { $0.owedBy?.id == self.id }) {
                     balance += theirSplit.amount
                 }
             } else if payerId == self.id {
                 // THEY paid - you owe your share
-                if let mySplit = splits.first(where: { $0.owedBy?.id == Person.currentUserUUID }) {
+                if let mySplit = splits.first(where: { CurrentUser.isCurrentUser($0.owedBy?.id) }) {
                     balance -= mySplit.amount
                 }
             }
         }
 
-        // Settlements where this person paid (fromPerson = self)
+        // Get settlements ONLY between current user and this person
+        let sentToCurrentUser = (sentSettlements as? Set<Settlement> ?? [])
+            .filter { CurrentUser.isCurrentUser($0.toPerson?.id) }
+
+        let receivedFromCurrentUser = (receivedSettlements as? Set<Settlement> ?? [])
+            .filter { CurrentUser.isCurrentUser($0.fromPerson?.id) }
+
+        // Settlements where this person paid the current user (fromPerson = self, toPerson = currentUser)
         // Their payment reduces their debt to you (balance decreases)
-        let sent = sentSettlements as? Set<Settlement> ?? []
-        for settlement in sent {
+        for settlement in sentToCurrentUser {
             balance -= settlement.amount
         }
 
-        // Settlements where this person received payment (toPerson = self)
-        // Your payment to them reduces your debt (balance increases toward zero)
-        let received = receivedSettlements as? Set<Settlement> ?? []
-        for settlement in received {
+        // Settlements where the current user paid this person (fromPerson = currentUser, toPerson = self)
+        // Your payment reduces your debt to them (balance increases toward zero)
+        for settlement in receivedFromCurrentUser {
             balance += settlement.amount
         }
 
@@ -54,11 +60,11 @@ extension Person {
 
     /// Get transactions involving both you and this person
     func getMutualTransactions() -> [FinancialTransaction] {
-        // Transactions where this person paid
+        // Cache the splits cast to avoid repeated conversions
+        let theirSplits = owedSplits as? Set<TransactionSplit> ?? []
         let paidByThem = toTransactions as? Set<FinancialTransaction> ?? []
 
         // Transactions where this person has a split (owes money)
-        let theirSplits = owedSplits as? Set<TransactionSplit> ?? []
         let owedByThem = Set(theirSplits.compactMap { $0.transaction })
 
         let allTheirTransactions = paidByThem.union(owedByThem)
@@ -66,13 +72,13 @@ extension Person {
         // Filter to only mutual: where you are also involved
         return allTheirTransactions.filter { transaction in
             let splits = transaction.splits as? Set<TransactionSplit> ?? []
-            let youArePayer = transaction.payer?.id == Person.currentUserUUID
-            let youHaveSplit = splits.contains { $0.owedBy?.id == Person.currentUserUUID }
+            let youArePayer = CurrentUser.isCurrentUser(transaction.payer?.id)
+            let youHaveSplit = splits.contains { CurrentUser.isCurrentUser($0.owedBy?.id) }
             return youArePayer || youHaveSplit
-        }.sorted { ($0.date ?? Date()) > ($1.date ?? Date()) }
+        }.sorted { ($0.date ?? Date.distantPast) > ($1.date ?? Date.distantPast) }
     }
 
-    /// Get all conversation items (transactions, settlements, reminders) sorted by date
+    /// Get all conversation items (transactions, settlements, reminders, messages) sorted by date
     func getConversationItems() -> [ConversationItem] {
         var items: [ConversationItem] = []
 
@@ -80,15 +86,22 @@ extension Person {
         let transactions = getMutualTransactions()
         items.append(contentsOf: transactions.map { ConversationItem.transaction($0) })
 
-        // Add settlements (both sent and received with this person)
-        let sent = sentSettlements as? Set<Settlement> ?? []
-        let received = receivedSettlements as? Set<Settlement> ?? []
-        items.append(contentsOf: sent.map { ConversationItem.settlement($0) })
-        items.append(contentsOf: received.map { ConversationItem.settlement($0) })
+        // Add settlements ONLY between current user and this person
+        let sentToCurrentUser = (sentSettlements as? Set<Settlement> ?? [])
+            .filter { CurrentUser.isCurrentUser($0.toPerson?.id) }
+        let receivedFromCurrentUser = (receivedSettlements as? Set<Settlement> ?? [])
+            .filter { CurrentUser.isCurrentUser($0.fromPerson?.id) }
+
+        items.append(contentsOf: sentToCurrentUser.map { ConversationItem.settlement($0) })
+        items.append(contentsOf: receivedFromCurrentUser.map { ConversationItem.settlement($0) })
 
         // Add reminders sent to this person
         let reminders = receivedReminders as? Set<Reminder> ?? []
         items.append(contentsOf: reminders.map { ConversationItem.reminder($0) })
+
+        // Add chat messages with this person
+        let messages = chatMessages as? Set<ChatMessage> ?? []
+        items.append(contentsOf: messages.map { ConversationItem.message($0) })
 
         // Sort by date ascending (oldest first, like iMessage)
         return items.sorted { $0.date < $1.date }
@@ -99,18 +112,13 @@ extension Person {
         let items = getConversationItems()
         let calendar = Calendar.current
 
-        var groups: [Date: [ConversationItem]] = [:]
-
-        for item in items {
-            let startOfDay = calendar.startOfDay(for: item.date)
-            if groups[startOfDay] == nil {
-                groups[startOfDay] = []
-            }
-            groups[startOfDay]?.append(item)
+        // Use Dictionary grouping for efficiency
+        let grouped = Dictionary(grouping: items) { item in
+            calendar.startOfDay(for: item.date)
         }
 
-        return groups.map { date, items in
-            ConversationDateGroup(date: date, items: items.sorted { $0.date < $1.date })
+        return grouped.map { date, groupItems in
+            ConversationDateGroup(date: date, items: groupItems.sorted { $0.date < $1.date })
         }.sorted { $0.date < $1.date }
     }
 }
@@ -121,20 +129,23 @@ enum ConversationItem: Identifiable {
     case transaction(FinancialTransaction)
     case settlement(Settlement)
     case reminder(Reminder)
+    case message(ChatMessage)
 
     var id: UUID {
         switch self {
         case .transaction(let t): return t.id ?? UUID()
         case .settlement(let s): return s.id ?? UUID()
         case .reminder(let r): return r.id ?? UUID()
+        case .message(let m): return m.id ?? UUID()
         }
     }
 
     var date: Date {
         switch self {
-        case .transaction(let t): return t.date ?? Date()
-        case .settlement(let s): return s.date ?? Date()
-        case .reminder(let r): return r.createdDate ?? Date()
+        case .transaction(let t): return t.date ?? Date.distantPast
+        case .settlement(let s): return s.date ?? Date.distantPast
+        case .reminder(let r): return r.createdDate ?? Date.distantPast
+        case .message(let m): return m.timestamp ?? Date.distantPast
         }
     }
 }
