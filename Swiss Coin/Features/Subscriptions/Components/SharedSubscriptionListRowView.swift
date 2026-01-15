@@ -9,7 +9,11 @@ import SwiftUI
 
 struct SharedSubscriptionListRowView: View {
     @ObservedObject var subscription: Subscription
+    @Environment(\.managedObjectContext) private var viewContext
     @State private var isPressed = false
+    @State private var showingRecordPayment = false
+    @State private var showingReminder = false
+    @State private var showingDetail = false
 
     private var memberCount: Int {
         subscription.memberCount
@@ -91,21 +95,44 @@ struct SharedSubscriptionListRowView: View {
         .contextMenu {
             Button {
                 HapticManager.tap()
+                showingDetail = true
             } label: {
                 Label("View Details", systemImage: "info.circle")
             }
 
             Button {
                 HapticManager.tap()
+                showingRecordPayment = true
             } label: {
                 Label("Record Payment", systemImage: "dollarsign.circle")
             }
 
             Button {
                 HapticManager.tap()
+                showingReminder = true
             } label: {
                 Label("Send Reminders", systemImage: "bell")
             }
+        }
+        .sheet(isPresented: $showingDetail) {
+            NavigationStack {
+                SubscriptionDetailView(subscription: subscription)
+                    .toolbar {
+                        ToolbarItem(placement: .navigationBarTrailing) {
+                            Button("Done") {
+                                showingDetail = false
+                            }
+                        }
+                    }
+            }
+        }
+        .sheet(isPresented: $showingRecordPayment) {
+            RecordSubscriptionPaymentView(subscription: subscription)
+                .environment(\.managedObjectContext, viewContext)
+        }
+        .sheet(isPresented: $showingReminder) {
+            SubscriptionReminderSheetView(subscription: subscription)
+                .environment(\.managedObjectContext, viewContext)
         }
     }
 }
