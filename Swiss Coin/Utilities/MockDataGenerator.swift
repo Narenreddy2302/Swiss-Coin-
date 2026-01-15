@@ -922,13 +922,3 @@ struct MockDataGenerator {
         }
     }
 }
-
-// MARK: - Subscription Accessors Extension
-
-extension Subscription {
-    @objc(addSubscribersObject:)
-    @NSManaged public func addToSubscribers(_ value: Person)
-
-    @objc(removeSubscribersObject:)
-    @NSManaged public func removeFromSubscribers(_ value: Person)
-}

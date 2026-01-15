@@ -27,6 +27,21 @@ extension Subscription {
 
 }
 
+// MARK: Generated accessors for subscribers
+extension Subscription {
+    @objc(addSubscribersObject:)
+    @NSManaged public func addToSubscribers(_ value: Person)
+
+    @objc(removeSubscribersObject:)
+    @NSManaged public func removeFromSubscribers(_ value: Person)
+
+    @objc(addSubscribers:)
+    @NSManaged public func addToSubscribers(_ values: NSSet)
+
+    @objc(removeSubscribers:)
+    @NSManaged public func removeFromSubscribers(_ values: NSSet)
+}
+
 extension Subscription: Identifiable {
 
 }
