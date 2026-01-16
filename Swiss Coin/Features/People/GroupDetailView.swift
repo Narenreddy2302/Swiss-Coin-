@@ -107,7 +107,7 @@ struct GroupDetailView: View {
                 .padding(.top, Spacing.xl)
             }
             .sheet(isPresented: $showingAddTransaction) {
-                AddTransactionView(initialGroup: group)
+                QuickActionSheetPresenter(initialGroup: group)
             }
             .sheet(isPresented: $showingSettlement) {
                 GroupSettlementView(group: group)

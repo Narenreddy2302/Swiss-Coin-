@@ -58,7 +58,7 @@ struct PersonDetailView: View {
                 .padding(.top, 20)
             }
             .sheet(isPresented: $showingAddTransaction) {
-                AddTransactionView(initialParticipant: person)
+                QuickActionSheetPresenter(initialPerson: person)
             }
 
             // Transactions List

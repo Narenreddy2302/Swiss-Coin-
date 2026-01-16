@@ -3,39 +3,53 @@ import SwiftUI
 struct ProfileButton: View {
     var action: () -> Void
 
+    // Apple-style color palette for profile avatars
+    private let avatarColor = Color(red: 0.35, green: 0.35, blue: 0.37)
+
     var body: some View {
         Button(action: action) {
             ZStack {
-                // Gradient background
+                // Clean circular background - Apple style
                 Circle()
-                    .fill(
-                        LinearGradient(
-                            colors: [Color.blue.opacity(0.8), Color.purple.opacity(0.8)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
+                    .fill(Color(UIColor.tertiarySystemFill))
                     .frame(width: 32, height: 32)
 
-                // System icon for profile (ready for real user image from auth)
-                Image(systemName: "person.crop.circle.fill")
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .frame(width: 32, height: 32)
-                    .foregroundColor(.white)
-                    .clipShape(Circle())
-                    .overlay(
-                        Circle()
-                            .stroke(Color.white.opacity(0.2), lineWidth: 1)
+                // SF Symbol person icon - Apple's standard approach
+                Image(systemName: "person.circle.fill")
+                    .font(.system(size: 30, weight: .light))
+                    .foregroundStyle(
+                        Color(UIColor.secondaryLabel),
+                        Color(UIColor.tertiarySystemFill)
                     )
             }
         }
+        .buttonStyle(ProfileButtonStyle())
         .accessibilityLabel("Profile")
     }
 }
 
+/// Apple-style button interaction with subtle scale and haptic feedback
+private struct ProfileButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.92 : 1.0)
+            .animation(.easeOut(duration: 0.15), value: configuration.isPressed)
+            .onChange(of: configuration.isPressed) { _, isPressed in
+                if isPressed {
+                    HapticManager.lightTap()
+                }
+            }
+    }
+}
+
 #Preview {
-    ProfileButton(action: {})
-        .padding()
-        .background(Color.black)
+    VStack(spacing: 20) {
+        ProfileButton(action: {})
+            .padding()
+            .background(Color(UIColor.systemBackground))
+
+        ProfileButton(action: {})
+            .padding()
+            .background(Color(UIColor.secondarySystemBackground))
+    }
 }
