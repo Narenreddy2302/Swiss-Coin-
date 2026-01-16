@@ -167,7 +167,7 @@ final class CurrentUserManager: ObservableObject {
         update.accentColor = accentColor
         update.fontSize = fontSize
         update.reduceMotion = reduceMotion
-        update.hapticFeedback = hapticFeedback
+        update.hapticFeedbackEnabled = hapticFeedback
         try await supabase.updateUserSettings(update)
     }
 

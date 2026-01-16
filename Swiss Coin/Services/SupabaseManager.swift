@@ -1090,10 +1090,21 @@ struct UserSettings: Decodable {
     let accentColor: String
     let fontSize: String
     let reduceMotion: Bool
-    let hapticFeedback: Bool
+    let hapticFeedback: Bool  // Maps from haptic_feedback_enabled in DB
     let defaultCurrency: String
-    let currencySymbolPosition: String
-    let decimalPlaces: Int
+    let currencySymbolPosition: String?
+    let decimalPlaces: Int?
+
+    enum CodingKeys: String, CodingKey {
+        case themeMode = "theme_mode"
+        case accentColor = "accent_color"
+        case fontSize = "font_size"
+        case reduceMotion = "reduce_motion"
+        case hapticFeedback = "haptic_feedback_enabled"
+        case defaultCurrency = "default_currency"
+        case currencySymbolPosition = "currency_symbol_position"
+        case decimalPlaces = "decimal_places"
+    }
 }
 
 struct NotificationSettings: Decodable {
