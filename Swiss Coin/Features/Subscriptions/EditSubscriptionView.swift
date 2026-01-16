@@ -29,6 +29,8 @@ struct EditSubscriptionView: View {
 
     @State private var selectedMembers: Set<Person>
     @State private var showingMemberPicker = false
+    @State private var showingError = false
+    @State private var errorMessage = ""
 
     let cycles = ["Weekly", "Monthly", "Yearly", "Custom"]
     let categories = ["Entertainment", "Productivity", "Utilities", "Health", "Food", "Transportation", "Education", "Other"]
@@ -196,6 +198,13 @@ struct EditSubscriptionView: View {
                 MemberPickerView(selectedMembers: $selectedMembers)
                     .environment(\.managedObjectContext, viewContext)
             }
+            .alert("Error", isPresented: $showingError) {
+                Button("OK", role: .cancel) {
+                    HapticManager.tap()
+                }
+            } message: {
+                Text(errorMessage)
+            }
         }
     }
 
@@ -233,9 +242,13 @@ struct EditSubscriptionView: View {
 
         do {
             try viewContext.save()
+            HapticManager.success()
             dismiss()
         } catch {
-            print("Error saving subscription: \(error)")
+            viewContext.rollback()
+            HapticManager.error()
+            errorMessage = "Failed to save subscription: \(error.localizedDescription)"
+            showingError = true
         }
     }
 }

@@ -39,8 +39,8 @@ struct PeopleView: View {
                 }
             }
             .background(AppColors.backgroundSecondary)
-            .navigationTitle("Library")
-            .navigationBarTitleDisplayMode(.large)
+            .navigationTitle("")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     HStack {
@@ -82,22 +82,57 @@ struct PeopleView: View {
 struct PersonListView: View {
     @FetchRequest(
         sortDescriptors: [NSSortDescriptor(keyPath: \Person.name, ascending: true)],
-        predicate: NSPredicate(format: "toTransactions.@count > 0 OR owedSplits.@count > 0"),
+        predicate: NSPredicate(
+            format: "id != %@ AND (toTransactions.@count > 0 OR owedSplits.@count > 0 OR sentSettlements.@count > 0 OR receivedSettlements.@count > 0 OR chatMessages.@count > 0)",
+            CurrentUser.uuid as CVarArg
+        ),
         animation: .default)
     private var people: FetchedResults<Person>
 
     var body: some View {
-        List {
-            ForEach(people) { person in
-                NavigationLink(destination: PersonConversationView(person: person)) {
-                    PersonListRowView(person: person)
+        Group {
+            if people.isEmpty {
+                PersonEmptyStateView()
+            } else {
+                List {
+                    ForEach(people) { person in
+                        NavigationLink(destination: PersonConversationView(person: person)) {
+                            PersonListRowView(person: person)
+                        }
+                        .listRowInsets(EdgeInsets())
+                        .listRowBackground(AppColors.backgroundSecondary)
+                    }
                 }
-                .listRowInsets(EdgeInsets())
-                .listRowBackground(AppColors.backgroundSecondary)
+                .listStyle(.plain)
+                .scrollContentBackground(.hidden)
+                .background(AppColors.backgroundSecondary)
             }
         }
-        .listStyle(.plain)
-        .scrollContentBackground(.hidden)
+    }
+}
+
+struct PersonEmptyStateView: View {
+    var body: some View {
+        VStack(spacing: Spacing.lg) {
+            Spacer()
+
+            Image(systemName: "person.2.slash")
+                .font(.system(size: IconSize.xxl))
+                .foregroundColor(AppColors.textSecondary)
+
+            Text("No People Yet")
+                .font(AppTypography.title2())
+                .foregroundColor(AppColors.textPrimary)
+
+            Text("Add an expense with someone to start tracking balances")
+                .font(AppTypography.subheadline())
+                .foregroundColor(AppColors.textSecondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, Spacing.xxl)
+
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(AppColors.backgroundSecondary)
     }
 }
@@ -105,6 +140,9 @@ struct PersonListView: View {
 struct PersonListRowView: View {
     @ObservedObject var person: Person
     @State private var isPressed = false
+    @State private var showingProfile = false
+    @State private var showingAddExpense = false
+    @State private var showingReminder = false
 
     private var balance: Double {
         person.calculateBalance()
@@ -169,21 +207,44 @@ struct PersonListRowView: View {
         .contextMenu {
             Button {
                 HapticManager.tap()
+                showingProfile = true
             } label: {
                 Label("View Profile", systemImage: "person.circle")
             }
 
             Button {
                 HapticManager.tap()
+                showingAddExpense = true
             } label: {
                 Label("Add Expense", systemImage: "plus.circle")
             }
 
-            Button {
-                HapticManager.tap()
-            } label: {
-                Label("Send Reminder", systemImage: "bell")
+            if balance > 0.01 {
+                Button {
+                    HapticManager.tap()
+                    showingReminder = true
+                } label: {
+                    Label("Send Reminder", systemImage: "bell")
+                }
             }
+        }
+        .sheet(isPresented: $showingProfile) {
+            NavigationStack {
+                PersonDetailView(person: person)
+                    .toolbar {
+                        ToolbarItem(placement: .navigationBarTrailing) {
+                            Button("Done") {
+                                showingProfile = false
+                            }
+                        }
+                    }
+            }
+        }
+        .sheet(isPresented: $showingAddExpense) {
+            AddTransactionView(initialParticipant: person)
+        }
+        .sheet(isPresented: $showingReminder) {
+            ReminderSheetView(person: person, amount: balance)
         }
     }
 }
@@ -195,17 +256,49 @@ struct GroupListView: View {
     private var groups: FetchedResults<UserGroup>
 
     var body: some View {
-        List {
-            ForEach(groups) { group in
-                NavigationLink(destination: GroupConversationView(group: group)) {
-                    GroupListRowView(group: group)
+        Group {
+            if groups.isEmpty {
+                GroupEmptyStateView()
+            } else {
+                List {
+                    ForEach(groups) { group in
+                        NavigationLink(destination: GroupConversationView(group: group)) {
+                            GroupListRowView(group: group)
+                        }
+                        .listRowInsets(EdgeInsets())
+                        .listRowBackground(AppColors.backgroundSecondary)
+                    }
                 }
-                .listRowInsets(EdgeInsets())
-                .listRowBackground(AppColors.backgroundSecondary)
+                .listStyle(.plain)
+                .scrollContentBackground(.hidden)
+                .background(AppColors.backgroundSecondary)
             }
         }
-        .listStyle(.plain)
-        .scrollContentBackground(.hidden)
+    }
+}
+
+struct GroupEmptyStateView: View {
+    var body: some View {
+        VStack(spacing: Spacing.lg) {
+            Spacer()
+
+            Image(systemName: "person.3.slash")
+                .font(.system(size: IconSize.xxl))
+                .foregroundColor(AppColors.textSecondary)
+
+            Text("No Groups Yet")
+                .font(AppTypography.title2())
+                .foregroundColor(AppColors.textPrimary)
+
+            Text("Create a group to split expenses with multiple people")
+                .font(AppTypography.subheadline())
+                .foregroundColor(AppColors.textSecondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, Spacing.xxl)
+
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(AppColors.backgroundSecondary)
     }
 }
@@ -213,6 +306,9 @@ struct GroupListView: View {
 struct GroupListRowView: View {
     @ObservedObject var group: UserGroup
     @State private var isPressed = false
+    @State private var showingGroupInfo = false
+    @State private var showingAddExpense = false
+    @State private var showingReminders = false
 
     private var balance: Double {
         group.calculateBalance()
@@ -291,21 +387,44 @@ struct GroupListRowView: View {
         .contextMenu {
             Button {
                 HapticManager.tap()
+                showingGroupInfo = true
             } label: {
                 Label("View Group Info", systemImage: "info.circle")
             }
 
             Button {
                 HapticManager.tap()
+                showingAddExpense = true
             } label: {
                 Label("Add Expense", systemImage: "plus.circle")
             }
 
-            Button {
-                HapticManager.tap()
-            } label: {
-                Label("Send Reminders", systemImage: "bell")
+            if balance > 0.01 {
+                Button {
+                    HapticManager.tap()
+                    showingReminders = true
+                } label: {
+                    Label("Send Reminders", systemImage: "bell")
+                }
             }
+        }
+        .sheet(isPresented: $showingGroupInfo) {
+            NavigationStack {
+                GroupDetailView(group: group)
+                    .toolbar {
+                        ToolbarItem(placement: .navigationBarTrailing) {
+                            Button("Done") {
+                                showingGroupInfo = false
+                            }
+                        }
+                    }
+            }
+        }
+        .sheet(isPresented: $showingAddExpense) {
+            AddTransactionView(initialGroup: group)
+        }
+        .sheet(isPresented: $showingReminders) {
+            GroupReminderSheetView(group: group)
         }
     }
 }

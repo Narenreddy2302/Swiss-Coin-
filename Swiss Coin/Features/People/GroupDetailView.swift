@@ -22,7 +22,7 @@ struct GroupDetailView: View {
         List {
             // Group Header
             Section {
-                VStack(alignment: .center, spacing: 16) {
+                VStack(alignment: .center, spacing: Spacing.lg) {
                     Circle()
                         .fill(Color(hex: group.colorHex ?? "#007AFF"))
                         .frame(width: 100, height: 100)
@@ -33,76 +33,78 @@ struct GroupDetailView: View {
                         )
                         .shadow(radius: 10)
 
-                    VStack(spacing: 4) {
-                        Text(group.name ?? "Unknown Group")
-                            .font(.title2)
-                            .fontWeight(.bold)
+                    VStack(spacing: Spacing.xs) {
+                        Text(group.displayName)
+                            .font(AppTypography.title2())
+                            .foregroundColor(AppColors.textPrimary)
 
                         Text("\(group.members?.count ?? 0) Members")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
+                            .font(AppTypography.subheadline())
+                            .foregroundColor(AppColors.textSecondary)
 
                         // Balance summary
                         if abs(balance) > 0.01 {
-                            HStack(spacing: 4) {
+                            HStack(spacing: Spacing.xs) {
                                 if balance > 0 {
                                     Text("You're owed")
-                                        .foregroundColor(.secondary)
+                                        .foregroundColor(AppColors.textSecondary)
                                     Text(CurrencyFormatter.format(balance))
                                         .fontWeight(.semibold)
                                         .foregroundColor(AppColors.positive)
                                 } else {
                                     Text("You owe")
-                                        .foregroundColor(.secondary)
+                                        .foregroundColor(AppColors.textSecondary)
                                     Text(CurrencyFormatter.format(abs(balance)))
                                         .fontWeight(.semibold)
                                         .foregroundColor(AppColors.negative)
                                 }
                             }
-                            .font(.subheadline)
+                            .font(AppTypography.subheadline())
                         }
                     }
 
                     // Action Buttons
-                    HStack(spacing: 20) {
+                    HStack(spacing: Spacing.lg) {
                         Button(action: {
                             HapticManager.buttonPress()
                             showingAddTransaction = true
                         }) {
-                            HStack {
+                            HStack(spacing: Spacing.sm) {
                                 Image(systemName: "plus.circle.fill")
                                 Text("Add Expense")
                             }
+                            .font(AppTypography.subheadlineMedium())
                             .frame(minWidth: 120)
-                            .padding(.vertical, 8)
-                            .background(Color(uiColor: .tertiarySystemGroupedBackground))
-                            .cornerRadius(20)
+                            .padding(.vertical, Spacing.sm)
+                            .background(AppColors.backgroundTertiary)
+                            .cornerRadius(CornerRadius.lg)
                         }
-                        .buttonStyle(PlainButtonStyle())
+                        .buttonStyle(.plain)
 
                         Button(action: {
                             HapticManager.buttonPress()
                             showingSettlement = true
                         }) {
-                            HStack {
+                            HStack(spacing: Spacing.sm) {
                                 Image(systemName: "checkmark.circle.fill")
                                 Text("Settle Up")
                             }
+                            .font(AppTypography.subheadlineMedium())
                             .frame(minWidth: 120)
-                            .padding(.vertical, 8)
-                            .background(Color(uiColor: .tertiarySystemGroupedBackground))
-                            .cornerRadius(20)
+                            .padding(.vertical, Spacing.sm)
+                            .background(AppColors.backgroundTertiary)
+                            .cornerRadius(CornerRadius.lg)
                             .opacity(canSettle ? 1.0 : 0.5)
                         }
-                        .buttonStyle(PlainButtonStyle())
+                        .buttonStyle(.plain)
                         .disabled(!canSettle)
                     }
-                    .padding(.bottom, 8)
+                    .padding(.bottom, Spacing.sm)
                 }
                 .frame(maxWidth: .infinity)
                 .listRowBackground(Color.clear)
                 .listRowInsets(EdgeInsets())
-                .padding(.top, 20)
+                .padding(.top, Spacing.xl)
             }
             .sheet(isPresented: $showingAddTransaction) {
                 AddTransactionView(initialGroup: group)
@@ -111,51 +113,69 @@ struct GroupDetailView: View {
                 GroupSettlementView(group: group)
             }
 
-            Section(header: Text("Members")) {
+            Section(header: Text("Members").font(AppTypography.subheadlineMedium())) {
                 ForEach(memberBalances, id: \.member.id) { item in
-                    HStack {
+                    HStack(spacing: Spacing.md) {
                         Circle()
                             .fill(Color(hex: item.member.colorHex ?? "#808080").opacity(0.3))
-                            .frame(width: 32, height: 32)
-                            .overlay(Text(item.member.initials).font(.caption).foregroundColor(.primary))
+                            .frame(width: AvatarSize.sm, height: AvatarSize.sm)
+                            .overlay(
+                                Text(item.member.initials)
+                                    .font(AppTypography.caption())
+                                    .foregroundColor(AppColors.textPrimary)
+                            )
 
-                        Text(item.member.name ?? "Unknown")
+                        Text(item.member.displayName)
+                            .font(AppTypography.body())
+                            .foregroundColor(AppColors.textPrimary)
 
                         Spacer()
 
                         if abs(item.balance) > 0.01 {
                             if item.balance > 0 {
                                 Text("owes \(CurrencyFormatter.format(item.balance))")
-                                    .font(.caption)
+                                    .font(AppTypography.caption())
                                     .foregroundColor(AppColors.positive)
                             } else {
                                 Text("owed \(CurrencyFormatter.format(abs(item.balance)))")
-                                    .font(.caption)
+                                    .font(AppTypography.caption())
                                     .foregroundColor(AppColors.negative)
                             }
                         } else {
                             Text("settled")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
+                                .font(AppTypography.caption())
+                                .foregroundColor(AppColors.textSecondary)
                         }
                     }
                 }
             }
 
-            Section(header: Text("Expenses")) {
+            Section(header: Text("Expenses").font(AppTypography.subheadlineMedium())) {
                 if group.transactionsArray.isEmpty {
-                    Text("No expenses yet")
-                        .foregroundColor(.secondary)
+                    HStack {
+                        Spacer()
+                        VStack(spacing: Spacing.sm) {
+                            Image(systemName: "receipt")
+                                .font(.system(size: IconSize.lg))
+                                .foregroundColor(AppColors.textSecondary)
+                            Text("No expenses yet")
+                                .font(AppTypography.subheadline())
+                                .foregroundColor(AppColors.textSecondary)
+                        }
+                        .padding(.vertical, Spacing.xl)
+                        Spacer()
+                    }
+                    .listRowBackground(Color.clear)
                 } else {
                     ForEach(group.transactionsArray, id: \.self) { transaction in
-                        TransactionRow(transaction: transaction)
+                        TransactionRowView(transaction: transaction)
                     }
                 }
             }
         }
         .listStyle(.insetGrouped)
         .scrollContentBackground(.hidden)
-        .background(Color(uiColor: .secondarySystemBackground))
+        .background(AppColors.backgroundSecondary)
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             HapticManager.prepare()
