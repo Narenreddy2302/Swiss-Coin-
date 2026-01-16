@@ -14,15 +14,7 @@ struct PersistenceController {
     static let preview: PersistenceController = {
         let result = PersistenceController(inMemory: true)
         let viewContext = result.container.viewContext
-        // Create sample data for preview
-        MockDataGenerator.seed(context: viewContext)
-
-        do {
-            try viewContext.save()
-        } catch {
-            let nsError = error as NSError
-            fatalError("Unresolved error \(nsError), \(nsError.userInfo)")
-        }
+        // Preview context - no mock data seeded for production
         return result
     }()
 
@@ -84,8 +76,5 @@ struct PersistenceController {
 
         loadPersistentStores()
         container.viewContext.automaticallyMergesChangesFromParent = true
-
-        // Seed mock data for development (has duplicate prevention built-in)
-        MockDataGenerator.seed(context: container.viewContext)
     }
 }

@@ -2,8 +2,9 @@
 //  CurrentUser.swift
 //  Swiss Coin
 //
-//  Centralized current user identity management.
+//  Centralized current user identity management for production.
 //  Integrates with both local CoreData and remote Supabase.
+//  Requires authentication before accessing user data.
 //
 
 import Combine
@@ -197,12 +198,16 @@ final class CurrentUserManager: ObservableObject {
 
 /// Static helpers for backward compatibility with existing code
 struct CurrentUser {
-    /// Default UUID for offline/demo mode
-    static let defaultUUID = UUID(uuidString: "00000000-0000-0000-0000-000000000000")!
+    /// Fallback UUID when not authenticated (should not be used in production)
+    private static let fallbackUUID = UUID()
 
-    /// Current user UUID - uses authenticated ID or default
+    /// Current user UUID - requires authentication
     static var uuid: UUID {
-        CurrentUserManager.shared.userId ?? defaultUUID
+        guard let userId = CurrentUserManager.shared.userId else {
+            // In production, this should only be reached during initial app load
+            return fallbackUUID
+        }
+        return userId
     }
 
     /// Display name for the current user

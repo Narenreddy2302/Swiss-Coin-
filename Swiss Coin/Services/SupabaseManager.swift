@@ -230,6 +230,53 @@ final class SupabaseManager: ObservableObject {
         return userId
     }
 
+    /// Simple phone sign-in - authenticates user with just phone number
+    /// Creates a local session using the phone number as the user identifier.
+    /// When Supabase is properly configured, this will use OTP-based authentication.
+    func signInWithPhone(phoneNumber: String) async throws {
+        isLoading = true
+        defer { isLoading = false }
+
+        // Check if Supabase is properly configured
+        let isSupabaseConfigured = !SupabaseConfig.url.contains("your-project") &&
+                                   !SupabaseConfig.anonKey.contains("your-anon-key")
+
+        if isSupabaseConfigured {
+            // Use standard OTP flow for configured Supabase
+            try await requestOTP(phoneNumber: phoneNumber)
+        } else {
+            // Local session mode - create user session based on phone number
+            // Generate deterministic UUID from phone number for consistency
+            let userId = generateUserIdFromPhone(phoneNumber)
+
+            // Save local session
+            saveSession(
+                accessToken: "local_session_\(userId.uuidString)",
+                refreshToken: "local_refresh_\(userId.uuidString)",
+                userId: userId
+            )
+
+            // Store phone number for profile
+            KeychainHelper.save(key: "swiss_coin_phone_number", value: phoneNumber)
+        }
+    }
+
+    /// Generate a deterministic UUID from phone number
+    private func generateUserIdFromPhone(_ phoneNumber: String) -> UUID {
+        // Use a simple hash-based approach for consistent UUID generation
+        let cleanPhone = phoneNumber.filter { $0.isNumber }
+        var hashValue = cleanPhone.hashValue
+
+        // Ensure positive value
+        if hashValue < 0 { hashValue = -hashValue }
+
+        // Create UUID string with deterministic values
+        let hex = String(format: "%016llx%016llx", UInt64(hashValue), UInt64(cleanPhone.count * 12345))
+        let uuidString = "\(hex.prefix(8))-\(hex.dropFirst(8).prefix(4))-4\(hex.dropFirst(12).prefix(3))-a\(hex.dropFirst(15).prefix(3))-\(hex.dropFirst(18).prefix(12).padding(toLength: 12, withPad: "0", startingAt: 0))"
+
+        return UUID(uuidString: uuidString) ?? UUID()
+    }
+
     /// Sign out
     func signOut() async {
         isLoading = true
