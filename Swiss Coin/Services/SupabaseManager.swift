@@ -475,6 +475,147 @@ final class SupabaseManager: ObservableObject {
         )
     }
 
+    // MARK: - Profile Management
+
+    /// Get profile details
+    func getProfileDetails() async throws -> ProfileDetails {
+        let response: ProfileDetailsResponse = try await request(
+            endpoint: "/rest/v1/rpc/get_profile_details",
+            method: "POST",
+            body: ["p_user_id": currentUserId?.uuidString ?? ""],
+            requiresAuth: true
+        )
+        return response.toProfileDetails()
+    }
+
+    /// Update profile details (display name, full name, email, color)
+    func updateProfileDetails(_ update: ProfileDetailsUpdate) async throws -> ProfileDetails {
+        var body: [String: Any] = ["p_user_id": currentUserId?.uuidString ?? ""]
+
+        if let displayName = update.displayName { body["p_display_name"] = displayName }
+        if let fullName = update.fullName { body["p_full_name"] = fullName }
+        if let email = update.email { body["p_email"] = email }
+        if let colorHex = update.colorHex { body["p_color_hex"] = colorHex }
+        if let avatarUrl = update.avatarUrl { body["p_avatar_url"] = avatarUrl }
+
+        let response: ProfileUpdateResponse = try await request(
+            endpoint: "/rest/v1/rpc/update_profile_details",
+            method: "POST",
+            body: body,
+            requiresAuth: true
+        )
+
+        guard response.success, let profile = response.profile else {
+            throw SupabaseError.serverError(400, response.error ?? "Failed to update profile")
+        }
+
+        return profile
+    }
+
+    /// Upload profile photo to Supabase Storage
+    func uploadProfilePhoto(imageData: Data, filename: String) async throws -> String {
+        guard let userId = currentUserId else {
+            throw SupabaseError.notAuthenticated
+        }
+
+        let storagePath = "\(userId.uuidString)/\(filename)"
+        let uploadUrl = "\(SupabaseConfig.url)/storage/v1/object/avatars/\(storagePath)"
+
+        guard let url = URL(string: uploadUrl) else {
+            throw SupabaseError.networkError("Invalid upload URL")
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue(SupabaseConfig.anonKey, forHTTPHeaderField: "apikey")
+        request.setValue("Bearer \(sessionToken ?? "")", forHTTPHeaderField: "Authorization")
+        request.setValue("image/jpeg", forHTTPHeaderField: "Content-Type")
+        request.setValue("true", forHTTPHeaderField: "x-upsert")
+        request.httpBody = imageData
+
+        let (data, response) = try await session.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw SupabaseError.invalidResponse
+        }
+
+        switch httpResponse.statusCode {
+        case 200...299:
+            // Construct public URL
+            let publicUrl = "\(SupabaseConfig.url)/storage/v1/object/public/avatars/\(storagePath)"
+
+            // Update profile with new avatar URL
+            let body: [String: Any] = [
+                "p_user_id": userId.uuidString,
+                "p_storage_path": storagePath,
+                "p_original_filename": filename,
+                "p_file_size_bytes": imageData.count,
+                "p_mime_type": "image/jpeg"
+            ]
+
+            let _: EmptyResponse = try await self.request(
+                endpoint: "/rest/v1/rpc/set_profile_photo",
+                method: "POST",
+                body: body,
+                requiresAuth: true
+            )
+
+            return publicUrl
+        default:
+            let message = String(data: data, encoding: .utf8) ?? "Upload failed"
+            throw SupabaseError.serverError(httpResponse.statusCode, message)
+        }
+    }
+
+    /// Delete profile photo
+    func deleteProfilePhoto() async throws {
+        guard let userId = currentUserId else {
+            throw SupabaseError.notAuthenticated
+        }
+
+        let response: DeletePhotoResponse = try await request(
+            endpoint: "/rest/v1/rpc/delete_profile_photo",
+            method: "POST",
+            body: ["p_user_id": userId.uuidString],
+            requiresAuth: true
+        )
+
+        // Delete from storage if there was a file
+        if let storagePath = response.deletedStoragePath {
+            let deleteUrl = "\(SupabaseConfig.url)/storage/v1/object/avatars/\(storagePath)"
+
+            if let url = URL(string: deleteUrl) {
+                var request = URLRequest(url: url)
+                request.httpMethod = "DELETE"
+                request.setValue(SupabaseConfig.anonKey, forHTTPHeaderField: "apikey")
+                request.setValue("Bearer \(sessionToken ?? "")", forHTTPHeaderField: "Authorization")
+
+                _ = try? await session.data(for: request)
+            }
+        }
+    }
+
+    /// Update email with validation
+    func updateEmail(_ email: String) async throws {
+        guard let userId = currentUserId else {
+            throw SupabaseError.notAuthenticated
+        }
+
+        let response: EmailUpdateResponse = try await request(
+            endpoint: "/rest/v1/rpc/update_email",
+            method: "POST",
+            body: ["p_user_id": userId.uuidString, "p_email": email],
+            requiresAuth: true
+        )
+
+        guard response.success else {
+            if response.error == "email_already_in_use" {
+                throw SupabaseError.conflict("This email is already associated with another account")
+            }
+            throw SupabaseError.serverError(400, response.error ?? "Failed to update email")
+        }
+    }
+
     // MARK: - Generic Request
 
     private func request<T: Decodable>(
@@ -666,6 +807,88 @@ struct TransactionCategory: Decodable, Identifiable {
 
 struct DataExportResponse: Decodable {
     let exportUrl: String
+}
+
+// MARK: - Profile Models
+
+struct ProfileDetails: Decodable {
+    let id: UUID
+    let phoneNumber: String?
+    let phoneVerified: Bool
+    let displayName: String?
+    let fullName: String?
+    let email: String?
+    let emailVerified: Bool
+    let avatarUrl: String?
+    let colorHex: String?
+    let defaultCurrency: String?
+    let createdAt: Date?
+    let updatedAt: Date?
+}
+
+struct ProfileDetailsResponse: Decodable {
+    let id: UUID?
+    let phoneNumber: String?
+    let phoneVerified: Bool?
+    let displayName: String?
+    let fullName: String?
+    let email: String?
+    let emailVerified: Bool?
+    let avatarUrl: String?
+    let colorHex: String?
+    let defaultCurrency: String?
+    let createdAt: String?
+    let updatedAt: String?
+
+    func toProfileDetails() -> ProfileDetails {
+        let dateFormatter = ISO8601DateFormatter()
+        dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+
+        return ProfileDetails(
+            id: id ?? UUID(),
+            phoneNumber: phoneNumber,
+            phoneVerified: phoneVerified ?? false,
+            displayName: displayName,
+            fullName: fullName,
+            email: email,
+            emailVerified: emailVerified ?? false,
+            avatarUrl: avatarUrl,
+            colorHex: colorHex,
+            defaultCurrency: defaultCurrency,
+            createdAt: createdAt.flatMap { dateFormatter.date(from: $0) },
+            updatedAt: updatedAt.flatMap { dateFormatter.date(from: $0) }
+        )
+    }
+}
+
+struct ProfileUpdateResponse: Decodable {
+    let success: Bool
+    let error: String?
+    let profile: ProfileDetails?
+}
+
+struct ProfileDetailsUpdate {
+    var displayName: String?
+    var fullName: String?
+    var email: String?
+    var colorHex: String?
+    var avatarUrl: String?
+}
+
+struct DeletePhotoResponse: Decodable {
+    let success: Bool
+    let deletedStoragePath: String?
+
+    enum CodingKeys: String, CodingKey {
+        case success
+        case deletedStoragePath = "deleted_storage_path"
+    }
+}
+
+struct EmailUpdateResponse: Decodable {
+    let success: Bool
+    let error: String?
+    let email: String?
 }
 
 // MARK: - Update Models
