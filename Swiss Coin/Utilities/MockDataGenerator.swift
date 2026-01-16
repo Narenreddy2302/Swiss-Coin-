@@ -2,8 +2,9 @@
 //  MockDataGenerator.swift
 //  Swiss Coin
 //
-//  Centralized mock data generator for development and testing.
-//  All mock data is created here and can be easily toggled on/off or removed.
+//  PRODUCTION NOTE: Mock data generation is DISABLED for production builds.
+//  This file is retained for development/testing purposes only.
+//  The clearAllData() function can be used to reset app data if needed.
 //
 
 import CoreData
@@ -13,10 +14,10 @@ import Foundation
 
 struct MockDataConfig {
     /// Master toggle for all mock data - set to false to disable seeding
-    static var isEnabled: Bool = true
+    static var isEnabled: Bool = false
 
     /// Whether to seed mock data on app launch
-    static var seedOnLaunch: Bool = true
+    static var seedOnLaunch: Bool = false
 }
 
 // MARK: - Mock Data Generator
