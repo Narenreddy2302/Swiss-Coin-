@@ -18,6 +18,8 @@ struct RecordSubscriptionPaymentView: View {
     @State private var date = Date()
     @State private var note = ""
     @State private var showingPayerPicker = false
+    @State private var showingError = false
+    @State private var errorMessage = ""
 
     @FetchRequest(
         sortDescriptors: [NSSortDescriptor(keyPath: \Person.name, ascending: true)],
@@ -157,6 +159,13 @@ struct RecordSubscriptionPaymentView: View {
                 // Default to current user as payer
                 selectedPayer = CurrentUser.getOrCreate(in: viewContext)
             }
+            .alert("Error", isPresented: $showingError) {
+                Button("OK", role: .cancel) {
+                    HapticManager.tap()
+                }
+            } message: {
+                Text(errorMessage)
+            }
         }
     }
 
@@ -176,9 +185,13 @@ struct RecordSubscriptionPaymentView: View {
 
         do {
             try viewContext.save()
+            HapticManager.success()
             dismiss()
         } catch {
-            print("Error saving payment: \(error)")
+            viewContext.rollback()
+            HapticManager.error()
+            errorMessage = "Failed to save payment: \(error.localizedDescription)"
+            showingError = true
         }
     }
 }

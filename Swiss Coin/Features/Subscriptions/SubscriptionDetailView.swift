@@ -14,6 +14,8 @@ struct SubscriptionDetailView: View {
     @Environment(\.dismiss) var dismiss
     @State private var showingEditSheet = false
     @State private var showingDeleteAlert = false
+    @State private var showingError = false
+    @State private var errorMessage = ""
 
     var body: some View {
         List {
@@ -247,6 +249,13 @@ struct SubscriptionDetailView: View {
         } message: {
             Text("Are you sure you want to cancel this subscription? This action cannot be undone.")
         }
+        .alert("Error", isPresented: $showingError) {
+            Button("OK", role: .cancel) {
+                HapticManager.tap()
+            }
+        } message: {
+            Text(errorMessage)
+        }
     }
 
     private func togglePauseStatus() {
@@ -255,7 +264,10 @@ struct SubscriptionDetailView: View {
             try viewContext.save()
             HapticManager.success()
         } catch {
-            print("Error toggling subscription status: \(error)")
+            viewContext.rollback()
+            HapticManager.error()
+            errorMessage = "Failed to update subscription: \(error.localizedDescription)"
+            showingError = true
         }
     }
 
@@ -266,7 +278,10 @@ struct SubscriptionDetailView: View {
             try viewContext.save()
             dismiss()
         } catch {
-            print("Error deleting subscription: \(error)")
+            viewContext.rollback()
+            HapticManager.error()
+            errorMessage = "Failed to delete subscription: \(error.localizedDescription)"
+            showingError = true
         }
     }
 }

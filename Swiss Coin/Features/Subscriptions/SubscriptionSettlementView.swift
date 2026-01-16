@@ -16,6 +16,8 @@ struct SubscriptionSettlementView: View {
     @State private var selectedMember: Person?
     @State private var amount: String = ""
     @State private var note = ""
+    @State private var showingError = false
+    @State private var errorMessage = ""
 
     private var memberBalances: [(member: Person, balance: Double, paid: Double)] {
         subscription.getMemberBalances()
@@ -186,6 +188,13 @@ struct SubscriptionSettlementView: View {
                     .fontWeight(.semibold)
                 }
             }
+            .alert("Error", isPresented: $showingError) {
+                Button("OK", role: .cancel) {
+                    HapticManager.tap()
+                }
+            } message: {
+                Text(errorMessage)
+            }
         }
     }
 
@@ -215,9 +224,13 @@ struct SubscriptionSettlementView: View {
 
         do {
             try viewContext.save()
+            HapticManager.success()
             dismiss()
         } catch {
-            print("Error saving settlement: \(error)")
+            viewContext.rollback()
+            HapticManager.error()
+            errorMessage = "Failed to save settlement: \(error.localizedDescription)"
+            showingError = true
         }
     }
 }

@@ -15,6 +15,8 @@ struct SubscriptionReminderSheetView: View {
 
     @State private var selectedMembers: Set<Person> = []
     @State private var message = ""
+    @State private var showingError = false
+    @State private var errorMessage = ""
 
     private var membersWhoOwe: [(member: Person, amount: Double)] {
         subscription.getMembersWhoOweYou()
@@ -158,6 +160,13 @@ struct SubscriptionReminderSheetView: View {
                     .fontWeight(.semibold)
                 }
             }
+            .alert("Error", isPresented: $showingError) {
+                Button("OK", role: .cancel) {
+                    HapticManager.tap()
+                }
+            } message: {
+                Text(errorMessage)
+            }
         }
     }
 
@@ -182,7 +191,10 @@ struct SubscriptionReminderSheetView: View {
             HapticManager.success()
             dismiss()
         } catch {
-            print("Error sending reminders: \(error)")
+            viewContext.rollback()
+            HapticManager.error()
+            errorMessage = "Failed to send reminders: \(error.localizedDescription)"
+            showingError = true
         }
     }
 }
