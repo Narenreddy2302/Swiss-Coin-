@@ -616,6 +616,239 @@ final class SupabaseManager: ObservableObject {
         }
     }
 
+    // MARK: - Security Settings Management
+
+    /// Get security settings
+    func getSecuritySettings() async throws -> UserSecuritySettings {
+        guard let userId = currentUserId else {
+            throw SupabaseError.notAuthenticated
+        }
+
+        let results: [UserSecuritySettings] = try await request(
+            endpoint: "/rest/v1/user_security_settings",
+            method: "GET",
+            requiresAuth: true,
+            filters: [
+                "user_id": "eq.\(userId.uuidString)",
+                "select": "*"
+            ]
+        )
+
+        guard let settings = results.first else {
+            throw SupabaseError.serverError(404, "Security settings not found")
+        }
+
+        return settings
+    }
+
+    /// Get privacy settings
+    func getPrivacySettings() async throws -> UserPrivacySettings {
+        guard let userId = currentUserId else {
+            throw SupabaseError.notAuthenticated
+        }
+
+        let results: [UserPrivacySettings] = try await request(
+            endpoint: "/rest/v1/user_privacy_settings",
+            method: "GET",
+            requiresAuth: true,
+            filters: [
+                "user_id": "eq.\(userId.uuidString)",
+                "select": "*"
+            ]
+        )
+
+        guard let settings = results.first else {
+            throw SupabaseError.serverError(404, "Privacy settings not found")
+        }
+
+        return settings
+    }
+
+    /// Set PIN with hash
+    func setPIN(pinHash: String) async throws {
+        guard let userId = currentUserId else {
+            throw SupabaseError.notAuthenticated
+        }
+
+        let _: EmptyResponse = try await request(
+            endpoint: "/rest/v1/user_security_settings",
+            method: "PATCH",
+            body: [
+                "pin_enabled": true,
+                "pin_hash": pinHash,
+                "pin_attempts_remaining": 5
+            ],
+            requiresAuth: true,
+            filters: ["user_id": "eq.\(userId.uuidString)"]
+        )
+    }
+
+    /// Disable PIN
+    func disablePIN() async throws {
+        guard let userId = currentUserId else {
+            throw SupabaseError.notAuthenticated
+        }
+
+        let _: EmptyResponse = try await request(
+            endpoint: "/rest/v1/user_security_settings",
+            method: "PATCH",
+            body: [
+                "pin_enabled": false,
+                "pin_hash": NSNull()
+            ],
+            requiresAuth: true,
+            filters: ["user_id": "eq.\(userId.uuidString)"]
+        )
+    }
+
+    /// Verify PIN and return remaining attempts
+    func verifyPIN(pinHash: String) async throws -> PINVerificationResult {
+        guard let userId = currentUserId else {
+            throw SupabaseError.notAuthenticated
+        }
+
+        let response: PINVerificationResult = try await request(
+            endpoint: "/rest/v1/rpc/verify_pin",
+            method: "POST",
+            body: [
+                "p_user_id": userId.uuidString,
+                "p_pin_hash": pinHash
+            ],
+            requiresAuth: true
+        )
+
+        return response
+    }
+
+    /// Enable/disable biometric authentication
+    func setBiometricEnabled(_ enabled: Bool, biometricType: String?) async throws {
+        guard let userId = currentUserId else {
+            throw SupabaseError.notAuthenticated
+        }
+
+        var body: [String: Any] = ["biometric_enabled": enabled]
+        if enabled {
+            body["biometric_type"] = biometricType ?? "unknown"
+            body["biometric_registered_at"] = ISO8601DateFormatter().string(from: Date())
+        } else {
+            body["biometric_type"] = NSNull()
+            body["biometric_registered_at"] = NSNull()
+        }
+
+        let _: EmptyResponse = try await request(
+            endpoint: "/rest/v1/user_security_settings",
+            method: "PATCH",
+            body: body,
+            requiresAuth: true,
+            filters: ["user_id": "eq.\(userId.uuidString)"]
+        )
+    }
+
+    /// Update auto-lock timeout
+    func setAutoLockTimeout(_ minutes: Int) async throws {
+        guard let userId = currentUserId else {
+            throw SupabaseError.notAuthenticated
+        }
+
+        let _: EmptyResponse = try await request(
+            endpoint: "/rest/v1/user_security_settings",
+            method: "PATCH",
+            body: ["auto_lock_timeout_minutes": minutes],
+            requiresAuth: true,
+            filters: ["user_id": "eq.\(userId.uuidString)"]
+        )
+    }
+
+    /// Update require auth for sensitive actions
+    func setRequireAuthForSensitiveActions(_ required: Bool) async throws {
+        guard let userId = currentUserId else {
+            throw SupabaseError.notAuthenticated
+        }
+
+        let _: EmptyResponse = try await request(
+            endpoint: "/rest/v1/user_security_settings",
+            method: "PATCH",
+            body: ["require_auth_for_sensitive_actions": required],
+            requiresAuth: true,
+            filters: ["user_id": "eq.\(userId.uuidString)"]
+        )
+    }
+
+    /// Get login history
+    func getLoginHistory(limit: Int = 20) async throws -> [LoginHistoryEntry] {
+        guard let userId = currentUserId else {
+            throw SupabaseError.notAuthenticated
+        }
+
+        return try await request(
+            endpoint: "/rest/v1/login_history",
+            method: "GET",
+            requiresAuth: true,
+            filters: [
+                "user_id": "eq.\(userId.uuidString)",
+                "select": "*",
+                "order": "attempted_at.desc",
+                "limit": "\(limit)"
+            ]
+        )
+    }
+
+    /// Get current session info
+    func getCurrentSession() async throws -> UserSessionInfo? {
+        guard let userId = currentUserId else {
+            throw SupabaseError.notAuthenticated
+        }
+
+        let results: [UserSessionInfo] = try await request(
+            endpoint: "/rest/v1/user_sessions",
+            method: "GET",
+            requiresAuth: true,
+            filters: [
+                "user_id": "eq.\(userId.uuidString)",
+                "is_current_session": "eq.true",
+                "status": "eq.active",
+                "select": "*"
+            ]
+        )
+
+        return results.first
+    }
+
+    /// Mark device as trusted
+    func setDeviceTrusted(_ sessionId: UUID, trusted: Bool) async throws {
+        let _: EmptyResponse = try await request(
+            endpoint: "/rest/v1/user_sessions",
+            method: "PATCH",
+            body: ["trusted_device": trusted],
+            requiresAuth: true,
+            filters: ["id": "eq.\(sessionId.uuidString)"]
+        )
+    }
+
+    /// Terminate all other sessions (enhanced version)
+    func terminateAllOtherSessionsEnhanced() async throws -> Int {
+        guard let userId = currentUserId else {
+            throw SupabaseError.notAuthenticated
+        }
+
+        // Get current session first
+        guard let currentSession = try await getCurrentSession() else {
+            throw SupabaseError.serverError(400, "No current session found")
+        }
+
+        let response: TerminateSessionsResponse = try await request(
+            endpoint: "/rest/v1/rpc/revoke_all_other_sessions",
+            method: "POST",
+            body: [
+                "p_user_id": userId.uuidString,
+                "p_current_session_id": currentSession.id.uuidString
+            ],
+            requiresAuth: true
+        )
+
+        return response.count
+    }
+
     // MARK: - Generic Request
 
     private func request<T: Decodable>(
@@ -889,6 +1122,144 @@ struct EmailUpdateResponse: Decodable {
     let success: Bool
     let error: String?
     let email: String?
+}
+
+// MARK: - Security Models
+
+struct UserSecuritySettings: Decodable {
+    let id: UUID
+    let userId: UUID
+    let pinEnabled: Bool
+    let pinHash: String?
+    let pinAttemptsRemaining: Int?
+    let pinLockedUntil: Date?
+    let biometricEnabled: Bool
+    let biometricType: String?
+    let biometricRegisteredAt: Date?
+    let twoFactorEnabled: Bool
+    let twoFactorMethod: String?
+    let requireAuthForSensitiveActions: Bool
+    let autoLockTimeoutMinutes: Int?
+    let logoutOnAppClose: Bool
+    let singleSessionOnly: Bool
+    let maxLoginAttempts: Int
+    let loginLockoutMinutes: Int
+    let notifyOnNewDevice: Bool
+    let notifyOnSuspiciousActivity: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case userId = "user_id"
+        case pinEnabled = "pin_enabled"
+        case pinHash = "pin_hash"
+        case pinAttemptsRemaining = "pin_attempts_remaining"
+        case pinLockedUntil = "pin_locked_until"
+        case biometricEnabled = "biometric_enabled"
+        case biometricType = "biometric_type"
+        case biometricRegisteredAt = "biometric_registered_at"
+        case twoFactorEnabled = "two_factor_enabled"
+        case twoFactorMethod = "two_factor_method"
+        case requireAuthForSensitiveActions = "require_auth_for_sensitive_actions"
+        case autoLockTimeoutMinutes = "auto_lock_timeout_minutes"
+        case logoutOnAppClose = "logout_on_app_close"
+        case singleSessionOnly = "single_session_only"
+        case maxLoginAttempts = "max_login_attempts"
+        case loginLockoutMinutes = "login_lockout_minutes"
+        case notifyOnNewDevice = "notify_on_new_device"
+        case notifyOnSuspiciousActivity = "notify_on_suspicious_activity"
+    }
+}
+
+struct UserPrivacySettings: Decodable {
+    let id: UUID
+    let userId: UUID
+    let profileVisibility: String
+    let showPhoneNumber: Bool
+    let showEmail: Bool
+    let showFullName: Bool
+    let showLastSeen: Bool
+    let showProfilePhoto: Bool
+    let showBalancesToContacts: Bool
+    let showTransactionHistory: Bool
+    let allowContactDiscovery: Bool
+    let syncContactsWithPhone: Bool
+    let allowAnalytics: Bool
+    let allowCrashReports: Bool
+    let personalizedSuggestions: Bool
+    let dataExportEnabled: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case userId = "user_id"
+        case profileVisibility = "profile_visibility"
+        case showPhoneNumber = "show_phone_number"
+        case showEmail = "show_email"
+        case showFullName = "show_full_name"
+        case showLastSeen = "show_last_seen"
+        case showProfilePhoto = "show_profile_photo"
+        case showBalancesToContacts = "show_balances_to_contacts"
+        case showTransactionHistory = "show_transaction_history"
+        case allowContactDiscovery = "allow_contact_discovery"
+        case syncContactsWithPhone = "sync_contacts_with_phone"
+        case allowAnalytics = "allow_analytics"
+        case allowCrashReports = "allow_crash_reports"
+        case personalizedSuggestions = "personalized_suggestions"
+        case dataExportEnabled = "data_export_enabled"
+    }
+}
+
+struct PINVerificationResult: Decodable {
+    let success: Bool
+    let attemptsRemaining: Int?
+    let lockedUntil: Date?
+    let error: String?
+
+    enum CodingKeys: String, CodingKey {
+        case success
+        case attemptsRemaining = "attempts_remaining"
+        case lockedUntil = "locked_until"
+        case error
+    }
+}
+
+struct LoginHistoryEntry: Decodable, Identifiable {
+    let id: UUID
+    let userId: UUID?
+    let phoneNumber: String?
+    let success: Bool
+    let failureReason: String?
+    let authMethod: String?
+    let deviceId: String?
+    let deviceName: String?
+    let deviceType: String?
+    let ipAddress: String?
+    let locationCity: String?
+    let locationCountry: String?
+    let isSuspicious: Bool
+    let riskScore: Int?
+    let attemptedAt: Date
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case userId = "user_id"
+        case phoneNumber = "phone_number"
+        case success
+        case failureReason = "failure_reason"
+        case authMethod = "auth_method"
+        case deviceId = "device_id"
+        case deviceName = "device_name"
+        case deviceType = "device_type"
+        case ipAddress = "ip_address"
+        case locationCity = "location_city"
+        case locationCountry = "location_country"
+        case isSuspicious = "is_suspicious"
+        case riskScore = "risk_score"
+        case attemptedAt = "attempted_at"
+    }
+}
+
+struct TerminateSessionsResponse: Decodable {
+    let count: Int
 }
 
 // MARK: - Update Models
