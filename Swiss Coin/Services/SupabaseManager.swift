@@ -849,6 +849,130 @@ final class SupabaseManager: ObservableObject {
         return response.count
     }
 
+    // MARK: - Appearance Settings
+
+    /// Get appearance settings
+    func getAppearanceSettings() async throws -> UserAppearanceSettings {
+        guard let userId = currentUserId else {
+            throw SupabaseError.notAuthenticated
+        }
+
+        let results: [UserAppearanceSettings] = try await request(
+            endpoint: "/rest/v1/user_settings",
+            method: "GET",
+            requiresAuth: true,
+            filters: [
+                "user_id": "eq.\(userId.uuidString)",
+                "select": "*"
+            ]
+        )
+
+        guard let settings = results.first else {
+            throw SupabaseError.serverError(404, "Appearance settings not found")
+        }
+
+        return settings
+    }
+
+    /// Update appearance settings
+    func updateAppearanceSettings(_ settings: UserSettingsUpdate) async throws {
+        guard let userId = currentUserId else {
+            throw SupabaseError.notAuthenticated
+        }
+
+        let _: EmptyResponse = try await request(
+            endpoint: "/rest/v1/user_settings",
+            method: "PATCH",
+            body: settings.dictionary,
+            requiresAuth: true,
+            filters: ["user_id": "eq.\(userId.uuidString)"]
+        )
+    }
+
+    // MARK: - Notification Settings
+
+    /// Get notification settings
+    func getNotificationSettingsComplete() async throws -> UserNotificationSettings {
+        guard let userId = currentUserId else {
+            throw SupabaseError.notAuthenticated
+        }
+
+        let results: [UserNotificationSettings] = try await request(
+            endpoint: "/rest/v1/user_notification_settings",
+            method: "GET",
+            requiresAuth: true,
+            filters: [
+                "user_id": "eq.\(userId.uuidString)",
+                "select": "*"
+            ]
+        )
+
+        guard let settings = results.first else {
+            throw SupabaseError.serverError(404, "Notification settings not found")
+        }
+
+        return settings
+    }
+
+    /// Update notification settings (comprehensive)
+    func updateNotificationSettingsComplete(_ settings: NotificationSettingsUpdate) async throws {
+        guard let userId = currentUserId else {
+            throw SupabaseError.notAuthenticated
+        }
+
+        let _: EmptyResponse = try await request(
+            endpoint: "/rest/v1/user_notification_settings",
+            method: "PATCH",
+            body: settings.dictionary,
+            requiresAuth: true,
+            filters: ["user_id": "eq.\(userId.uuidString)"]
+        )
+    }
+
+    // MARK: - Transaction Categories
+
+    /// Get all categories (system + user custom)
+    func getAllCategories() async throws -> [SystemTransactionCategory] {
+        return try await request(
+            endpoint: "/rest/v1/transaction_categories",
+            method: "GET",
+            requiresAuth: true,
+            filters: [
+                "is_active": "eq.true",
+                "select": "*",
+                "order": "display_order.asc"
+            ]
+        )
+    }
+
+    /// Create custom category
+    func createCustomCategory(name: String, icon: String, colorHex: String, categoryType: String) async throws -> SystemTransactionCategory {
+        guard let userId = currentUserId else {
+            throw SupabaseError.notAuthenticated
+        }
+
+        let id = name.lowercased().replacingOccurrences(of: " ", with: "_") + "_\(UUID().uuidString.prefix(8))"
+
+        let body: [String: Any] = [
+            "id": id,
+            "name": name,
+            "icon": icon,
+            "color_hex": colorHex,
+            "category_type": categoryType,
+            "user_id": userId.uuidString,
+            "is_system": false,
+            "display_order": 50
+        ]
+
+        return try await request(
+            endpoint: "/rest/v1/transaction_categories",
+            method: "POST",
+            body: body,
+            requiresAuth: true,
+            returnSingle: true
+        )
+    }
+
     // MARK: - Generic Request
 
     private func request<T: Decodable>(
@@ -1036,6 +1160,30 @@ struct TransactionCategory: Decodable, Identifiable {
     let colorHex: String
     let categoryType: String
     let isSystem: Bool
+}
+
+struct SystemTransactionCategory: Decodable, Identifiable {
+    let id: String
+    let name: String
+    let icon: String
+    let colorHex: String
+    let categoryType: String
+    let userId: UUID?
+    let isSystem: Bool
+    let displayOrder: Int
+    let isActive: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case name
+        case icon
+        case colorHex = "color_hex"
+        case categoryType = "category_type"
+        case userId = "user_id"
+        case isSystem = "is_system"
+        case displayOrder = "display_order"
+        case isActive = "is_active"
+    }
 }
 
 struct DataExportResponse: Decodable {
@@ -1262,17 +1410,142 @@ struct TerminateSessionsResponse: Decodable {
     let count: Int
 }
 
+// MARK: - Appearance Settings Models
+
+struct UserAppearanceSettings: Decodable {
+    let id: UUID
+    let userId: UUID
+    let themeMode: String
+    let accentColor: String
+    let fontSize: String
+    let reduceMotion: Bool
+    let hapticFeedbackEnabled: Bool
+    let dateFormat: String?
+    let timeFormat: String?
+    let weekStartsOn: Int?
+    let defaultHomeTab: String?
+    let showBalanceOnHome: Bool
+    let defaultSplitMethod: String?
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case userId = "user_id"
+        case themeMode = "theme_mode"
+        case accentColor = "accent_color"
+        case fontSize = "font_size"
+        case reduceMotion = "reduce_motion"
+        case hapticFeedbackEnabled = "haptic_feedback_enabled"
+        case dateFormat = "date_format"
+        case timeFormat = "time_format"
+        case weekStartsOn = "week_starts_on"
+        case defaultHomeTab = "default_home_tab"
+        case showBalanceOnHome = "show_balance_on_home"
+        case defaultSplitMethod = "default_split_method"
+    }
+}
+
+// MARK: - Notification Settings Models
+
+struct UserNotificationSettings: Decodable {
+    let id: UUID
+    let userId: UUID
+
+    // Master toggle
+    let allNotificationsEnabled: Bool
+
+    // Transaction notifications
+    let newExpenseAdded: Bool
+    let expenseModified: Bool
+    let expenseDeleted: Bool
+    let someonePaidYou: Bool
+
+    // Reminder notifications
+    let paymentReminders: Bool
+    let reminderFrequency: String?
+    let reminderDaysBefore: Int
+
+    // Subscription notifications
+    let subscriptionDueSoon: Bool
+    let subscriptionDueDays: Int
+    let subscriptionOverdue: Bool
+    let subscriptionPaid: Bool
+
+    // Settlement notifications
+    let settlementReceived: Bool
+    let settlementSent: Bool
+
+    // Group notifications
+    let addedToGroup: Bool
+    let removedFromGroup: Bool
+    let groupExpenseAdded: Bool
+
+    // Chat notifications
+    let newMessage: Bool
+    let messageFrequency: String?
+
+    // Summary notifications
+    let weeklySummary: Bool
+    let monthlyReport: Bool
+    let weeklySummaryDay: Int?
+
+    // Quiet hours
+    let quietHoursEnabled: Bool
+    let quietHoursStart: String?
+    let quietHoursEnd: String?
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case userId = "user_id"
+        case allNotificationsEnabled = "all_notifications_enabled"
+        case newExpenseAdded = "new_expense_added"
+        case expenseModified = "expense_modified"
+        case expenseDeleted = "expense_deleted"
+        case someonePaidYou = "someone_paid_you"
+        case paymentReminders = "payment_reminders"
+        case reminderFrequency = "reminder_frequency"
+        case reminderDaysBefore = "reminder_days_before"
+        case subscriptionDueSoon = "subscription_due_soon"
+        case subscriptionDueDays = "subscription_due_days"
+        case subscriptionOverdue = "subscription_overdue"
+        case subscriptionPaid = "subscription_paid"
+        case settlementReceived = "settlement_received"
+        case settlementSent = "settlement_sent"
+        case addedToGroup = "added_to_group"
+        case removedFromGroup = "removed_from_group"
+        case groupExpenseAdded = "group_expense_added"
+        case newMessage = "new_message"
+        case messageFrequency = "message_frequency"
+        case weeklySummary = "weekly_summary"
+        case monthlyReport = "monthly_report"
+        case weeklySummaryDay = "weekly_summary_day"
+        case quietHoursEnabled = "quiet_hours_enabled"
+        case quietHoursStart = "quiet_hours_start"
+        case quietHoursEnd = "quiet_hours_end"
+    }
+}
+
 // MARK: - Update Models
 
 struct UserSettingsUpdate {
+    // Appearance
     var themeMode: String?
     var accentColor: String?
     var fontSize: String?
     var reduceMotion: Bool?
-    var hapticFeedback: Bool?
+    var hapticFeedbackEnabled: Bool?
+
+    // Regional
+    var dateFormat: String?
+    var timeFormat: String?
+    var weekStartsOn: Int?
+
+    // Dashboard
+    var defaultHomeTab: String?
+    var showBalanceOnHome: Bool?
+    var defaultSplitMethod: String?
+
+    // Legacy (for backward compatibility)
     var defaultCurrency: String?
-    var currencySymbolPosition: String?
-    var decimalPlaces: Int?
 
     var dictionary: [String: Any] {
         var dict: [String: Any] = [:]
@@ -1280,39 +1553,86 @@ struct UserSettingsUpdate {
         if let v = accentColor { dict["accent_color"] = v }
         if let v = fontSize { dict["font_size"] = v }
         if let v = reduceMotion { dict["reduce_motion"] = v }
-        if let v = hapticFeedback { dict["haptic_feedback"] = v }
+        if let v = hapticFeedbackEnabled { dict["haptic_feedback_enabled"] = v }
+        if let v = dateFormat { dict["date_format"] = v }
+        if let v = timeFormat { dict["time_format"] = v }
+        if let v = weekStartsOn { dict["week_starts_on"] = v }
+        if let v = defaultHomeTab { dict["default_home_tab"] = v }
+        if let v = showBalanceOnHome { dict["show_balance_on_home"] = v }
+        if let v = defaultSplitMethod { dict["default_split_method"] = v }
         if let v = defaultCurrency { dict["default_currency"] = v }
-        if let v = currencySymbolPosition { dict["currency_symbol_position"] = v }
-        if let v = decimalPlaces { dict["decimal_places"] = v }
         return dict
     }
 }
 
 struct NotificationSettingsUpdate {
-    var pushEnabled: Bool?
-    var transactionAlerts: Bool?
-    var reminderAlerts: Bool?
-    var subscriptionAlerts: Bool?
-    var settlementAlerts: Bool?
-    var groupUpdates: Bool?
-    var chatMessages: Bool?
+    // Master toggle
+    var allNotificationsEnabled: Bool?
+
+    // Transaction notifications
+    var newExpenseAdded: Bool?
+    var expenseModified: Bool?
+    var expenseDeleted: Bool?
+    var someonePaidYou: Bool?
+
+    // Reminder notifications
+    var paymentReminders: Bool?
+    var reminderFrequency: String?
+    var reminderDaysBefore: Int?
+
+    // Subscription notifications
+    var subscriptionDueSoon: Bool?
+    var subscriptionDueDays: Int?
+    var subscriptionOverdue: Bool?
+    var subscriptionPaid: Bool?
+
+    // Settlement notifications
+    var settlementReceived: Bool?
+    var settlementSent: Bool?
+
+    // Group notifications
+    var addedToGroup: Bool?
+    var removedFromGroup: Bool?
+    var groupExpenseAdded: Bool?
+
+    // Chat notifications
+    var newMessage: Bool?
+    var messageFrequency: String?
+
+    // Summary notifications
     var weeklySummary: Bool?
-    var monthlySummary: Bool?
+    var monthlyReport: Bool?
+    var weeklySummaryDay: Int?
+
+    // Quiet hours
     var quietHoursEnabled: Bool?
     var quietHoursStart: String?
     var quietHoursEnd: String?
 
     var dictionary: [String: Any] {
         var dict: [String: Any] = [:]
-        if let v = pushEnabled { dict["push_enabled"] = v }
-        if let v = transactionAlerts { dict["transaction_alerts"] = v }
-        if let v = reminderAlerts { dict["reminder_alerts"] = v }
-        if let v = subscriptionAlerts { dict["subscription_alerts"] = v }
-        if let v = settlementAlerts { dict["settlement_alerts"] = v }
-        if let v = groupUpdates { dict["group_updates"] = v }
-        if let v = chatMessages { dict["chat_messages"] = v }
+        if let v = allNotificationsEnabled { dict["all_notifications_enabled"] = v }
+        if let v = newExpenseAdded { dict["new_expense_added"] = v }
+        if let v = expenseModified { dict["expense_modified"] = v }
+        if let v = expenseDeleted { dict["expense_deleted"] = v }
+        if let v = someonePaidYou { dict["someone_paid_you"] = v }
+        if let v = paymentReminders { dict["payment_reminders"] = v }
+        if let v = reminderFrequency { dict["reminder_frequency"] = v }
+        if let v = reminderDaysBefore { dict["reminder_days_before"] = v }
+        if let v = subscriptionDueSoon { dict["subscription_due_soon"] = v }
+        if let v = subscriptionDueDays { dict["subscription_due_days"] = v }
+        if let v = subscriptionOverdue { dict["subscription_overdue"] = v }
+        if let v = subscriptionPaid { dict["subscription_paid"] = v }
+        if let v = settlementReceived { dict["settlement_received"] = v }
+        if let v = settlementSent { dict["settlement_sent"] = v }
+        if let v = addedToGroup { dict["added_to_group"] = v }
+        if let v = removedFromGroup { dict["removed_from_group"] = v }
+        if let v = groupExpenseAdded { dict["group_expense_added"] = v }
+        if let v = newMessage { dict["new_message"] = v }
+        if let v = messageFrequency { dict["message_frequency"] = v }
         if let v = weeklySummary { dict["weekly_summary"] = v }
-        if let v = monthlySummary { dict["monthly_summary"] = v }
+        if let v = monthlyReport { dict["monthly_report"] = v }
+        if let v = weeklySummaryDay { dict["weekly_summary_day"] = v }
         if let v = quietHoursEnabled { dict["quiet_hours_enabled"] = v }
         if let v = quietHoursStart { dict["quiet_hours_start"] = v }
         if let v = quietHoursEnd { dict["quiet_hours_end"] = v }
