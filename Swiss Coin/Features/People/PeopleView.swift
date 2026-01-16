@@ -29,7 +29,8 @@ struct PeopleView: View {
                     }
                 }
                 .padding(.horizontal)
-                .padding(.top)
+                .padding(.top, Spacing.sm)
+                .padding(.bottom, Spacing.sm)
                 .background(AppColors.backgroundSecondary)
 
                 if selectedSegment == 0 {
@@ -39,8 +40,8 @@ struct PeopleView: View {
                 }
             }
             .background(AppColors.backgroundSecondary)
-            .navigationTitle("")
-            .navigationBarTitleDisplayMode(.inline)
+            .navigationTitle("Contacts")
+            .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     HStack {
@@ -241,7 +242,7 @@ struct PersonListRowView: View {
             }
         }
         .sheet(isPresented: $showingAddExpense) {
-            AddTransactionView(initialParticipant: person)
+            QuickActionSheetPresenter(initialPerson: person)
         }
         .sheet(isPresented: $showingReminder) {
             ReminderSheetView(person: person, amount: balance)
@@ -421,7 +422,7 @@ struct GroupListRowView: View {
             }
         }
         .sheet(isPresented: $showingAddExpense) {
-            AddTransactionView(initialGroup: group)
+            QuickActionSheetPresenter(initialGroup: group)
         }
         .sheet(isPresented: $showingReminders) {
             GroupReminderSheetView(group: group)

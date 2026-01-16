@@ -156,7 +156,7 @@ struct PersonConversationView: View {
             }
         }
         .sheet(isPresented: $showingAddTransaction) {
-            AddTransactionView(initialParticipant: person)
+            QuickActionSheetPresenter(initialPerson: person)
         }
         .sheet(isPresented: $showingSettlement) {
             SettlementView(person: person, currentBalance: balance)

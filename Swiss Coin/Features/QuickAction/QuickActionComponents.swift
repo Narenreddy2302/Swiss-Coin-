@@ -9,6 +9,100 @@ import CoreData
 import SwiftUI
 import UIKit
 
+// MARK: - Quick Action Sheet Wrapper
+
+/// A wrapper view that presents QuickActionSheet with optional initial data.
+/// Use this when presenting from context menus or other entry points that need pre-selection.
+struct QuickActionSheetPresenter: View {
+    @StateObject private var viewModel: QuickActionViewModel
+    @Environment(\.dismiss) private var dismiss
+
+    /// Initialize with a pre-selected person
+    init(initialPerson: Person) {
+        _viewModel = StateObject(wrappedValue: QuickActionViewModel(
+            context: PersistenceController.shared.container.viewContext,
+            initialPerson: initialPerson
+        ))
+    }
+
+    /// Initialize with a pre-selected group
+    init(initialGroup: UserGroup) {
+        _viewModel = StateObject(wrappedValue: QuickActionViewModel(
+            context: PersistenceController.shared.container.viewContext,
+            initialGroup: initialGroup
+        ))
+    }
+
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 0) {
+                // Step Indicator Dots
+                HStack(spacing: 6) {
+                    ForEach(1...3, id: \.self) { step in
+                        Circle()
+                            .fill(
+                                step <= viewModel.currentStep
+                                    ? Color.blue : Color(UIColor.systemGray4)
+                            )
+                            .frame(width: 8, height: 8)
+                    }
+                }
+                .padding(.top, 8)
+                .padding(.bottom, 12)
+
+                // Step Content
+                ScrollView {
+                    VStack(spacing: 20) {
+                        switch viewModel.currentStep {
+                        case 1:
+                            Step1BasicDetailsView(viewModel: viewModel)
+                        case 2:
+                            Step2SplitConfigView(viewModel: viewModel)
+                        case 3:
+                            Step3SplitMethodView(viewModel: viewModel)
+                        default:
+                            EmptyView()
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 40)
+                }
+            }
+            .background(Color(UIColor.systemGroupedBackground))
+            .navigationTitle(navigationTitle)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                }
+
+                ToolbarItem(placement: .confirmationAction) {
+                    if viewModel.currentStep == 3
+                        || (viewModel.currentStep == 2 && !viewModel.isSplit)
+                    {
+                        Button("Done") {
+                            viewModel.submitTransaction()
+                            dismiss()
+                        }
+                        .fontWeight(.semibold)
+                    }
+                }
+            }
+        }
+    }
+
+    private var navigationTitle: String {
+        switch viewModel.currentStep {
+        case 1: return "New Transaction"
+        case 2: return "Split Options"
+        case 3: return "Split Details"
+        default: return ""
+        }
+    }
+}
+
 // MARK: - Floating Action Button
 
 struct FloatingActionButton: View {

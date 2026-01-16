@@ -95,6 +95,31 @@ class QuickActionViewModel: ObservableObject {
         participantIds.insert(currentUserUUID)
     }
 
+    /// Convenience initializer for pre-selecting a person
+    convenience init(context: NSManagedObjectContext, initialPerson: Person) {
+        self.init(context: context)
+        // Pre-select the person as a participant and enable split mode
+        if let id = initialPerson.id {
+            participantIds.insert(id)
+        }
+        isSplit = true
+    }
+
+    /// Convenience initializer for pre-selecting a group
+    convenience init(context: NSManagedObjectContext, initialGroup: UserGroup) {
+        self.init(context: context)
+        // Pre-select the group and add all members
+        selectedGroup = initialGroup
+        if let members = initialGroup.members as? Set<Person> {
+            for member in members {
+                if let id = member.id {
+                    participantIds.insert(id)
+                }
+            }
+        }
+        isSplit = true
+    }
+
     func fetchData() {
         let personRequest: NSFetchRequest<Person> = Person.fetchRequest()
         personRequest.sortDescriptors = [NSSortDescriptor(keyPath: \Person.name, ascending: true)]
