@@ -38,14 +38,15 @@ struct ParticipantSelectorView: View {
                                 // Show "Me" for current user, otherwise show name
                                 if CurrentUser.isCurrentUser(person) {
                                     Text("Me")
-                                        .fontWeight(.medium)
+                                        .font(AppTypography.bodyBold())
                                 } else {
                                     Text(person.name ?? "Unknown")
+                                        .font(AppTypography.body())
                                 }
                                 Spacer()
                                 if selectedParticipants.contains(person) {
                                     Image(systemName: "checkmark")
-                                        .foregroundColor(.green)
+                                        .foregroundColor(AppColors.positive)
                                 }
                             }
                         }

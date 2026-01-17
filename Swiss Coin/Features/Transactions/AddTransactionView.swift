@@ -86,8 +86,8 @@ struct AddTransactionView: View {
                     }
                 } else {
                     Text("Select participants above to configure the split.")
-                        .foregroundColor(.secondary)
-                        .font(.subheadline)
+                        .font(AppTypography.subheadline())
+                        .foregroundColor(AppColors.textSecondary)
                 }
 
                 // Validation Feedback

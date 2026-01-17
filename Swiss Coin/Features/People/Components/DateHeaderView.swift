@@ -34,17 +34,16 @@ struct DateHeaderView: View {
         HStack {
             Spacer()
             Text(dateString)
-                .font(.caption)
-                .fontWeight(.medium)
-                .foregroundColor(.secondary)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
+                .font(AppTypography.caption())
+                .foregroundColor(AppColors.textSecondary)
+                .padding(.horizontal, Spacing.md)
+                .padding(.vertical, Spacing.xs)
                 .background(
                     Capsule()
                         .fill(Color(UIColor.tertiarySystemFill))
                 )
             Spacer()
         }
-        .padding(.vertical, 8)
+        .padding(.vertical, Spacing.sm)
     }
 }
