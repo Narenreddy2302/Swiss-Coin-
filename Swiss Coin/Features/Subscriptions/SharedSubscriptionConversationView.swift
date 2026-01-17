@@ -132,7 +132,7 @@ struct SharedSubscriptionConversationView: View {
                         dismiss()
                     } label: {
                         Image(systemName: "chevron.left")
-                            .font(.system(size: 17, weight: .semibold))
+                            .font(.system(size: 18, weight: .semibold))
                             .foregroundColor(Color(UIColor.systemGray))
                     }
 
@@ -142,23 +142,23 @@ struct SharedSubscriptionConversationView: View {
                         showingSubscriptionDetail = true
                     } label: {
                         HStack(spacing: Spacing.sm) {
-                            RoundedRectangle(cornerRadius: 6)
-                                .fill(Color(hex: subscription.colorHex ?? "#007AFF").opacity(0.2))
-                                .frame(width: AvatarSize.xs, height: AvatarSize.xs)
+                            RoundedRectangle(cornerRadius: 10)
+                                .fill(Color(hex: subscription.colorHex ?? "#007AFF"))
+                                .frame(width: AvatarSize.sm, height: AvatarSize.sm)
                                 .overlay(
                                     Image(systemName: subscription.iconName ?? "person.2.circle.fill")
-                                        .font(.system(size: 13, weight: .semibold))
-                                        .foregroundColor(Color(hex: subscription.colorHex ?? "#007AFF"))
+                                        .font(.system(size: 14, weight: .semibold))
+                                        .foregroundColor(.white)
                                 )
 
-                            VStack(alignment: .leading, spacing: 0) {
+                            VStack(alignment: .leading, spacing: 1) {
                                 Text(subscription.name ?? "Subscription")
-                                    .font(.system(size: 15, weight: .semibold))
+                                    .font(.system(size: 17, weight: .semibold))
                                     .foregroundColor(.white)
                                     .lineLimit(1)
 
                                 Text("\(memberCount + 1) members")
-                                    .font(.system(size: 11, weight: .regular))
+                                    .font(.system(size: 12, weight: .regular))
                                     .foregroundColor(Color(UIColor.systemGray))
                             }
                         }
@@ -169,13 +169,13 @@ struct SharedSubscriptionConversationView: View {
 
             // Trailing: Balance info
             ToolbarItem(placement: .topBarTrailing) {
-                VStack(alignment: .trailing, spacing: 1) {
+                VStack(alignment: .trailing, spacing: 2) {
                     Text(balanceLabel)
-                        .font(.system(size: 11, weight: .regular))
+                        .font(.system(size: 12, weight: .regular))
                         .foregroundColor(Color(UIColor.systemGray))
 
                     Text(balanceAmount)
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(.system(size: 16, weight: .bold))
                         .foregroundColor(balanceColor)
                 }
             }
