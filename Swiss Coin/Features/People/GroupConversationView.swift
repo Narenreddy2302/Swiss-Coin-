@@ -400,7 +400,11 @@ private struct GroupActionButton: View {
             .frame(height: ButtonHeight.lg)
             .background(
                 RoundedRectangle(cornerRadius: CornerRadius.md)
-                    .fill(AppColors.cardBackground)
+                    .fill(Color(UIColor.systemGray6))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: CornerRadius.md)
+                    .strokeBorder(Color(UIColor.systemGray4), lineWidth: 0.5)
             )
         }
         .buttonStyle(AppButtonStyle(haptic: .none))
