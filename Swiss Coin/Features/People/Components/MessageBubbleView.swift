@@ -19,12 +19,12 @@ struct MessageBubbleView: View {
             }
 
             Text(message.content ?? "")
-                .font(.system(size: 16, weight: .regular))
+                .font(AppTypography.body())
                 .foregroundColor(isFromUser ? .white : .white)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 10)
                 .background(
-                    RoundedRectangle(cornerRadius: 18)
+                    RoundedRectangle(cornerRadius: CornerRadius.lg)
                         .fill(isFromUser ? AppColors.accent : Color(UIColor.systemGray4))
                 )
 
@@ -32,6 +32,6 @@ struct MessageBubbleView: View {
                 Spacer(minLength: 60)
             }
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, Spacing.lg)
     }
 }

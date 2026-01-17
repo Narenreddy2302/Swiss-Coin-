@@ -15,36 +15,35 @@ struct ReminderMessageView: View {
     }
 
     var body: some View {
-        VStack(spacing: 4) {
-            HStack(spacing: 6) {
+        VStack(spacing: Spacing.xxs) {
+            HStack(spacing: Spacing.xs) {
                 Image(systemName: "bell.fill")
-                    .font(.system(size: 12))
-                    .foregroundColor(.orange)
+                    .font(.system(size: IconSize.xs))
+                    .foregroundColor(AppColors.warning)
 
                 Text(messageText)
-                    .font(.caption)
-                    .fontWeight(.medium)
-                    .foregroundColor(.secondary)
+                    .font(AppTypography.caption())
+                    .foregroundColor(AppColors.textSecondary)
             }
             .padding(.horizontal, 14)
-            .padding(.vertical, 8)
+            .padding(.vertical, Spacing.sm)
             .background(
                 Capsule()
-                    .fill(Color.orange.opacity(0.15))
+                    .fill(AppColors.warning.opacity(0.15))
             )
 
             if let message = reminder.message, !message.isEmpty {
                 Text("\"\(message)\"")
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
+                    .font(AppTypography.caption2())
+                    .foregroundColor(AppColors.textSecondary)
                     .italic()
             }
 
             Text(reminder.createdDate ?? Date(), style: .date)
-                .font(.caption2)
-                .foregroundColor(.secondary)
+                .font(AppTypography.caption2())
+                .foregroundColor(AppColors.textSecondary)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 8)
+        .padding(.vertical, Spacing.sm)
     }
 }

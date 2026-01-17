@@ -32,12 +32,12 @@ struct NewTransactionContactView: View {
                                 HStack {
                                     Image(systemName: "person.2.fill")
                                         .foregroundColor(.blue)
-                                        .frame(width: 40, height: 40)
+                                        .frame(width: AvatarSize.md, height: AvatarSize.md)
                                         .background(Color.blue.opacity(0.1))
                                         .clipShape(Circle())
                                     Text("New Group")
+                                        .font(AppTypography.headline())
                                         .foregroundColor(.blue)
-                                        .font(.headline)
                                 }
                             }
 
@@ -45,12 +45,12 @@ struct NewTransactionContactView: View {
                                 HStack {
                                     Image(systemName: "person.fill.badge.plus")
                                         .foregroundColor(.blue)
-                                        .frame(width: 40, height: 40)
+                                        .frame(width: AvatarSize.md, height: AvatarSize.md)
                                         .background(Color.blue.opacity(0.1))
                                         .clipShape(Circle())
                                     Text("New Contact")
+                                        .font(AppTypography.headline())
                                         .foregroundColor(.blue)
-                                        .font(.headline)
                                 }
                             }
                         }
@@ -75,20 +75,20 @@ struct NewTransactionContactView: View {
                                                 Circle()
                                                     .fill(Color.gray.opacity(0.3))
                                                 Text(contact.initials)
-                                                    .font(.caption)
+                                                    .font(AppTypography.caption())
                                                     .foregroundColor(.white)
                                             }
-                                            .frame(width: 40, height: 40)
+                                            .frame(width: AvatarSize.md, height: AvatarSize.md)
                                         }
 
                                         VStack(alignment: .leading) {
                                             Text(contact.fullName)
-                                                .font(.headline)
-                                                .foregroundColor(.primary)
+                                                .font(AppTypography.headline())
+                                                .foregroundColor(AppColors.textPrimary)
                                             if let phone = contact.phoneNumbers.first {
                                                 Text(phone)
-                                                    .font(.subheadline)
-                                                    .foregroundColor(.secondary)
+                                                    .font(AppTypography.subheadline())
+                                                    .foregroundColor(AppColors.textSecondary)
                                             }
                                         }
 
@@ -103,15 +103,16 @@ struct NewTransactionContactView: View {
                     .searchable(
                         text: $searchText, placement: .navigationBarDrawer(displayMode: .always))
                 } else if contactsManager.authorizationStatus == .denied {
-                    VStack(spacing: 20) {
+                    VStack(spacing: Spacing.xl) {
                         Image(systemName: "person.crop.circle.badge.exclamationmark")
-                            .font(.system(size: 50))
-                            .foregroundColor(.orange)
+                            .font(.system(size: IconSize.xxl))
+                            .foregroundColor(AppColors.warning)
                         Text("Access Denied")
-                            .font(.title2)
+                            .font(AppTypography.title2())
                         Text("Please enable contact access in Settings.")
+                            .font(AppTypography.subheadline())
                             .multilineTextAlignment(.center)
-                            .foregroundColor(.secondary)
+                            .foregroundColor(AppColors.textSecondary)
                         Button("Open Settings") {
                             if let url = URL(string: UIApplication.openSettingsURLString) {
                                 UIApplication.shared.open(url)
@@ -120,12 +121,12 @@ struct NewTransactionContactView: View {
                     }
                     .padding()
                 } else {
-                    VStack(spacing: 20) {
+                    VStack(spacing: Spacing.xl) {
                         Image(systemName: "person.2.circle")
-                            .font(.system(size: 50))
+                            .font(.system(size: IconSize.xxl))
                             .foregroundColor(.blue)
                         Text("Load Contacts")
-                            .font(.title2)
+                            .font(AppTypography.title2())
                         Button("Continue") {
                             Task {
                                 await contactsManager.requestAccess()
