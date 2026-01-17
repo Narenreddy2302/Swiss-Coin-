@@ -169,6 +169,8 @@ struct GroupDetailView: View {
                 } else {
                     ForEach(group.transactionsArray, id: \.self) { transaction in
                         TransactionRowView(transaction: transaction)
+                            .listRowInsets(EdgeInsets())
+                            .listRowBackground(Color.clear)
                     }
                 }
             }

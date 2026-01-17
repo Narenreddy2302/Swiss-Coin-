@@ -113,7 +113,7 @@ struct PersonConversationView: View {
                         dismiss()
                     } label: {
                         Image(systemName: "chevron.left")
-                            .font(.system(size: 17, weight: .semibold))
+                            .font(.system(size: 18, weight: .semibold))
                             .foregroundColor(Color(UIColor.systemGray))
                     }
 
@@ -124,16 +124,16 @@ struct PersonConversationView: View {
                     } label: {
                         HStack(spacing: Spacing.sm) {
                             Circle()
-                                .fill(Color(UIColor.systemGray3))
-                                .frame(width: AvatarSize.xs, height: AvatarSize.xs)
+                                .fill(Color(hex: person.colorHex ?? "#34C759"))
+                                .frame(width: AvatarSize.sm, height: AvatarSize.sm)
                                 .overlay(
                                     Text(person.initials)
-                                        .font(.system(size: 13, weight: .semibold))
-                                        .foregroundColor(Color(UIColor.systemGray))
+                                        .font(.system(size: 14, weight: .semibold))
+                                        .foregroundColor(.white)
                                 )
 
                             Text(person.displayName)
-                                .font(.system(size: 16, weight: .semibold))
+                                .font(.system(size: 17, weight: .semibold))
                                 .foregroundColor(.white)
                                 .lineLimit(1)
                         }
@@ -144,13 +144,13 @@ struct PersonConversationView: View {
 
             // Trailing: Balance info
             ToolbarItem(placement: .topBarTrailing) {
-                VStack(alignment: .trailing, spacing: 1) {
+                VStack(alignment: .trailing, spacing: 2) {
                     Text(balanceLabel)
-                        .font(.system(size: 11, weight: .regular))
+                        .font(.system(size: 12, weight: .regular))
                         .foregroundColor(Color(UIColor.systemGray))
 
                     Text(balanceAmount)
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(.system(size: 16, weight: .bold))
                         .foregroundColor(balanceColor)
                 }
             }

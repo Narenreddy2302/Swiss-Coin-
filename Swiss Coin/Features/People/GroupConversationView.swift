@@ -120,7 +120,7 @@ struct GroupConversationView: View {
                         dismiss()
                     } label: {
                         Image(systemName: "chevron.left")
-                            .font(.system(size: 17, weight: .semibold))
+                            .font(.system(size: 18, weight: .semibold))
                             .foregroundColor(Color(UIColor.systemGray))
                     }
 
@@ -130,23 +130,23 @@ struct GroupConversationView: View {
                         showingGroupDetail = true
                     } label: {
                         HStack(spacing: Spacing.sm) {
-                            RoundedRectangle(cornerRadius: 8)
-                                .fill(Color(hex: group.colorHex ?? "#007AFF").opacity(0.3))
-                                .frame(width: AvatarSize.xs, height: AvatarSize.xs)
+                            RoundedRectangle(cornerRadius: 10)
+                                .fill(Color(hex: group.colorHex ?? "#007AFF"))
+                                .frame(width: AvatarSize.sm, height: AvatarSize.sm)
                                 .overlay(
                                     Image(systemName: "person.3.fill")
-                                        .font(.system(size: 12, weight: .semibold))
-                                        .foregroundColor(Color(hex: group.colorHex ?? "#007AFF"))
+                                        .font(.system(size: 14, weight: .semibold))
+                                        .foregroundColor(.white)
                                 )
 
-                            VStack(alignment: .leading, spacing: 0) {
+                            VStack(alignment: .leading, spacing: 1) {
                                 Text(group.displayName)
-                                    .font(.system(size: 15, weight: .semibold))
+                                    .font(.system(size: 17, weight: .semibold))
                                     .foregroundColor(.white)
                                     .lineLimit(1)
 
                                 Text("\(memberCount) members")
-                                    .font(.system(size: 11, weight: .regular))
+                                    .font(.system(size: 12, weight: .regular))
                                     .foregroundColor(Color(UIColor.systemGray))
                             }
                         }
@@ -157,13 +157,13 @@ struct GroupConversationView: View {
 
             // Trailing: Balance info
             ToolbarItem(placement: .topBarTrailing) {
-                VStack(alignment: .trailing, spacing: 1) {
+                VStack(alignment: .trailing, spacing: 2) {
                     Text(balanceLabel)
-                        .font(.system(size: 11, weight: .regular))
+                        .font(.system(size: 12, weight: .regular))
                         .foregroundColor(Color(UIColor.systemGray))
 
                     Text(balanceAmount)
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(.system(size: 16, weight: .bold))
                         .foregroundColor(balanceColor)
                 }
             }
@@ -400,7 +400,11 @@ private struct GroupActionButton: View {
             .frame(height: ButtonHeight.lg)
             .background(
                 RoundedRectangle(cornerRadius: CornerRadius.md)
-                    .fill(AppColors.cardBackground)
+                    .fill(Color(UIColor.systemGray6))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: CornerRadius.md)
+                    .strokeBorder(Color(UIColor.systemGray4), lineWidth: 0.5)
             )
         }
         .buttonStyle(AppButtonStyle(haptic: .none))

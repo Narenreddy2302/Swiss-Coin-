@@ -93,7 +93,7 @@ struct TransactionRowView: View {
     private var dateString: String {
         guard let date = transaction.date else { return "" }
         let formatter = DateFormatter()
-        formatter.dateFormat = "MMM dd, yyyy"
+        formatter.dateFormat = "MMM d, yyyy"
         return formatter.string(from: date)
     }
 
@@ -109,6 +109,10 @@ struct TransactionRowView: View {
 
     // MARK: - Amount Logic
 
+    private var isPayer: Bool {
+        CurrentUser.isCurrentUser(transaction.payer?.id)
+    }
+
     private var myShare: Double {
         if let splits = transaction.splits?.allObjects as? [TransactionSplit] {
             if let mySplit = splits.first(where: { CurrentUser.isCurrentUser($0.owedBy?.id) }) {
@@ -118,50 +122,56 @@ struct TransactionRowView: View {
         return 0.0
     }
 
-    private var isPayer: Bool {
-        CurrentUser.isCurrentUser(transaction.payer?.id)
-    }
-
+    /// Amount others owe you (if you paid) or you owe (if someone else paid)
     private var amountToShow: Double {
         if isPayer {
-            let lent = transaction.amount - myShare
-            return lent > 0 ? lent : transaction.amount
+            // You paid - show what others owe you (total minus your share)
+            let lentToOthers = transaction.amount - myShare
+            return max(lentToOthers, 0)
         } else {
+            // Someone else paid - show what you owe them
             return myShare
         }
     }
 
     private var amountColor: Color {
+        let amount = amountToShow
+
+        if amount < 0.01 {
+            // Zero or negligible - use neutral color
+            return AppColors.textSecondary
+        }
+
         if isPayer {
-            let lent = transaction.amount - myShare
-            if lent > 0 {
-                return AppColors.positive
-            } else {
-                return AppColors.negative
-            }
+            // You paid and are owed money - positive (green)
+            return AppColors.positive
         } else {
+            // You owe money - negative (red)
             return AppColors.negative
         }
     }
 
-    private var splitDetails: String {
-        let total = transaction.amount
-        let peopleCount = transaction.splits?.count ?? 0
+    private var splitCount: Int {
+        let splits = transaction.splits as? Set<TransactionSplit> ?? []
 
-        let formattedTotal = CurrencyFormatter.format(total)
-
-        if peopleCount == 0 {
-            return formattedTotal
-        } else if peopleCount == 1 {
-            if let split = (transaction.splits?.allObjects as? [TransactionSplit])?.first,
-               let owedBy = split.owedBy
-            {
-                let display = CurrentUser.isCurrentUser(owedBy.id) ? "You" : (owedBy.name ?? "Unknown")
-                return "\(formattedTotal) / \(display)"
-            }
-            return "\(formattedTotal) / 1 Person"
-        } else {
-            return "\(formattedTotal) / \(peopleCount) People"
+        // Count unique participants (payer + those who owe)
+        var participants = Set<UUID>()
+        if let payerId = transaction.payer?.id {
+            participants.insert(payerId)
         }
+        for split in splits {
+            if let owedById = split.owedBy?.id {
+                participants.insert(owedById)
+            }
+        }
+
+        return max(participants.count, 1)
+    }
+
+    private var splitDetails: String {
+        let formattedTotal = CurrencyFormatter.format(transaction.amount)
+        let count = splitCount
+        let peopleText = count == 1 ? "1 Person" : "\(count) People"
+        return "\(formattedTotal) / \(peopleText)"
     }
 }
