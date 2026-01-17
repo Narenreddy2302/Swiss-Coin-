@@ -68,7 +68,9 @@ struct PersonDetailView: View {
                         .foregroundColor(.secondary)
                 } else {
                     ForEach(combinedTransactions) { transaction in
-                        TransactionRow(transaction: transaction)
+                        TransactionRowView(transaction: transaction)
+                            .listRowInsets(EdgeInsets())
+                            .listRowBackground(Color.clear)
                     }
                 }
             }

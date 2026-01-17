@@ -63,9 +63,15 @@ struct TransactionCardView: View {
     }
 
     private var amountColor: Color {
-        if isUserPayer && displayAmount > 0 {
+        if displayAmount < 0.01 {
+            // Zero or negligible - use neutral color
+            return AppColors.textSecondary
+        }
+        if isUserPayer {
+            // You paid and are owed money - positive (green)
             return AppColors.positive
         }
+        // You owe money - negative (red)
         return AppColors.negative
     }
 
@@ -117,9 +123,9 @@ struct TransactionCardView: View {
     var body: some View {
         HStack(alignment: .center, spacing: Spacing.md) {
             // Left side - Title and Meta
-            VStack(alignment: .leading, spacing: Spacing.xxs) {
+            VStack(alignment: .leading, spacing: Spacing.xs) {
                 Text(transaction.title ?? "Untitled Transaction")
-                    .font(AppTypography.bodyBold())
+                    .font(AppTypography.headline())
                     .foregroundColor(AppColors.textPrimary)
                     .lineLimit(2)
 
@@ -137,7 +143,7 @@ struct TransactionCardView: View {
                     .foregroundColor(amountColor)
 
                 Text("\(totalAmountText) / \(splitCountText)")
-                    .font(AppTypography.footnote())
+                    .font(AppTypography.caption())
                     .foregroundColor(AppColors.textSecondary)
             }
         }

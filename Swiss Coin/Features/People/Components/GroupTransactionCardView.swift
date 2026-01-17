@@ -110,9 +110,9 @@ struct GroupTransactionCardView: View {
     var body: some View {
         HStack(alignment: .center, spacing: Spacing.md) {
             // Left side - Title and Meta
-            VStack(alignment: .leading, spacing: Spacing.xxs) {
+            VStack(alignment: .leading, spacing: Spacing.xs) {
                 Text(transaction.title ?? "Untitled Transaction")
-                    .font(AppTypography.bodyBold())
+                    .font(AppTypography.headline())
                     .foregroundColor(AppColors.textPrimary)
                     .lineLimit(2)
 
@@ -130,7 +130,7 @@ struct GroupTransactionCardView: View {
                     .foregroundColor(amountColor)
 
                 Text("\(totalAmountText) / \(splitCountText)")
-                    .font(AppTypography.footnote())
+                    .font(AppTypography.caption())
                     .foregroundColor(AppColors.textSecondary)
             }
         }
