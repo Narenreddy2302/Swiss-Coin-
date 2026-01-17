@@ -74,25 +74,96 @@ final class TransactionViewModel: ObservableObject {
     }
 
     var isValid: Bool {
-        guard !title.isEmpty, totalAmountDouble > 0, !selectedParticipants.isEmpty else {
-            return false
-        }
+        // 1. Title validation - trim whitespace
+        let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedTitle.isEmpty else { return false }
 
+        // 2. Amount validation - must be positive (using 0.001 threshold for floating-point safety)
+        guard totalAmountDouble > 0.001 else { return false }
+
+        // 3. Participant validation - at least one person
+        guard !selectedParticipants.isEmpty else { return false }
+
+        // 4. Split method specific validation
         switch splitMethod {
         case .equal:
             return true
+
         case .percentage:
-            return abs(currentCalculatedTotal - 100.0) < 0.1
+            let totalPercent = selectedParticipants.reduce(0.0) { sum, person in
+                sum + (Double(rawInputs[person.id ?? UUID()] ?? "0") ?? 0)
+            }
+            return abs(totalPercent - 100.0) < 0.1
+
         case .exact:
-            return abs(currentCalculatedTotal - totalAmountDouble) < 0.01
+            let totalExact = selectedParticipants.reduce(0.0) { sum, person in
+                sum + (Double(rawInputs[person.id ?? UUID()] ?? "0") ?? 0)
+            }
+            return abs(totalExact - totalAmountDouble) < 0.01
+
         case .adjustment:
-            return true  // Typically always valid unless adjustments exceed total
+            // Ensure total adjustments don't exceed total amount
+            let totalAdjustments = selectedParticipants.reduce(0.0) { sum, person in
+                sum + (Double(rawInputs[person.id ?? UUID()] ?? "0") ?? 0)
+            }
+            return totalAdjustments <= totalAmountDouble
+
         case .shares:
             let totalShares = selectedParticipants.reduce(0.0) { sum, person in
                 sum + (Double(rawInputs[person.id ?? UUID()] ?? "0") ?? 0)
             }
             return totalShares > 0
         }
+    }
+
+    /// User-facing validation message for when isValid is false
+    var validationMessage: String? {
+        let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        if trimmedTitle.isEmpty {
+            return "Please enter a title"
+        }
+        if totalAmountDouble <= 0 {
+            return "Amount must be greater than zero"
+        }
+        if selectedParticipants.isEmpty {
+            return "Select at least one participant"
+        }
+
+        switch splitMethod {
+        case .percentage:
+            let totalPercent = selectedParticipants.reduce(0.0) { sum, person in
+                sum + (Double(rawInputs[person.id ?? UUID()] ?? "0") ?? 0)
+            }
+            if abs(totalPercent - 100.0) >= 0.1 {
+                return "Percentages must add up to 100%"
+            }
+        case .exact:
+            let totalExact = selectedParticipants.reduce(0.0) { sum, person in
+                sum + (Double(rawInputs[person.id ?? UUID()] ?? "0") ?? 0)
+            }
+            if abs(totalExact - totalAmountDouble) >= 0.01 {
+                return "Amounts must equal the total"
+            }
+        case .adjustment:
+            let totalAdjustments = selectedParticipants.reduce(0.0) { sum, person in
+                sum + (Double(rawInputs[person.id ?? UUID()] ?? "0") ?? 0)
+            }
+            if totalAdjustments > totalAmountDouble {
+                return "Adjustments cannot exceed the total amount"
+            }
+        case .shares:
+            let totalShares = selectedParticipants.reduce(0.0) { sum, person in
+                sum + (Double(rawInputs[person.id ?? UUID()] ?? "0") ?? 0)
+            }
+            if totalShares <= 0 {
+                return "Enter shares for at least one person"
+            }
+        default:
+            break
+        }
+
+        return nil
     }
 
     func calculateSplit(for person: Person) -> Double {
@@ -143,54 +214,77 @@ final class TransactionViewModel: ObservableObject {
             let totalShares = selectedParticipants.reduce(0.0) { sum, p in
                 sum + (Double(rawInputs[p.id ?? UUID()] ?? "0") ?? 0)
             }
-            if totalShares == 0 { return 0 }
+            guard totalShares > 0 else { return 0 }
 
             let myShares = Double(rawInputs[targetId] ?? "0") ?? 0
-            // Simple share calculation for now, but could use penny logic if strict requirement
-            // Using standard double math for shares as "parts" usually implies non-currency units but let's stick to standard behavior unless specified
-            return (myShares / totalShares) * totalAmountDouble
+
+            // Use penny-perfect calculation for shares too
+            let myShareRatio = myShares / totalShares
+            let myCents = Int(round(myShareRatio * Double(totalCents)))
+            return Double(myCents) / 100.0
         }
     }
 
     func saveTransaction(presentationMode: Binding<PresentationMode>) {
-        let transaction = FinancialTransaction(context: viewContext)
-        transaction.id = UUID()
-        transaction.title = title
-        transaction.amount = totalAmountDouble
-        transaction.date = date
-
-        // If no payer selected ("Me"), use current user; otherwise use selected person
-        if let payer = selectedPayer {
-            transaction.payer = payer
-        } else {
-            // "Me" was selected - use current user
-            transaction.payer = CurrentUser.getOrCreate(in: viewContext)
+        // 1. Pre-flight validation
+        guard isValid else {
+            HapticManager.error()
+            return
         }
 
-        transaction.splitMethod = splitMethod.rawValue
-
-        // Assign group if this is a group transaction
-        if let group = selectedGroup {
-            transaction.group = group
-        }
-
-        // Save Splits
-        for person in selectedParticipants {
-            let splitData = TransactionSplit(context: viewContext)
-            splitData.owedBy = person
-            splitData.transaction = transaction
-            splitData.amount = calculateSplit(for: person)
-            // Save raw input for future editing capability
-            if let rawString = rawInputs[person.id ?? UUID()], let rawVal = Double(rawString) {
-                splitData.rawAmount = rawVal
-            }
-        }
+        // 2. Trim title
+        let cleanTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
 
         do {
+            // 3. Create transaction entity
+            let transaction = FinancialTransaction(context: viewContext)
+            transaction.id = UUID()
+            transaction.title = cleanTitle
+            transaction.amount = totalAmountDouble
+            transaction.date = date
+            transaction.splitMethod = splitMethod.rawValue
+
+            // 4. Set payer (default to current user if nil)
+            if let payer = selectedPayer {
+                transaction.payer = payer
+            } else {
+                transaction.payer = CurrentUser.getOrCreate(in: viewContext)
+            }
+
+            // 5. Assign group if this is a group transaction
+            if let group = selectedGroup {
+                transaction.group = group
+            }
+
+            // 6. Create splits for each participant
+            for person in selectedParticipants {
+                let splitData = TransactionSplit(context: viewContext)
+                splitData.owedBy = person
+                splitData.transaction = transaction
+                splitData.amount = calculateSplit(for: person)
+
+                // Preserve raw input for editing
+                if let personId = person.id,
+                   let rawString = rawInputs[personId],
+                   let rawVal = Double(rawString) {
+                    splitData.rawAmount = rawVal
+                }
+            }
+
+            // 7. Save to CoreData
             try viewContext.save()
+
+            // 8. Success feedback
+            HapticManager.success()
+
+            // 9. Dismiss view
             presentationMode.wrappedValue.dismiss()
+
         } catch {
-            print("Error saving: \(error)")
+            // 10. Handle save error
+            viewContext.rollback()
+            HapticManager.error()
+            print("Error saving transaction: \(error.localizedDescription)")
         }
     }
 }

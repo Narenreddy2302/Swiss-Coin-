@@ -49,17 +49,16 @@ struct BalanceHeaderView: View {
                 VStack(spacing: 12) {
                     Circle()
                         .fill(Color(hex: person.colorHex ?? "#34C759"))
-                        .frame(width: 80, height: 80)
+                        .frame(width: AvatarSize.xl, height: AvatarSize.xl)
                         .overlay(
                             Text(person.initials)
-                                .font(.system(size: 28, weight: .bold))
+                                .font(AppTypography.title1())
                                 .foregroundColor(.white)
                         )
                         .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 4)
 
                     Text(person.name ?? "Unknown")
-                        .font(.title3)
-                        .fontWeight(.semibold)
+                        .font(AppTypography.title3())
                         .foregroundColor(.primary)
                 }
             }
@@ -69,15 +68,14 @@ struct BalanceHeaderView: View {
             HStack {
                 Spacer()
                 Text(balanceText)
-                    .font(.subheadline)
-                    .fontWeight(.medium)
+                    .font(AppTypography.subheadlineMedium())
                     .foregroundColor(balanceColor)
                 Spacer()
             }
-            .padding(.vertical, 12)
-            .padding(.horizontal, 20)
+            .padding(.vertical, Spacing.md)
+            .padding(.horizontal, Spacing.xl)
             .background(
-                RoundedRectangle(cornerRadius: 12)
+                RoundedRectangle(cornerRadius: CornerRadius.md)
                     .fill(balanceBackgroundColor)
             )
             .padding(.horizontal, 40)

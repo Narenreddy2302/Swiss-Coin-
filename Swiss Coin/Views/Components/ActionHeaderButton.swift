@@ -8,17 +8,17 @@ struct ActionHeaderButton: View {
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 8) {
+            HStack(spacing: Spacing.sm) {
                 Image(systemName: icon)
-                    .font(.system(size: 18, weight: .bold))  // Slightly larger, bold icon
+                    .font(AppTypography.bodyBold())
                 Text(title)
-                    .font(.system(size: 17, weight: .semibold))  // Standard body size but semibold
+                    .font(AppTypography.bodyBold())
             }
             .foregroundColor(color)
             .frame(maxWidth: .infinity)
-            .frame(height: 52)  // Slightly taller
+            .frame(height: ButtonHeight.lg)
             .background(Color(uiColor: .tertiarySystemGroupedBackground))
-            .cornerRadius(14)  // Softer corners
+            .cornerRadius(CornerRadius.lg)
         }
     }
 }

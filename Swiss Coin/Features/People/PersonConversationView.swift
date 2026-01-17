@@ -113,7 +113,7 @@ struct PersonConversationView: View {
                         dismiss()
                     } label: {
                         Image(systemName: "chevron.left")
-                            .font(.system(size: 18, weight: .semibold))
+                            .font(AppTypography.bodyBold())
                             .foregroundColor(Color(UIColor.systemGray))
                     }
 
@@ -128,12 +128,12 @@ struct PersonConversationView: View {
                                 .frame(width: AvatarSize.sm, height: AvatarSize.sm)
                                 .overlay(
                                     Text(person.initials)
-                                        .font(.system(size: 14, weight: .semibold))
+                                        .font(AppTypography.subheadlineMedium())
                                         .foregroundColor(.white)
                                 )
 
                             Text(person.displayName)
-                                .font(.system(size: 17, weight: .semibold))
+                                .font(AppTypography.bodyBold())
                                 .foregroundColor(.white)
                                 .lineLimit(1)
                         }
@@ -146,11 +146,11 @@ struct PersonConversationView: View {
             ToolbarItem(placement: .topBarTrailing) {
                 VStack(alignment: .trailing, spacing: 2) {
                     Text(balanceLabel)
-                        .font(.system(size: 12, weight: .regular))
+                        .font(AppTypography.caption())
                         .foregroundColor(Color(UIColor.systemGray))
 
                     Text(balanceAmount)
-                        .font(.system(size: 16, weight: .bold))
+                        .font(AppTypography.amountSmall())
                         .foregroundColor(balanceColor)
                 }
             }
@@ -190,15 +190,15 @@ struct PersonConversationView: View {
             Spacer()
 
             Image(systemName: "message.fill")
-                .font(.system(size: 48))
+                .font(.system(size: IconSize.xxl))
                 .foregroundColor(.secondary.opacity(0.5))
 
             Text("No conversations yet")
-                .font(.headline)
+                .font(AppTypography.headline())
                 .foregroundColor(.secondary)
 
             Text("Start a conversation with \(person.firstName) or add an expense")
-                .font(.subheadline)
+                .font(AppTypography.subheadline())
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 40)
