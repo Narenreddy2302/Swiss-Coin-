@@ -70,7 +70,7 @@ struct PersonConversationView: View {
                     }
                     .padding(.vertical, 16)
                 }
-                .background(Color.black)
+                .background(AppColors.background)
                 .onAppear {
                     hapticGenerator.prepare()
                     scrollToBottom(proxy)
@@ -96,13 +96,13 @@ struct PersonConversationView: View {
                 onSend: sendMessage
             )
         }
-        .background(Color.black)
+        .background(AppColors.background)
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(Color.black, for: .navigationBar)
+        .toolbarBackground(AppColors.backgroundSecondary, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
         .toolbar(.hidden, for: .tabBar) // Hide tab bar like iMessage
-        .tint(Color(UIColor.systemGray))
+        .tint(AppColors.textSecondary)
         .navigationBarBackButtonHidden(true)
         .toolbar {
             // Leading: Back button + Avatar + Name
@@ -110,11 +110,12 @@ struct PersonConversationView: View {
                 HStack(spacing: Spacing.sm) {
                     // Custom back button (chevron only)
                     Button {
+                        HapticManager.navigate()
                         dismiss()
                     } label: {
                         Image(systemName: "chevron.left")
                             .font(AppTypography.bodyBold())
-                            .foregroundColor(Color(UIColor.systemGray))
+                            .foregroundColor(AppColors.accent)
                     }
 
                     // Avatar + Name (tappable for profile)
@@ -124,17 +125,17 @@ struct PersonConversationView: View {
                     } label: {
                         HStack(spacing: Spacing.sm) {
                             Circle()
-                                .fill(Color(hex: person.colorHex ?? "#34C759"))
+                                .fill(Color(hex: person.colorHex ?? CurrentUser.defaultColorHex).opacity(0.2))
                                 .frame(width: AvatarSize.sm, height: AvatarSize.sm)
                                 .overlay(
                                     Text(person.initials)
                                         .font(AppTypography.subheadlineMedium())
-                                        .foregroundColor(.white)
+                                        .foregroundColor(Color(hex: person.colorHex ?? CurrentUser.defaultColorHex))
                                 )
 
-                            Text(person.displayName)
+                            Text(person.name ?? "Unknown")
                                 .font(AppTypography.bodyBold())
-                                .foregroundColor(.white)
+                                .foregroundColor(AppColors.textPrimary)
                                 .lineLimit(1)
                         }
                     }
@@ -147,7 +148,7 @@ struct PersonConversationView: View {
                 VStack(alignment: .trailing, spacing: 2) {
                     Text(balanceLabel)
                         .font(AppTypography.caption())
-                        .foregroundColor(Color(UIColor.systemGray))
+                        .foregroundColor(AppColors.textSecondary)
 
                     Text(balanceAmount)
                         .font(AppTypography.amountSmall())
@@ -197,7 +198,7 @@ struct PersonConversationView: View {
                 .font(AppTypography.headline())
                 .foregroundColor(.secondary)
 
-            Text("Start a conversation with \(person.firstName) or add an expense")
+            Text("Start a conversation with \(person.name?.components(separatedBy: " ").first ?? "them") or add an expense")
                 .font(AppTypography.subheadline())
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)

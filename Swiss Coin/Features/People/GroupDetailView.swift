@@ -24,17 +24,16 @@ struct GroupDetailView: View {
             Section {
                 VStack(alignment: .center, spacing: Spacing.lg) {
                     Circle()
-                        .fill(Color(hex: group.colorHex ?? "#007AFF"))
-                        .frame(width: 100, height: 100)
+                        .fill(Color(hex: group.colorHex ?? CurrentUser.defaultColorHex).opacity(0.2))
+                        .frame(width: AvatarSize.xxl, height: AvatarSize.xxl)
                         .overlay(
                             Image(systemName: "person.3.fill")
-                                .font(.system(size: 40))
-                                .foregroundColor(.white)
+                                .font(.system(size: IconSize.xl))
+                                .foregroundColor(Color(hex: group.colorHex ?? CurrentUser.defaultColorHex))
                         )
-                        .shadow(radius: 10)
 
                     VStack(spacing: Spacing.xs) {
-                        Text(group.displayName)
+                        Text(group.name ?? "Unnamed Group")
                             .font(AppTypography.title2())
                             .foregroundColor(AppColors.textPrimary)
 
@@ -66,7 +65,7 @@ struct GroupDetailView: View {
                     // Action Buttons
                     HStack(spacing: Spacing.lg) {
                         Button(action: {
-                            HapticManager.buttonPress()
+                            HapticManager.tap()
                             showingAddTransaction = true
                         }) {
                             HStack(spacing: Spacing.sm) {
@@ -82,7 +81,7 @@ struct GroupDetailView: View {
                         .buttonStyle(.plain)
 
                         Button(action: {
-                            HapticManager.buttonPress()
+                            HapticManager.tap()
                             showingSettlement = true
                         }) {
                             HStack(spacing: Spacing.sm) {
@@ -117,15 +116,15 @@ struct GroupDetailView: View {
                 ForEach(memberBalances, id: \.member.id) { item in
                     HStack(spacing: Spacing.md) {
                         Circle()
-                            .fill(Color(hex: item.member.colorHex ?? "#808080").opacity(0.3))
+                            .fill(Color(hex: item.member.colorHex ?? CurrentUser.defaultColorHex).opacity(0.2))
                             .frame(width: AvatarSize.sm, height: AvatarSize.sm)
                             .overlay(
                                 Text(item.member.initials)
                                     .font(AppTypography.caption())
-                                    .foregroundColor(AppColors.textPrimary)
+                                    .foregroundColor(Color(hex: item.member.colorHex ?? CurrentUser.defaultColorHex))
                             )
 
-                        Text(item.member.displayName)
+                        Text(item.member.name ?? "Unknown")
                             .font(AppTypography.body())
                             .foregroundColor(AppColors.textPrimary)
 
@@ -168,9 +167,9 @@ struct GroupDetailView: View {
                     .listRowBackground(Color.clear)
                 } else {
                     ForEach(group.transactionsArray, id: \.self) { transaction in
-                        TransactionRowView(transaction: transaction)
+                        GroupDetailTransactionRow(transaction: transaction, group: group)
                             .listRowInsets(EdgeInsets())
-                            .listRowBackground(Color.clear)
+                            .listRowBackground(AppColors.backgroundSecondary)
                     }
                 }
             }
@@ -182,6 +181,47 @@ struct GroupDetailView: View {
         .onAppear {
             HapticManager.prepare()
         }
+    }
+}
+
+struct GroupDetailTransactionRow: View {
+    let transaction: FinancialTransaction
+    let group: UserGroup
+    @Environment(\.managedObjectContext) private var viewContext
+    
+    private var currentUserBalance: Double {
+        group.calculateBalanceWith(member: CurrentUser.getOrCreate(in: viewContext))
+    }
+    
+    var body: some View {
+        HStack(spacing: Spacing.md) {
+            VStack(alignment: .leading, spacing: Spacing.xs) {
+                Text(transaction.title ?? "Expense")
+                    .font(AppTypography.headline())
+                    .foregroundColor(AppColors.textPrimary)
+                
+                if let date = transaction.date {
+                    Text(DateFormatter.shortDate.string(from: date))
+                        .font(AppTypography.caption())
+                        .foregroundColor(AppColors.textSecondary)
+                }
+                
+                if let paidBy = transaction.paidBy {
+                    Text("Paid by \(paidBy.name ?? "Unknown")")
+                        .font(AppTypography.caption())
+                        .foregroundColor(AppColors.textSecondary)
+                }
+            }
+            
+            Spacer()
+            
+            Text(CurrencyFormatter.format(transaction.amount))
+                .font(AppTypography.amountSmall())
+                .foregroundColor(AppColors.textPrimary)
+        }
+        .padding(.vertical, Spacing.sm)
+        .padding(.horizontal, Spacing.md)
+        .contentShape(Rectangle())
     }
 }
 

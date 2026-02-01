@@ -77,6 +77,13 @@ struct PhoneLoginView: View {
                             .padding(.vertical, 14)
                             .background(Color(.systemGray6))
                             .clipShape(RoundedRectangle(cornerRadius: 10))
+                            .onChange(of: phoneNumber) { _, newValue in
+                                // Remove any non-digit characters except for common formatting
+                                let filtered = newValue.filter { $0.isNumber || $0 == "-" || $0 == " " || $0 == "(" || $0 == ")" }
+                                if filtered != newValue {
+                                    phoneNumber = filtered
+                                }
+                            }
                     }
                 }
                 .padding(.horizontal, 24)

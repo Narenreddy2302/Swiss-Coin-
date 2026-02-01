@@ -28,10 +28,11 @@ struct SettlementView: View {
     }
 
     private var directionText: String {
+        let personName = person.name?.components(separatedBy: " ").first ?? "them"
         if currentBalance > 0 {
-            return "Record payment from \(person.firstName)"
+            return "Record payment from \(personName)"
         } else {
-            return "Record payment to \(person.firstName)"
+            return "Record payment to \(personName)"
         }
     }
 
@@ -56,7 +57,7 @@ struct SettlementView: View {
 
                 // Settle Full Amount Button
                 Button {
-                    HapticManager.buttonPress()
+                    HapticManager.tap()
                     settleFullAmount()
                 } label: {
                     HStack {
@@ -139,7 +140,7 @@ struct SettlementView: View {
 
                 // Confirm Custom Amount Button
                 Button {
-                    HapticManager.buttonPress()
+                    HapticManager.tap()
                     settleCustomAmount()
                 } label: {
                     Text("Confirm Settlement")
@@ -147,7 +148,7 @@ struct SettlementView: View {
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .frame(height: ButtonHeight.lg)
-                        .background(isValidAmount ? Color.blue : AppColors.disabled)
+                        .background(isValidAmount ? AppColors.accent : AppColors.disabled)
                         .cornerRadius(CornerRadius.md)
                 }
                 .buttonStyle(AppButtonStyle(haptic: .none))
@@ -161,7 +162,7 @@ struct SettlementView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") {
-                        HapticManager.cancel()
+                        HapticManager.tap()
                         dismiss()
                     }
                 }

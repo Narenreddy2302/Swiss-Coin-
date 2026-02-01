@@ -162,31 +162,42 @@ struct NewTransactionContactView: View {
     }
 
     private func selectContact(_ contact: ContactsManager.PhoneContact) {
-        // 1. Check if Person exists
+        // 1. Check if Person exists by phone number first, then by name
         let fetchRequest: NSFetchRequest<Person> = Person.fetchRequest()
-        // Simple check by name for now, ideally strictly by phone or ID if we stored it
-        fetchRequest.predicate = NSPredicate(format: "name == %@", contact.fullName)
+        
+        // Prefer phone number matching if available
+        if let phoneNumber = contact.phoneNumbers.first {
+            fetchRequest.predicate = NSPredicate(format: "phoneNumber == %@", phoneNumber)
+        } else {
+            fetchRequest.predicate = NSPredicate(format: "name == %@", contact.fullName)
+        }
         fetchRequest.fetchLimit = 1
 
         do {
             let results = try viewContext.fetch(fetchRequest)
             if let existingPerson = results.first {
                 self.selectedPersonForTransaction = existingPerson
+                HapticManager.selectionChanged()
             } else {
                 // 2. Create new Person
                 let newPerson = Person(context: viewContext)
                 newPerson.id = UUID()
                 newPerson.name = contact.fullName
                 newPerson.phoneNumber = contact.phoneNumbers.first
-                newPerson.colorHex = "#" + String(Int.random(in: 0...0xFFFFFF), radix: 16)
+                
+                // Generate a nice random color hex
+                let colors = ["#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4", "#FECA57", "#FF9FF3", "#54A0FF", "#5F27CD"]
+                newPerson.colorHex = colors.randomElement() ?? "#4ECDC4"
 
                 try viewContext.save()
                 self.selectedPersonForTransaction = newPerson
+                HapticManager.success()
             }
             // 3. Navigate
             self.navigateToAddTransaction = true
         } catch {
-            print("Error selecting contact: \(error)")
+            print("Error selecting contact: \(error.localizedDescription)")
+            HapticManager.error()
         }
     }
 }

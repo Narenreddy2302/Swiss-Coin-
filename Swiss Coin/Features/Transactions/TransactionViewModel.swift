@@ -1,6 +1,7 @@
 import Combine
 import CoreData
 import SwiftUI
+import Foundation
 
 enum SplitMethod: String, CaseIterable, Identifiable {
     case equal = "Equal"
@@ -225,10 +226,11 @@ final class TransactionViewModel: ObservableObject {
         }
     }
 
-    func saveTransaction(presentationMode: Binding<PresentationMode>) {
+    func saveTransaction(completion: @escaping (Bool) -> Void = { _ in }) {
         // 1. Pre-flight validation
         guard isValid else {
             HapticManager.error()
+            completion(false)
             return
         }
 
@@ -259,6 +261,7 @@ final class TransactionViewModel: ObservableObject {
             // 6. Create splits for each participant
             for person in selectedParticipants {
                 let splitData = TransactionSplit(context: viewContext)
+                splitData.id = UUID()
                 splitData.owedBy = person
                 splitData.transaction = transaction
                 splitData.amount = calculateSplit(for: person)
@@ -277,14 +280,27 @@ final class TransactionViewModel: ObservableObject {
             // 8. Success feedback
             HapticManager.success()
 
-            // 9. Dismiss view
-            presentationMode.wrappedValue.dismiss()
+            // 9. Call completion handler
+            completion(true)
 
         } catch {
             // 10. Handle save error
             viewContext.rollback()
             HapticManager.error()
             print("Error saving transaction: \(error.localizedDescription)")
+            completion(false)
         }
+    }
+    
+    /// Reset the form to default values
+    func resetForm() {
+        title = ""
+        totalAmount = ""
+        date = Date()
+        selectedPayer = nil
+        selectedParticipants = []
+        splitMethod = .equal
+        rawInputs = [:]
+        selectedGroup = nil
     }
 }

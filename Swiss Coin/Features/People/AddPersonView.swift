@@ -4,7 +4,7 @@ import SwiftUI
 
 struct AddPersonView: View {
     @Environment(\.managedObjectContext) private var viewContext
-    @Environment(\.presentationMode) var presentationMode
+    @Environment(\.dismiss) private var dismiss
 
     @State private var showingContactPicker = false
     @State private var name: String = ""
@@ -14,24 +14,35 @@ struct AddPersonView: View {
         Form {
             Section(header: Text("Details")) {
                 TextField("Name", text: $name)
+                    .font(AppTypography.body())
                 TextField("Phone Number", text: $phoneNumber)
+                    .font(AppTypography.body())
                     .keyboardType(.phonePad)
             }
 
             Section {
-                Button(action: { showingContactPicker = true }) {
+                Button(action: { 
+                    HapticManager.tap()
+                    showingContactPicker = true 
+                }) {
                     Label("Import from Contacts", systemImage: "person.crop.circle.badge.plus")
+                        .font(AppTypography.body())
+                        .foregroundColor(AppColors.accent)
                 }
             }
 
             Section {
                 Button("Save Person") {
+                    HapticManager.tap()
                     addPerson()
                 }
                 .disabled(name.isEmpty)
+                .font(AppTypography.bodyBold())
+                .foregroundColor(name.isEmpty ? AppColors.disabled : AppColors.accent)
             }
         }
         .navigationTitle("Add Person")
+        .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showingContactPicker) {
             ContactPicker(name: $name, phoneNumber: $phoneNumber)
         }
@@ -40,16 +51,23 @@ struct AddPersonView: View {
     private func addPerson() {
         let newPerson = Person(context: viewContext)
         newPerson.id = UUID()
-        newPerson.name = name
-        newPerson.phoneNumber = phoneNumber
-        // Assign a random color hex for avatar
-        newPerson.colorHex = "#" + String(Int.random(in: 0...0xFFFFFF), radix: 16)
+        newPerson.name = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        newPerson.phoneNumber = phoneNumber.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        // Assign a random color hex for avatar - ensure proper 6-digit format
+        let randomColor = Int.random(in: 0...0xFFFFFF)
+        newPerson.colorHex = String(format: "#%06X", randomColor)
+        
+        // Note: createdAt field not defined in CoreData model
 
         do {
             try viewContext.save()
-            presentationMode.wrappedValue.dismiss()
+            HapticManager.success()
+            dismiss()
         } catch {
             print("Error saving person: \(error)")
+            HapticManager.error()
+            // TODO: Show error alert to user
         }
     }
 }

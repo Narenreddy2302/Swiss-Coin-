@@ -57,12 +57,14 @@ struct TransactionRowView: View {
 
             Button {
                 HapticManager.tap()
+                shareTransaction()
             } label: {
                 Label("Share", systemImage: "square.and.arrow.up")
             }
 
             Button {
                 HapticManager.tap()
+                showTransactionDetails()
             } label: {
                 Label("View Details", systemImage: "info.circle")
             }
@@ -173,5 +175,37 @@ struct TransactionRowView: View {
         let count = splitCount
         let peopleText = count == 1 ? "1 Person" : "\(count) People"
         return "\(formattedTotal) / \(peopleText)"
+    }
+    
+    // MARK: - Actions
+    
+    private func shareTransaction() {
+        let shareText = """
+        \(transaction.title ?? "Transaction")
+        Amount: \(CurrencyFormatter.format(transaction.amount))
+        Date: \(dateString)
+        Split between \(splitCount) people
+        """
+        
+        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let rootViewController = windowScene.windows.first?.rootViewController else {
+            return
+        }
+        
+        let activityController = UIActivityViewController(activityItems: [shareText], applicationActivities: nil)
+        
+        // For iPad
+        if let popoverController = activityController.popoverPresentationController {
+            popoverController.sourceView = rootViewController.view
+            popoverController.sourceRect = CGRect(x: rootViewController.view.bounds.midX, y: rootViewController.view.bounds.midY, width: 0, height: 0)
+            popoverController.permittedArrowDirections = []
+        }
+        
+        rootViewController.present(activityController, animated: true)
+    }
+    
+    private func showTransactionDetails() {
+        // TODO: Implement transaction detail view navigation
+        print("Show details for transaction: \(transaction.title ?? "Unknown")")
     }
 }

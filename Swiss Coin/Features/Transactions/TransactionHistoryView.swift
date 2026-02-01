@@ -35,11 +35,22 @@ struct TransactionHistoryView: View {
 
     private func deleteItems(offsets: IndexSet) {
         withAnimation {
-            offsets.map { transactions[$0] }.forEach(viewContext.delete)
+            offsets.map { transactions[$0] }.forEach { transaction in
+                // Delete associated splits first
+                if let splits = transaction.splits as? Set<TransactionSplit> {
+                    splits.forEach { viewContext.delete($0) }
+                }
+                // Delete the transaction
+                viewContext.delete(transaction)
+            }
+            
             do {
                 try viewContext.save()
+                HapticManager.success()
             } catch {
-                print(error)
+                viewContext.rollback()
+                HapticManager.error()
+                print("Error deleting transactions: \(error.localizedDescription)")
             }
         }
     }

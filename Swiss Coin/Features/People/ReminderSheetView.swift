@@ -33,7 +33,7 @@ struct ReminderSheetView: View {
                     Text("Send Reminder")
                         .font(AppTypography.title2())
 
-                    Text("\(person.firstName) owes you \(formattedAmount)")
+                    Text("\(person.name?.components(separatedBy: " ").first ?? "They") owe you \(formattedAmount)")
                         .font(AppTypography.headline())
                         .foregroundColor(AppColors.textSecondary)
                 }
@@ -60,7 +60,7 @@ struct ReminderSheetView: View {
 
                 // Send Button
                 Button {
-                    HapticManager.buttonPress()
+                    HapticManager.tap()
                     sendReminder()
                 } label: {
                     HStack {
@@ -84,7 +84,7 @@ struct ReminderSheetView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") {
-                        HapticManager.cancel()
+                        HapticManager.tap()
                         dismiss()
                     }
                 }
@@ -116,7 +116,7 @@ struct ReminderSheetView: View {
 
         do {
             try viewContext.save()
-            HapticManager.warning()
+            HapticManager.success()
             dismiss()
         } catch {
             HapticManager.error()

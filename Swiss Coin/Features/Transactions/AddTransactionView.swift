@@ -111,11 +111,25 @@ struct AddTransactionView: View {
                     }
                 }
 
+                // Validation Error Message
+                if let validationMessage = viewModel.validationMessage {
+                    Section {
+                        Text(validationMessage)
+                            .font(AppTypography.caption())
+                            .foregroundColor(AppColors.negative)
+                    }
+                }
+
                 Section {
                     Button("Save Transaction") {
-                        viewModel.saveTransaction(presentationMode: presentationMode)
+                        viewModel.saveTransaction { success in
+                            if success {
+                                presentationMode.wrappedValue.dismiss()
+                            }
+                        }
                     }
                     .disabled(!viewModel.isValid)
+                    .buttonStyle(PrimaryButtonStyle(isEnabled: viewModel.isValid))
                 }
             }
             .navigationTitle("Add Transaction")

@@ -29,18 +29,22 @@ struct HomeView: View {
     private var totalYouOwe: Double {
         allPeople
             .filter { !CurrentUser.isCurrentUser($0) }
-            .map { $0.calculateBalance() }
-            .filter { $0 < 0 }  // Negative balance means you owe them
-            .reduce(0) { $0 + abs($1) }
+            .compactMap { person in
+                let balance = person.calculateBalance()
+                return balance < 0 ? abs(balance) : nil
+            }
+            .reduce(0, +)
     }
 
     /// Calculate total amount others owe to the current user
     private var totalOwedToYou: Double {
         allPeople
             .filter { !CurrentUser.isCurrentUser($0) }
-            .map { $0.calculateBalance() }
-            .filter { $0 > 0 }  // Positive balance means they owe you
-            .reduce(0) { $0 + $1 }
+            .compactMap { person in
+                let balance = person.calculateBalance()
+                return balance > 0 ? balance : nil
+            }
+            .reduce(0, +)
     }
 
     var body: some View {

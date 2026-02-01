@@ -5,7 +5,7 @@ struct MainTabView: View {
         TabView {
             HomeView()
                 .tabItem {
-                    Label("Home", systemImage: "play.circle.fill")
+                    Label("Home", systemImage: "house.fill")
                 }
 
             PeopleView()
@@ -15,14 +15,14 @@ struct MainTabView: View {
 
             SubscriptionView()
                 .tabItem {
-                    Label("Subscriptions", systemImage: "square.grid.2x2.fill")
+                    Label("Subscriptions", systemImage: "creditcard.fill")
                 }
 
             TransactionHistoryView()
                 .tabItem {
-                    Label("Search", systemImage: "magnifyingglass")
+                    Label("History", systemImage: "clock.fill")
                 }
         }
-        .tint(.green) // Using app's brand color
+        .tint(AppColors.accent)
     }
 }

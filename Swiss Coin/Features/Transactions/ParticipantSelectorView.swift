@@ -32,6 +32,7 @@ struct ParticipantSelectorView: View {
                 if pickerMode == 0 {
                     ForEach(people) { person in
                         Button(action: {
+                            HapticManager.selectionChanged()
                             toggle(person)
                         }) {
                             HStack {
@@ -39,30 +40,50 @@ struct ParticipantSelectorView: View {
                                 if CurrentUser.isCurrentUser(person) {
                                     Text("Me")
                                         .font(AppTypography.bodyBold())
+                                        .foregroundColor(AppColors.textPrimary)
                                 } else {
                                     Text(person.name ?? "Unknown")
                                         .font(AppTypography.body())
+                                        .foregroundColor(AppColors.textPrimary)
                                 }
                                 Spacer()
                                 if selectedParticipants.contains(person) {
-                                    Image(systemName: "checkmark")
+                                    Image(systemName: "checkmark.circle.fill")
                                         .foregroundColor(AppColors.positive)
+                                        .font(.system(size: IconSize.md))
                                 }
                             }
+                            .contentShape(Rectangle())
                         }
+                        .buttonStyle(.plain)
                     }
                 } else {
                     ForEach(groups) { group in
                         Button(action: {
-                            // When tapping a group, toggle all its members
+                            HapticManager.tap()
                             toggleGroup(group)
                         }) {
                             HStack {
-                                Text(group.name ?? "Unknown")
+                                Image(systemName: "person.2.fill")
+                                    .foregroundColor(AppColors.accent)
+                                    .font(.system(size: IconSize.md))
+                                VStack(alignment: .leading, spacing: Spacing.xxs) {
+                                    Text(group.name ?? "Unknown Group")
+                                        .font(AppTypography.body())
+                                        .foregroundColor(AppColors.textPrimary)
+                                    let memberCount = (group.members as? Set<Person>)?.count ?? 0
+                                    Text("\(memberCount) member\(memberCount == 1 ? "" : "s")")
+                                        .font(AppTypography.caption())
+                                        .foregroundColor(AppColors.textSecondary)
+                                }
                                 Spacer()
                                 Image(systemName: "plus.circle")
+                                    .foregroundColor(AppColors.accent)
+                                    .font(.system(size: IconSize.md))
                             }
+                            .contentShape(Rectangle())
                         }
+                        .buttonStyle(.plain)
                     }
                 }
             }
