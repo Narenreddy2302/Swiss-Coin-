@@ -49,25 +49,31 @@ struct AddPersonView: View {
     }
 
     private func addPerson() {
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedName.isEmpty else {
+            HapticManager.error()
+            return
+        }
+        
         let newPerson = Person(context: viewContext)
         newPerson.id = UUID()
-        newPerson.name = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        newPerson.phoneNumber = phoneNumber.trimmingCharacters(in: .whitespacesAndNewlines)
+        newPerson.name = trimmedName
+        
+        let trimmedPhone = phoneNumber.trimmingCharacters(in: .whitespacesAndNewlines)
+        newPerson.phoneNumber = trimmedPhone.isEmpty ? nil : trimmedPhone
         
         // Assign a random color hex for avatar - ensure proper 6-digit format
         let randomColor = Int.random(in: 0...0xFFFFFF)
         newPerson.colorHex = String(format: "#%06X", randomColor)
-        
-        // Note: createdAt field not defined in CoreData model
 
         do {
             try viewContext.save()
             HapticManager.success()
             dismiss()
         } catch {
-            print("Error saving person: \(error)")
+            viewContext.rollback()
             HapticManager.error()
-            // TODO: Show error alert to user
+            print("Error saving person: \(error)")
         }
     }
 }

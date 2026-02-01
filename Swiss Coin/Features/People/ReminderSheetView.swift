@@ -119,6 +119,7 @@ struct ReminderSheetView: View {
             HapticManager.success()
             dismiss()
         } catch {
+            viewContext.rollback()
             HapticManager.error()
             errorMessage = "Failed to send reminder: \(error.localizedDescription)"
             showingError = true

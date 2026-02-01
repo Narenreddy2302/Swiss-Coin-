@@ -407,6 +407,14 @@ class QuickActionViewModel: ObservableObject {
             let totalShares = participantIds.reduce(0) { sum, id in
                 sum + (splitDetails[id]?.shares ?? 1)
             }
+            guard totalShares > 0 else {
+                // Fallback to equal split if all shares are zero
+                let equalShare = total / count
+                for userId in participantIds {
+                    result[userId] = SplitDetail(amount: equalShare, percentage: 100.0 / count, shares: 1, adjustment: 0)
+                }
+                return result
+            }
 
             for userId in participantIds {
                 let shares = splitDetails[userId]?.shares ?? 1

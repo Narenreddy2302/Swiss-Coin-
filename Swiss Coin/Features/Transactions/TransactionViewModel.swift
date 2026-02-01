@@ -261,7 +261,6 @@ final class TransactionViewModel: ObservableObject {
             // 6. Create splits for each participant
             for person in selectedParticipants {
                 let splitData = TransactionSplit(context: viewContext)
-                splitData.id = UUID()
                 splitData.owedBy = person
                 splitData.transaction = transaction
                 splitData.amount = calculateSplit(for: person)

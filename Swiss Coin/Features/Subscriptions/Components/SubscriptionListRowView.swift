@@ -147,6 +147,8 @@ struct SubscriptionListRowView: View {
             try viewContext.save()
             HapticManager.success()
         } catch {
+            viewContext.rollback()
+            HapticManager.error()
             print("Error toggling subscription status: \(error)")
         }
     }
@@ -158,6 +160,8 @@ struct SubscriptionListRowView: View {
             try viewContext.save()
             HapticManager.success()
         } catch {
+            viewContext.rollback()
+            HapticManager.error()
             print("Error marking subscription as paid: \(error)")
         }
     }
@@ -168,6 +172,8 @@ struct SubscriptionListRowView: View {
         do {
             try viewContext.save()
         } catch {
+            viewContext.rollback()
+            HapticManager.error()
             print("Error deleting subscription: \(error)")
         }
     }

@@ -110,7 +110,8 @@ struct RecordSubscriptionPaymentView: View {
                 // Split Preview
                 Section {
                     let paymentAmount = Double(amount) ?? 0
-                    let splitAmount = paymentAmount / Double(subscription.subscriberCount)
+                    let memberCount = max(1, subscription.subscriberCount)
+                    let splitAmount = paymentAmount / Double(memberCount)
 
                     HStack {
                         Text("Total")
