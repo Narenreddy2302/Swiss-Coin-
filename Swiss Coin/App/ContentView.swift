@@ -28,7 +28,7 @@ struct ContentView: View {
                 PhoneLoginView()
             }
         }
-        .animation(.easeInOut, value: supabase.authState)
+        .animation(AppAnimation.standard, value: supabase.authState)
     }
 }
 

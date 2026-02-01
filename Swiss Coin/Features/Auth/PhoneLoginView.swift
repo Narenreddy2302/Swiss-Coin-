@@ -24,20 +24,19 @@ struct PhoneLoginView: View {
                 Spacer()
 
                 // Logo and branding
-                VStack(spacing: 16) {
+                VStack(spacing: Spacing.lg) {
                     Image(systemName: "dollarsign.circle.fill")
-                        .font(.system(size: 80))
-                        .foregroundStyle(.green)
+                        .font(.system(size: IconSize.xxl + 32))
+                        .foregroundStyle(AppColors.accent)
 
                     Text("Swiss Coin")
-                        .font(.largeTitle)
-                        .fontWeight(.bold)
-
+                        .font(AppTypography.largeTitle())
+                    
                     Text("Split expenses with friends")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .font(AppTypography.subheadline())
+                        .foregroundStyle(AppColors.textSecondary)
                 }
-                .padding(.bottom, 60)
+                .padding(.bottom, Spacing.section + Spacing.xxl + Spacing.sm)
 
                 // Phone input section
                 VStack(alignment: .leading, spacing: 8) {
@@ -102,10 +101,10 @@ struct PhoneLoginView: View {
                         }
                     }
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                    .background(isValidPhone ? Color.green : Color.gray)
+                    .padding(.vertical, Spacing.lg)
+                    .background(isValidPhone ? AppColors.accent : AppColors.disabled)
                     .foregroundStyle(.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .clipShape(RoundedRectangle(cornerRadius: CornerRadius.md))
                 }
                 .disabled(!isValidPhone || isLoading)
                 .padding(.horizontal, 24)
