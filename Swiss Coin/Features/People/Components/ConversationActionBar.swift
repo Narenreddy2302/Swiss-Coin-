@@ -77,7 +77,7 @@ private struct ActionButton: View {
     var body: some View {
         Button(action: {
             if isEnabled || isPrimary {
-                HapticManager.buttonPress()
+                HapticManager.tap()
                 action()
             }
         }) {
@@ -107,11 +107,11 @@ private struct ActionButton: View {
             .frame(height: ButtonHeight.lg)
             .background(
                 RoundedRectangle(cornerRadius: CornerRadius.md)
-                    .fill(Color(UIColor.systemGray6))
+                    .fill(AppColors.cardBackground)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: CornerRadius.md)
-                    .strokeBorder(Color(UIColor.systemGray4), lineWidth: 0.5)
+                    .strokeBorder(AppColors.cardBackground, lineWidth: 0.5)
             )
         }
         .buttonStyle(AppButtonStyle(haptic: .none)) // Haptic handled in action

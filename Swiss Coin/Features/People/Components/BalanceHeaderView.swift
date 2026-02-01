@@ -24,21 +24,21 @@ struct BalanceHeaderView: View {
 
     private var balanceColor: Color {
         if balance > 0.01 {
-            return .green
+            return AppColors.positive
         } else if balance < -0.01 {
-            return .red
+            return AppColors.negative
         } else {
-            return .secondary
+            return AppColors.neutral
         }
     }
 
     private var balanceBackgroundColor: Color {
         if balance > 0.01 {
-            return .green.opacity(0.1)
+            return AppColors.positive.opacity(0.1)
         } else if balance < -0.01 {
-            return .red.opacity(0.1)
+            return AppColors.negative.opacity(0.1)
         } else {
-            return Color(UIColor.tertiarySystemFill)
+            return AppColors.backgroundTertiary
         }
     }
 
@@ -59,7 +59,7 @@ struct BalanceHeaderView: View {
 
                     Text(person.name ?? "Unknown")
                         .font(AppTypography.title3())
-                        .foregroundColor(.primary)
+                        .foregroundColor(AppColors.textPrimary)
                 }
             }
             .buttonStyle(PlainButtonStyle())
@@ -82,6 +82,6 @@ struct BalanceHeaderView: View {
         }
         .padding(.top, 20)
         .padding(.bottom, 16)
-        .background(Color(UIColor.secondarySystemBackground))
+        .background(AppColors.backgroundSecondary)
     }
 }

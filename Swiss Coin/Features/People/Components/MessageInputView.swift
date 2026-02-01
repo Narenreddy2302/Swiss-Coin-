@@ -22,14 +22,14 @@ struct MessageInputView: View {
                 .padding(.vertical, Spacing.sm)
                 .background(
                     RoundedRectangle(cornerRadius: CornerRadius.xl)
-                        .fill(Color(UIColor.systemGray6))
+                        .fill(AppColors.backgroundTertiary)
                 )
                 .lineLimit(1...5)
 
             // Send Button
             Button {
                 if canSend {
-                    HapticManager.sendMessage()
+                    HapticManager.tap()
                     onSend()
                 }
             } label: {

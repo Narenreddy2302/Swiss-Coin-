@@ -213,6 +213,7 @@ struct ImportContactsView: View {
             onImport?(newPeople)
             dismiss()
         } catch {
+            viewContext.rollback()
             print("Error saving imported contacts: \(error)")
             HapticManager.error()
             // TODO: Show error alert to user

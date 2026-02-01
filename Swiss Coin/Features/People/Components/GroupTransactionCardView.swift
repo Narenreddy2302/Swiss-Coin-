@@ -42,7 +42,7 @@ struct GroupTransactionCardView: View {
             return othersOwe
         } else {
             // Someone else paid - user owes their share
-            if let mySplit = splits.first(where: { CurrentUser.isCurrentUser($0.person?.id) }) {
+            if let mySplit = splits.first(where: { CurrentUser.isCurrentUser($0.owedBy?.id) }) {
                 return -mySplit.amount
             }
             return 0

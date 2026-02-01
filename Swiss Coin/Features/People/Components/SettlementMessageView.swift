@@ -55,7 +55,7 @@ struct SettlementMessageView: View {
             .padding(.vertical, Spacing.sm)
             .background(
                 Capsule()
-                    .fill(Color(UIColor.systemGray5))
+                    .fill(AppColors.cardBackground)
             )
 
             if let note = settlement.note, !note.isEmpty {

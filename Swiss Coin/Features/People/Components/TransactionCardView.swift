@@ -36,17 +36,17 @@ struct TransactionCardView: View {
 
         if isUserPayer {
             // User paid - show what they owe you (their share)
-            if let theirSplit = splits.first(where: { $0.person?.id == person.id }) {
+            if let theirSplit = splits.first(where: { $0.owedBy?.id == person.id }) {
                 return theirSplit.amount
             }
         } else if isPersonPayer {
             // They paid - show what you owe (your share)
-            if let mySplit = splits.first(where: { CurrentUser.isCurrentUser($0.person?.id) }) {
+            if let mySplit = splits.first(where: { CurrentUser.isCurrentUser($0.owedBy?.id) }) {
                 return mySplit.amount
             }
         } else {
             // Third party paid (group expense) - show your share
-            if let mySplit = splits.first(where: { CurrentUser.isCurrentUser($0.person?.id) }) {
+            if let mySplit = splits.first(where: { CurrentUser.isCurrentUser($0.owedBy?.id) }) {
                 return mySplit.amount
             }
         }

@@ -18,14 +18,14 @@ struct TransactionBubbleView: View {
         if isFromUser {
             // User paid - show what they owe you
             let splits = transaction.splits as? Set<TransactionSplit> ?? []
-            if let theirSplit = splits.first(where: { $0.person?.id == person.id }) {
+            if let theirSplit = splits.first(where: { $0.owedBy?.id == person.id }) {
                 return theirSplit.amount
             }
             return 0
         } else {
             // They paid - show what you owe
             let splits = transaction.splits as? Set<TransactionSplit> ?? []
-            if let mySplit = splits.first(where: { CurrentUser.isCurrentUser($0.person?.id) }) {
+            if let mySplit = splits.first(where: { CurrentUser.isCurrentUser($0.owedBy?.id) }) {
                 return mySplit.amount
             }
             return 0
@@ -53,24 +53,24 @@ struct TransactionBubbleView: View {
                 VStack(alignment: .leading, spacing: 6) {
                     Text(transaction.title ?? "Unknown")
                         .font(AppTypography.subheadlineMedium())
-                        .foregroundColor(isFromUser ? .white : .primary)
+                        .foregroundColor(isFromUser ? .white : AppColors.textPrimary)
 
                     Text(amountText)
                         .font(AppTypography.amountSmall())
-                        .foregroundColor(isFromUser ? .white.opacity(0.9) : .secondary)
+                        .foregroundColor(isFromUser ? .white.opacity(0.9) : AppColors.textSecondary)
                 }
                 .padding(.horizontal, 14)
                 .padding(.vertical, 10)
                 .background(
                     BubbleShape(isFromUser: isFromUser)
-                        .fill(isFromUser ? Color.green : Color(UIColor.systemGray5))
+                        .fill(isFromUser ? AppColors.userBubble : AppColors.otherBubble)
                 )
 
                 // Timestamp
                 if showTimestamp {
                     Text(transaction.date ?? Date(), style: .time)
                         .font(AppTypography.caption2())
-                        .foregroundColor(.secondary)
+                        .foregroundColor(AppColors.textSecondary)
                         .padding(.horizontal, 4)
                 }
             }

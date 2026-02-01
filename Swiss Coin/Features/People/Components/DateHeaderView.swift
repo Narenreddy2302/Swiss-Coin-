@@ -40,7 +40,7 @@ struct DateHeaderView: View {
                 .padding(.vertical, Spacing.xs)
                 .background(
                     Capsule()
-                        .fill(Color(UIColor.tertiarySystemFill))
+                        .fill(AppColors.backgroundTertiary)
                 )
             Spacer()
         }

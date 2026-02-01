@@ -25,7 +25,7 @@ struct MessageBubbleView: View {
                 .padding(.vertical, 10)
                 .background(
                     RoundedRectangle(cornerRadius: CornerRadius.lg)
-                        .fill(isFromUser ? AppColors.accent : Color(UIColor.systemGray4))
+                        .fill(isFromUser ? AppColors.accent : AppColors.otherBubble)
                 )
 
             if !isFromUser {
