@@ -39,13 +39,12 @@ struct PhoneLoginView: View {
                 .padding(.bottom, Spacing.section + Spacing.xxl + Spacing.sm)
 
                 // Phone input section
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: Spacing.sm) {
                     Text("Phone Number")
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                        .foregroundStyle(.secondary)
+                        .font(AppTypography.subheadlineMedium())
+                        .foregroundStyle(AppColors.textSecondary)
 
-                    HStack(spacing: 12) {
+                    HStack(spacing: Spacing.md) {
                         // Country code picker
                         Menu {
                             ForEach(countryCodes, id: \.self) { code in
@@ -54,28 +53,28 @@ struct PhoneLoginView: View {
                                 }
                             }
                         } label: {
-                            HStack(spacing: 4) {
+                            HStack(spacing: Spacing.xxs) {
                                 Text(countryCode)
-                                    .font(.body)
+                                    .font(AppTypography.body())
                                 Image(systemName: "chevron.down")
-                                    .font(.caption)
+                                    .font(AppTypography.caption())
                             }
-                            .foregroundStyle(.primary)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 14)
-                            .background(Color(.systemGray6))
-                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                            .foregroundStyle(AppColors.textPrimary)
+                            .padding(.horizontal, Spacing.md)
+                            .padding(.vertical, Spacing.sm + Spacing.xs)
+                            .background(AppColors.cardBackground)
+                            .clipShape(RoundedRectangle(cornerRadius: CornerRadius.sm))
                         }
 
                         // Phone number field
                         TextField("Phone number", text: $phoneNumber)
                             .keyboardType(.phonePad)
                             .textContentType(.telephoneNumber)
-                            .font(.body)
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 14)
-                            .background(Color(.systemGray6))
-                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                            .font(AppTypography.body())
+                            .padding(.horizontal, Spacing.lg)
+                            .padding(.vertical, Spacing.sm + Spacing.xs)
+                            .background(AppColors.cardBackground)
+                            .clipShape(RoundedRectangle(cornerRadius: CornerRadius.sm))
                             .onChange(of: phoneNumber) { _, newValue in
                                 // Remove any non-digit characters except for common formatting
                                 let filtered = newValue.filter { $0.isNumber || $0 == "-" || $0 == " " || $0 == "(" || $0 == ")" }
@@ -85,7 +84,7 @@ struct PhoneLoginView: View {
                             }
                     }
                 }
-                .padding(.horizontal, 24)
+                .padding(.horizontal, Spacing.xxl)
 
                 Spacer()
 
@@ -97,7 +96,7 @@ struct PhoneLoginView: View {
                                 .tint(.white)
                         } else {
                             Text("Sign In")
-                                .fontWeight(.semibold)
+                                .font(AppTypography.bodyBold())
                         }
                     }
                     .frame(maxWidth: .infinity)
@@ -107,16 +106,16 @@ struct PhoneLoginView: View {
                     .clipShape(RoundedRectangle(cornerRadius: CornerRadius.md))
                 }
                 .disabled(!isValidPhone || isLoading)
-                .padding(.horizontal, 24)
-                .padding(.bottom, 16)
+                .padding(.horizontal, Spacing.xxl)
+                .padding(.bottom, Spacing.lg)
 
                 // Terms text
                 Text("By signing in, you agree to our Terms of Service and Privacy Policy")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .font(AppTypography.caption())
+                    .foregroundStyle(AppColors.textSecondary)
                     .multilineTextAlignment(.center)
-                    .padding(.horizontal, 40)
-                    .padding(.bottom, 32)
+                    .padding(.horizontal, Spacing.section + Spacing.sm)
+                    .padding(.bottom, Spacing.section)
             }
             .alert("Error", isPresented: $showError) {
                 Button("OK", role: .cancel) {}
