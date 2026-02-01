@@ -11,9 +11,8 @@ import SwiftUI
 
 struct FinanceQuickActionView: View {
 
-    // We use the shared context for simplicity in initialization
-    @StateObject private var viewModel = QuickActionViewModel(
-        context: PersistenceController.shared.container.viewContext)
+    @Environment(\.managedObjectContext) private var viewContext
+    @StateObject private var viewModel = QuickActionViewModel()
 
     var body: some View {
         ZStack {
@@ -27,16 +26,20 @@ struct FinanceQuickActionView: View {
                     FloatingActionButton {
                         viewModel.openSheet()
                     }
-                    .padding(.trailing, 24)
-                    .padding(.bottom, 32)
+                    .padding(.trailing, Spacing.lg)
+                    .padding(.bottom, Spacing.xl)
                 }
             }
         }
         // MARK: Bottom Sheet Presentation
         .sheet(isPresented: $viewModel.isSheetPresented) {
             QuickActionSheet(viewModel: viewModel)
+                .environment(\.managedObjectContext, viewContext)
             // iOS 16+ modifier for rounded corners
             // .presentationCornerRadius(14)
+        }
+        .onAppear {
+            viewModel.setup(context: viewContext)
         }
     }
 }

@@ -49,7 +49,7 @@ struct GroupReminderSheetView: View {
                     Text("Send Reminders")
                         .font(AppTypography.title2())
 
-                    Text("Select members to remind in \(group.displayName)")
+                    Text("Select members to remind in \(group.name ?? "the group")")
                         .font(AppTypography.subheadline())
                         .foregroundColor(AppColors.textSecondary)
                         .multilineTextAlignment(.center)
@@ -161,7 +161,7 @@ struct GroupReminderSheetView: View {
                 // Send Button
                 if !membersWhoOweYou.isEmpty {
                     Button {
-                        HapticManager.buttonPress()
+                        HapticManager.tap()
                         sendReminders()
                     } label: {
                         HStack {
@@ -187,7 +187,7 @@ struct GroupReminderSheetView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") {
-                        HapticManager.cancel()
+                        HapticManager.tap()
                         dismiss()
                     }
                 }
@@ -236,7 +236,7 @@ struct GroupReminderSheetView: View {
 
         do {
             try viewContext.save()
-            HapticManager.warning()
+            HapticManager.success()
             dismiss()
         } catch {
             viewContext.rollback()
@@ -278,7 +278,7 @@ private struct MemberReminderRow: View {
                     )
 
                 // Name
-                Text(member.displayName)
+                Text(member.name ?? "Unknown")
                     .font(AppTypography.body())
                     .foregroundColor(AppColors.textPrimary)
 

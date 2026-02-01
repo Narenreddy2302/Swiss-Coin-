@@ -105,7 +105,7 @@ struct Step3SplitMethodView: View {
                 // Save button
                 Button {
                     if viewModel.canSubmit {
-                        viewModel.submitTransaction()
+                        viewModel.saveTransaction()
                     }
                 } label: {
                     Text("Save Transaction")

@@ -13,7 +13,7 @@ struct Step1BasicDetailsView: View {
     @ObservedObject var viewModel: QuickActionViewModel
 
     var body: some View {
-        VStack(spacing: 20) {
+        VStack(spacing: Spacing.lg) {
 
             // MARK: Transaction Type Segmented Control
             Picker("Transaction Type", selection: $viewModel.transactionType) {
@@ -21,41 +21,46 @@ struct Step1BasicDetailsView: View {
                 Text("Income").tag(TransactionType.income)
             }
             .pickerStyle(.segmented)
+            .onChange(of: viewModel.transactionType) { _, _ in
+                HapticManager.selectionChanged()
+            }
 
             // MARK: Amount Input Section
-            HStack(spacing: 12) {
+            HStack(spacing: Spacing.md) {
                 // Currency selector button
                 Button {
+                    HapticManager.tap()
                     withAnimation {
                         viewModel.showCurrencyPicker.toggle()
                         viewModel.showCategoryPicker = false
                     }
                 } label: {
-                    HStack(spacing: 6) {
+                    HStack(spacing: Spacing.xs) {
                         Text(viewModel.selectedCurrency.flag)
-                            .font(.system(size: 20))
+                            .font(.system(size: IconSize.md))
                         Text(viewModel.selectedCurrency.symbol)
-                            .font(.system(size: 24, weight: .semibold))
-                            .foregroundColor(.primary)
+                            .font(AppTypography.title2())
+                            .foregroundColor(AppColors.textPrimary)
                         Image(systemName: "chevron.right")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundColor(.secondary)
+                            .font(.system(size: IconSize.xs, weight: .semibold))
+                            .foregroundColor(AppColors.textSecondary)
                     }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .background(Color(UIColor.systemGroupedBackground))
-                    .cornerRadius(8)
+                    .padding(.horizontal, Spacing.md)
+                    .padding(.vertical, Spacing.sm)
+                    .background(AppColors.backgroundTertiary)
+                    .cornerRadius(CornerRadius.sm)
                 }
 
                 // Amount text field
                 TextField("0.00", text: $viewModel.amountString)
-                    .font(.system(size: 48, weight: .regular))
+                    .font(.system(size: 48, weight: .regular, design: .rounded))
                     .keyboardType(.decimalPad)
                     .multilineTextAlignment(.trailing)
+                    .foregroundColor(AppColors.textPrimary)
             }
-            .padding(20)
-            .background(Color(UIColor.secondarySystemGroupedBackground))
-            .cornerRadius(12)
+            .padding(Spacing.lg)
+            .background(AppColors.cardBackground)
+            .cornerRadius(CornerRadius.md)
 
             // MARK: Currency Picker
             if viewModel.showCurrencyPicker {
@@ -71,21 +76,23 @@ struct Step1BasicDetailsView: View {
                 // Description input row
                 HStack {
                     Text("Description")
-                        .font(.system(size: 17))
+                        .font(AppTypography.body())
+                        .foregroundColor(AppColors.textPrimary)
                     Spacer()
                     TextField("What's this for?", text: $viewModel.transactionName)
-                        .font(.system(size: 17))
+                        .font(AppTypography.body())
                         .multilineTextAlignment(.trailing)
-                        .foregroundColor(.primary)
+                        .foregroundColor(AppColors.textPrimary)
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
+                .padding(.horizontal, Spacing.lg)
+                .padding(.vertical, Spacing.md)
 
                 Divider()
-                    .padding(.leading, 16)
+                    .padding(.leading, Spacing.lg)
 
                 // Category selector row
                 Button {
+                    HapticManager.tap()
                     withAnimation {
                         viewModel.showCategoryPicker.toggle()
                         viewModel.showCurrencyPicker = false
@@ -93,31 +100,31 @@ struct Step1BasicDetailsView: View {
                 } label: {
                     HStack {
                         Text("Category")
-                            .font(.system(size: 17))
-                            .foregroundColor(.primary)
+                            .font(AppTypography.body())
+                            .foregroundColor(AppColors.textPrimary)
                         Spacer()
                         if let category = viewModel.selectedCategory {
-                            HStack(spacing: 6) {
+                            HStack(spacing: Spacing.xs) {
                                 Text(category.icon)
                                 Text(category.name)
                                     .foregroundColor(category.color)
                             }
-                            .font(.system(size: 17))
+                            .font(AppTypography.body())
                         } else {
                             Text("Select")
-                                .font(.system(size: 17))
-                                .foregroundColor(.secondary)
+                                .font(AppTypography.body())
+                                .foregroundColor(AppColors.textSecondary)
                         }
                         Image(systemName: "chevron.right")
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(Color(UIColor.systemGray3))
+                            .font(.system(size: IconSize.sm, weight: .semibold))
+                            .foregroundColor(AppColors.textSecondary)
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 12)
+                    .padding(.horizontal, Spacing.lg)
+                    .padding(.vertical, Spacing.md)
                 }
             }
-            .background(Color(UIColor.secondarySystemGroupedBackground))
-            .cornerRadius(12)
+            .background(AppColors.cardBackground)
+            .cornerRadius(CornerRadius.md)
 
             // MARK: Category Picker
             if viewModel.showCategoryPicker {
@@ -130,19 +137,19 @@ struct Step1BasicDetailsView: View {
 
             // MARK: Continue Button
             Button {
+                HapticManager.tap()
                 if viewModel.canProceedStep1 {
                     viewModel.nextStep()
                 }
             } label: {
                 Text("Continue")
-                    .font(.system(size: 17, weight: .semibold))
+                    .font(AppTypography.bodyBold())
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
+                    .frame(height: ButtonHeight.lg)
                     .background(
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(Color.blue)
-                            .opacity(viewModel.canProceedStep1 ? 1 : 0.5)
+                        RoundedRectangle(cornerRadius: CornerRadius.md)
+                            .fill(viewModel.canProceedStep1 ? AppColors.accent : AppColors.disabled)
                     )
             }
             .disabled(!viewModel.canProceedStep1)

@@ -13,7 +13,7 @@ struct Step2SplitConfigView: View {
     @ObservedObject var viewModel: QuickActionViewModel
 
     var body: some View {
-        VStack(spacing: 20) {
+        VStack(spacing: Spacing.lg) {
 
             // MARK: Personal or Split Toggle
             VStack(spacing: 0) {
@@ -24,6 +24,7 @@ struct Step2SplitConfigView: View {
                     subtitle: "Just for you",
                     isSelected: !viewModel.isSplit
                 ) {
+                    HapticManager.selectionChanged()
                     withAnimation {
                         viewModel.isSplit = false
                     }
@@ -39,13 +40,14 @@ struct Step2SplitConfigView: View {
                     subtitle: "Share with friends or groups",
                     isSelected: viewModel.isSplit
                 ) {
+                    HapticManager.selectionChanged()
                     withAnimation {
                         viewModel.isSplit = true
                     }
                 }
             }
-            .background(Color(UIColor.secondarySystemGroupedBackground))
-            .cornerRadius(12)
+            .background(AppColors.cardBackground)
+            .cornerRadius(CornerRadius.md)
 
             // MARK: Split Configuration (only shown when splitting)
             if viewModel.isSplit {
@@ -94,39 +96,40 @@ struct Step2SplitConfigView: View {
             }
 
             // MARK: Navigation Buttons
-            HStack(spacing: 12) {
+            HStack(spacing: Spacing.md) {
                 // Back button
                 Button {
+                    HapticManager.tap()
                     viewModel.previousStep()
                 } label: {
                     Text("Back")
-                        .font(.system(size: 17, weight: .semibold))
-                        .foregroundColor(.blue)
-                        .padding(.horizontal, 24)
-                        .padding(.vertical, 16)
+                        .font(AppTypography.bodyBold())
+                        .foregroundColor(AppColors.accent)
+                        .padding(.horizontal, Spacing.xl)
+                        .frame(height: ButtonHeight.lg)
                         .background(
-                            RoundedRectangle(cornerRadius: 12)
-                                .fill(Color(UIColor.systemGray6))
+                            RoundedRectangle(cornerRadius: CornerRadius.md)
+                                .fill(AppColors.cardBackground)
                         )
                 }
 
                 // Continue/Save button
                 Button {
+                    HapticManager.tap()
                     if !viewModel.isSplit {
-                        viewModel.submitTransaction()
+                        viewModel.saveTransaction()
                     } else if viewModel.canProceedStep2 {
                         viewModel.nextStep()
                     }
                 } label: {
                     Text(viewModel.isSplit ? "Continue" : "Save")
-                        .font(.system(size: 17, weight: .semibold))
+                        .font(AppTypography.bodyBold())
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 16)
+                        .frame(height: ButtonHeight.lg)
                         .background(
-                            RoundedRectangle(cornerRadius: 12)
-                                .fill(Color.blue)
-                                .opacity(viewModel.canProceedStep2 ? 1 : 0.5)
+                            RoundedRectangle(cornerRadius: CornerRadius.md)
+                                .fill(viewModel.canProceedStep2 ? AppColors.accent : AppColors.disabled)
                         )
                 }
                 .disabled(!viewModel.canProceedStep2)
@@ -159,29 +162,31 @@ struct SelectedPayerCard: View {
 
             // Name
             Text(viewModel.paidByName)
-                .font(.system(size: 17, weight: .medium))
+                .font(AppTypography.body())
+                .foregroundColor(AppColors.textPrimary)
 
             Spacer()
 
             // Change button
             Button {
+                HapticManager.tap()
                 withAnimation {
                     viewModel.isPaidBySearchFocused = true
                 }
             } label: {
                 Text("Change")
-                    .font(.system(size: 15, weight: .medium))
-                    .foregroundColor(.blue)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
-                    .background(Color.blue.opacity(0.1))
-                    .cornerRadius(8)
+                    .font(AppTypography.subheadlineMedium())
+                    .foregroundColor(AppColors.accent)
+                    .padding(.horizontal, Spacing.lg)
+                    .padding(.vertical, Spacing.sm)
+                    .background(AppColors.accent.opacity(0.1))
+                    .cornerRadius(CornerRadius.sm)
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 14)
-        .background(Color(UIColor.secondarySystemGroupedBackground))
-        .cornerRadius(12)
+        .padding(.horizontal, Spacing.lg)
+        .padding(.vertical, Spacing.sm)
+        .background(AppColors.cardBackground)
+        .cornerRadius(CornerRadius.md)
     }
 }
 
@@ -210,8 +215,8 @@ struct PaidBySearchView: View {
                             initials: "ME", isCurrentUser: true,
                             isSelected: viewModel.paidByPerson == nil, size: 44)
                         Text("You")
-                            .font(.system(size: 17))
-                            .foregroundColor(.primary)
+                            .font(AppTypography.body())
+                            .foregroundColor(AppColors.textPrimary)
                         Spacer()
                         if viewModel.paidByPerson == nil {
                             Image(systemName: "checkmark").foregroundColor(.blue)
@@ -351,8 +356,8 @@ struct ParticipantsListView: View {
                     )
                     VStack(alignment: .leading, spacing: 2) {
                         Text("You")
-                            .font(.system(size: 17))
-                            .foregroundColor(.primary)
+                            .font(AppTypography.body())
+                            .foregroundColor(AppColors.textPrimary)
                     }
                     Spacer()
 
@@ -409,9 +414,9 @@ struct ParticipantsListView: View {
                         )
 
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(person.displayName)
-                                .font(.system(size: 17))
-                                .foregroundColor(.primary)
+                            Text(person.name ?? "Unknown")
+                                .font(AppTypography.body())
+                                .foregroundColor(AppColors.textPrimary)
                         }
 
                         Spacer()

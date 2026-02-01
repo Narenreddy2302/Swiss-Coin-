@@ -87,12 +87,25 @@ class QuickActionViewModel: ObservableObject {
 
     // MARK: - Init
 
+    init() {
+        // Will be set up later via setup(context:)
+        self.viewContext = PersistenceController.shared.container.viewContext
+        
+        // Default participant is Me
+        participantIds.insert(currentUserUUID)
+    }
+    
     init(context: NSManagedObjectContext) {
         self.viewContext = context
         fetchData()
 
         // Default participant is Me
         participantIds.insert(currentUserUUID)
+    }
+    
+    func setup(context: NSManagedObjectContext) {
+        self.viewContext = context
+        fetchData()
     }
 
     /// Convenience initializer for pre-selecting a person
@@ -148,7 +161,7 @@ class QuickActionViewModel: ObservableObject {
 
     func getName(for id: UUID) -> String {
         if id == currentUserUUID { return "You" }
-        return getPerson(byId: id)?.displayName ?? "Unknown"
+        return getPerson(byId: id)?.name ?? "Unknown"
     }
 
     func getInitials(for id: UUID) -> String {
@@ -158,7 +171,7 @@ class QuickActionViewModel: ObservableObject {
 
     var paidByName: String {
         if let person = paidByPerson {
-            return person.displayName
+            return person.name ?? "Unknown"
         }
         return "You"
     }
@@ -428,7 +441,7 @@ class QuickActionViewModel: ObservableObject {
 
     // MARK: - Submission
 
-    func submitTransaction() {
+    func saveTransaction() {
         // Validate amount
         guard amount > 0 else {
             errorMessage = "Amount must be greater than zero"
@@ -450,39 +463,53 @@ class QuickActionViewModel: ObservableObject {
 
         let transaction = FinancialTransaction(context: viewContext)
         transaction.id = UUID()
-        transaction.title = transactionName
+        transaction.title = transactionName.trimmingCharacters(in: .whitespacesAndNewlines)
         transaction.amount = amount
         transaction.date = Date()
+        transaction.createdAt = Date()
         // transaction.currency = selectedCurrency.code // If entity has currency
         // transaction.category = selectedCategory?.id // If entity has category
 
         // Payer: Use current user if paidByPerson is nil
-        transaction.payer = paidByPerson ?? currentUser
+        transaction.paidBy = paidByPerson ?? currentUser
         transaction.splitMethod = splitMethod.rawValue
 
         if isSplit {
             for (userId, detail) in splits {
                 // Create TransactionSplit entity
                 let split = TransactionSplit(context: viewContext)
+                split.id = UUID()
                 split.transaction = transaction
                 split.amount = detail.amount
 
                 if userId == currentUserUUID {
-                    // Current user owes this amount (their share of the expense)
-                    split.owedBy = currentUser
+                    // Current user's share of the expense
+                    split.person = currentUser
+                } else if let person = getPerson(byId: userId) {
+                    split.person = person
                 } else {
-                    split.owedBy = getPerson(byId: userId)
+                    print("Warning: Could not find person with ID \(userId)")
+                    continue
                 }
             }
+        } else {
+            // Not split - create a single split for the entire amount to the payer
+            let split = TransactionSplit(context: viewContext)
+            split.id = UUID()
+            split.transaction = transaction
+            split.amount = amount
+            split.person = paidByPerson ?? currentUser
         }
 
         do {
             try viewContext.save()
+            HapticManager.success()
             closeSheet()
         } catch {
             // Rollback failed changes
             viewContext.rollback()
-
+            
+            HapticManager.error()
             errorMessage = "Failed to save transaction. Please try again."
             showingError = true
             print("Error creating transaction: \(error)")

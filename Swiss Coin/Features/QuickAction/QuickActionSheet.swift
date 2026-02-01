@@ -17,22 +17,22 @@ struct QuickActionSheet: View {
             VStack(spacing: 0) {
 
                 // MARK: Step Indicator Dots
-                HStack(spacing: 6) {
+                HStack(spacing: Spacing.xs) {
                     ForEach(1...3, id: \.self) { step in
                         Circle()
                             .fill(
                                 step <= viewModel.currentStep
-                                    ? Color.blue : Color(UIColor.systemGray4)
+                                    ? AppColors.accent : AppColors.textSecondary.opacity(0.3)
                             )
                             .frame(width: 8, height: 8)
                     }
                 }
-                .padding(.top, 8)
-                .padding(.bottom, 12)
+                .padding(.top, Spacing.sm)
+                .padding(.bottom, Spacing.md)
 
                 // MARK: Step Content
                 ScrollView {
-                    VStack(spacing: 20) {
+                    VStack(spacing: Spacing.lg) {
                         switch viewModel.currentStep {
                         case 1:
                             Step1BasicDetailsView(viewModel: viewModel)
@@ -44,11 +44,11 @@ struct QuickActionSheet: View {
                             EmptyView()
                         }
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 40)
+                    .padding(.horizontal, Spacing.lg)
+                    .padding(.bottom, Spacing.xxl)
                 }
             }
-            .background(Color(UIColor.systemGroupedBackground))
+            .background(AppColors.backgroundSecondary)
             // MARK: Navigation Bar
             .navigationTitle(navigationTitle)
             .navigationBarTitleDisplayMode(.inline)
@@ -56,6 +56,7 @@ struct QuickActionSheet: View {
                 // Cancel button (left)
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {
+                        HapticManager.tap()
                         viewModel.closeSheet()
                     }
                 }
@@ -66,9 +67,11 @@ struct QuickActionSheet: View {
                         || (viewModel.currentStep == 2 && !viewModel.isSplit)
                     {
                         Button("Done") {
-                            viewModel.submitTransaction()
+                            HapticManager.tap()
+                            viewModel.saveTransaction()
                         }
-                        .fontWeight(.semibold)
+                        .font(AppTypography.bodyBold())
+                        .foregroundColor(AppColors.accent)
                     }
                 }
             }

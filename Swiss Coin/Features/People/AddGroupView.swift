@@ -138,7 +138,7 @@ struct AddGroupView: View {
                             .multilineTextAlignment(.center)
 
                         Button {
-                            HapticManager.buttonPress()
+                            HapticManager.tap()
                             Task { await contactsManager.requestAccess() }
                         } label: {
                             Text("Grant Access")
@@ -166,13 +166,13 @@ struct AddGroupView: View {
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
                 Button("Cancel") {
-                    HapticManager.cancel()
+                    HapticManager.tap()
                     dismiss()
                 }
             }
             ToolbarItem(placement: .confirmationAction) {
                 Button("Create") {
-                    HapticManager.buttonPress()
+                    HapticManager.tap()
                     createGroup()
                 }
                 .disabled(groupName.isEmpty || selectedContacts.isEmpty)

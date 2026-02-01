@@ -83,7 +83,7 @@ struct QuickActionSheetPresenter: View {
                         || (viewModel.currentStep == 2 && !viewModel.isSplit)
                     {
                         Button("Done") {
-                            viewModel.submitTransaction()
+                            viewModel.saveTransaction()
                             dismiss()
                         }
                         .fontWeight(.semibold)
