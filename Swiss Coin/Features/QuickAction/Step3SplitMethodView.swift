@@ -93,7 +93,7 @@ struct Step3SplitMethodView: View {
                 } label: {
                     Text("Back")
                         .font(.system(size: 17, weight: .semibold))
-                        .foregroundColor(.blue)
+                        .foregroundColor(AppColors.accent)
                         .padding(.horizontal, 24)
                         .padding(.vertical, 16)
                         .background(
@@ -114,8 +114,8 @@ struct Step3SplitMethodView: View {
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 16)
                         .background(
-                            RoundedRectangle(cornerRadius: 12)
-                                .fill(Color.blue)
+                            RoundedRectangle(cornerRadius: CornerRadius.md)
+                                .fill(AppColors.accent)
                                 .opacity(viewModel.canSubmit ? 1 : 0.5)
                         )
                 }
@@ -313,7 +313,7 @@ struct SplitPersonRow: View {
                 } label: {
                     Text("−")
                         .font(.system(size: 20, weight: .medium))
-                        .foregroundColor(.blue)
+                        .foregroundColor(AppColors.accent)
                         .frame(width: 36, height: 36)
                 }
 
@@ -330,7 +330,7 @@ struct SplitPersonRow: View {
                 } label: {
                     Text("+")
                         .font(.system(size: 20, weight: .medium))
-                        .foregroundColor(.blue)
+                        .foregroundColor(AppColors.accent)
                         .frame(width: 36, height: 36)
                 }
             }
@@ -388,14 +388,14 @@ struct OwesSummaryView: View {
                             "\(viewModel.selectedCurrency.symbol)\(split.amount, specifier: "%.2f")"
                         )
                         .font(.system(size: 17, weight: .semibold))
-                        .foregroundColor(.blue)
+                        .foregroundColor(AppColors.accent)
                     }
                     .padding(.horizontal, 16)
                     .padding(.vertical, 12)
                 }
             }
-            .background(Color.blue.opacity(0.08))
-            .cornerRadius(12)
+            .background(AppColors.accent.opacity(0.08))
+            .cornerRadius(CornerRadius.md)
         }
     }
 }

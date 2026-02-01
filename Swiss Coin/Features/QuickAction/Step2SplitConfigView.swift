@@ -219,7 +219,7 @@ struct PaidBySearchView: View {
                             .foregroundColor(AppColors.textPrimary)
                         Spacer()
                         if viewModel.paidByPerson == nil {
-                            Image(systemName: "checkmark").foregroundColor(.blue)
+                            Image(systemName: "checkmark").foregroundColor(AppColors.accent)
                         }
                     }
                     .padding(.horizontal, 16)
@@ -261,7 +261,7 @@ struct PaidBySearchView: View {
             } label: {
                 Text("Cancel")
                     .font(.system(size: 17))
-                    .foregroundColor(.blue)
+                    .foregroundColor(AppColors.accent)
             }
         }
     }
@@ -363,9 +363,9 @@ struct ParticipantsListView: View {
 
                     Circle()
                         .strokeBorder(
-                            meSelected ? Color.blue : Color(UIColor.systemGray3), lineWidth: 2
+                            meSelected ? AppColors.accent : AppColors.textSecondary.opacity(0.5), lineWidth: 2
                         )
-                        .background(Circle().fill(meSelected ? Color.blue : Color.clear))
+                        .background(Circle().fill(meSelected ? AppColors.accent : Color.clear))
                         .overlay(
                             Image(systemName: "checkmark")
                                 .font(.system(size: 12, weight: .bold))
@@ -423,9 +423,9 @@ struct ParticipantsListView: View {
 
                         Circle()
                             .strokeBorder(
-                                isSelected ? Color.blue : Color(UIColor.systemGray3), lineWidth: 2
+                                isSelected ? AppColors.accent : AppColors.textSecondary.opacity(0.5), lineWidth: 2
                             )
-                            .background(Circle().fill(isSelected ? Color.blue : Color.clear))
+                            .background(Circle().fill(isSelected ? AppColors.accent : Color.clear))
                             .overlay(
                                 Image(systemName: "checkmark")
                                     .font(.system(size: 12, weight: .bold))

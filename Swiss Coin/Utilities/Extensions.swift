@@ -33,27 +33,8 @@ extension Color {
 }
 
 // MARK: - Person Extensions
-extension Person {
-    var initials: String {
-        let name = self.name ?? ""
-        let parts = name.split(separator: " ")
-        if let first = parts.first?.first {
-            if parts.count > 1, let last = parts.last?.first {
-                return "\(first)\(last)".uppercased()
-            }
-            return "\(first)".uppercased()
-        }
-        return "?"
-    }
-
-    var displayName: String {
-        return name ?? "Unknown"
-    }
-
-    var firstName: String {
-        return displayName.components(separatedBy: " ").first ?? displayName
-    }
-}
+// Note: Core Person computed properties (displayName, firstName, initials, etc.)
+// are defined in Models/CoreData/Person+Extensions.swift
 
 // MARK: - Date Formatter Extensions
 extension DateFormatter {

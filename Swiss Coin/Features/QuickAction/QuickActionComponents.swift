@@ -42,7 +42,7 @@ struct QuickActionSheetPresenter: View {
                         Circle()
                             .fill(
                                 step <= viewModel.currentStep
-                                    ? Color.blue : Color(UIColor.systemGray4)
+                                    ? AppColors.accent : AppColors.textSecondary.opacity(0.3)
                             )
                             .frame(width: 8, height: 8)
                     }
@@ -116,8 +116,8 @@ struct FloatingActionButton: View {
                 .frame(width: 60, height: 60)
                 .background(
                     Circle()
-                        .fill(Color.blue)
-                        .shadow(color: Color.blue.opacity(0.4), radius: 10, x: 0, y: 4)
+                        .fill(AppColors.accent)
+                        .shadow(color: AppColors.accent.opacity(0.4), radius: 10, x: 0, y: 4)
                 )
         }
         .buttonStyle(.plain)
@@ -193,7 +193,7 @@ struct PersonAvatar: View {
     var body: some View {
         ZStack {
             Circle()
-                .fill(isSelected ? Color.blue : Color(UIColor.systemGray5))
+                .fill(isSelected ? AppColors.accent : AppColors.backgroundSecondary)
 
             if isCurrentUser {
                 Image(systemName: "person.fill")
@@ -240,7 +240,7 @@ struct ContactSearchRow: View {
             if isSelected {
                 Image(systemName: "checkmark")
                     .font(.system(size: 17, weight: .semibold))
-                    .foregroundColor(.blue)
+                    .foregroundColor(AppColors.accent)
             }
         }
         .padding(.horizontal, 16)
@@ -277,7 +277,7 @@ struct GroupSearchRow: View {
             if isSelected {
                 Image(systemName: "checkmark")
                     .font(.system(size: 17, weight: .semibold))
-                    .foregroundColor(.blue)
+                    .foregroundColor(AppColors.accent)
             }
         }
         .padding(.horizontal, 16)
@@ -298,20 +298,20 @@ struct SelectedGroupBadge: View {
 
             Text(group.name ?? "Group")
                 .font(.system(size: 15, weight: .medium))
-                .foregroundColor(.blue)
+                .foregroundColor(AppColors.accent)
 
             Button(action: onDismiss) {
                 Image(systemName: "xmark")
                     .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(.blue)
+                    .foregroundColor(AppColors.accent)
                     .frame(width: 20, height: 20)
-                    .background(Color.blue.opacity(0.2))
+                    .background(AppColors.accent.opacity(0.2))
                     .clipShape(Circle())
             }
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
-        .background(Color.blue.opacity(0.1))
+        .background(AppColors.accent.opacity(0.1))
         .cornerRadius(20)
     }
 }
@@ -343,7 +343,7 @@ struct CurrencyPickerView: View {
                         if selectedCurrency.id == currency.id {
                             Image(systemName: "checkmark")
                                 .font(.system(size: 17, weight: .semibold))
-                                .foregroundColor(.blue)
+                                .foregroundColor(AppColors.accent)
                         }
                     }
                     .padding(.horizontal, 16)
@@ -424,7 +424,7 @@ struct SplitMethodChip: View {
                     .frame(width: 36, height: 36)
                     .background(
                         Circle()
-                            .fill(isSelected ? Color.blue : Color(UIColor.systemGray6))
+                            .fill(isSelected ? AppColors.accent : AppColors.backgroundSecondary)
                     )
 
                 // Label
