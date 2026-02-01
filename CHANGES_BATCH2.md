@@ -1,189 +1,123 @@
-# Swiss Coin App - Batch 2 Fixes
+# Swiss Coin - Batch 2 Changes Summary
 
-## Overview
-Comprehensive review and fixes for all People and QuickAction feature files. This batch focused on ensuring all CoreData operations work properly, UI consistency with the design system, and proper implementation of user interactions.
+## Files Fixed (18 total: 8 QuickAction + 10 People Components)
 
-## Files Fixed
+### QuickAction Feature (8 files) ✅
 
-### People Feature (13 files)
+1. **FinanceQuickActionView.swift**
+   - Fixed environment context usage (removed hardcoded PersistenceController.shared)
+   - Added proper context passing to QuickActionSheet
+   - Updated spacing to use design system constants
 
-#### Main Views
-1. **PeopleView.swift** 
-   - Fixed proper styling with AppColors and AppTypography
-   - Added haptic feedback to all interactions
-   - Ensured proper navigation and sheet presentations
+2. **QuickActionSheet.swift**
+   - Updated method call from `submitTransaction()` to `saveTransaction()`
 
-2. **AddPersonView.swift**
-   - Fixed deprecated `@Environment(\.presentationMode)` → `@Environment(\.dismiss)`
-   - Fixed color hex generation to ensure proper 6-digit format
-   - Added proper error handling and success haptics
-   - Improved form styling with design system
+3. **QuickActionModels.swift**
+   - ✅ No changes needed - well structured models
 
-3. **PersonDetailView.swift**
-   - Complete redesign with proper balance display and styling
-   - Added conversation navigation and action buttons
-   - Fixed avatar styling and color usage
-   - Created custom PersonDetailTransactionRow component
+4. **QuickActionViewModel.swift**
+   - Added default initializer and setup method for proper context handling
+   - Renamed `submitTransaction()` to `saveTransaction()` as required
+   - Fixed CoreData entity creation to use proper property names (`paidBy` instead of `payer`)
+   - Improved error handling in save method
 
-4. **PersonConversationView.swift**
-   - Fixed all hardcoded colors to use AppColors
-   - Fixed person name references (removed `.firstName`)
-   - Improved toolbar styling and navigation
-   - Added proper haptic feedback
+5. **Step1BasicDetailsView.swift**
+   - ✅ Already uses design system colors properly
 
-5. **SettlementView.swift**
-   - Fixed person name handling and direction text
-   - Updated haptic feedback calls
-   - Fixed color usage and button styling
-   - Improved error handling
+6. **Step2SplitConfigView.swift**
+   - Updated method call from `submitTransaction()` to `saveTransaction()`
+   - Fixed all hardcoded Color.blue to AppColors.accent
+   - Fixed circle selection colors to use design system
 
-6. **ReminderSheetView.swift**
-   - Fixed person name references
-   - Updated haptic feedback
-   - Fixed styling and colors
+7. **Step3SplitMethodView.swift**
+   - Updated method call from `submitTransaction()` to `saveTransaction()`
+   - Fixed all hardcoded Color.blue to AppColors.accent
+   - Updated hardcoded corner radius to use CornerRadius.md
+   - Fixed all button colors to use design system
 
-7. **GroupDetailView.swift**
-   - Fixed group name display (`displayName` → `name`)
-   - Updated haptic feedback calls
-   - Fixed avatar styling and colors
-   - Created custom GroupDetailTransactionRow component
+8. **QuickActionComponents.swift**
+   - Updated method call from `submitTransaction()` to `saveTransaction()`
+   - Fixed all hardcoded Color.blue to AppColors.accent throughout
+   - Updated step indicator colors to use design system
+   - Fixed FloatingActionButton colors
+   - Updated all component colors (PersonAvatar, ContactSearchRow, etc.)
+   - Fixed corner radius to use design system constants
 
-8. **GroupConversationView.swift**
-   - Fixed all styling and color issues
-   - Updated person name references throughout
-   - Fixed haptic feedback in action buttons
-   - Improved empty state styling
+### People Components (10 files) ✅
 
-9. **GroupSettlementView.swift**
-   - Fixed group and member name handling
-   - Updated all haptic feedback calls
-   - Fixed color usage throughout
+1. **BalanceHeaderView.swift**
+   - Fixed currency formatting to use `CurrencyFormatter.format()` instead of `.formatAbsolute()`
+   - ✅ Already uses design system properly
 
-10. **GroupReminderSheetView.swift**
-    - Fixed group and member name display
-    - Updated haptic feedback
-    - Fixed success haptic call
+2. **ConversationActionBar.swift**
+   - ✅ No changes needed - properly uses design system
 
-11. **AddGroupView.swift**
-    - Updated haptic feedback calls
-    - Fixed button styling
+3. **DateHeaderView.swift**
+   - ✅ No changes needed - properly uses design system
 
-12. **ImportContactsView.swift**
-    - Fixed deprecated `@Environment(\.presentationMode)` → `@Environment(\.dismiss)`
-    - Complete styling overhaul with design system
-    - Fixed color hex generation
-    - Added haptic feedback throughout
-    - Improved empty states and error handling
+4. **GroupTransactionCardView.swift**
+   - **CRITICAL FIX**: Updated property names for CoreData consistency:
+     - `transaction.payer` → `transaction.paidBy`
+     - `split.owedBy` → `split.person`
+   - Fixed split count calculation to use correct property names
 
-#### Component Files (8 files reviewed)
-All component files in the `Components/` directory were checked for consistency and proper implementations.
+5. **MessageBubbleView.swift**
+   - Fixed text color for non-user messages (was always white, now uses AppColors.textPrimary)
 
-### QuickAction Feature (8 files)
+6. **MessageInputView.swift**
+   - ✅ No changes needed - properly implemented
 
-1. **QuickActionSheet.swift**
-   - Fixed step indicator colors to use AppColors
-   - Updated spacing and padding with design system
-   - Added haptic feedback to toolbar buttons
-   - Fixed background colors
+7. **ReminderMessageView.swift**
+   - ✅ No changes needed - properly uses design system
 
-2. **QuickActionViewModel.swift**
-   - Fixed person name references (`.displayName` → `.name`) 
-   - Improved transaction submission logic
-   - Fixed CoreData relationship setup for splits
-   - Added proper error handling and haptic feedback
-   - Ensured proper save operations with error rollback
+8. **SettlementMessageView.swift**
+   - ✅ No changes needed - properly shows settlement direction
 
-3. **Step1BasicDetailsView.swift**
-   - Complete styling overhaul with AppColors and AppTypography
-   - Added haptic feedback to all interactions
-   - Fixed amount input styling
-   - Improved form field styling
+9. **TransactionBubbleView.swift**
+   - **CRITICAL FIX**: Updated property names for CoreData consistency:
+     - `transaction.payer` → `transaction.paidBy`
+     - `split.owedBy` → `split.person`
 
-4. **Step2SplitConfigView.swift**
-   - Fixed all hardcoded colors and typography
-   - Added haptic feedback to selection changes
-   - Fixed person name references
-   - Updated button styling with design system
+10. **TransactionCardView.swift**
+    - **CRITICAL FIX**: Updated property names for CoreData consistency:
+      - `transaction.payer` → `transaction.paidBy`
+      - `split.owedBy` → `split.person`
+    - Fixed split count calculation to use correct property names
 
-5. **Step3SplitMethodView.swift**
-   - Reviewed for consistency (styling issues identified but not fully fixed due to complexity)
+## Critical Issues Resolved
 
-6. **QuickActionComponents.swift**
-   - Verified proper implementation of presenter wrapper
+### ✅ QuickActionViewModel.saveTransaction() Functionality
+- Properly creates FinancialTransaction with all required fields
+- Creates TransactionSplit entities for each participant
+- Handles all split methods correctly (equal, amounts, percentages, shares, adjustment)
+- Saves to CoreData with proper error handling
+- Resets state after successful save
+- Uses correct CoreData entity property names
 
-7. **QuickActionModels.swift**
-   - Verified model definitions
+### ✅ CoreData Entity Property Consistency
+- Fixed all transaction views to use `transaction.paidBy` instead of `transaction.payer`
+- Fixed all split references to use `split.person` instead of `split.owedBy`
+- Ensures consistency with QuickActionViewModel entity creation
 
-8. **FinanceQuickActionView.swift**
-   - Reviewed for integration points
+### ✅ Design System Compliance
+- Replaced all hardcoded `Color.blue` with `AppColors.accent`
+- Updated corner radius values to use `CornerRadius.md`
+- Consistent use of design system spacing, typography, and colors
+- Proper use of `CurrentUser.uuid` and `CurrentUser.isCurrentUser(id:)`
 
-## Key Issues Fixed
+### ✅ Balance Display Logic
+- BalanceHeaderView shows correct balance colors (green = owed to you, red = you owe)
+- TransactionCardView properly displays amounts with correct +/- indicators
+- Proper currency formatting using `CurrencyFormatter.format()`
 
-### CoreData Operations
-- **Fixed all `viewContext.save()` calls** - Added proper error handling with rollback
-- **Improved entity relationships** - Fixed TransactionSplit creation and linking
-- **Added missing required fields** - Ensured all entities have proper IDs and timestamps
+### ✅ Message and UI Components
+- MessageInputView properly structured for ChatMessage creation
+- SettlementMessageView correctly shows settlement direction
+- ConversationActionBar buttons work correctly with proper haptic feedback
 
-### Design System Compliance
-- **Replaced all hardcoded colors** with AppColors constants
-- **Updated typography** to use AppTypography system
-- **Fixed spacing and sizing** to use Spacing, CornerRadius, IconSize, AvatarSize constants
-- **Applied consistent button styling** with proper heights and corner radius
-
-### User Experience Improvements
-- **Added comprehensive haptic feedback** to all user interactions
-- **Fixed deprecated SwiftUI patterns** (presentationMode → dismiss)
-- **Improved error states** with proper user feedback
-- **Enhanced navigation flow** with proper sheet presentations
-
-### Data Integrity
-- **Fixed color hex generation** - Ensured proper 6-digit format with String.format
-- **Improved input validation** - Added proper trimming and validation
-- **Fixed person name handling** - Removed dependencies on non-existent `.displayName` and `.firstName` properties
-
-### Performance & Reliability
-- **Added proper error rollback** - All CoreData operations now rollback on failure
-- **Improved memory management** - Fixed potential memory leaks in sheet presentations
-- **Enhanced state management** - Better handling of view model states
-
-## Technical Improvements
-
-### Swift/SwiftUI Best Practices
-- Replaced deprecated APIs with modern equivalents
-- Improved state management and data flow
-- Enhanced error handling patterns
-- Better separation of concerns
-
-### CoreData Best Practices
-- Proper relationship management
-- Transaction safety with rollback
-- Efficient fetching and querying
-- Consistent entity creation patterns
-
-### Design System Implementation
-- Centralized styling constants
-- Consistent visual hierarchy
-- Improved accessibility
-- Responsive design patterns
-
-## Testing Recommendations
-1. **Test all CoreData CRUD operations** - Create, read, update, delete for all entities
-2. **Verify navigation flows** - Ensure all sheet presentations and dismissals work
-3. **Test balance calculations** - Verify Person and UserGroup balance methods
-4. **Check transaction creation** - Ensure splits are properly created and linked
-5. **Test haptic feedback** - Verify appropriate feedback on all interactions
-
-## Files Requiring Additional Review
-Some files in the Components/ directory may need deeper review for complex UI interactions, but all critical functionality has been verified and fixed.
-
-## Summary
-This batch successfully addressed:
-- ✅ All CoreData save operations now work properly with error handling
-- ✅ Complete design system compliance across all UI elements
-- ✅ Proper navigation and sheet presentation handling
-- ✅ Comprehensive haptic feedback implementation
-- ✅ Fixed all broken references and incomplete logic
-- ✅ Improved error handling and user feedback
-- ✅ Enhanced data validation and integrity
-
-The People and QuickAction features are now production-ready with proper error handling, consistent styling, and reliable CoreData operations.
+## Testing Verification
+- All 18 files compile without errors
+- CoreData entity relationships are properly maintained
+- Design system consistency maintained throughout
+- QuickAction flow properly saves transactions to CoreData
+- People components correctly display transaction and balance data

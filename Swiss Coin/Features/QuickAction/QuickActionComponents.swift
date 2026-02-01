@@ -430,7 +430,7 @@ struct SplitMethodChip: View {
                 // Label
                 Text(method.displayName)
                     .font(.system(size: 13, weight: .medium))
-                    .foregroundColor(isSelected ? .blue : .primary)
+                    .foregroundColor(isSelected ? AppColors.accent : AppColors.textPrimary)
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 14)
@@ -438,8 +438,8 @@ struct SplitMethodChip: View {
                 RoundedRectangle(cornerRadius: 12)
                     .fill(Color(UIColor.secondarySystemGroupedBackground))
                     .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(isSelected ? Color.blue : Color.clear, lineWidth: 2)
+                        RoundedRectangle(cornerRadius: CornerRadius.md)
+                            .stroke(isSelected ? AppColors.accent : Color.clear, lineWidth: 2)
                     )
             )
         }
@@ -477,11 +477,11 @@ struct SplitOptionRow: View {
                 // Radio button
                 Circle()
                     .strokeBorder(
-                        isSelected ? Color.blue : Color(UIColor.systemGray3), lineWidth: 2
+                        isSelected ? AppColors.accent : AppColors.textSecondary.opacity(0.5), lineWidth: 2
                     )
                     .background(
                         Circle()
-                            .fill(isSelected ? Color.blue : Color.clear)
+                            .fill(isSelected ? AppColors.accent : Color.clear)
                     )
                     .overlay(
                         Circle()

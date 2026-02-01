@@ -20,7 +20,7 @@ struct MessageBubbleView: View {
 
             Text(message.content ?? "")
                 .font(AppTypography.body())
-                .foregroundColor(isFromUser ? .white : .white)
+                .foregroundColor(isFromUser ? .white : AppColors.textPrimary)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 10)
                 .background(

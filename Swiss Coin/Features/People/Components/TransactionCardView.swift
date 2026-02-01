@@ -14,11 +14,11 @@ struct TransactionCardView: View {
     @State private var isPressed = false
 
     private var isUserPayer: Bool {
-        CurrentUser.isCurrentUser(transaction.payer?.id)
+        CurrentUser.isCurrentUser(transaction.paidBy?.id)
     }
 
     private var isPersonPayer: Bool {
-        transaction.payer?.id == person.id
+        transaction.paidBy?.id == person.id
     }
 
     private var payerName: String {
@@ -27,7 +27,7 @@ struct TransactionCardView: View {
         } else if isPersonPayer {
             return person.firstName
         } else {
-            return transaction.payer?.firstName ?? "Someone"
+            return transaction.paidBy?.firstName ?? "Someone"
         }
     }
 
@@ -36,17 +36,17 @@ struct TransactionCardView: View {
 
         if isUserPayer {
             // User paid - show what they owe you (their share)
-            if let theirSplit = splits.first(where: { $0.owedBy?.id == person.id }) {
+            if let theirSplit = splits.first(where: { $0.person?.id == person.id }) {
                 return theirSplit.amount
             }
         } else if isPersonPayer {
             // They paid - show what you owe (your share)
-            if let mySplit = splits.first(where: { CurrentUser.isCurrentUser($0.owedBy?.id) }) {
+            if let mySplit = splits.first(where: { CurrentUser.isCurrentUser($0.person?.id) }) {
                 return mySplit.amount
             }
         } else {
             // Third party paid (group expense) - show your share
-            if let mySplit = splits.first(where: { CurrentUser.isCurrentUser($0.owedBy?.id) }) {
+            if let mySplit = splits.first(where: { CurrentUser.isCurrentUser($0.person?.id) }) {
                 return mySplit.amount
             }
         }
@@ -80,12 +80,12 @@ struct TransactionCardView: View {
 
         // Count unique participants (payer + those who owe)
         var participants = Set<UUID>()
-        if let payerId = transaction.payer?.id {
+        if let payerId = transaction.paidBy?.id {
             participants.insert(payerId)
         }
         for split in splits {
-            if let owedById = split.owedBy?.id {
-                participants.insert(owedById)
+            if let personId = split.person?.id {
+                participants.insert(personId)
             }
         }
 

@@ -11,21 +11,21 @@ struct TransactionBubbleView: View {
     let showTimestamp: Bool
 
     private var isFromUser: Bool {
-        CurrentUser.isCurrentUser(transaction.payer?.id)
+        CurrentUser.isCurrentUser(transaction.paidBy?.id)
     }
 
     private var displayAmount: Double {
         if isFromUser {
             // User paid - show what they owe you
             let splits = transaction.splits as? Set<TransactionSplit> ?? []
-            if let theirSplit = splits.first(where: { $0.owedBy?.id == person.id }) {
+            if let theirSplit = splits.first(where: { $0.person?.id == person.id }) {
                 return theirSplit.amount
             }
             return 0
         } else {
             // They paid - show what you owe
             let splits = transaction.splits as? Set<TransactionSplit> ?? []
-            if let mySplit = splits.first(where: { CurrentUser.isCurrentUser($0.owedBy?.id) }) {
+            if let mySplit = splits.first(where: { CurrentUser.isCurrentUser($0.person?.id) }) {
                 return mySplit.amount
             }
             return 0

@@ -11,7 +11,7 @@ struct BalanceHeaderView: View {
     let onAvatarTap: () -> Void
 
     private var balanceText: String {
-        let formatted = CurrencyFormatter.formatAbsolute(balance)
+        let formatted = CurrencyFormatter.format(abs(balance))
 
         if balance > 0.01 {
             return "\(person.firstName) owes you \(formatted)"
