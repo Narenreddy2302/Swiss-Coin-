@@ -76,7 +76,7 @@ struct GroupConversationView: View {
                     }
                     .padding(.vertical, 16)
                 }
-                .background(Color.black)
+                .background(AppColors.background)
                 .onAppear {
                     hapticGenerator.prepare()
                     scrollToBottom(proxy)
@@ -103,13 +103,13 @@ struct GroupConversationView: View {
                 onSend: sendMessage
             )
         }
-        .background(Color.black)
+        .background(AppColors.background)
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(Color.black, for: .navigationBar)
+        .toolbarBackground(AppColors.backgroundSecondary, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
         .toolbar(.hidden, for: .tabBar) // Hide tab bar like iMessage
-        .tint(Color(UIColor.systemGray))
+        .tint(AppColors.textSecondary)
         .navigationBarBackButtonHidden(true)
         .toolbar {
             // Leading: Back button + Group Icon + Name
@@ -117,11 +117,12 @@ struct GroupConversationView: View {
                 HStack(spacing: Spacing.sm) {
                     // Custom back button (chevron only)
                     Button {
+                        HapticManager.navigate()
                         dismiss()
                     } label: {
                         Image(systemName: "chevron.left")
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundColor(Color(UIColor.systemGray))
+                            .font(AppTypography.bodyBold())
+                            .foregroundColor(AppColors.accent)
                     }
 
                     // Group Icon + Name (tappable for group detail)
@@ -130,24 +131,24 @@ struct GroupConversationView: View {
                         showingGroupDetail = true
                     } label: {
                         HStack(spacing: Spacing.sm) {
-                            RoundedRectangle(cornerRadius: 10)
-                                .fill(Color(hex: group.colorHex ?? "#007AFF"))
+                            RoundedRectangle(cornerRadius: CornerRadius.sm)
+                                .fill(Color(hex: group.colorHex ?? CurrentUser.defaultColorHex).opacity(0.2))
                                 .frame(width: AvatarSize.sm, height: AvatarSize.sm)
                                 .overlay(
                                     Image(systemName: "person.3.fill")
-                                        .font(.system(size: 14, weight: .semibold))
-                                        .foregroundColor(.white)
+                                        .font(.system(size: IconSize.sm, weight: .semibold))
+                                        .foregroundColor(Color(hex: group.colorHex ?? CurrentUser.defaultColorHex))
                                 )
 
                             VStack(alignment: .leading, spacing: 1) {
-                                Text(group.displayName)
-                                    .font(.system(size: 17, weight: .semibold))
-                                    .foregroundColor(.white)
+                                Text(group.name ?? "Unknown Group")
+                                    .font(AppTypography.bodyBold())
+                                    .foregroundColor(AppColors.textPrimary)
                                     .lineLimit(1)
 
                                 Text("\(memberCount) members")
-                                    .font(.system(size: 12, weight: .regular))
-                                    .foregroundColor(Color(UIColor.systemGray))
+                                    .font(AppTypography.caption())
+                                    .foregroundColor(AppColors.textSecondary)
                             }
                         }
                     }
