@@ -49,10 +49,11 @@ struct GroupSettlementView: View {
     private var directionText: String {
         guard let member = selectedMember else { return "Select a member to settle" }
 
+        let memberName = member.name?.components(separatedBy: " ").first ?? "them"
         if selectedMemberBalance > 0 {
-            return "Record payment from \(member.firstName)"
+            return "Record payment from \(memberName)"
         } else {
-            return "Record payment to \(member.firstName)"
+            return "Record payment to \(memberName)"
         }
     }
 
@@ -66,7 +67,7 @@ struct GroupSettlementView: View {
                 VStack(spacing: Spacing.xxl) {
                     // Header
                     VStack(spacing: Spacing.sm) {
-                        Text("Settle Up in \(group.displayName)")
+                        Text("Settle Up in \(group.name ?? "Group")")
                             .font(AppTypography.headline())
                             .foregroundColor(AppColors.textPrimary)
                     }
@@ -136,7 +137,7 @@ struct GroupSettlementView: View {
 
                                 // Settle Full Amount Button
                                 Button {
-                                    HapticManager.buttonPress()
+                                    HapticManager.tap()
                                     settleFullAmount()
                                 } label: {
                                     HStack {
@@ -217,7 +218,7 @@ struct GroupSettlementView: View {
 
                                 // Confirm Custom Amount Button
                                 Button {
-                                    HapticManager.buttonPress()
+                                    HapticManager.tap()
                                     settleCustomAmount()
                                 } label: {
                                     Text("Confirm Settlement")
@@ -225,7 +226,7 @@ struct GroupSettlementView: View {
                                         .foregroundColor(.white)
                                         .frame(maxWidth: .infinity)
                                         .frame(height: ButtonHeight.lg)
-                                        .background(isValidAmount ? Color.blue : AppColors.disabled)
+                                        .background(isValidAmount ? AppColors.accent : AppColors.disabled)
                                         .cornerRadius(CornerRadius.md)
                                 }
                                 .buttonStyle(AppButtonStyle(haptic: .none))
@@ -244,7 +245,7 @@ struct GroupSettlementView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") {
-                        HapticManager.cancel()
+                        HapticManager.tap()
                         dismiss()
                     }
                 }
@@ -372,7 +373,7 @@ private struct MemberBalanceChip: View {
                             .stroke(isSelected ? AppColors.accent : Color.clear, lineWidth: 3)
                     )
 
-                Text(member.firstName)
+                Text(member.name?.components(separatedBy: " ").first ?? "User")
                     .font(AppTypography.caption())
                     .foregroundColor(AppColors.textPrimary)
                     .lineLimit(1)

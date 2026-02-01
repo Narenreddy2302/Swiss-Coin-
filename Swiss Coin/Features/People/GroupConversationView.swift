@@ -160,11 +160,11 @@ struct GroupConversationView: View {
             ToolbarItem(placement: .topBarTrailing) {
                 VStack(alignment: .trailing, spacing: 2) {
                     Text(balanceLabel)
-                        .font(.system(size: 12, weight: .regular))
-                        .foregroundColor(Color(UIColor.systemGray))
+                        .font(AppTypography.caption())
+                        .foregroundColor(AppColors.textSecondary)
 
                     Text(balanceAmount)
-                        .font(.system(size: 16, weight: .bold))
+                        .font(AppTypography.amountSmall())
                         .foregroundColor(balanceColor)
                 }
             }
@@ -204,18 +204,18 @@ struct GroupConversationView: View {
             Spacer()
 
             Image(systemName: "person.3.fill")
-                .font(.system(size: 48))
-                .foregroundColor(.secondary.opacity(0.5))
+                .font(.system(size: IconSize.xxl))
+                .foregroundColor(AppColors.textSecondary.opacity(0.5))
 
             Text("No activity yet")
-                .font(.headline)
-                .foregroundColor(.secondary)
+                .font(AppTypography.headline())
+                .foregroundColor(AppColors.textSecondary)
 
-            Text("Start a conversation with \(group.displayName) or add a group expense")
-                .font(.subheadline)
-                .foregroundColor(.secondary)
+            Text("Start a conversation with \(group.name ?? "the group") or add a group expense")
+                .font(AppTypography.subheadline())
+                .foregroundColor(AppColors.textSecondary)
                 .multilineTextAlignment(.center)
-                .padding(.horizontal, 40)
+                .padding(.horizontal, Spacing.xxl)
 
             Spacer()
         }
@@ -371,7 +371,7 @@ private struct GroupActionButton: View {
     var body: some View {
         Button(action: {
             if isEnabled || isPrimary {
-                HapticManager.buttonPress()
+                HapticManager.tap()
                 action()
             }
         }) {
@@ -425,16 +425,16 @@ struct GroupSettlementMessageView: View {
 
         if CurrentUser.isCurrentUser(fromPersonId) {
             // Current user paid someone
-            let toName = settlement.toPerson?.firstName ?? "someone"
+            let toName = settlement.toPerson?.name?.components(separatedBy: " ").first ?? "someone"
             return "You paid \(toName) \(formatted)"
         } else if CurrentUser.isCurrentUser(toPersonId) {
             // Someone paid current user
-            let fromName = settlement.fromPerson?.firstName ?? "Someone"
+            let fromName = settlement.fromPerson?.name?.components(separatedBy: " ").first ?? "Someone"
             return "\(fromName) paid you \(formatted)"
         } else {
             // Neither party is current user
-            let fromName = settlement.fromPerson?.firstName ?? "Someone"
-            let toName = settlement.toPerson?.firstName ?? "someone"
+            let fromName = settlement.fromPerson?.name?.components(separatedBy: " ").first ?? "Someone"
+            let toName = settlement.toPerson?.name?.components(separatedBy: " ").first ?? "someone"
             return "\(fromName) paid \(toName) \(formatted)"
         }
     }
@@ -481,7 +481,7 @@ struct GroupReminderMessageView: View {
 
     private var messageText: String {
         let formatted = CurrencyFormatter.format(reminder.amount)
-        let personName = reminder.toPerson?.firstName ?? "Someone"
+        let personName = reminder.toPerson?.name?.components(separatedBy: " ").first ?? "Someone"
         return "Reminder sent to \(personName) for \(formatted)"
     }
 
