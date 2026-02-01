@@ -1,0 +1,147 @@
+//
+//  Person+Extensions.swift
+//  Swiss Coin
+//
+//  Extension providing computed properties and convenience methods for Person entity.
+//
+
+import Foundation
+import SwiftUI
+
+extension Person {
+    
+    // MARK: - Display Properties
+    
+    /// User-friendly display name with fallback
+    var displayName: String {
+        guard let name = name, !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return "Unknown Person"
+        }
+        return name
+    }
+    
+    /// First name extracted from full name
+    var firstName: String {
+        guard let name = name, !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return "Unknown"
+        }
+        
+        // Split by whitespace and take first component
+        let components = name.trimmingCharacters(in: .whitespacesAndNewlines)
+                            .components(separatedBy: .whitespacesAndNewlines)
+                            .filter { !$0.isEmpty }
+        
+        return components.first ?? "Unknown"
+    }
+    
+    /// Initials for avatar display (up to 2 characters)
+    var initials: String {
+        guard let name = name, !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return "?"
+        }
+        
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        let words = trimmed.components(separatedBy: .whitespacesAndNewlines)
+                          .filter { !$0.isEmpty }
+        
+        if words.count >= 2 {
+            // Take first letter of first two words
+            let first = String(words[0].prefix(1)).uppercased()
+            let second = String(words[1].prefix(1)).uppercased()
+            return first + second
+        } else if words.count == 1 {
+            let word = words[0]
+            if word.count >= 2 {
+                // Take first two letters of single word
+                return String(word.prefix(2)).uppercased()
+            } else {
+                // Single letter
+                return String(word.prefix(1)).uppercased()
+            }
+        } else {
+            return "?"
+        }
+    }
+    
+    /// Full name with safety for empty strings
+    var safeName: String {
+        return name?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false ? name! : "Unnamed Person"
+    }
+    
+    // MARK: - Avatar and Color Properties
+    
+    /// Safe color hex with fallback
+    var safeColorHex: String {
+        return colorHex ?? "#808080" // Default gray
+    }
+    
+    /// Color for UI display
+    var displayColor: Color {
+        return Color(hex: safeColorHex)
+    }
+    
+    /// Background color for avatar (lighter version of main color)
+    var avatarBackgroundColor: Color {
+        return Color(hex: safeColorHex).opacity(0.2)
+    }
+    
+    /// Text color for avatar (the main color)
+    var avatarTextColor: Color {
+        return Color(hex: safeColorHex)
+    }
+    
+    // MARK: - Contact Information
+    
+    /// Formatted phone number with safety
+    var formattedPhoneNumber: String? {
+        guard let phone = phoneNumber, !phone.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return nil
+        }
+        
+        // Basic formatting - could be enhanced for Swiss phone number formats
+        let cleaned = phone.components(separatedBy: CharacterSet.decimalDigits.inverted).joined()
+        
+        // Simple formatting for Swiss numbers
+        if cleaned.hasPrefix("41") && cleaned.count == 11 {
+            // +41 XX XXX XX XX format
+            let areaCode = String(cleaned.dropFirst(2).prefix(2))
+            let number = String(cleaned.dropFirst(4))
+            let part1 = String(number.prefix(3))
+            let part2 = String(number.dropFirst(3).prefix(2))
+            let part3 = String(number.dropFirst(5))
+            return "+41 \(areaCode) \(part1) \(part2) \(part3)"
+        } else if cleaned.count == 9 {
+            // 0XX XXX XX XX format
+            let areaCode = String(cleaned.prefix(3))
+            let remaining = String(cleaned.dropFirst(3))
+            let part1 = String(remaining.prefix(3))
+            let part2 = String(remaining.dropFirst(3).prefix(2))
+            let part3 = String(remaining.dropFirst(5))
+            return "\(areaCode) \(part1) \(part2) \(part3)"
+        }
+        
+        return phone // Return original if no formatting rule matches
+    }
+    
+    /// Whether the person has contact information
+    var hasContactInfo: Bool {
+        return phoneNumber?.isEmpty == false
+    }
+    
+    /// Whether the person has a custom avatar photo
+    var hasCustomPhoto: Bool {
+        return photoData != nil
+    }
+    
+    // MARK: - Comparison and Sorting
+    
+    /// Sort descriptor for alphabetical name sorting
+    static var alphabeticalSortDescriptor: NSSortDescriptor {
+        return NSSortDescriptor(key: "name", ascending: true, selector: #selector(NSString.localizedCaseInsensitiveCompare(_:)))
+    }
+    
+    /// Compare two persons for sorting
+    func compare(to other: Person) -> ComparisonResult {
+        return self.displayName.localizedCaseInsensitiveCompare(other.displayName)
+    }
+}
