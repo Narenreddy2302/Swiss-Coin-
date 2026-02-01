@@ -11,7 +11,7 @@ struct TransactionBubbleView: View {
     let showTimestamp: Bool
 
     private var isFromUser: Bool {
-        CurrentUser.isCurrentUser(transaction.paidBy?.id)
+        CurrentUser.isCurrentUser(transaction.payer?.id)
     }
 
     private var displayAmount: Double {

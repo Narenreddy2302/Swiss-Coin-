@@ -466,27 +466,22 @@ class QuickActionViewModel: ObservableObject {
         transaction.title = transactionName.trimmingCharacters(in: .whitespacesAndNewlines)
         transaction.amount = amount
         transaction.date = Date()
-        transaction.createdAt = Date()
-        // transaction.currency = selectedCurrency.code // If entity has currency
-        // transaction.category = selectedCategory?.id // If entity has category
-
         // Payer: Use current user if paidByPerson is nil
-        transaction.paidBy = paidByPerson ?? currentUser
+        transaction.payer = paidByPerson ?? currentUser
         transaction.splitMethod = splitMethod.rawValue
 
         if isSplit {
             for (userId, detail) in splits {
                 // Create TransactionSplit entity
                 let split = TransactionSplit(context: viewContext)
-                split.id = UUID()
                 split.transaction = transaction
                 split.amount = detail.amount
 
                 if userId == currentUserUUID {
                     // Current user's share of the expense
-                    split.person = currentUser
+                    split.owedBy = currentUser
                 } else if let person = getPerson(byId: userId) {
-                    split.person = person
+                    split.owedBy = person
                 } else {
                     print("Warning: Could not find person with ID \(userId)")
                     continue
@@ -495,10 +490,9 @@ class QuickActionViewModel: ObservableObject {
         } else {
             // Not split - create a single split for the entire amount to the payer
             let split = TransactionSplit(context: viewContext)
-            split.id = UUID()
             split.transaction = transaction
             split.amount = amount
-            split.person = paidByPerson ?? currentUser
+            split.owedBy = paidByPerson ?? currentUser
         }
 
         do {

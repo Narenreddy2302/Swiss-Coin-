@@ -16,14 +16,14 @@ struct GroupTransactionCardView: View {
     @State private var isPressed = false
 
     private var isUserPayer: Bool {
-        CurrentUser.isCurrentUser(transaction.paidBy?.id)
+        CurrentUser.isCurrentUser(transaction.payer?.id)
     }
 
     private var payerName: String {
         if isUserPayer {
             return "You"
         } else {
-            return transaction.paidBy?.firstName ?? "Someone"
+            return transaction.payer?.firstName ?? "Someone"
         }
     }
 
@@ -35,7 +35,7 @@ struct GroupTransactionCardView: View {
             // User paid - calculate how much others owe them
             var othersOwe: Double = 0
             for split in splits {
-                if !CurrentUser.isCurrentUser(split.person?.id) {
+                if !CurrentUser.isCurrentUser(split.owedBy?.id) {
                     othersOwe += split.amount
                 }
             }
@@ -72,11 +72,11 @@ struct GroupTransactionCardView: View {
 
         // Count unique participants (payer + those who owe)
         var participants = Set<UUID>()
-        if let payerId = transaction.paidBy?.id {
+        if let payerId = transaction.payer?.id {
             participants.insert(payerId)
         }
         for split in splits {
-            if let personId = split.person?.id {
+            if let personId = split.owedBy?.id {
                 participants.insert(personId)
             }
         }

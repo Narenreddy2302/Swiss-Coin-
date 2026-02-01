@@ -199,7 +199,6 @@ struct ImportContactsView: View {
             newPerson.id = UUID()
             newPerson.name = contact.fullName
             newPerson.phoneNumber = contact.phoneNumbers.first
-            newPerson.createdAt = Date()
 
             // Assign random color - ensure proper 6-digit format
             let randomColor = Int.random(in: 0...0xFFFFFF)

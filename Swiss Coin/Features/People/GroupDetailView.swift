@@ -206,7 +206,7 @@ struct GroupDetailTransactionRow: View {
                         .foregroundColor(AppColors.textSecondary)
                 }
                 
-                if let paidBy = transaction.paidBy {
+                if let paidBy = transaction.payer {
                     Text("Paid by \(paidBy.name ?? "Unknown")")
                         .font(AppTypography.caption())
                         .foregroundColor(AppColors.textSecondary)

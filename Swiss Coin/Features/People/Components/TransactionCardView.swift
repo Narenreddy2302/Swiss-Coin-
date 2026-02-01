@@ -14,11 +14,11 @@ struct TransactionCardView: View {
     @State private var isPressed = false
 
     private var isUserPayer: Bool {
-        CurrentUser.isCurrentUser(transaction.paidBy?.id)
+        CurrentUser.isCurrentUser(transaction.payer?.id)
     }
 
     private var isPersonPayer: Bool {
-        transaction.paidBy?.id == person.id
+        transaction.payer?.id == person.id
     }
 
     private var payerName: String {
@@ -27,7 +27,7 @@ struct TransactionCardView: View {
         } else if isPersonPayer {
             return person.firstName
         } else {
-            return transaction.paidBy?.firstName ?? "Someone"
+            return transaction.payer?.firstName ?? "Someone"
         }
     }
 
@@ -80,11 +80,11 @@ struct TransactionCardView: View {
 
         // Count unique participants (payer + those who owe)
         var participants = Set<UUID>()
-        if let payerId = transaction.paidBy?.id {
+        if let payerId = transaction.payer?.id {
             participants.insert(payerId)
         }
         for split in splits {
-            if let personId = split.person?.id {
+            if let personId = split.owedBy?.id {
                 participants.insert(personId)
             }
         }
