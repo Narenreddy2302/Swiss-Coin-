@@ -102,7 +102,7 @@ struct AddTransactionView: View {
                                 Text(String(format: "%.1f%%", calculated))
                                     .foregroundColor(abs(calculated - 100) < 0.1 ? .green : .red)
                             } else {
-                                Text(String(format: "$%.2f", calculated))
+                                Text(CurrencyFormatter.format(calculated))
                                     .foregroundColor(
                                         abs(calculated - viewModel.totalAmountDouble) < 0.01
                                             ? .green : .red)

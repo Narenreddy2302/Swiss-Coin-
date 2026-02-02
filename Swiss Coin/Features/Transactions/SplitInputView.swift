@@ -44,7 +44,7 @@ struct SplitInputView: View {
                         .foregroundColor(AppColors.textSecondary)
                 }
             
-            case .exact:
+            case .amount:
                 HStack(spacing: Spacing.xs) {
                     Text("$")
                         .font(AppTypography.body())
@@ -90,7 +90,7 @@ struct SplitInputView: View {
                 case .percentage:
                     let defaultPercent = viewModel.selectedParticipants.isEmpty ? 100 : (100 / viewModel.selectedParticipants.count)
                     viewModel.rawInputs[personId] = String(defaultPercent)
-                case .exact:
+                case .amount:
                     let defaultAmount = viewModel.totalAmountDouble / max(1, Double(viewModel.selectedParticipants.count))
                     viewModel.rawInputs[personId] = String(format: "%.2f", defaultAmount)
                 case .adjustment:

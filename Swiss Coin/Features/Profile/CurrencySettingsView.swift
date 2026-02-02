@@ -8,49 +8,60 @@
 import SwiftUI
 
 struct CurrencySettingsView: View {
-    @AppStorage("default_currency") private var defaultCurrency = "USD"
-    @AppStorage("show_currency_symbol") private var showCurrencySymbol = true
-    @AppStorage("decimal_places") private var decimalPlaces = 2
+    @AppStorage("default_currency") private var selectedCurrency = "USD"
 
     @State private var searchText = ""
 
-    // Available currencies
-    private let currencies: [CurrencyOption] = [
-        CurrencyOption(code: "USD", name: "US Dollar", symbol: "$", flag: "🇺🇸"),
-        CurrencyOption(code: "EUR", name: "Euro", symbol: "€", flag: "🇪🇺"),
-        CurrencyOption(code: "GBP", name: "British Pound", symbol: "£", flag: "🇬🇧"),
-        CurrencyOption(code: "INR", name: "Indian Rupee", symbol: "₹", flag: "🇮🇳"),
-        CurrencyOption(code: "JPY", name: "Japanese Yen", symbol: "¥", flag: "🇯🇵"),
-        CurrencyOption(code: "AUD", name: "Australian Dollar", symbol: "A$", flag: "🇦🇺"),
-        CurrencyOption(code: "CAD", name: "Canadian Dollar", symbol: "CA$", flag: "🇨🇦"),
-        CurrencyOption(code: "CHF", name: "Swiss Franc", symbol: "CHF", flag: "🇨🇭"),
-        CurrencyOption(code: "CNY", name: "Chinese Yuan", symbol: "¥", flag: "🇨🇳"),
-        CurrencyOption(code: "MXN", name: "Mexican Peso", symbol: "MX$", flag: "🇲🇽"),
-        CurrencyOption(code: "BRL", name: "Brazilian Real", symbol: "R$", flag: "🇧🇷"),
-        CurrencyOption(code: "KRW", name: "South Korean Won", symbol: "₩", flag: "🇰🇷"),
-        CurrencyOption(code: "SGD", name: "Singapore Dollar", symbol: "S$", flag: "🇸🇬"),
-        CurrencyOption(code: "HKD", name: "Hong Kong Dollar", symbol: "HK$", flag: "🇭🇰"),
-        CurrencyOption(code: "NZD", name: "New Zealand Dollar", symbol: "NZ$", flag: "🇳🇿"),
-        CurrencyOption(code: "SEK", name: "Swedish Krona", symbol: "kr", flag: "🇸🇪"),
-        CurrencyOption(code: "NOK", name: "Norwegian Krone", symbol: "kr", flag: "🇳🇴"),
-        CurrencyOption(code: "DKK", name: "Danish Krone", symbol: "kr", flag: "🇩🇰"),
-        CurrencyOption(code: "ZAR", name: "South African Rand", symbol: "R", flag: "🇿🇦"),
-        CurrencyOption(code: "AED", name: "UAE Dirham", symbol: "د.إ", flag: "🇦🇪")
+    // MARK: - Currency Data
+
+    private let popularCurrencies: [CurrencyOption] = [
+        CurrencyOption(code: "USD", name: "US Dollar",         symbol: "$",   flag: "🇺🇸"),
+        CurrencyOption(code: "EUR", name: "Euro",              symbol: "€",   flag: "🇪🇺"),
+        CurrencyOption(code: "GBP", name: "British Pound",     symbol: "£",   flag: "🇬🇧"),
+        CurrencyOption(code: "JPY", name: "Japanese Yen",      symbol: "¥",   flag: "🇯🇵"),
+        CurrencyOption(code: "CHF", name: "Swiss Franc",       symbol: "CHF", flag: "🇨🇭"),
+        CurrencyOption(code: "CAD", name: "Canadian Dollar",   symbol: "CA$", flag: "🇨🇦"),
+        CurrencyOption(code: "AUD", name: "Australian Dollar", symbol: "A$",  flag: "🇦🇺"),
+        CurrencyOption(code: "INR", name: "Indian Rupee",      symbol: "₹",   flag: "🇮🇳"),
     ]
 
-    private var filteredCurrencies: [CurrencyOption] {
-        if searchText.isEmpty {
-            return currencies
-        }
-        return currencies.filter {
-            $0.name.localizedCaseInsensitiveContains(searchText) ||
-            $0.code.localizedCaseInsensitiveContains(searchText)
-        }
+    private let otherCurrencies: [CurrencyOption] = [
+        CurrencyOption(code: "CNY", name: "Chinese Yuan",       symbol: "¥",   flag: "🇨🇳"),
+        CurrencyOption(code: "KRW", name: "South Korean Won",   symbol: "₩",   flag: "🇰🇷"),
+        CurrencyOption(code: "SGD", name: "Singapore Dollar",   symbol: "S$",  flag: "🇸🇬"),
+        CurrencyOption(code: "AED", name: "UAE Dirham",         symbol: "د.إ", flag: "🇦🇪"),
+        CurrencyOption(code: "BRL", name: "Brazilian Real",     symbol: "R$",  flag: "🇧🇷"),
+        CurrencyOption(code: "MXN", name: "Mexican Peso",       symbol: "MX$", flag: "🇲🇽"),
+        CurrencyOption(code: "SEK", name: "Swedish Krona",      symbol: "kr",  flag: "🇸🇪"),
+    ]
+
+    private var allCurrencies: [CurrencyOption] {
+        popularCurrencies + otherCurrencies
+    }
+
+    // MARK: - Filtered Lists
+
+    private var filteredPopular: [CurrencyOption] {
+        guard !searchText.isEmpty else { return popularCurrencies }
+        return popularCurrencies.filter { matches($0) }
+    }
+
+    private var filteredOther: [CurrencyOption] {
+        guard !searchText.isEmpty else { return otherCurrencies }
+        return otherCurrencies.filter { matches($0) }
+    }
+
+    private func matches(_ option: CurrencyOption) -> Bool {
+        option.name.localizedCaseInsensitiveContains(searchText) ||
+        option.code.localizedCaseInsensitiveContains(searchText) ||
+        option.symbol.localizedCaseInsensitiveContains(searchText)
     }
 
     private var selectedCurrencyOption: CurrencyOption? {
-        currencies.first { $0.code == defaultCurrency }
+        allCurrencies.first { $0.code == selectedCurrency }
     }
+
+    // MARK: - Body
 
     var body: some View {
         Form {
@@ -79,71 +90,43 @@ struct CurrencySettingsView: View {
                     }
                     .padding(.vertical, Spacing.sm)
                 }
+
+                // Live format preview
+                HStack {
+                    Text("Preview")
+                        .foregroundColor(AppColors.textSecondary)
+                    Spacer()
+                    Text(CurrencyFormatter.format(1234.56))
+                        .font(AppTypography.headline())
+                        .foregroundColor(AppColors.textPrimary)
+                }
             } header: {
                 Text("Current Currency")
                     .font(AppTypography.subheadlineMedium())
             }
 
-            // Display Settings
-            Section {
-                Toggle("Show Currency Symbol", isOn: $showCurrencySymbol)
-                    .onChange(of: showCurrencySymbol) { _, _ in HapticManager.toggle() }
-
-                Picker("Decimal Places", selection: $decimalPlaces) {
-                    Text("0").tag(0)
-                    Text("2").tag(2)
+            // Popular Currencies
+            if !filteredPopular.isEmpty {
+                Section {
+                    ForEach(filteredPopular) { currency in
+                        currencyRow(currency)
+                    }
+                } header: {
+                    Text("Popular")
+                        .font(AppTypography.subheadlineMedium())
                 }
-                .onChange(of: decimalPlaces) { _, _ in
-                    HapticManager.selectionChanged()
-                }
-
-                // Format preview
-                HStack {
-                    Text("Preview")
-                        .foregroundColor(AppColors.textSecondary)
-                    Spacer()
-                    Text(formatPreview)
-                        .font(AppTypography.headline())
-                        .foregroundColor(AppColors.textPrimary)
-                }
-            } header: {
-                Text("Display")
-                    .font(AppTypography.subheadlineMedium())
             }
 
-            // Currency Selection
-            Section {
-                ForEach(filteredCurrencies) { currency in
-                    Button {
-                        HapticManager.selectionChanged()
-                        defaultCurrency = currency.code
-                    } label: {
-                        HStack(spacing: Spacing.md) {
-                            Text(currency.flag)
-                                .font(.system(size: 24))
-
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(currency.name)
-                                    .font(AppTypography.body())
-                                    .foregroundColor(AppColors.textPrimary)
-
-                                Text("\(currency.code) (\(currency.symbol))")
-                                    .font(AppTypography.caption())
-                                    .foregroundColor(AppColors.textSecondary)
-                            }
-
-                            Spacer()
-
-                            if defaultCurrency == currency.code {
-                                Image(systemName: "checkmark")
-                                    .foregroundColor(AppColors.accent)
-                            }
-                        }
+            // Other Currencies
+            if !filteredOther.isEmpty {
+                Section {
+                    ForEach(filteredOther) { currency in
+                        currencyRow(currency)
                     }
+                } header: {
+                    Text("Other")
+                        .font(AppTypography.subheadlineMedium())
                 }
-            } header: {
-                Text("Select Currency")
-                    .font(AppTypography.subheadlineMedium())
             }
         }
         .navigationTitle("Currency")
@@ -151,16 +134,35 @@ struct CurrencySettingsView: View {
         .searchable(text: $searchText, prompt: "Search currencies")
     }
 
-    // MARK: - Computed Properties
+    // MARK: - Currency Row
 
-    private var formatPreview: String {
-        let amount = 1234.56
-        let symbol = showCurrencySymbol ? (selectedCurrencyOption?.symbol ?? "$") : ""
+    @ViewBuilder
+    private func currencyRow(_ currency: CurrencyOption) -> some View {
+        Button {
+            HapticManager.selectionChanged()
+            selectedCurrency = currency.code
+        } label: {
+            HStack(spacing: Spacing.md) {
+                Text(currency.flag)
+                    .font(.system(size: 24))
 
-        if decimalPlaces == 0 {
-            return "\(symbol)1,235"
-        } else {
-            return "\(symbol)1,234.56"
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(currency.name)
+                        .font(AppTypography.body())
+                        .foregroundColor(AppColors.textPrimary)
+
+                    Text("\(currency.code) (\(currency.symbol))")
+                        .font(AppTypography.caption())
+                        .foregroundColor(AppColors.textSecondary)
+                }
+
+                Spacer()
+
+                if selectedCurrency == currency.code {
+                    Image(systemName: "checkmark")
+                        .foregroundColor(AppColors.accent)
+                }
+            }
         }
     }
 }

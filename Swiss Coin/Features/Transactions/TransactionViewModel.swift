@@ -3,26 +3,6 @@ import CoreData
 import SwiftUI
 import Foundation
 
-enum SplitMethod: String, CaseIterable, Identifiable {
-    case equal = "Equal"
-    case percentage = "Percentage"
-    case exact = "Exact Amount"
-    case adjustment = "Adjustment"
-    case shares = "Shares"
-
-    var id: String { self.rawValue }
-
-    var systemImage: String {
-        switch self {
-        case .equal: return "equal"
-        case .percentage: return "percent"
-        case .exact: return "dollarsign.circle"
-        case .adjustment: return "plus.forwardslash.minus"
-        case .shares: return "chart.pie.fill"
-        }
-    }
-}
-
 final class TransactionViewModel: ObservableObject {
     @Published var title: String = ""
     @Published var totalAmount: String = ""
@@ -59,7 +39,7 @@ final class TransactionViewModel: ObservableObject {
                 sum + (Double(rawInputs[person.id ?? UUID()] ?? "0") ?? 0)
             }
             return totalPercent  // Should be 100
-        case .exact:
+        case .amount:
             let totalExact = selectedParticipants.reduce(0.0) { sum, person in
                 sum + (Double(rawInputs[person.id ?? UUID()] ?? "0") ?? 0)
             }
@@ -96,7 +76,7 @@ final class TransactionViewModel: ObservableObject {
             }
             return abs(totalPercent - 100.0) < 0.1
 
-        case .exact:
+        case .amount:
             let totalExact = selectedParticipants.reduce(0.0) { sum, person in
                 sum + (Double(rawInputs[person.id ?? UUID()] ?? "0") ?? 0)
             }
@@ -139,7 +119,7 @@ final class TransactionViewModel: ObservableObject {
             if abs(totalPercent - 100.0) >= 0.1 {
                 return "Percentages must add up to 100%"
             }
-        case .exact:
+        case .amount:
             let totalExact = selectedParticipants.reduce(0.0) { sum, person in
                 sum + (Double(rawInputs[person.id ?? UUID()] ?? "0") ?? 0)
             }
@@ -190,7 +170,7 @@ final class TransactionViewModel: ObservableObject {
             let raw = Double(rawInputs[targetId] ?? "0") ?? 0
             return totalAmountDouble * (raw / 100.0)
 
-        case .exact:
+        case .amount:
             return Double(rawInputs[targetId] ?? "0") ?? 0
 
         case .adjustment:

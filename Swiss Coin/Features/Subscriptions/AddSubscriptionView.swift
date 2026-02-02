@@ -60,7 +60,7 @@ struct AddSubscriptionView: View {
                     TextField("Name (e.g., Netflix)", text: $name)
 
                     HStack {
-                        Text("$")
+                        Text(CurrencyFormatter.currencySymbol)
                             .foregroundColor(AppColors.textSecondary)
                         TextField("Amount", text: $amount)
                             .keyboardType(.decimalPad)

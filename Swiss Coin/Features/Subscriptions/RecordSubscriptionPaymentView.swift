@@ -87,7 +87,7 @@ struct RecordSubscriptionPaymentView: View {
                 // Amount
                 Section {
                     HStack {
-                        Text("$")
+                        Text(CurrencyFormatter.currencySymbol)
                             .foregroundColor(AppColors.textSecondary)
                         TextField("Amount", text: $amount)
                             .keyboardType(.decimalPad)
@@ -173,6 +173,12 @@ struct RecordSubscriptionPaymentView: View {
     private func savePayment() {
         HapticManager.save()
 
+        // Capture current billing date as the period start before advancing
+        let billingPeriodStart = subscription.nextBillingDate ?? date
+
+        // Calculate the new next billing date (period end)
+        let newNextBillingDate = subscription.calculateNextBillingDate(from: date)
+
         let payment = SubscriptionPayment(context: viewContext)
         payment.id = UUID()
         payment.amount = Double(amount) ?? 0
@@ -180,9 +186,11 @@ struct RecordSubscriptionPaymentView: View {
         payment.note = note.isEmpty ? nil : note
         payment.payer = selectedPayer
         payment.subscription = subscription
+        payment.billingPeriodStart = billingPeriodStart
+        payment.billingPeriodEnd = newNextBillingDate
 
         // Update next billing date
-        subscription.nextBillingDate = subscription.calculateNextBillingDate(from: date)
+        subscription.nextBillingDate = newNextBillingDate
 
         do {
             try viewContext.save()

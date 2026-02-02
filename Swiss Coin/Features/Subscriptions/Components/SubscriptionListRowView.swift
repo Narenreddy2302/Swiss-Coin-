@@ -154,8 +154,23 @@ struct SubscriptionListRowView: View {
     }
 
     private func markAsPaid() {
-        // Update next billing date based on current date
-        subscription.nextBillingDate = subscription.calculateNextBillingDate(from: Date())
+        // Capture current billing date before advancing
+        let billingPeriodStart = subscription.nextBillingDate ?? Date()
+
+        // Advance next billing date
+        let newNextBillingDate = subscription.calculateNextBillingDate(from: Date())
+        subscription.nextBillingDate = newNextBillingDate
+
+        // Create a payment record for this billing cycle
+        let payment = SubscriptionPayment(context: viewContext)
+        payment.id = UUID()
+        payment.amount = subscription.amount
+        payment.date = Date()
+        payment.billingPeriodStart = billingPeriodStart
+        payment.billingPeriodEnd = newNextBillingDate
+        payment.payer = CurrentUser.getOrCreate(in: viewContext)
+        payment.subscription = subscription
+
         do {
             try viewContext.save()
             HapticManager.success()

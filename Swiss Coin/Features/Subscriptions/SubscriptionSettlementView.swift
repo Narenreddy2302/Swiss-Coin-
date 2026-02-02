@@ -35,6 +35,19 @@ struct SubscriptionSettlementView: View {
         selectedMember != nil && !amount.isEmpty && (Double(amount) ?? 0) > 0
     }
 
+    /// The outstanding balance for the currently selected member
+    private var outstandingBalance: Double {
+        guard let member = selectedMember else { return 0 }
+        return abs(subscription.calculateBalanceWith(member: member))
+    }
+
+    /// Whether the entered amount exceeds the outstanding balance
+    private var isOverSettlement: Bool {
+        guard selectedMember != nil else { return false }
+        let enteredAmount = Double(amount) ?? 0
+        return enteredAmount > outstandingBalance + 0.01
+    }
+
     var body: some View {
         NavigationStack {
             Form {
@@ -136,10 +149,22 @@ struct SubscriptionSettlementView: View {
                 if selectedMember != nil {
                     Section {
                         HStack {
-                            Text("$")
+                            Text(CurrencyFormatter.currencySymbol)
                                 .foregroundColor(AppColors.textSecondary)
                             TextField("Amount", text: $amount)
                                 .keyboardType(.decimalPad)
+                        }
+
+                        if isOverSettlement {
+                            HStack(spacing: Spacing.sm) {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .foregroundColor(AppColors.warning)
+                                    .font(.system(size: 14))
+
+                                Text("Amount exceeds outstanding balance of \(CurrencyFormatter.format(outstandingBalance)). It will be capped.")
+                                    .font(AppTypography.caption())
+                                    .foregroundColor(AppColors.warning)
+                            }
                         }
 
                         TextField("Add a note (optional)", text: $note)
@@ -203,9 +228,14 @@ struct SubscriptionSettlementView: View {
 
         HapticManager.save()
 
+        // Cap settlement amount at the outstanding balance to prevent over-settlement
+        let enteredAmount = Double(amount) ?? 0
+        let maxAmount = abs(subscription.calculateBalanceWith(member: member))
+        let settlementAmount = min(enteredAmount, maxAmount)
+
         let settlement = SubscriptionSettlement(context: viewContext)
         settlement.id = UUID()
-        settlement.amount = Double(amount) ?? 0
+        settlement.amount = settlementAmount
         settlement.date = Date()
         settlement.note = note.isEmpty ? nil : note
         settlement.subscription = subscription

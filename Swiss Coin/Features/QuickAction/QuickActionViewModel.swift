@@ -31,7 +31,7 @@ class QuickActionViewModel: ObservableObject {
 
     @Published var transactionType: TransactionType = .expense
     @Published var amountString: String = ""
-    @Published var selectedCurrency: Currency = Currency.all[0]
+    @Published var selectedCurrency: Currency = Currency.fromGlobalSetting()
     @Published var transactionName: String = ""
     @Published var selectedCategory: Category? = nil
 
@@ -61,7 +61,20 @@ class QuickActionViewModel: ObservableObject {
 
     // To properly support "Me" which isn't in CoreData Person list usually:
     // We use the centralized CurrentUser.currentUserId for consistency across the app.
-    var currentUserUUID: UUID { CurrentUser.currentUserId ?? UUID() }
+    var currentUserUUID: UUID {
+        if let id = CurrentUser.currentUserId {
+            return id
+        }
+        // Stable fallback: read or create a persistent UUID in UserDefaults
+        let key = "stable_current_user_uuid"
+        if let stored = UserDefaults.standard.string(forKey: key),
+           let uuid = UUID(uuidString: stored) {
+            return uuid
+        }
+        let newId = UUID()
+        UserDefaults.standard.set(newId.uuidString, forKey: key)
+        return newId
+    }
 
     @Published var participantIds: Set<UUID> = []
 
@@ -77,7 +90,7 @@ class QuickActionViewModel: ObservableObject {
 
     // MARK: - Step 3: Split Method Details
 
-    @Published var splitMethod: QuickActionSplitMethod = .equal
+    @Published var splitMethod: SplitMethod = .equal
     @Published var splitDetails: [UUID: SplitDetail] = [:]
 
     // MARK: - Data Source
@@ -188,13 +201,13 @@ class QuickActionViewModel: ObservableObject {
         guard isSplit else { return true }
 
         switch splitMethod {
-        case .percentages:
+        case .percentage:
             let total = participantIds.reduce(0.0) { sum, id in
                 sum + (splitDetails[id]?.percentage ?? 0)
             }
             return abs(total - 100) < 0.1
 
-        case .amounts:
+        case .amount:
             let total = participantIds.reduce(0.0) { sum, id in
                 sum + (splitDetails[id]?.amount ?? 0)
             }
@@ -258,7 +271,7 @@ class QuickActionViewModel: ObservableObject {
         currentStep = 1
         transactionType = .expense
         amountString = ""
-        selectedCurrency = Currency.all[0]
+        selectedCurrency = Currency.fromGlobalSetting()
         transactionName = ""
         selectedCategory = nil
         showCurrencyPicker = false
@@ -320,26 +333,15 @@ class QuickActionViewModel: ObservableObject {
 
     func selectGroup(_ group: UserGroup) {
         selectedGroup = group
-        // Add all members... wait, UserGroup logic?
-        // UserGroup usually has `members` relationship?
-        // Looking at Persistence.swift preview, UserGroup doesn't explicitly show members.
-        // I need to check UserGroup entity. Assuming it has members.
-        // If not, I can't do this part yet.
-        // For now, I will assume UserGroup might not have members linked in CoreData or implementation varies.
-        // Let's check UserGroup members in next step if this fails or just assumes it works if I find the relationship.
-        // I'll skip complex group logic for now if relationship is unknown, BUT reference requires it.
-        // I'll assume `members` is a Set<Person>.
 
-        /*
-         // Dynamic Member Fetching if needed
-         if let members = group.members as? Set<Person> {
-             for member in members {
-                 if let id = member.id {
-                     participantIds.insert(id)
-                 }
-             }
-         }
-         */
+        // Add all group members as participants
+        if let members = group.members as? Set<Person> {
+            for member in members {
+                if let id = member.id {
+                    participantIds.insert(id)
+                }
+            }
+        }
 
         splitWithSearchText = ""
         isSplitWithSearchFocused = false
@@ -387,7 +389,7 @@ class QuickActionViewModel: ObservableObject {
                     amount: equalShare, percentage: percentage, shares: 1, adjustment: 0)
             }
 
-        case .amounts:
+        case .amount:
             for userId in participantIds {
                 let customAmount = splitDetails[userId]?.amount ?? 0
                 let percentage = total > 0 ? (customAmount / total) * 100 : 0
@@ -395,7 +397,7 @@ class QuickActionViewModel: ObservableObject {
                     amount: customAmount, percentage: percentage, shares: 1, adjustment: 0)
             }
 
-        case .percentages:
+        case .percentage:
             for userId in participantIds {
                 let percentage = splitDetails[userId]?.percentage ?? 0
                 let calculatedAmount = (percentage / 100.0) * total
@@ -495,13 +497,9 @@ class QuickActionViewModel: ObservableObject {
                     continue
                 }
             }
-        } else {
-            // Not split - create a single split for the entire amount to the payer
-            let split = TransactionSplit(context: viewContext)
-            split.transaction = transaction
-            split.amount = amount
-            split.owedBy = paidByPerson ?? currentUser
         }
+        // Non-split (personal) transactions: no TransactionSplit records needed.
+        // Creating a split where the payer owes themselves skews balance calculations.
 
         do {
             try viewContext.save()

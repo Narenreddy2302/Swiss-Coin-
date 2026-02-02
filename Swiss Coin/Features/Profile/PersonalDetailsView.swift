@@ -2,8 +2,8 @@
 //  PersonalDetailsView.swift
 //  Swiss Coin
 //
-//  Production-ready view for editing user's personal details.
-//  Integrates with both local CoreData and remote Supabase.
+//  View for editing user's personal details.
+//  All data is persisted locally via CoreData.
 //
 
 import Combine
@@ -39,9 +39,7 @@ struct PersonalDetailsView: View {
                         .progressViewStyle(CircularProgressViewStyle())
                 } else {
                     Button("Save") {
-                        Task {
-                            await viewModel.saveChanges(context: viewContext)
-                        }
+                        viewModel.saveChanges(context: viewContext)
                     }
                     .fontWeight(.semibold)
                     .disabled(!viewModel.canSave)
@@ -70,9 +68,7 @@ struct PersonalDetailsView: View {
             ImagePicker(
                 selectedImage: $viewModel.selectedImage,
                 onImageSelected: { image in
-                    Task {
-                        await viewModel.uploadPhoto(image)
-                    }
+                    viewModel.didSelectImage(image)
                 }
             )
         }
@@ -89,9 +85,7 @@ struct PersonalDetailsView: View {
             if viewModel.hasExistingPhoto {
                 Button("Remove Photo", role: .destructive) {
                     HapticManager.warning()
-                    Task {
-                        await viewModel.deletePhoto()
-                    }
+                    viewModel.deletePhoto()
                 }
             }
 
@@ -117,15 +111,7 @@ private struct ProfilePhotoSection: View {
                         viewModel.showingPhotoOptions = true
                     } label: {
                         ZStack {
-                            if viewModel.isUploadingPhoto {
-                                Circle()
-                                    .fill(Color(hex: viewModel.profileColor).opacity(0.3))
-                                    .frame(width: AvatarSize.xxl, height: AvatarSize.xxl)
-                                    .overlay(
-                                        ProgressView()
-                                            .progressViewStyle(CircularProgressViewStyle(tint: Color(hex: viewModel.profileColor)))
-                                    )
-                            } else if let image = viewModel.selectedImage {
+                            if let image = viewModel.selectedImage {
                                 Image(uiImage: image)
                                     .resizable()
                                     .scaledToFill()
@@ -135,33 +121,6 @@ private struct ProfilePhotoSection: View {
                                         Circle()
                                             .stroke(Color(hex: viewModel.profileColor), lineWidth: 3)
                                     )
-                            } else if let avatarUrl = viewModel.avatarUrl, !avatarUrl.isEmpty {
-                                AsyncImage(url: URL(string: avatarUrl)) { phase in
-                                    switch phase {
-                                    case .success(let image):
-                                        image
-                                            .resizable()
-                                            .scaledToFill()
-                                            .frame(width: AvatarSize.xxl, height: AvatarSize.xxl)
-                                            .clipShape(Circle())
-                                    case .failure:
-                                        initialsView
-                                    case .empty:
-                                        Circle()
-                                            .fill(Color(hex: viewModel.profileColor).opacity(0.3))
-                                            .frame(width: AvatarSize.xxl, height: AvatarSize.xxl)
-                                            .overlay(
-                                                ProgressView()
-                                                    .progressViewStyle(CircularProgressViewStyle())
-                                            )
-                                    @unknown default:
-                                        initialsView
-                                    }
-                                }
-                                .overlay(
-                                    Circle()
-                                        .stroke(Color(hex: viewModel.profileColor), lineWidth: 3)
-                                )
                             } else {
                                 initialsView
                             }
@@ -319,37 +278,17 @@ private struct ContactInfoSection: View {
                         .foregroundColor(AppColors.textPrimary)
                 }
                 Spacer()
-                HStack(spacing: Spacing.xs) {
-                    if viewModel.phoneVerified {
-                        Image(systemName: "checkmark.seal.fill")
-                            .font(.system(size: 14))
-                            .foregroundColor(AppColors.positive)
-                    }
-                    Image(systemName: "lock.fill")
-                        .font(.system(size: 12))
-                        .foregroundColor(AppColors.textSecondary)
-                }
+                Image(systemName: "lock.fill")
+                    .font(.system(size: 12))
+                    .foregroundColor(AppColors.textSecondary)
             }
             .padding(.vertical, Spacing.xs)
 
             // Email (editable)
             VStack(alignment: .leading, spacing: Spacing.xs) {
-                HStack {
-                    Text("Email (Optional)")
-                        .font(AppTypography.caption())
-                        .foregroundColor(AppColors.textSecondary)
-
-                    if viewModel.emailVerified && !viewModel.email.isEmpty {
-                        HStack(spacing: 2) {
-                            Image(systemName: "checkmark.seal.fill")
-                                .font(.system(size: 10))
-                                .foregroundColor(AppColors.positive)
-                            Text("Verified")
-                                .font(AppTypography.caption())
-                                .foregroundColor(AppColors.positive)
-                        }
-                    }
-                }
+                Text("Email (Optional)")
+                    .font(AppTypography.caption())
+                    .foregroundColor(AppColors.textSecondary)
 
                 TextField("Email", text: $viewModel.email)
                     .textContentType(.emailAddress)
@@ -372,14 +311,8 @@ private struct ContactInfoSection: View {
             Text("Contact")
                 .font(AppTypography.subheadlineMedium())
         } footer: {
-            VStack(alignment: .leading, spacing: Spacing.xs) {
-                Text("Phone number is used for login and cannot be changed here.")
-                if !viewModel.email.isEmpty && !viewModel.emailVerified {
-                    Text("Email will require verification after saving.")
-                        .foregroundColor(AppColors.warning)
-                }
-            }
-            .font(AppTypography.caption())
+            Text("Phone number cannot be changed here. Email is optional.")
+                .font(AppTypography.caption())
         }
     }
 }
@@ -391,11 +324,8 @@ class PersonalDetailsViewModel: ObservableObject {
     @Published var displayName: String = ""
     @Published var fullName: String = ""
     @Published var phoneNumber: String = ""
-    @Published var phoneVerified: Bool = false
     @Published var email: String = ""
-    @Published var emailVerified: Bool = false
     @Published var profileColor: String = "#34C759"
-    @Published var avatarUrl: String?
     @Published var selectedImage: UIImage?
 
     // UI state
@@ -406,7 +336,6 @@ class PersonalDetailsViewModel: ObservableObject {
     @Published var errorMessage = ""
     @Published var emailError = ""
     @Published var isSaving = false
-    @Published var isUploadingPhoto = false
     @Published var hasChanges = false
 
     // Original values for change detection
@@ -414,8 +343,6 @@ class PersonalDetailsViewModel: ObservableObject {
     private var originalFullName = ""
     private var originalEmail = ""
     private var originalColor = ""
-
-    private let supabase = SupabaseManager.shared
 
     var initials: String {
         if displayName.isEmpty {
@@ -430,7 +357,6 @@ class PersonalDetailsViewModel: ObservableObject {
     }
 
     var formattedPhoneNumber: String {
-        // Format phone number for display (e.g., +1 (555) 123-4567)
         guard phoneNumber.count >= 10 else { return phoneNumber }
 
         let digits = phoneNumber.filter { $0.isNumber }
@@ -454,63 +380,31 @@ class PersonalDetailsViewModel: ObservableObject {
     }
 
     var hasExistingPhoto: Bool {
-        selectedImage != nil || (avatarUrl != nil && !avatarUrl!.isEmpty)
+        selectedImage != nil
     }
 
     // MARK: - Load Data
 
     func loadCurrentUserData(context: NSManagedObjectContext) {
-        // Load from CoreData first
         let currentUser = CurrentUser.getOrCreate(in: context)
         displayName = currentUser.name ?? "You"
         profileColor = currentUser.colorHex ?? "#34C759"
+        phoneNumber = currentUser.phoneNumber ?? ""
 
-        // Try to load from Supabase if authenticated
-        if CurrentUser.currentUserId != nil {
-            Task {
-                await loadFromSupabase()
-            }
+        // Load photo from CoreData
+        if let photoData = currentUser.photoData, let image = UIImage(data: photoData) {
+            selectedImage = image
         }
+
+        // Load email from UserDefaults (lightweight local store)
+        email = UserDefaults.standard.string(forKey: "user_email") ?? ""
+        fullName = UserDefaults.standard.string(forKey: "user_full_name") ?? ""
 
         // Store original values
         originalDisplayName = displayName
         originalFullName = fullName
         originalEmail = email
         originalColor = profileColor
-    }
-
-    private func loadFromSupabase() async {
-        do {
-            let profile = try await supabase.getProfileDetails()
-
-            await MainActor.run {
-                if let name = profile.displayName, !name.isEmpty {
-                    self.displayName = name
-                    self.originalDisplayName = name
-                }
-                if let full = profile.fullName {
-                    self.fullName = full
-                    self.originalFullName = full
-                }
-                if let phone = profile.phoneNumber {
-                    self.phoneNumber = phone
-                }
-                self.phoneVerified = profile.phoneVerified
-                if let mail = profile.email {
-                    self.email = mail
-                    self.originalEmail = mail
-                }
-                self.emailVerified = profile.emailVerified
-                if let color = profile.colorHex {
-                    self.profileColor = color
-                    self.originalColor = color
-                }
-                self.avatarUrl = profile.avatarUrl
-                self.hasChanges = false
-            }
-        } catch {
-            print("Failed to load profile from Supabase: \(error.localizedDescription)")
-        }
     }
 
     // MARK: - Validation
@@ -531,7 +425,7 @@ class PersonalDetailsViewModel: ObservableObject {
 
     // MARK: - Save Changes
 
-    func saveChanges(context: NSManagedObjectContext) async {
+    func saveChanges(context: NSManagedObjectContext) {
         guard canSave else { return }
 
         isSaving = true
@@ -542,29 +436,21 @@ class PersonalDetailsViewModel: ObservableObject {
             let currentUser = CurrentUser.getOrCreate(in: context)
             currentUser.name = displayName
             currentUser.colorHex = profileColor
-            try context.save()
 
-            // Update Supabase if authenticated
-            if CurrentUser.currentUserId != nil {
-                var update = ProfileDetailsUpdate()
-
-                if displayName != originalDisplayName {
-                    update.displayName = displayName
-                }
-                if fullName != originalFullName {
-                    update.fullName = fullName.isEmpty ? nil : fullName
-                }
-                if email != originalEmail {
-                    update.email = email.isEmpty ? nil : email
-                }
-                if profileColor != originalColor {
-                    update.colorHex = profileColor
-                }
-
-                _ = try await supabase.updateProfileDetails(update)
+            // Save photo data
+            if let image = selectedImage {
+                currentUser.photoData = image.jpegData(compressionQuality: 0.8)
+            } else {
+                currentUser.photoData = nil
             }
 
-            // Update CurrentUser profile in CoreData
+            try context.save()
+
+            // Save additional fields to UserDefaults
+            UserDefaults.standard.set(email, forKey: "user_email")
+            UserDefaults.standard.set(fullName, forKey: "user_full_name")
+
+            // Update CurrentUser profile
             CurrentUser.updateProfile(
                 name: displayName,
                 colorHex: profileColor,
@@ -572,82 +458,53 @@ class PersonalDetailsViewModel: ObservableObject {
                 in: context
             )
 
-            await MainActor.run {
-                self.isSaving = false
-                self.hasChanges = false
-                HapticManager.success()
-                self.showingSaveConfirmation = true
-            }
+            isSaving = false
+            hasChanges = false
+            HapticManager.success()
+            showingSaveConfirmation = true
         } catch {
-            await MainActor.run {
-                self.isSaving = false
-                HapticManager.error()
-                self.errorMessage = error.localizedDescription
-                self.showingError = true
-            }
+            isSaving = false
+            HapticManager.error()
+            errorMessage = "Failed to save: \(error.localizedDescription)"
+            showingError = true
         }
     }
 
     // MARK: - Photo Management
 
-    func uploadPhoto(_ image: UIImage) async {
-        isUploadingPhoto = true
+    func didSelectImage(_ image: UIImage) {
+        // Resize if needed
+        let maxDimension: CGFloat = 800
+        let size = image.size
+        let ratio = min(maxDimension / size.width, maxDimension / size.height)
 
-        do {
-            // Compress image
-            guard let imageData = image.jpegData(compressionQuality: 0.8) else {
-                throw SupabaseError.networkError("Failed to process image")
+        if ratio < 1 {
+            let newSize = CGSize(width: size.width * ratio, height: size.height * ratio)
+            let renderer = UIGraphicsImageRenderer(size: newSize)
+            selectedImage = renderer.image { _ in
+                image.draw(in: CGRect(origin: .zero, size: newSize))
             }
-
-            // Check file size (max 5MB)
-            if imageData.count > 5 * 1024 * 1024 {
-                throw SupabaseError.networkError("Image is too large. Maximum size is 5MB.")
-            }
-
-            // Generate filename
-            let filename = "avatar_\(Date().timeIntervalSince1970).jpg"
-
-            // Upload to Supabase
-            let newAvatarUrl = try await supabase.uploadProfilePhoto(imageData: imageData, filename: filename)
-
-            await MainActor.run {
-                self.selectedImage = image
-                self.avatarUrl = newAvatarUrl
-                self.isUploadingPhoto = false
-                self.hasChanges = true
-                HapticManager.success()
-            }
-        } catch {
-            await MainActor.run {
-                self.isUploadingPhoto = false
-                HapticManager.error()
-                self.errorMessage = error.localizedDescription
-                self.showingError = true
-            }
+        } else {
+            selectedImage = image
         }
+
+        // Check file size (max 5MB)
+        if let data = selectedImage?.jpegData(compressionQuality: 0.8), data.count > 5 * 1024 * 1024 {
+            HapticManager.error()
+            errorMessage = "Image is too large. Maximum size is 5MB."
+            showingError = true
+            selectedImage = nil
+            return
+        }
+
+        hasChanges = true
+        HapticManager.success()
     }
 
-    func deletePhoto() async {
-        isUploadingPhoto = true
-
-        do {
-            try await supabase.deleteProfilePhoto()
-
-            await MainActor.run {
-                self.selectedImage = nil
-                self.avatarUrl = nil
-                self.isUploadingPhoto = false
-                self.hasChanges = true
-                HapticManager.success()
-            }
-        } catch {
-            await MainActor.run {
-                self.isUploadingPhoto = false
-                HapticManager.error()
-                self.errorMessage = error.localizedDescription
-                self.showingError = true
-            }
-        }
+    func deletePhoto() {
+        selectedImage = nil
+        hasChanges = true
+        HapticManager.success()
     }
 }
 
@@ -686,29 +543,12 @@ struct ImagePicker: UIViewControllerRepresentable {
             guard let provider = results.first?.itemProvider,
                   provider.canLoadObject(ofClass: UIImage.self) else { return }
 
-            provider.loadObject(ofClass: UIImage.self) { [weak self] image, error in
+            provider.loadObject(ofClass: UIImage.self) { [weak self] image, _ in
                 DispatchQueue.main.async {
                     if let image = image as? UIImage {
-                        // Resize image to reasonable dimensions
-                        let resizedImage = self?.resizeImage(image, maxDimension: 800) ?? image
-                        self?.parent.selectedImage = resizedImage
-                        self?.parent.onImageSelected?(resizedImage)
+                        self?.parent.onImageSelected?(image)
                     }
                 }
-            }
-        }
-
-        private func resizeImage(_ image: UIImage, maxDimension: CGFloat) -> UIImage {
-            let size = image.size
-            let ratio = min(maxDimension / size.width, maxDimension / size.height)
-
-            if ratio >= 1 { return image }
-
-            let newSize = CGSize(width: size.width * ratio, height: size.height * ratio)
-            let renderer = UIGraphicsImageRenderer(size: newSize)
-
-            return renderer.image { _ in
-                image.draw(in: CGRect(origin: .zero, size: newSize))
             }
         }
     }

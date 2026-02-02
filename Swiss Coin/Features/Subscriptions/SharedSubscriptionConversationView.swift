@@ -22,9 +22,6 @@ struct SharedSubscriptionConversationView: View {
     @State private var showingError = false
     @State private var errorMessage = ""
 
-    // Retained haptic generator for reliable feedback
-    private let hapticGenerator = UIImpactFeedbackGenerator(style: .light)
-
     private var balance: Double {
         subscription.calculateUserBalance()
     }
@@ -89,7 +86,7 @@ struct SharedSubscriptionConversationView: View {
                 }
                 .background(Color.black)
                 .onAppear {
-                    hapticGenerator.prepare()
+                    HapticManager.prepare()
                     scrollToBottom(proxy)
                 }
                 .onChange(of: groupedItems.count) { _, _ in
@@ -268,6 +265,9 @@ struct SharedSubscriptionConversationView: View {
         case .reminder(let reminder):
             SubscriptionReminderMessageView(reminder: reminder)
                 .padding(.vertical, 4)
+                .onAppear {
+                    markReminderAsRead(reminder)
+                }
 
         case .message(let chatMessage):
             MessageBubbleView(message: chatMessage)
@@ -276,6 +276,17 @@ struct SharedSubscriptionConversationView: View {
     }
 
     // MARK: - Helpers
+
+    private func markReminderAsRead(_ reminder: SubscriptionReminder) {
+        guard !reminder.isRead else { return }
+        reminder.isRead = true
+        do {
+            try viewContext.save()
+        } catch {
+            viewContext.rollback()
+            print("Error marking reminder as read: \(error)")
+        }
+    }
 
     private func scrollToBottom(_ proxy: ScrollViewProxy) {
         if let lastGroup = groupedItems.last,
@@ -309,7 +320,7 @@ struct SharedSubscriptionConversationView: View {
 
             // Clear input and provide haptic feedback
             messageText = ""
-            hapticGenerator.impactOccurred()
+            HapticManager.lightTap()
         } catch {
             // Rollback the failed save
             viewContext.rollback()

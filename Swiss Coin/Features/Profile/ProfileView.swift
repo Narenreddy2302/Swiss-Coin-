@@ -11,7 +11,6 @@ import SwiftUI
 struct ProfileView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.dismiss) var dismiss
-    @StateObject private var supabase = SupabaseManager.shared
 
     @State private var showingLogoutAlert = false
     @State private var currentUser: Person?
@@ -218,9 +217,7 @@ struct ProfileView: View {
 
     private func logOut() {
         HapticManager.warning()
-        Task {
-            await supabase.signOut()
-        }
+        AuthManager.shared.signOut()
         dismiss()
     }
 

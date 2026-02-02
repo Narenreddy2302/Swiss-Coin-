@@ -2,158 +2,145 @@
 //  PhoneLoginView.swift
 //  Swiss Coin
 //
-//  Simple phone number login view for authentication.
-//  Users enter their phone number to sign in automatically.
+//  Welcome / onboarding screen shown to new or signed-out users.
+//  Tapping "Get Started" authenticates the user locally.
 //
 
 import SwiftUI
 
 struct PhoneLoginView: View {
-    @StateObject private var supabase = SupabaseManager.shared
-    @State private var phoneNumber: String = ""
-    @State private var countryCode: String = "+1"
-    @State private var isLoading: Bool = false
-    @State private var errorMessage: String?
-    @State private var showError: Bool = false
-
-    private let countryCodes = ["+1", "+44", "+91", "+61", "+81", "+86", "+49", "+33", "+39", "+34"]
+    @StateObject private var authManager = AuthManager.shared
+    @State private var isAnimating = false
 
     var body: some View {
-        NavigationStack {
+        ZStack {
+            // Background gradient
+            LinearGradient(
+                colors: [
+                    AppColors.accent.opacity(0.08),
+                    Color(.systemBackground)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .ignoresSafeArea()
+
             VStack(spacing: 0) {
                 Spacer()
 
                 // Logo and branding
                 VStack(spacing: Spacing.lg) {
-                    Image(systemName: "dollarsign.circle.fill")
-                        .font(.system(size: IconSize.xxl + 32))
-                        .foregroundStyle(AppColors.accent)
+                    // Animated logo
+                    ZStack {
+                        Circle()
+                            .fill(AppColors.accent.opacity(0.15))
+                            .frame(width: 140, height: 140)
+                            .scaleEffect(isAnimating ? 1.05 : 1.0)
+
+                        Image(systemName: "dollarsign.circle.fill")
+                            .font(.system(size: IconSize.xxl + 32))
+                            .foregroundStyle(AppColors.accent)
+                            .scaleEffect(isAnimating ? 1.02 : 1.0)
+                    }
+                    .animation(
+                        .easeInOut(duration: 2.0).repeatForever(autoreverses: true),
+                        value: isAnimating
+                    )
 
                     Text("Swiss Coin")
                         .font(AppTypography.largeTitle())
-                    
-                    Text("Split expenses with friends")
+                        .foregroundStyle(AppColors.textPrimary)
+
+                    Text("Split expenses effortlessly\nwith friends and groups")
                         .font(AppTypography.subheadline())
                         .foregroundStyle(AppColors.textSecondary)
+                        .multilineTextAlignment(.center)
+                        .lineSpacing(4)
                 }
-                .padding(.bottom, Spacing.section + Spacing.xxl + Spacing.sm)
+                .padding(.bottom, Spacing.section)
 
-                // Phone input section
-                VStack(alignment: .leading, spacing: Spacing.sm) {
-                    Text("Phone Number")
-                        .font(AppTypography.subheadlineMedium())
-                        .foregroundStyle(AppColors.textSecondary)
+                // Feature highlights
+                VStack(spacing: Spacing.lg) {
+                    FeatureRow(
+                        icon: "person.3.fill",
+                        title: "Group Expenses",
+                        subtitle: "Track shared costs with ease"
+                    )
 
-                    HStack(spacing: Spacing.md) {
-                        // Country code picker
-                        Menu {
-                            ForEach(countryCodes, id: \.self) { code in
-                                Button(code) {
-                                    countryCode = code
-                                }
-                            }
-                        } label: {
-                            HStack(spacing: Spacing.xxs) {
-                                Text(countryCode)
-                                    .font(AppTypography.body())
-                                Image(systemName: "chevron.down")
-                                    .font(AppTypography.caption())
-                            }
-                            .foregroundStyle(AppColors.textPrimary)
-                            .padding(.horizontal, Spacing.md)
-                            .padding(.vertical, Spacing.sm + Spacing.xs)
-                            .background(AppColors.cardBackground)
-                            .clipShape(RoundedRectangle(cornerRadius: CornerRadius.sm))
-                        }
+                    FeatureRow(
+                        icon: "chart.bar.fill",
+                        title: "Smart Insights",
+                        subtitle: "Understand your spending habits"
+                    )
 
-                        // Phone number field
-                        TextField("Phone number", text: $phoneNumber)
-                            .keyboardType(.phonePad)
-                            .textContentType(.telephoneNumber)
-                            .font(AppTypography.body())
-                            .padding(.horizontal, Spacing.lg)
-                            .padding(.vertical, Spacing.sm + Spacing.xs)
-                            .background(AppColors.cardBackground)
-                            .clipShape(RoundedRectangle(cornerRadius: CornerRadius.sm))
-                            .onChange(of: phoneNumber) { _, newValue in
-                                // Remove any non-digit characters except for common formatting
-                                let filtered = newValue.filter { $0.isNumber || $0 == "-" || $0 == " " || $0 == "(" || $0 == ")" }
-                                if filtered != newValue {
-                                    phoneNumber = filtered
-                                }
-                            }
-                    }
+                    FeatureRow(
+                        icon: "bell.badge.fill",
+                        title: "Reminders",
+                        subtitle: "Never forget who owes what"
+                    )
                 }
                 .padding(.horizontal, Spacing.xxl)
 
                 Spacer()
 
-                // Sign in button
-                Button(action: signIn) {
-                    HStack {
-                        if isLoading {
-                            ProgressView()
-                                .tint(.white)
-                        } else {
-                            Text("Sign In")
-                                .font(AppTypography.bodyBold())
-                        }
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, Spacing.lg)
-                    .background(isValidPhone ? AppColors.accent : AppColors.disabled)
-                    .foregroundStyle(.white)
-                    .clipShape(RoundedRectangle(cornerRadius: CornerRadius.md))
+                // Get Started button
+                Button {
+                    HapticManager.tap()
+                    authManager.authenticate()
+                } label: {
+                    Text("Get Started")
+                        .font(AppTypography.bodyBold())
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, Spacing.lg)
+                        .background(AppColors.accent)
+                        .foregroundStyle(.white)
+                        .clipShape(RoundedRectangle(cornerRadius: CornerRadius.md))
                 }
-                .disabled(!isValidPhone || isLoading)
                 .padding(.horizontal, Spacing.xxl)
                 .padding(.bottom, Spacing.lg)
 
-                // Terms text
-                Text("By signing in, you agree to our Terms of Service and Privacy Policy")
+                // Footer
+                Text("Your data stays on this device.\nNo account required.")
                     .font(AppTypography.caption())
                     .foregroundStyle(AppColors.textSecondary)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, Spacing.section + Spacing.sm)
                     .padding(.bottom, Spacing.section)
             }
-            .alert("Error", isPresented: $showError) {
-                Button("OK", role: .cancel) {}
-            } message: {
-                Text(errorMessage ?? "An error occurred")
-            }
+        }
+        .onAppear {
+            isAnimating = true
         }
     }
+}
 
-    private var isValidPhone: Bool {
-        // Basic validation: at least 7 digits
-        let digits = phoneNumber.filter { $0.isNumber }
-        return digits.count >= 7
-    }
+// MARK: - Feature Row
 
-    private var fullPhoneNumber: String {
-        let digits = phoneNumber.filter { $0.isNumber }
-        return countryCode + digits
-    }
+private struct FeatureRow: View {
+    let icon: String
+    let title: String
+    let subtitle: String
 
-    private func signIn() {
-        guard isValidPhone else { return }
+    var body: some View {
+        HStack(spacing: Spacing.md) {
+            Image(systemName: icon)
+                .font(.system(size: 20, weight: .semibold))
+                .foregroundColor(AppColors.accent)
+                .frame(width: 44, height: 44)
+                .background(AppColors.accent.opacity(0.12))
+                .clipShape(RoundedRectangle(cornerRadius: CornerRadius.sm))
 
-        isLoading = true
-        errorMessage = nil
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(AppTypography.subheadlineMedium())
+                    .foregroundColor(AppColors.textPrimary)
 
-        Task {
-            do {
-                try await supabase.signInWithPhone(phoneNumber: fullPhoneNumber)
-            } catch {
-                await MainActor.run {
-                    errorMessage = error.localizedDescription
-                    showError = true
-                }
+                Text(subtitle)
+                    .font(AppTypography.caption())
+                    .foregroundColor(AppColors.textSecondary)
             }
-            await MainActor.run {
-                isLoading = false
-            }
+
+            Spacer()
         }
     }
 }

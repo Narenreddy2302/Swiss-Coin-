@@ -27,29 +27,18 @@ struct Step1BasicDetailsView: View {
 
             // MARK: Amount Input Section
             HStack(spacing: Spacing.md) {
-                // Currency selector button
-                Button {
-                    HapticManager.tap()
-                    withAnimation {
-                        viewModel.showCurrencyPicker.toggle()
-                        viewModel.showCategoryPicker = false
-                    }
-                } label: {
-                    HStack(spacing: Spacing.xs) {
-                        Text(viewModel.selectedCurrency.flag)
-                            .font(.system(size: IconSize.md))
-                        Text(viewModel.selectedCurrency.symbol)
-                            .font(AppTypography.title2())
-                            .foregroundColor(AppColors.textPrimary)
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: IconSize.xs, weight: .semibold))
-                            .foregroundColor(AppColors.textSecondary)
-                    }
-                    .padding(.horizontal, Spacing.md)
-                    .padding(.vertical, Spacing.sm)
-                    .background(AppColors.backgroundTertiary)
-                    .cornerRadius(CornerRadius.sm)
+                // Currency display (reads from global setting)
+                HStack(spacing: Spacing.xs) {
+                    Text(CurrencyFormatter.currencyFlag)
+                        .font(.system(size: IconSize.md))
+                    Text(CurrencyFormatter.currencySymbol)
+                        .font(AppTypography.title2())
+                        .foregroundColor(AppColors.textPrimary)
                 }
+                .padding(.horizontal, Spacing.md)
+                .padding(.vertical, Spacing.sm)
+                .background(AppColors.backgroundTertiary)
+                .cornerRadius(CornerRadius.sm)
 
                 // Amount text field
                 TextField("0.00", text: $viewModel.amountString)
@@ -61,15 +50,6 @@ struct Step1BasicDetailsView: View {
             .padding(Spacing.lg)
             .background(AppColors.cardBackground)
             .cornerRadius(CornerRadius.md)
-
-            // MARK: Currency Picker
-            if viewModel.showCurrencyPicker {
-                CurrencyPickerView(
-                    currencies: Currency.all,
-                    selectedCurrency: $viewModel.selectedCurrency,
-                    isPresented: $viewModel.showCurrencyPicker
-                )
-            }
 
             // MARK: Description & Category Fields
             VStack(spacing: 0) {
@@ -95,7 +75,6 @@ struct Step1BasicDetailsView: View {
                     HapticManager.tap()
                     withAnimation {
                         viewModel.showCategoryPicker.toggle()
-                        viewModel.showCurrencyPicker = false
                     }
                 } label: {
                     HStack {

@@ -2,8 +2,8 @@
 //  NotificationSettingsView.swift
 //  Swiss Coin
 //
-//  View for managing notification preferences with Supabase integration.
-//  Provides granular control over all notification types.
+//  View for managing notification preferences.
+//  All settings are stored locally via AppStorage.
 //
 
 import Combine
@@ -55,20 +55,14 @@ final class NotificationSettingsViewModel: ObservableObject {
 
     // State
     @Published var isLoading: Bool = false
-    @Published var isSaving: Bool = false
-    @Published var errorMessage: String?
-    @Published var showError: Bool = false
-    @Published var lastSyncedAt: Date?
     @Published var systemNotificationsEnabled: Bool = true
     @Published var showSystemSettingsPrompt: Bool = false
 
     // MARK: - Private Properties
 
-    private let supabase = SupabaseManager.shared
     private var cancellables = Set<AnyCancellable>()
-    private var saveTask: Task<Void, Never>?
 
-    // MARK: - AppStorage (offline fallback)
+    // MARK: - AppStorage (local persistence)
 
     @AppStorage("notifications_enabled") private var storedAllNotifications = true
     @AppStorage("notify_new_expense") private var storedNewExpense = true
@@ -99,93 +93,14 @@ final class NotificationSettingsViewModel: ObservableObject {
 
     func loadSettings() async {
         isLoading = true
-        errorMessage = nil
 
         // Check system notification permission
         await checkSystemNotificationStatus()
 
-        do {
-            let settings = try await supabase.getNotificationSettingsComplete()
-
-            // Update published properties
-            allNotificationsEnabled = settings.allNotificationsEnabled
-            newExpenseAdded = settings.newExpenseAdded
-            expenseModified = settings.expenseModified
-            someonePaidYou = settings.someonePaidYou
-            paymentReminders = settings.paymentReminders
-            reminderDaysBefore = settings.reminderDaysBefore
-            subscriptionDueSoon = settings.subscriptionDueSoon
-            subscriptionDueDays = settings.subscriptionDueDays
-            subscriptionOverdue = settings.subscriptionOverdue
-            settlementReceived = settings.settlementReceived
-            settlementSent = settings.settlementSent
-            addedToGroup = settings.addedToGroup
-            groupExpenseAdded = settings.groupExpenseAdded
-            newMessage = settings.newMessage
-            weeklySummary = settings.weeklySummary
-            monthlyReport = settings.monthlyReport
-            quietHoursEnabled = settings.quietHoursEnabled
-
-            // Parse quiet hours times
-            if let startStr = settings.quietHoursStart {
-                quietHoursStart = parseTime(startStr) ?? quietHoursStart
-            }
-            if let endStr = settings.quietHoursEnd {
-                quietHoursEnd = parseTime(endStr) ?? quietHoursEnd
-            }
-
-            syncToLocalStorage()
-            lastSyncedAt = Date()
-        } catch {
-            loadFromLocalStorage()
-
-            if case SupabaseError.notAuthenticated = error {
-                // Silently use local settings
-            } else {
-                errorMessage = "Failed to load settings: \(error.localizedDescription)"
-                showError = true
-            }
-        }
+        // Load from local storage
+        loadFromLocalStorage()
 
         isLoading = false
-    }
-
-    func saveSettings() async {
-        guard supabase.currentUserId != nil else { return }
-
-        isSaving = true
-
-        var update = NotificationSettingsUpdate()
-        update.allNotificationsEnabled = allNotificationsEnabled
-        update.newExpenseAdded = newExpenseAdded
-        update.expenseModified = expenseModified
-        update.someonePaidYou = someonePaidYou
-        update.paymentReminders = paymentReminders
-        update.reminderDaysBefore = reminderDaysBefore
-        update.subscriptionDueSoon = subscriptionDueSoon
-        update.subscriptionDueDays = subscriptionDueDays
-        update.subscriptionOverdue = subscriptionOverdue
-        update.settlementReceived = settlementReceived
-        update.settlementSent = settlementSent
-        update.addedToGroup = addedToGroup
-        update.groupExpenseAdded = groupExpenseAdded
-        update.newMessage = newMessage
-        update.weeklySummary = weeklySummary
-        update.monthlyReport = monthlyReport
-        update.quietHoursEnabled = quietHoursEnabled
-        update.quietHoursStart = formatTime(quietHoursStart)
-        update.quietHoursEnd = formatTime(quietHoursEnd)
-
-        do {
-            try await supabase.updateNotificationSettingsComplete(update)
-            syncToLocalStorage()
-            lastSyncedAt = Date()
-        } catch {
-            errorMessage = "Failed to save settings: \(error.localizedDescription)"
-            showError = true
-        }
-
-        isSaving = false
     }
 
     func requestNotificationPermission() async {
@@ -256,7 +171,7 @@ final class NotificationSettingsViewModel: ObservableObject {
     }
 
     private func setupAutoSave() {
-        // Combine all publishers for auto-save
+        // Combine all publishers for auto-save to local storage
         let boolPublishers = Publishers.MergeMany([
             $allNotificationsEnabled.map { _ in () }.eraseToAnyPublisher(),
             $newExpenseAdded.map { _ in () }.eraseToAnyPublisher(),
@@ -287,35 +202,11 @@ final class NotificationSettingsViewModel: ObservableObject {
 
         Publishers.Merge3(boolPublishers, intPublishers.eraseToAnyPublisher(), datePublishers.eraseToAnyPublisher())
             .dropFirst()
-            .debounce(for: .milliseconds(500), scheduler: DispatchQueue.main)
+            .debounce(for: .milliseconds(300), scheduler: DispatchQueue.main)
             .sink { [weak self] _ in
-                self?.triggerSave()
+                self?.syncToLocalStorage()
             }
             .store(in: &cancellables)
-    }
-
-    private func triggerSave() {
-        saveTask?.cancel()
-        saveTask = Task {
-            await saveSettings()
-        }
-    }
-
-    private func parseTime(_ timeString: String) -> Date? {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm"
-        if let date = formatter.date(from: timeString) {
-            let calendar = Calendar.current
-            let components = calendar.dateComponents([.hour, .minute], from: date)
-            return calendar.date(from: components)
-        }
-        return nil
-    }
-
-    private func formatTime(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm"
-        return formatter.string(from: date)
     }
 }
 
@@ -352,19 +243,6 @@ struct NotificationSettingsView: View {
                         .controlSize(.small)
                     }
                     .padding(.vertical, Spacing.xs)
-                }
-            }
-
-            // Sync Status
-            if viewModel.isSaving {
-                Section {
-                    HStack {
-                        ProgressView()
-                            .scaleEffect(0.8)
-                        Text("Syncing...")
-                            .font(AppTypography.caption())
-                            .foregroundColor(AppColors.textSecondary)
-                    }
                 }
             }
 
@@ -552,19 +430,6 @@ struct NotificationSettingsView: View {
                     }
                 }
             }
-
-            // Sync Info Section
-            if let lastSynced = viewModel.lastSyncedAt {
-                Section {
-                    HStack {
-                        Image(systemName: "checkmark.icloud.fill")
-                            .foregroundColor(AppColors.positive)
-                        Text("Last synced: \(lastSynced.formatted(date: .omitted, time: .shortened))")
-                            .font(AppTypography.caption())
-                            .foregroundColor(AppColors.textSecondary)
-                    }
-                }
-            }
         }
         .navigationTitle("Notifications")
         .navigationBarTitleDisplayMode(.inline)
@@ -572,14 +437,6 @@ struct NotificationSettingsView: View {
             if viewModel.isLoading {
                 NotificationLoadingOverlay()
             }
-        }
-        .alert("Error", isPresented: $viewModel.showError) {
-            Button("OK", role: .cancel) {}
-            Button("Retry") {
-                Task { await viewModel.loadSettings() }
-            }
-        } message: {
-            Text(viewModel.errorMessage ?? "An unknown error occurred")
         }
         .alert("Enable Notifications", isPresented: $viewModel.showSystemSettingsPrompt) {
             Button("Open Settings") {

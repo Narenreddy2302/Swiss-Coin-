@@ -9,26 +9,26 @@ import CoreData
 import SwiftUI
 
 struct ContentView: View {
-    @StateObject private var supabase = SupabaseManager.shared
+    @StateObject private var authManager = AuthManager.shared
 
     var body: some View {
         Group {
-            switch supabase.authState {
+            switch authManager.authState {
             case .unknown:
                 // Loading state while checking authentication
                 ProgressView("Loading...")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             case .authenticated:
-                // User is logged in - show main app
+                // User is logged in — show main app
                 MainTabView()
 
-            case .unauthenticated, .verifyingOTP:
-                // User needs to log in
+            case .unauthenticated:
+                // User needs to log in — show welcome screen
                 PhoneLoginView()
             }
         }
-        .animation(AppAnimation.standard, value: supabase.authState)
+        .animation(AppAnimation.standard, value: authManager.authState)
     }
 }
 

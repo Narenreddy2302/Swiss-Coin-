@@ -410,7 +410,7 @@ struct CategoryPickerView: View {
 // MARK: - Split Method Chip
 
 struct SplitMethodChip: View {
-    let method: QuickActionSplitMethod
+    let method: SplitMethod
     let isSelected: Bool
     let action: () -> Void
 

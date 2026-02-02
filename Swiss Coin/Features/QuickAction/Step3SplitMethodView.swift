@@ -18,7 +18,7 @@ struct Step3SplitMethodView: View {
             // MARK: Split Method Picker
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
-                    ForEach(QuickActionSplitMethod.allCases) { method in
+                    ForEach(SplitMethod.allCases) { method in
                         SplitMethodChip(
                             method: method,
                             isSelected: viewModel.splitMethod == method
@@ -66,7 +66,6 @@ struct Step3SplitMethodView: View {
                         isCurrentUser: isMe,
                         split: split,
                         isPayer: isPayer,
-                        currency: viewModel.selectedCurrency,
                         splitMethod: viewModel.splitMethod,
                         currentDetail: viewModel.splitDetails[userId] ?? SplitDetail(),
                         onUpdate: { detail in
@@ -136,21 +135,21 @@ struct SplitSummaryBar: View {
                 .font(.system(size: 17))
                 .foregroundColor(.secondary)
 
-            Text("\(viewModel.selectedCurrency.symbol)\(viewModel.amount, specifier: "%.2f")")
+            Text("\(CurrencyFormatter.currencySymbol)\(viewModel.amount, specifier: "%.2f")")
                 .font(.system(size: 20, weight: .semibold))
 
             Spacer()
 
             // Validation indicator
-            if viewModel.splitMethod == .percentages {
+            if viewModel.splitMethod == .percentage {
                 let isValid = abs(viewModel.totalPercentage - 100) < 0.1
                 Text("\(viewModel.totalPercentage, specifier: "%.0f")%")
                     .font(.system(size: 17, weight: .medium))
                     .foregroundColor(isValid ? .green : .red)
-            } else if viewModel.splitMethod == .amounts {
+            } else if viewModel.splitMethod == .amount {
                 let isValid = abs(viewModel.totalSplitAmount - viewModel.amount) < 0.01
                 Text(
-                    "\(viewModel.selectedCurrency.symbol)\(viewModel.totalSplitAmount, specifier: "%.2f")"
+                    "\(CurrencyFormatter.currencySymbol)\(viewModel.totalSplitAmount, specifier: "%.2f")"
                 )
                 .font(.system(size: 17, weight: .medium))
                 .foregroundColor(isValid ? .green : .red)
@@ -169,8 +168,7 @@ struct SplitPersonRow: View {
     let isCurrentUser: Bool
     let split: SplitDetail
     let isPayer: Bool
-    let currency: Currency
-    let splitMethod: QuickActionSplitMethod
+    let splitMethod: SplitMethod
     let currentDetail: SplitDetail
     let onUpdate: (SplitDetail) -> Void
 
@@ -207,7 +205,7 @@ struct SplitPersonRow: View {
                     }
                 }
 
-                Text("\(currency.symbol)\(split.amount, specifier: "%.2f")")
+                Text("\(CurrencyFormatter.currencySymbol)\(split.amount, specifier: "%.2f")")
                     .font(.system(size: 15))
                     .foregroundColor(.secondary)
             }
@@ -248,9 +246,9 @@ struct SplitPersonRow: View {
                 .font(.system(size: 17))
                 .foregroundColor(.secondary)
 
-        case .amounts:
+        case .amount:
             HStack(spacing: 4) {
-                Text(currency.symbol)
+                Text(CurrencyFormatter.currencySymbol)
                     .font(.system(size: 17))
                     .foregroundColor(.secondary)
                 TextField(
@@ -280,7 +278,7 @@ struct SplitPersonRow: View {
             .background(Color(UIColor.systemGray6))
             .cornerRadius(8)
 
-        case .percentages:
+        case .percentage:
             HStack(spacing: 4) {
                 TextField("0", text: $percentageText)
                     .font(.system(size: 17))
@@ -339,7 +337,7 @@ struct SplitPersonRow: View {
 
         case .adjustment:
             HStack(spacing: 4) {
-                Text("±\(currency.symbol)")
+                Text("±\(CurrencyFormatter.currencySymbol)")
                     .font(.system(size: 17))
                     .foregroundColor(.secondary)
                 TextField("0", text: $adjustmentText)
@@ -385,7 +383,7 @@ struct OwesSummaryView: View {
                         Spacer()
 
                         Text(
-                            "\(viewModel.selectedCurrency.symbol)\(split.amount, specifier: "%.2f")"
+                            "\(CurrencyFormatter.currencySymbol)\(split.amount, specifier: "%.2f")"
                         )
                         .font(.system(size: 17, weight: .semibold))
                         .foregroundColor(AppColors.accent)

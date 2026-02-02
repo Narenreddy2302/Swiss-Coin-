@@ -2,8 +2,8 @@
 //  PrivacySecurityView.swift
 //  Swiss Coin
 //
-//  Production-ready view for managing privacy and security settings.
-//  Integrates with Supabase for persistent storage and sync.
+//  View for managing privacy and security settings.
+//  All settings are stored locally via UserDefaults and Keychain.
 //
 
 import Combine
@@ -19,9 +19,6 @@ struct PrivacySecurityView: View {
         Form {
             // Security Section
             SecuritySection(viewModel: viewModel)
-
-            // Devices Section
-            DevicesSection(viewModel: viewModel)
 
             // Privacy Section
             PrivacySection(viewModel: viewModel)
@@ -44,29 +41,13 @@ struct PrivacySecurityView: View {
         } message: {
             Text(viewModel.biometricErrorMessage)
         }
-        .alert("Export Data", isPresented: $viewModel.showingDataExport) {
-            Button("Export") {
-                Task { await viewModel.exportData() }
+        .alert("Clear All Data", isPresented: $viewModel.showingDeleteAccount) {
+            Button("Clear Data", role: .destructive) {
+                viewModel.clearAllData()
             }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("Your data will be exported as a file that you can download. This may take a few minutes.")
-        }
-        .alert("Delete Account", isPresented: $viewModel.showingDeleteAccount) {
-            Button("Delete", role: .destructive) {
-                Task { await viewModel.deleteAccount() }
-            }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("This action is permanent and cannot be undone. All your data will be permanently deleted.")
-        }
-        .alert("Sign Out All Devices", isPresented: $viewModel.showingSignOutAll) {
-            Button("Sign Out") {
-                Task { await viewModel.signOutAllOtherDevices() }
-            }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("All other devices will be signed out. They will need to log in again.")
+            Text("This will remove all local data and sign you out. This action cannot be undone.")
         }
         .alert("Success", isPresented: $viewModel.showingSuccess) {
             Button("OK", role: .cancel) {
@@ -85,7 +66,7 @@ struct PrivacySecurityView: View {
         .sheet(isPresented: $viewModel.showingPINSetup) {
             PINSetupView(
                 onComplete: { pin in
-                    Task { await viewModel.savePIN(pin) }
+                    viewModel.savePIN(pin)
                 },
                 onCancel: {
                     viewModel.pinEnabled = false
@@ -121,7 +102,7 @@ private struct SecuritySection: View {
                 if newValue {
                     viewModel.enableBiometric()
                 } else {
-                    Task { await viewModel.disableBiometric() }
+                    viewModel.disableBiometric()
                 }
             }
             .disabled(viewModel.biometricType == .none)
@@ -135,7 +116,7 @@ private struct SecuritySection: View {
                 if newValue {
                     viewModel.showingPINSetup = true
                 } else {
-                    Task { await viewModel.disablePIN() }
+                    viewModel.disablePIN()
                 }
             }
 
@@ -152,7 +133,7 @@ private struct SecuritySection: View {
                 }
                 .onChange(of: viewModel.autoLockTimeout) { _, newValue in
                     HapticManager.selectionChanged()
-                    Task { await viewModel.updateAutoLockTimeout(newValue) }
+                    viewModel.saveAutoLockTimeout(newValue)
                 }
 
                 // Require for sensitive actions
@@ -161,15 +142,8 @@ private struct SecuritySection: View {
                 }
                 .onChange(of: viewModel.requireAuthSensitive) { _, newValue in
                     HapticManager.toggle()
-                    Task { await viewModel.updateRequireAuthSensitive(newValue) }
+                    UserDefaults.standard.set(newValue, forKey: "require_auth_sensitive")
                 }
-            }
-
-            // Login History
-            NavigationLink {
-                LoginHistoryView()
-            } label: {
-                Label("Login History", systemImage: "clock.arrow.circlepath")
             }
         } header: {
             Label("Security", systemImage: "lock.shield.fill")
@@ -177,54 +151,6 @@ private struct SecuritySection: View {
         } footer: {
             Text("Protect the app with biometric authentication or a 6-digit PIN code.")
                 .font(AppTypography.caption())
-        }
-    }
-}
-
-// MARK: - Devices Section
-
-private struct DevicesSection: View {
-    @ObservedObject var viewModel: PrivacySecurityViewModel
-
-    var body: some View {
-        Section {
-            NavigationLink {
-                ActiveSessionsView()
-            } label: {
-                HStack {
-                    Label("Active Sessions", systemImage: "iphone.gen3")
-                    Spacer()
-                    if viewModel.activeSessionCount > 0 {
-                        Text("\(viewModel.activeSessionCount)")
-                            .font(AppTypography.caption())
-                            .foregroundColor(AppColors.textSecondary)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 2)
-                            .background(AppColors.accent.opacity(0.2))
-                            .cornerRadius(8)
-                    }
-                }
-            }
-
-            Button {
-                HapticManager.tap()
-                viewModel.showingSignOutAll = true
-            } label: {
-                Label("Sign Out All Other Devices", systemImage: "rectangle.portrait.and.arrow.forward")
-                    .foregroundColor(AppColors.warning)
-            }
-
-            // Notify on new device
-            Toggle(isOn: $viewModel.notifyOnNewDevice) {
-                Label("Notify on New Device", systemImage: "bell.badge")
-            }
-            .onChange(of: viewModel.notifyOnNewDevice) { _, newValue in
-                HapticManager.toggle()
-                Task { await viewModel.updateNotifyOnNewDevice(newValue) }
-            }
-        } header: {
-            Label("Devices", systemImage: "desktopcomputer")
-                .font(AppTypography.subheadlineMedium())
         }
     }
 }
@@ -241,7 +167,7 @@ private struct PrivacySection: View {
             }
             .onChange(of: viewModel.showBalanceToContacts) { _, newValue in
                 HapticManager.toggle()
-                Task { await viewModel.updatePrivacySetting(\.showBalancesToContacts, newValue) }
+                UserDefaults.standard.set(newValue, forKey: "show_balance_to_contacts")
             }
 
             Toggle(isOn: $viewModel.showLastSeen) {
@@ -249,7 +175,7 @@ private struct PrivacySection: View {
             }
             .onChange(of: viewModel.showLastSeen) { _, newValue in
                 HapticManager.toggle()
-                Task { await viewModel.updatePrivacySetting(\.showLastSeen, newValue) }
+                UserDefaults.standard.set(newValue, forKey: "show_last_seen")
             }
 
             Toggle(isOn: $viewModel.allowContactDiscovery) {
@@ -257,7 +183,7 @@ private struct PrivacySection: View {
             }
             .onChange(of: viewModel.allowContactDiscovery) { _, newValue in
                 HapticManager.toggle()
-                Task { await viewModel.updatePrivacySetting(\.allowContactDiscovery, newValue) }
+                UserDefaults.standard.set(newValue, forKey: "allow_contact_discovery")
             }
 
             Toggle(isOn: $viewModel.showProfilePhoto) {
@@ -265,7 +191,7 @@ private struct PrivacySection: View {
             }
             .onChange(of: viewModel.showProfilePhoto) { _, newValue in
                 HapticManager.toggle()
-                Task { await viewModel.updatePrivacySetting(\.showProfilePhoto, newValue) }
+                UserDefaults.standard.set(newValue, forKey: "show_profile_photo")
             }
         } header: {
             Label("Privacy", systemImage: "hand.raised.fill")
@@ -289,7 +215,7 @@ private struct DataSection: View {
             }
             .onChange(of: viewModel.allowAnalytics) { _, newValue in
                 HapticManager.toggle()
-                Task { await viewModel.updatePrivacySetting(\.allowAnalytics, newValue) }
+                UserDefaults.standard.set(newValue, forKey: "allow_analytics")
             }
 
             Toggle(isOn: $viewModel.allowCrashReports) {
@@ -297,21 +223,7 @@ private struct DataSection: View {
             }
             .onChange(of: viewModel.allowCrashReports) { _, newValue in
                 HapticManager.toggle()
-                Task { await viewModel.updatePrivacySetting(\.allowCrashReports, newValue) }
-            }
-
-            NavigationLink {
-                BlockedUsersView()
-            } label: {
-                HStack {
-                    Label("Blocked Users", systemImage: "person.crop.circle.badge.xmark")
-                    Spacer()
-                    if viewModel.blockedUsersCount > 0 {
-                        Text("\(viewModel.blockedUsersCount)")
-                            .font(AppTypography.caption())
-                            .foregroundColor(AppColors.textSecondary)
-                    }
-                }
+                UserDefaults.standard.set(newValue, forKey: "allow_crash_reports")
             }
         } header: {
             Label("Data", systemImage: "externaldrive.fill")
@@ -330,32 +242,17 @@ private struct AccountActionsSection: View {
 
     var body: some View {
         Section {
-            Button {
-                HapticManager.tap()
-                viewModel.showingDataExport = true
-            } label: {
-                HStack {
-                    Label("Export My Data", systemImage: "square.and.arrow.up")
-                    Spacer()
-                    if viewModel.isExporting {
-                        ProgressView()
-                            .progressViewStyle(CircularProgressViewStyle())
-                    }
-                }
-            }
-            .disabled(viewModel.isExporting)
-
             Button(role: .destructive) {
                 HapticManager.warning()
                 viewModel.showingDeleteAccount = true
             } label: {
-                Label("Delete Account", systemImage: "trash")
+                Label("Clear All Data & Sign Out", systemImage: "trash")
             }
         } header: {
             Label("Account", systemImage: "person.crop.circle")
                 .font(AppTypography.subheadlineMedium())
         } footer: {
-            Text("Export your data or permanently delete your account.")
+            Text("Remove all local data and return to the welcome screen.")
                 .font(AppTypography.caption())
         }
     }
@@ -370,7 +267,6 @@ class PrivacySecurityViewModel: ObservableObject {
     @Published var pinEnabled = false
     @Published var autoLockTimeout = 5
     @Published var requireAuthSensitive = true
-    @Published var notifyOnNewDevice = true
 
     // Privacy Settings
     @Published var showBalanceToContacts = false
@@ -384,24 +280,16 @@ class PrivacySecurityViewModel: ObservableObject {
     @Published var showingPINSetup = false
     @Published var showingPINVerify = false
     @Published var showingBiometricError = false
-    @Published var showingDataExport = false
     @Published var showingDeleteAccount = false
-    @Published var showingSignOutAll = false
     @Published var showingSuccess = false
     @Published var showingError = false
-    @Published var isLoading = false
-    @Published var isExporting = false
 
     @Published var biometricErrorMessage = ""
     @Published var successMessage = ""
     @Published var errorMessage = ""
     @Published var biometricType: LABiometryType = .none
-    @Published var activeSessionCount = 0
-    @Published var blockedUsersCount = 0
 
     var onPINVerified: (() -> Void)?
-
-    private let supabase = SupabaseManager.shared
 
     // MARK: - Computed Properties
 
@@ -427,13 +315,6 @@ class PrivacySecurityViewModel: ObservableObject {
     func loadSettings() {
         checkBiometricType()
         loadFromLocal()
-
-        if CurrentUser.currentUserId != nil {
-            Task {
-                await loadFromSupabase()
-                await loadCounts()
-            }
-        }
     }
 
     private func checkBiometricType() {
@@ -458,60 +339,9 @@ class PrivacySecurityViewModel: ObservableObject {
         showBalanceToContacts = UserDefaults.standard.bool(forKey: "show_balance_to_contacts")
         showLastSeen = UserDefaults.standard.object(forKey: "show_last_seen") as? Bool ?? true
         allowContactDiscovery = UserDefaults.standard.object(forKey: "allow_contact_discovery") as? Bool ?? true
+        showProfilePhoto = UserDefaults.standard.object(forKey: "show_profile_photo") as? Bool ?? true
         allowAnalytics = UserDefaults.standard.object(forKey: "allow_analytics") as? Bool ?? true
-    }
-
-    private func loadFromSupabase() async {
-        do {
-            let securitySettings = try await supabase.getSecuritySettings()
-            let privacySettings = try await supabase.getPrivacySettings()
-
-            await MainActor.run {
-                self.biometricEnabled = securitySettings.biometricEnabled
-                self.pinEnabled = securitySettings.pinEnabled
-                self.autoLockTimeout = securitySettings.autoLockTimeoutMinutes ?? 5
-                self.requireAuthSensitive = securitySettings.requireAuthForSensitiveActions
-                self.notifyOnNewDevice = securitySettings.notifyOnNewDevice
-
-                self.showBalanceToContacts = privacySettings.showBalancesToContacts
-                self.showLastSeen = privacySettings.showLastSeen
-                self.allowContactDiscovery = privacySettings.allowContactDiscovery
-                self.showProfilePhoto = privacySettings.showProfilePhoto
-                self.allowAnalytics = privacySettings.allowAnalytics
-                self.allowCrashReports = privacySettings.allowCrashReports
-
-                // Save to local
-                self.saveToLocal()
-            }
-        } catch {
-            print("Failed to load settings from Supabase: \(error.localizedDescription)")
-        }
-    }
-
-    private func loadCounts() async {
-        do {
-            let sessions = try await supabase.getActiveSessions()
-            let blocked = try await supabase.getBlockedUsers()
-
-            await MainActor.run {
-                self.activeSessionCount = sessions.count
-                self.blockedUsersCount = blocked.count
-            }
-        } catch {
-            print("Failed to load counts: \(error.localizedDescription)")
-        }
-    }
-
-    private func saveToLocal() {
-        UserDefaults.standard.set(biometricEnabled, forKey: "biometric_enabled")
-        UserDefaults.standard.set(pinEnabled, forKey: "pin_enabled")
-        UserDefaults.standard.set(autoLockTimeout, forKey: "auto_lock_timeout")
-        UserDefaults.standard.set(true, forKey: "auto_lock_set")
-        UserDefaults.standard.set(requireAuthSensitive, forKey: "require_auth_sensitive")
-        UserDefaults.standard.set(showBalanceToContacts, forKey: "show_balance_to_contacts")
-        UserDefaults.standard.set(showLastSeen, forKey: "show_last_seen")
-        UserDefaults.standard.set(allowContactDiscovery, forKey: "allow_contact_discovery")
-        UserDefaults.standard.set(allowAnalytics, forKey: "allow_analytics")
+        allowCrashReports = UserDefaults.standard.object(forKey: "allow_crash_reports") as? Bool ?? true
     }
 
     // MARK: - Biometric
@@ -536,12 +366,6 @@ class PrivacySecurityViewModel: ObservableObject {
                     HapticManager.success()
                     self.biometricEnabled = true
                     UserDefaults.standard.set(true, forKey: "biometric_enabled")
-
-                    if CurrentUser.currentUserId != nil {
-                        Task {
-                            try? await self.supabase.setBiometricEnabled(true, biometricType: self.biometricTypeString)
-                        }
-                    }
                 } else {
                     self.biometricEnabled = false
                     self.biometricErrorMessage = authError?.localizedDescription ?? "Authentication failed"
@@ -551,54 +375,27 @@ class PrivacySecurityViewModel: ObservableObject {
         }
     }
 
-    func disableBiometric() async {
+    func disableBiometric() {
         biometricEnabled = false
         UserDefaults.standard.set(false, forKey: "biometric_enabled")
-
-        if CurrentUser.currentUserId != nil {
-            try? await supabase.setBiometricEnabled(false, biometricType: nil)
-        }
-    }
-
-    private var biometricTypeString: String {
-        switch biometricType {
-        case .faceID: return "face_id"
-        case .touchID: return "touch_id"
-        case .opticID: return "optic_id"
-        default: return "unknown"
-        }
     }
 
     // MARK: - PIN
 
-    func savePIN(_ pin: String) async {
+    func savePIN(_ pin: String) {
         let pinHash = hashPIN(pin)
 
-        // Save locally
+        // Save locally via Keychain
         KeychainHelper.save(key: "user_pin_hash", value: pinHash)
         pinEnabled = true
         UserDefaults.standard.set(true, forKey: "pin_enabled")
-
-        // Save to Supabase
-        if CurrentUser.currentUserId != nil {
-            do {
-                try await supabase.setPIN(pinHash: pinHash)
-                HapticManager.success()
-            } catch {
-                errorMessage = error.localizedDescription
-                showingError = true
-            }
-        }
+        HapticManager.success()
     }
 
-    func disablePIN() async {
+    func disablePIN() {
         KeychainHelper.delete(key: "user_pin_hash")
         pinEnabled = false
         UserDefaults.standard.set(false, forKey: "pin_enabled")
-
-        if CurrentUser.currentUserId != nil {
-            try? await supabase.disablePIN()
-        }
     }
 
     private func hashPIN(_ pin: String) -> String {
@@ -609,96 +406,28 @@ class PrivacySecurityViewModel: ObservableObject {
 
     // MARK: - Settings Updates
 
-    func updateAutoLockTimeout(_ minutes: Int) async {
+    func saveAutoLockTimeout(_ minutes: Int) {
         autoLockTimeout = minutes
         UserDefaults.standard.set(minutes, forKey: "auto_lock_timeout")
-
-        if CurrentUser.currentUserId != nil {
-            try? await supabase.setAutoLockTimeout(minutes)
-        }
+        UserDefaults.standard.set(true, forKey: "auto_lock_set")
     }
 
-    func updateRequireAuthSensitive(_ required: Bool) async {
-        requireAuthSensitive = required
-        UserDefaults.standard.set(required, forKey: "require_auth_sensitive")
+    // MARK: - Clear Data & Sign Out
 
-        if CurrentUser.currentUserId != nil {
-            try? await supabase.setRequireAuthForSensitiveActions(required)
-        }
-    }
+    func clearAllData() {
+        // Clear Keychain
+        KeychainHelper.delete(key: "user_pin_hash")
+        KeychainHelper.delete(key: "swiss_coin_access_token")
+        KeychainHelper.delete(key: "swiss_coin_refresh_token")
+        KeychainHelper.delete(key: "swiss_coin_user_id")
 
-    func updateNotifyOnNewDevice(_ notify: Bool) async {
-        notifyOnNewDevice = notify
+        // Reset user
+        CurrentUser.reset()
 
-        if CurrentUser.currentUserId != nil {
-            var update = SecuritySettingsUpdate()
-            update.biometricEnabled = nil
-            _ = try? await supabase.updateSecuritySettings(SecuritySettingsUpdate())
-        }
-    }
+        // Sign out
+        AuthManager.shared.signOut()
 
-    func updatePrivacySetting<T>(_ keyPath: WritableKeyPath<PrivacySettingsUpdate, T?>, _ value: T) async {
-        var update = PrivacySettingsUpdate()
-        update[keyPath: keyPath] = value
-        saveToLocal()
-
-        if CurrentUser.currentUserId != nil {
-            try? await supabase.updatePrivacySettings(update)
-        }
-    }
-
-    // MARK: - Session Management
-
-    func signOutAllOtherDevices() async {
-        do {
-            let count = try await supabase.terminateAllOtherSessionsEnhanced()
-            activeSessionCount = 1 // Only current session remains
-            successMessage = "\(count) device(s) signed out successfully"
-            showingSuccess = true
-            HapticManager.success()
-        } catch {
-            errorMessage = error.localizedDescription
-            showingError = true
-            HapticManager.error()
-        }
-    }
-
-    // MARK: - Data Export & Account Deletion
-
-    func exportData() async {
-        isExporting = true
-
-        do {
-            let exportUrl = try await supabase.requestDataExport()
-            isExporting = false
-
-            // Open URL to download
-            if let url = URL(string: exportUrl) {
-                await UIApplication.shared.open(url)
-            }
-
-            successMessage = "Your data export is ready for download"
-            showingSuccess = true
-            HapticManager.success()
-        } catch {
-            isExporting = false
-            errorMessage = error.localizedDescription
-            showingError = true
-            HapticManager.error()
-        }
-    }
-
-    func deleteAccount() async {
-        do {
-            try await supabase.requestAccountDeletion()
-            HapticManager.success()
-            // Sign out after deletion request
-            await supabase.signOut()
-        } catch {
-            errorMessage = error.localizedDescription
-            showingError = true
-            HapticManager.error()
-        }
+        HapticManager.success()
     }
 }
 
@@ -932,405 +661,6 @@ struct PINVerifyView: View {
             } else {
                 errorMessage = "Incorrect PIN"
             }
-        }
-    }
-}
-
-// MARK: - Active Sessions View
-
-struct ActiveSessionsView: View {
-    @StateObject private var viewModel = ActiveSessionsViewModel()
-
-    var body: some View {
-        List {
-            if viewModel.isLoading {
-                HStack {
-                    Spacer()
-                    ProgressView()
-                    Spacer()
-                }
-                .listRowBackground(Color.clear)
-            } else if viewModel.sessions.isEmpty {
-                VStack(spacing: Spacing.md) {
-                    Image(systemName: "iphone.gen3")
-                        .font(.system(size: 48))
-                        .foregroundColor(AppColors.textSecondary)
-
-                    Text("No active sessions")
-                        .font(AppTypography.headline())
-                        .foregroundColor(AppColors.textPrimary)
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, Spacing.xxl)
-                .listRowBackground(Color.clear)
-            } else {
-                ForEach(viewModel.sessions) { session in
-                    SessionRowView(
-                        session: session,
-                        onRevoke: {
-                            Task { await viewModel.revokeSession(session) }
-                        },
-                        onToggleTrust: {
-                            Task { await viewModel.toggleTrust(session) }
-                        }
-                    )
-                }
-            }
-        }
-        .navigationTitle("Active Sessions")
-        .navigationBarTitleDisplayMode(.inline)
-        .refreshable {
-            await viewModel.loadSessions()
-        }
-        .onAppear {
-            Task { await viewModel.loadSessions() }
-        }
-        .alert("Error", isPresented: $viewModel.showingError) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text(viewModel.errorMessage)
-        }
-    }
-}
-
-@MainActor
-class ActiveSessionsViewModel: ObservableObject {
-    @Published var sessions: [UserSessionInfo] = []
-    @Published var isLoading = false
-    @Published var showingError = false
-    @Published var errorMessage = ""
-
-    private let supabase = SupabaseManager.shared
-
-    func loadSessions() async {
-        isLoading = true
-
-        do {
-            sessions = try await supabase.getActiveSessions()
-        } catch {
-            errorMessage = error.localizedDescription
-            showingError = true
-        }
-
-        isLoading = false
-    }
-
-    func revokeSession(_ session: UserSessionInfo) async {
-        do {
-            try await supabase.terminateSession(sessionId: session.id)
-            sessions.removeAll { $0.id == session.id }
-            HapticManager.success()
-        } catch {
-            errorMessage = error.localizedDescription
-            showingError = true
-            HapticManager.error()
-        }
-    }
-
-    func toggleTrust(_ session: UserSessionInfo) async {
-        do {
-            try await supabase.setDeviceTrusted(session.id, trusted: !session.isCurrent)
-            await loadSessions()
-            HapticManager.success()
-        } catch {
-            errorMessage = error.localizedDescription
-            showingError = true
-        }
-    }
-}
-
-struct SessionRowView: View {
-    let session: UserSessionInfo
-    let onRevoke: () -> Void
-    let onToggleTrust: () -> Void
-
-    private var deviceIcon: String {
-        switch session.deviceType?.lowercased() {
-        case "iphone": return "iphone.gen3"
-        case "ipad": return "ipad.gen2"
-        case "android": return "candybarphone"
-        case "web": return "globe"
-        default: return "desktopcomputer"
-        }
-    }
-
-    var body: some View {
-        HStack(spacing: Spacing.md) {
-            Image(systemName: deviceIcon)
-                .font(.system(size: 28))
-                .foregroundColor(AppColors.accent)
-                .frame(width: 44)
-
-            VStack(alignment: .leading, spacing: 4) {
-                HStack {
-                    Text(session.deviceName ?? "Unknown Device")
-                        .font(AppTypography.body())
-                        .foregroundColor(AppColors.textPrimary)
-
-                    if session.isCurrent {
-                        Text("This device")
-                            .font(AppTypography.caption())
-                            .foregroundColor(AppColors.accent)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(AppColors.accent.opacity(0.2))
-                            .cornerRadius(4)
-                    }
-                }
-
-                if let location = session.location, !location.isEmpty {
-                    Text(location)
-                        .font(AppTypography.caption())
-                        .foregroundColor(AppColors.textSecondary)
-                }
-
-                Text("Last active: \(session.lastActiveAt, style: .relative)")
-                    .font(AppTypography.caption())
-                    .foregroundColor(AppColors.textSecondary)
-            }
-
-            Spacer()
-
-            if !session.isCurrent {
-                Button {
-                    HapticManager.warning()
-                    onRevoke()
-                } label: {
-                    Text("Revoke")
-                        .font(AppTypography.caption())
-                        .foregroundColor(AppColors.negative)
-                }
-            }
-        }
-        .padding(.vertical, Spacing.xs)
-    }
-}
-
-// MARK: - Login History View
-
-struct LoginHistoryView: View {
-    @StateObject private var viewModel = LoginHistoryViewModel()
-
-    var body: some View {
-        List {
-            if viewModel.isLoading {
-                HStack {
-                    Spacer()
-                    ProgressView()
-                    Spacer()
-                }
-                .listRowBackground(Color.clear)
-            } else if viewModel.entries.isEmpty {
-                VStack(spacing: Spacing.md) {
-                    Image(systemName: "clock.arrow.circlepath")
-                        .font(.system(size: 48))
-                        .foregroundColor(AppColors.textSecondary)
-
-                    Text("No login history")
-                        .font(AppTypography.headline())
-                        .foregroundColor(AppColors.textPrimary)
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, Spacing.xxl)
-                .listRowBackground(Color.clear)
-            } else {
-                ForEach(viewModel.entries) { entry in
-                    LoginHistoryRowView(entry: entry)
-                }
-            }
-        }
-        .navigationTitle("Login History")
-        .navigationBarTitleDisplayMode(.inline)
-        .onAppear {
-            Task { await viewModel.loadHistory() }
-        }
-    }
-}
-
-@MainActor
-class LoginHistoryViewModel: ObservableObject {
-    @Published var entries: [LoginHistoryEntry] = []
-    @Published var isLoading = false
-
-    private let supabase = SupabaseManager.shared
-
-    func loadHistory() async {
-        isLoading = true
-
-        do {
-            entries = try await supabase.getLoginHistory()
-        } catch {
-            print("Failed to load login history: \(error.localizedDescription)")
-        }
-
-        isLoading = false
-    }
-}
-
-struct LoginHistoryRowView: View {
-    let entry: LoginHistoryEntry
-
-    var body: some View {
-        HStack(spacing: Spacing.md) {
-            Image(systemName: entry.success ? "checkmark.circle.fill" : "xmark.circle.fill")
-                .font(.system(size: 24))
-                .foregroundColor(entry.success ? AppColors.positive : AppColors.negative)
-
-            VStack(alignment: .leading, spacing: 4) {
-                HStack {
-                    Text(entry.success ? "Successful login" : "Failed login")
-                        .font(AppTypography.body())
-                        .foregroundColor(AppColors.textPrimary)
-
-                    if entry.isSuspicious {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .font(.system(size: 12))
-                            .foregroundColor(AppColors.warning)
-                    }
-                }
-
-                if let device = entry.deviceName {
-                    Text(device)
-                        .font(AppTypography.caption())
-                        .foregroundColor(AppColors.textSecondary)
-                }
-
-                if let city = entry.locationCity, let country = entry.locationCountry {
-                    Text("\(city), \(country)")
-                        .font(AppTypography.caption())
-                        .foregroundColor(AppColors.textSecondary)
-                }
-
-                Text(entry.attemptedAt, style: .relative)
-                    .font(AppTypography.caption())
-                    .foregroundColor(AppColors.textSecondary)
-            }
-
-            Spacer()
-        }
-        .padding(.vertical, Spacing.xs)
-    }
-}
-
-// MARK: - Blocked Users View
-
-struct BlockedUsersView: View {
-    @StateObject private var viewModel = BlockedUsersViewModel()
-
-    var body: some View {
-        List {
-            if viewModel.isLoading {
-                HStack {
-                    Spacer()
-                    ProgressView()
-                    Spacer()
-                }
-                .listRowBackground(Color.clear)
-            } else if viewModel.blockedUsers.isEmpty {
-                VStack(spacing: Spacing.md) {
-                    Image(systemName: "person.crop.circle.badge.checkmark")
-                        .font(.system(size: 48))
-                        .foregroundColor(AppColors.positive)
-
-                    Text("No blocked users")
-                        .font(AppTypography.headline())
-                        .foregroundColor(AppColors.textPrimary)
-
-                    Text("Users you block won't be able to send you messages or add you to groups.")
-                        .font(AppTypography.subheadline())
-                        .foregroundColor(AppColors.textSecondary)
-                        .multilineTextAlignment(.center)
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, Spacing.xxl)
-                .listRowBackground(Color.clear)
-            } else {
-                ForEach(viewModel.blockedUsers) { user in
-                    HStack(spacing: Spacing.md) {
-                        if let avatarUrl = user.blocked?.avatarUrl, let url = URL(string: avatarUrl) {
-                            AsyncImage(url: url) { image in
-                                image.resizable().scaledToFill()
-                            } placeholder: {
-                                Circle().fill(AppColors.textSecondary.opacity(0.3))
-                            }
-                            .frame(width: AvatarSize.sm, height: AvatarSize.sm)
-                            .clipShape(Circle())
-                        } else {
-                            Circle()
-                                .fill(AppColors.textSecondary.opacity(0.3))
-                                .frame(width: AvatarSize.sm, height: AvatarSize.sm)
-                                .overlay(
-                                    Text(String((user.blocked?.displayName ?? "?").prefix(2)).uppercased())
-                                        .font(.system(size: 12, weight: .medium))
-                                        .foregroundColor(AppColors.textSecondary)
-                                )
-                        }
-
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(user.blocked?.displayName ?? "Unknown User")
-                                .font(AppTypography.body())
-                                .foregroundColor(AppColors.textPrimary)
-
-                            Text("Blocked \(user.createdAt, style: .relative)")
-                                .font(AppTypography.caption())
-                                .foregroundColor(AppColors.textSecondary)
-                        }
-
-                        Spacer()
-
-                        Button("Unblock") {
-                            Task { await viewModel.unblockUser(user) }
-                        }
-                        .font(AppTypography.subheadline())
-                        .foregroundColor(AppColors.accent)
-                    }
-                }
-            }
-        }
-        .navigationTitle("Blocked Users")
-        .navigationBarTitleDisplayMode(.inline)
-        .onAppear {
-            Task { await viewModel.loadBlockedUsers() }
-        }
-        .alert("Error", isPresented: $viewModel.showingError) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text(viewModel.errorMessage)
-        }
-    }
-}
-
-@MainActor
-class BlockedUsersViewModel: ObservableObject {
-    @Published var blockedUsers: [BlockedUserInfo] = []
-    @Published var isLoading = false
-    @Published var showingError = false
-    @Published var errorMessage = ""
-
-    private let supabase = SupabaseManager.shared
-
-    func loadBlockedUsers() async {
-        isLoading = true
-
-        do {
-            blockedUsers = try await supabase.getBlockedUsers()
-        } catch {
-            errorMessage = error.localizedDescription
-            showingError = true
-        }
-
-        isLoading = false
-    }
-
-    func unblockUser(_ user: BlockedUserInfo) async {
-        do {
-            try await supabase.unblockUser(userId: user.blockedId)
-            blockedUsers.removeAll { $0.id == user.id }
-            HapticManager.success()
-        } catch {
-            errorMessage = error.localizedDescription
-            showingError = true
-            HapticManager.error()
         }
     }
 }

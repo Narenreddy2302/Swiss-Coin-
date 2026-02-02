@@ -76,6 +76,13 @@ struct QuickActionSheet: View {
                 }
             }
         }
+        .alert("Error", isPresented: $viewModel.showingError) {
+            Button("OK", role: .cancel) {
+                HapticManager.tap()
+            }
+        } message: {
+            Text(viewModel.errorMessage)
+        }
     }
 
     // Dynamic navigation title based on current step

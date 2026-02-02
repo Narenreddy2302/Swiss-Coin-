@@ -16,12 +16,13 @@ enum TransactionType: String, CaseIterable {
     case income = "income"
 }
 
-/// Available methods for splitting a transaction
-enum QuickActionSplitMethod: String, CaseIterable, Identifiable {
-    case equal = "equal"  // Split evenly among all participants
-    case amounts = "amounts"  // Each person pays a specific amount
-    case percentages = "percentages"  // Each person pays a percentage
-    case shares = "shares"  // Split by number of shares
+/// Available methods for splitting a transaction.
+/// Canonical enum used by both the Transaction and QuickAction flows.
+enum SplitMethod: String, CaseIterable, Identifiable {
+    case equal = "equal"            // Split evenly among all participants
+    case amount = "amount"          // Each person pays a specific amount
+    case percentage = "percentage"  // Each person pays a percentage
+    case shares = "shares"          // Split by number of shares
     case adjustment = "adjustment"  // Equal split with +/- adjustments
 
     var id: String { rawValue }
@@ -30,8 +31,8 @@ enum QuickActionSplitMethod: String, CaseIterable, Identifiable {
     var displayName: String {
         switch self {
         case .equal: return "Equally"
-        case .amounts: return "By Amount"
-        case .percentages: return "By Percent"
+        case .amount: return "By Amount"
+        case .percentage: return "By Percent"
         case .shares: return "By Shares"
         case .adjustment: return "Adjustments"
         }
@@ -41,10 +42,21 @@ enum QuickActionSplitMethod: String, CaseIterable, Identifiable {
     var icon: String {
         switch self {
         case .equal: return "="
-        case .amounts: return "$"
-        case .percentages: return "%"
+        case .amount: return CurrencyFormatter.currencySymbol
+        case .percentage: return "%"
         case .shares: return "÷"
         case .adjustment: return "±"
+        }
+    }
+
+    /// SF Symbol name for use in pickers and UI elements
+    var systemImage: String {
+        switch self {
+        case .equal: return "equal"
+        case .percentage: return "percent"
+        case .amount: return "dollarsign.circle"
+        case .adjustment: return "plus.forwardslash.minus"
+        case .shares: return "chart.pie.fill"
         }
     }
 }
@@ -60,13 +72,33 @@ struct Currency: Identifiable, Hashable {
     let flag: String  // Country flag emoji
 
     static let all: [Currency] = [
-        Currency(id: "USD", code: "USD", symbol: "$", name: "US Dollar", flag: "🇺🇸"),
-        Currency(id: "EUR", code: "EUR", symbol: "€", name: "Euro", flag: "🇪🇺"),
-        Currency(id: "GBP", code: "GBP", symbol: "£", name: "British Pound", flag: "🇬🇧"),
-        Currency(id: "INR", code: "INR", symbol: "₹", name: "Indian Rupee", flag: "🇮🇳"),
-        Currency(id: "JPY", code: "JPY", symbol: "¥", name: "Japanese Yen", flag: "🇯🇵"),
-        Currency(id: "AUD", code: "AUD", symbol: "A$", name: "Australian Dollar", flag: "🇦🇺"),
+        Currency(id: "USD", code: "USD", symbol: "$",   name: "US Dollar",         flag: "🇺🇸"),
+        Currency(id: "EUR", code: "EUR", symbol: "€",   name: "Euro",              flag: "🇪🇺"),
+        Currency(id: "GBP", code: "GBP", symbol: "£",   name: "British Pound",     flag: "🇬🇧"),
+        Currency(id: "INR", code: "INR", symbol: "₹",   name: "Indian Rupee",      flag: "🇮🇳"),
+        Currency(id: "CNY", code: "CNY", symbol: "¥",   name: "Chinese Yuan",      flag: "🇨🇳"),
+        Currency(id: "JPY", code: "JPY", symbol: "¥",   name: "Japanese Yen",      flag: "🇯🇵"),
+        Currency(id: "CHF", code: "CHF", symbol: "CHF", name: "Swiss Franc",       flag: "🇨🇭"),
+        Currency(id: "CAD", code: "CAD", symbol: "CA$", name: "Canadian Dollar",   flag: "🇨🇦"),
+        Currency(id: "AUD", code: "AUD", symbol: "A$",  name: "Australian Dollar", flag: "🇦🇺"),
+        Currency(id: "KRW", code: "KRW", symbol: "₩",   name: "South Korean Won",  flag: "🇰🇷"),
+        Currency(id: "SGD", code: "SGD", symbol: "S$",  name: "Singapore Dollar",  flag: "🇸🇬"),
+        Currency(id: "AED", code: "AED", symbol: "د.إ", name: "UAE Dirham",        flag: "🇦🇪"),
+        Currency(id: "BRL", code: "BRL", symbol: "R$",  name: "Brazilian Real",    flag: "🇧🇷"),
+        Currency(id: "MXN", code: "MXN", symbol: "MX$", name: "Mexican Peso",      flag: "🇲🇽"),
+        Currency(id: "SEK", code: "SEK", symbol: "kr",  name: "Swedish Krona",     flag: "🇸🇪"),
     ]
+
+    /// Returns the Currency matching the given code, or USD as fallback
+    static func fromCode(_ code: String) -> Currency {
+        all.first { $0.code == code } ?? all[0]
+    }
+
+    /// Returns the Currency matching the user's global currency setting
+    static func fromGlobalSetting() -> Currency {
+        let code = UserDefaults.standard.string(forKey: "default_currency") ?? "USD"
+        return fromCode(code)
+    }
 }
 
 /// Transaction categories for organizing expenses/income

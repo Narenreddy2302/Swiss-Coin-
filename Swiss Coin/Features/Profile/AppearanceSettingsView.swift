@@ -2,8 +2,8 @@
 //  AppearanceSettingsView.swift
 //  Swiss Coin
 //
-//  View for managing app appearance settings with Supabase integration.
-//  Syncs theme, accent color, font size, and accessibility preferences.
+//  View for managing app appearance settings.
+//  All settings are stored locally via AppStorage.
 //
 
 import Combine
@@ -34,18 +34,12 @@ final class AppearanceSettingsViewModel: ObservableObject {
 
     // State
     @Published var isLoading: Bool = false
-    @Published var isSaving: Bool = false
-    @Published var errorMessage: String?
-    @Published var showError: Bool = false
-    @Published var lastSyncedAt: Date?
 
     // MARK: - Private Properties
 
-    private let supabase = SupabaseManager.shared
     private var cancellables = Set<AnyCancellable>()
-    private var saveTask: Task<Void, Never>?
 
-    // MARK: - AppStorage (offline fallback)
+    // MARK: - AppStorage (local persistence)
 
     @AppStorage("theme_mode") private var storedThemeMode = "system"
     @AppStorage("accent_color") private var storedAccentColor = "#34C759"
@@ -58,72 +52,16 @@ final class AppearanceSettingsViewModel: ObservableObject {
     // MARK: - Init
 
     init() {
-        // Load from AppStorage initially
         loadFromLocalStorage()
         setupAutoSave()
     }
 
     // MARK: - Public Methods
 
-    func loadSettings() async {
+    func loadSettings() {
         isLoading = true
-        errorMessage = nil
-
-        do {
-            let settings = try await supabase.getAppearanceSettings()
-
-            // Update published properties
-            themeMode = settings.themeMode
-            accentColor = settings.accentColor
-            fontSize = settings.fontSize
-            reduceMotion = settings.reduceMotion
-            hapticFeedback = settings.hapticFeedbackEnabled
-            showBalanceOnHome = settings.showBalanceOnHome
-            defaultHomeTab = settings.defaultHomeTab ?? "summary"
-
-            // Sync to local storage
-            syncToLocalStorage()
-
-            lastSyncedAt = Date()
-        } catch {
-            // Use local storage values if network fails
-            loadFromLocalStorage()
-
-            if case SupabaseError.notAuthenticated = error {
-                // Silently use local settings for unauthenticated users
-            } else {
-                errorMessage = "Failed to load settings: \(error.localizedDescription)"
-                showError = true
-            }
-        }
-
+        loadFromLocalStorage()
         isLoading = false
-    }
-
-    func saveSettings() async {
-        guard supabase.currentUserId != nil else { return }
-
-        isSaving = true
-
-        var update = UserSettingsUpdate()
-        update.themeMode = themeMode
-        update.accentColor = accentColor
-        update.fontSize = fontSize
-        update.reduceMotion = reduceMotion
-        update.hapticFeedbackEnabled = hapticFeedback
-        update.showBalanceOnHome = showBalanceOnHome
-        update.defaultHomeTab = defaultHomeTab
-
-        do {
-            try await supabase.updateAppearanceSettings(update)
-            syncToLocalStorage()
-            lastSyncedAt = Date()
-        } catch {
-            errorMessage = "Failed to save settings: \(error.localizedDescription)"
-            showError = true
-        }
-
-        isSaving = false
     }
 
     // MARK: - Private Methods
@@ -164,18 +102,11 @@ final class AppearanceSettingsViewModel: ObservableObject {
             )
         )
         .dropFirst() // Skip initial values
-        .debounce(for: .milliseconds(500), scheduler: DispatchQueue.main)
+        .debounce(for: .milliseconds(300), scheduler: DispatchQueue.main)
         .sink { [weak self] _ in
-            self?.triggerSave()
+            self?.syncToLocalStorage()
         }
         .store(in: &cancellables)
-    }
-
-    private func triggerSave() {
-        saveTask?.cancel()
-        saveTask = Task {
-            await saveSettings()
-        }
     }
 }
 
@@ -199,19 +130,6 @@ struct AppearanceSettingsView: View {
 
     var body: some View {
         Form {
-            // Sync Status
-            if viewModel.isSaving {
-                Section {
-                    HStack {
-                        ProgressView()
-                            .scaleEffect(0.8)
-                        Text("Syncing...")
-                            .font(AppTypography.caption())
-                            .foregroundColor(AppColors.textSecondary)
-                    }
-                }
-            }
-
             // Theme Section
             Section {
                 Picker("Theme", selection: $viewModel.themeMode) {
@@ -329,37 +247,11 @@ struct AppearanceSettingsView: View {
                 Label("Home Screen", systemImage: "house.fill")
                     .font(AppTypography.subheadlineMedium())
             }
-
-            // Sync Info Section
-            if let lastSynced = viewModel.lastSyncedAt {
-                Section {
-                    HStack {
-                        Image(systemName: "checkmark.icloud.fill")
-                            .foregroundColor(AppColors.positive)
-                        Text("Last synced: \(lastSynced.formatted(date: .omitted, time: .shortened))")
-                            .font(AppTypography.caption())
-                            .foregroundColor(AppColors.textSecondary)
-                    }
-                }
-            }
         }
         .navigationTitle("Appearance")
         .navigationBarTitleDisplayMode(.inline)
-        .overlay {
-            if viewModel.isLoading {
-                LoadingOverlay()
-            }
-        }
-        .alert("Error", isPresented: $viewModel.showError) {
-            Button("OK", role: .cancel) {}
-            Button("Retry") {
-                Task { await viewModel.loadSettings() }
-            }
-        } message: {
-            Text(viewModel.errorMessage ?? "An unknown error occurred")
-        }
-        .task {
-            await viewModel.loadSettings()
+        .onAppear {
+            viewModel.loadSettings()
         }
     }
 
@@ -468,32 +360,6 @@ struct ThemePreviewCard: View {
             Text(theme == "dark" ? "Dark" : "Light")
                 .font(AppTypography.caption())
                 .foregroundColor(isSelected ? AppColors.accent : AppColors.textSecondary)
-        }
-    }
-}
-
-// MARK: - Loading Overlay
-
-private struct LoadingOverlay: View {
-    var body: some View {
-        ZStack {
-            Color.black.opacity(0.3)
-                .ignoresSafeArea()
-
-            VStack(spacing: Spacing.md) {
-                ProgressView()
-                    .scaleEffect(1.2)
-                    .tint(.white)
-
-                Text("Loading settings...")
-                    .font(AppTypography.subheadlineMedium())
-                    .foregroundColor(.white)
-            }
-            .padding(Spacing.xl)
-            .background(
-                RoundedRectangle(cornerRadius: CornerRadius.lg)
-                    .fill(Color(UIColor.systemGray5))
-            )
         }
     }
 }

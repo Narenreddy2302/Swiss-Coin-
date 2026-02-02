@@ -144,7 +144,7 @@ extension Subscription {
     /// Calculate current user's balance for this shared subscription
     /// Positive = members owe you, Negative = you owe members
     func calculateUserBalance() -> Double {
-        guard isShared else { return 0 }
+        guard isShared, isActive else { return 0 }
 
         var balance: Double = 0
         let paymentsSet = payments as? Set<SubscriptionPayment> ?? []
@@ -185,14 +185,14 @@ extension Subscription {
 
     /// Calculate share for a specific member
     func calculateMemberShare(for person: Person) -> Double {
-        guard isShared && subscriberCount > 0 else { return 0 }
+        guard isShared, isActive, subscriberCount > 0 else { return 0 }
         return amount / Double(subscriberCount)
     }
 
     /// Calculate balance with a specific member
     /// Positive = they owe you, Negative = you owe them
     func calculateBalanceWith(member: Person) -> Double {
-        guard isShared else { return 0 }
+        guard isShared, isActive else { return 0 }
         guard !CurrentUser.isCurrentUser(member.id) else { return 0 }
 
         var balance: Double = 0
@@ -235,7 +235,7 @@ extension Subscription {
 
     /// Get all member balances for this subscription
     func getMemberBalances() -> [(member: Person, balance: Double, paid: Double)] {
-        guard isShared else { return [] }
+        guard isShared, isActive else { return [] }
 
         let membersSet = subscribers as? Set<Person> ?? []
         let paymentsSet = payments as? Set<SubscriptionPayment> ?? []
