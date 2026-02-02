@@ -200,7 +200,7 @@ struct SplitPersonRow: View {
                             .foregroundColor(.white)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 2)
-                            .background(Color.green)
+                            .background(AppColors.accent)
                             .cornerRadius(10)
                     }
                 }

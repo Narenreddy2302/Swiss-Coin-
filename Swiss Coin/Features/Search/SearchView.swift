@@ -15,24 +15,37 @@ struct SearchView: View {
 
     // MARK: - Fetch Requests
 
-    @FetchRequest(
-        sortDescriptors: [NSSortDescriptor(keyPath: \FinancialTransaction.date, ascending: false)],
-        animation: .default)
+    @FetchRequest(fetchRequest: {
+        let request: NSFetchRequest<FinancialTransaction> = FinancialTransaction.fetchRequest()
+        request.sortDescriptors = [NSSortDescriptor(keyPath: \FinancialTransaction.date, ascending: false)]
+        request.fetchLimit = 200  // Limit for search performance
+        request.fetchBatchSize = 50
+        return request
+    }(), animation: .default)
     private var allTransactions: FetchedResults<FinancialTransaction>
 
-    @FetchRequest(
-        sortDescriptors: [NSSortDescriptor(keyPath: \Person.name, ascending: true)],
-        animation: .default)
+    @FetchRequest(fetchRequest: {
+        let request: NSFetchRequest<Person> = Person.fetchRequest()
+        request.sortDescriptors = [NSSortDescriptor(keyPath: \Person.name, ascending: true)]
+        request.fetchBatchSize = 50
+        return request
+    }(), animation: .default)
     private var allPeople: FetchedResults<Person>
 
-    @FetchRequest(
-        sortDescriptors: [NSSortDescriptor(keyPath: \UserGroup.name, ascending: true)],
-        animation: .default)
+    @FetchRequest(fetchRequest: {
+        let request: NSFetchRequest<UserGroup> = UserGroup.fetchRequest()
+        request.sortDescriptors = [NSSortDescriptor(keyPath: \UserGroup.name, ascending: true)]
+        request.fetchBatchSize = 20
+        return request
+    }(), animation: .default)
     private var allGroups: FetchedResults<UserGroup>
 
-    @FetchRequest(
-        sortDescriptors: [NSSortDescriptor(keyPath: \Subscription.name, ascending: true)],
-        animation: .default)
+    @FetchRequest(fetchRequest: {
+        let request: NSFetchRequest<Subscription> = Subscription.fetchRequest()
+        request.sortDescriptors = [NSSortDescriptor(keyPath: \Subscription.name, ascending: true)]
+        request.fetchBatchSize = 50
+        return request
+    }(), animation: .default)
     private var allSubscriptions: FetchedResults<Subscription>
 
     // MARK: - Filtered Results
@@ -87,9 +100,6 @@ struct SearchView: View {
         Array(allTransactions.prefix(3))
     }
 
-    private var topPeople: [Person] {
-        Array(allPeople.filter { !CurrentUser.isCurrentUser($0.id) }.prefix(5))
-    }
 
     // MARK: - Body
 
@@ -123,31 +133,6 @@ struct SearchView: View {
     private var suggestionsView: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: Spacing.xxl) {
-                // Quick Access Section
-                if !topPeople.isEmpty {
-                    VStack(alignment: .leading, spacing: Spacing.md) {
-                        Text("People")
-                            .font(AppTypography.title2())
-                            .foregroundColor(AppColors.textPrimary)
-                            .padding(.horizontal)
-
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: Spacing.md) {
-                                ForEach(topPeople) { person in
-                                    NavigationLink(destination: PersonConversationView(person: person)) {
-                                        SuggestedPersonChip(person: person)
-                                    }
-                                    .buttonStyle(PlainButtonStyle())
-                                    .simultaneousGesture(TapGesture().onEnded {
-                                        HapticManager.selectionChanged()
-                                    })
-                                }
-                            }
-                            .padding(.horizontal)
-                        }
-                    }
-                }
-
                 // Recent Transactions Section
                 if !recentTransactions.isEmpty {
                     VStack(alignment: .leading, spacing: Spacing.md) {
@@ -166,7 +151,7 @@ struct SearchView: View {
                 }
 
                 // Browse Categories Hint
-                if topPeople.isEmpty && recentTransactions.isEmpty {
+                if recentTransactions.isEmpty {
                     SearchEmptyPromptView()
                 }
             }

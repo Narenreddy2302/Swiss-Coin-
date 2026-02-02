@@ -472,6 +472,8 @@ class QuickActionViewModel: ObservableObject {
         transaction.date = Date()
         // Payer: Use current user if paidByPerson is nil
         transaction.payer = paidByPerson ?? currentUser
+        // Creator: Always the current user
+        transaction.createdBy = currentUser
         transaction.splitMethod = splitMethod.rawValue
         transaction.group = selectedGroup
 

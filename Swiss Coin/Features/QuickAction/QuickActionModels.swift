@@ -115,7 +115,7 @@ struct Category: Identifiable, Hashable {
         Category(id: "entertainment", name: "Entertainment", icon: "🎬", color: .purple),
         Category(id: "bills", name: "Bills", icon: "📄", color: .indigo),
         Category(id: "health", name: "Health", icon: "💊", color: .red),
-        Category(id: "travel", name: "Travel", icon: "✈️", color: .green),
+        Category(id: "travel", name: "Travel", icon: "✈️", color: .cyan),
         Category(id: "other", name: "Other", icon: "📦", color: .gray),
     ]
 }

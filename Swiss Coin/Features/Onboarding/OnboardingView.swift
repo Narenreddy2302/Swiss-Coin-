@@ -17,7 +17,7 @@ struct OnboardingView: View {
             icon: "dollarsign.circle.fill",
             title: "Track Expenses",
             description: "Keep a clear record of every expense.\nKnow exactly where your money goes.",
-            color: .green
+            color: .blue
         ),
         OnboardingPage(
             icon: "person.2.circle.fill",

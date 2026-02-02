@@ -128,7 +128,7 @@ struct FloatingActionButton: View {
                 .background(
                     Circle()
                         .fill(AppColors.accent)
-                        .shadow(color: AppColors.accent.opacity(0.4), radius: 10, x: 0, y: 4)
+                        .shadow(color: Color.accentColor.opacity(0.4), radius: 10, x: 0, y: 4)
                 )
         }
         .buttonStyle(.plain)
