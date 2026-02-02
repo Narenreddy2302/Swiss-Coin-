@@ -103,7 +103,7 @@ struct MockDataGenerator {
 
     private static func createCurrentUser(context: NSManagedObjectContext) -> Person {
         let currentUser = Person(context: context)
-        currentUser.id = CurrentUser.uuid
+        currentUser.id = CurrentUser.currentUserId ?? UUID()
         currentUser.name = CurrentUser.displayName
         currentUser.colorHex = CurrentUser.defaultColorHex
         return currentUser

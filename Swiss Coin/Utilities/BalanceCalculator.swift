@@ -7,10 +7,6 @@ import Foundation
 
 extension Person {
 
-    /// The UUID for the current user ("You")
-    /// @deprecated Use CurrentUser.uuid instead for consistency
-    static let currentUserUUID = CurrentUser.uuid
-
     /// Calculate net balance with this person (mutual transactions only)
     /// Positive = they owe you, Negative = you owe them
     func calculateBalance() -> Double {
