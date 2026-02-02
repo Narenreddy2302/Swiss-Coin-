@@ -149,7 +149,7 @@ enum AppColors {
     // MARK: - Status Colors
 
     /// Positive balance / money owed to user
-    static let positive = Color.green
+    static let positive = Color.blue
 
     /// Negative balance / money user owes
     static let negative = Color.red
@@ -161,7 +161,7 @@ enum AppColors {
     static let warning = Color.orange
 
     /// Primary accent color
-    static let accent = Color.green
+    static let accent = Color.blue
 
     /// Default avatar color (system blue) — use as the single source of truth
     static let defaultAvatarColorHex = "#007AFF"
@@ -209,12 +209,12 @@ enum AppColors {
     // MARK: - Shadow
 
     /// Adaptive shadow color (works in both light and dark mode)
-    static let shadow = Color(.label).opacity(0.08)
+    static let shadow: Color = Color(white: 0.5, opacity: 0.08)
 
     // MARK: - Interactive Colors
 
     /// User message bubble
-    static let userBubble = Color.green
+    static let userBubble = Color.blue
 
     /// Other person message bubble
     static let otherBubble = Color(UIColor.secondarySystemBackground)
@@ -316,7 +316,7 @@ enum AppTypography {
 
 // MARK: - Button Styles
 
-/// Standard button style with haptic feedback and scale animation
+/// Standard button style with scale animation (haptics should be triggered in button action)
 struct AppButtonStyle: ButtonStyle {
     let hapticStyle: HapticStyle
 
@@ -337,30 +337,10 @@ struct AppButtonStyle: ButtonStyle {
             .scaleEffect(configuration.isPressed ? 0.96 : 1.0)
             .opacity(configuration.isPressed ? 0.9 : 1.0)
             .animation(AppAnimation.buttonPress, value: configuration.isPressed)
-            .onChange(of: configuration.isPressed) { _, isPressed in
-                if isPressed {
-                    triggerHaptic()
-                }
-            }
-    }
-
-    private func triggerHaptic() {
-        switch hapticStyle {
-        case .light:
-            HapticManager.lightTap()
-        case .medium:
-            HapticManager.tap()
-        case .heavy:
-            HapticManager.heavyTap()
-        case .selection:
-            HapticManager.selectionChanged()
-        case .none:
-            break
-        }
     }
 }
 
-/// Primary action button style (green accent)
+/// Primary action button style (accent color) - haptics should be triggered in button action
 struct PrimaryButtonStyle: ButtonStyle {
     let isEnabled: Bool
 
@@ -381,15 +361,10 @@ struct PrimaryButtonStyle: ButtonStyle {
             .scaleEffect(configuration.isPressed ? 0.96 : 1.0)
             .opacity(configuration.isPressed ? 0.9 : 1.0)
             .animation(AppAnimation.buttonPress, value: configuration.isPressed)
-            .onChange(of: configuration.isPressed) { _, isPressed in
-                if isPressed && isEnabled {
-                    HapticManager.tap()
-                }
-            }
     }
 }
 
-/// Secondary action button style
+/// Secondary action button style - haptics should be triggered in button action
 struct SecondaryButtonStyle: ButtonStyle {
     let isEnabled: Bool
 
@@ -410,12 +385,39 @@ struct SecondaryButtonStyle: ButtonStyle {
             .scaleEffect(configuration.isPressed ? 0.96 : 1.0)
             .opacity(configuration.isPressed ? 0.9 : 1.0)
             .animation(AppAnimation.buttonPress, value: configuration.isPressed)
-            .onChange(of: configuration.isPressed) { _, isPressed in
-                if isPressed && isEnabled {
-                    HapticManager.lightTap()
-                }
-            }
     }
+}
+
+// MARK: - Validation Constants
+
+/// Input validation limits for text fields and data entry
+enum ValidationLimits {
+    /// Maximum length for person/entity names (100 characters)
+    static let maxNameLength = 100
+    
+    /// Maximum length for display names (50 characters)
+    static let maxDisplayNameLength = 50
+    
+    /// Maximum length for phone numbers (20 characters)
+    static let maxPhoneLength = 20
+    
+    /// Maximum length for email addresses (254 per RFC 5321)
+    static let maxEmailLength = 254
+    
+    /// Maximum length for transaction titles (200 characters)
+    static let maxTransactionTitleLength = 200
+    
+    /// Maximum length for notes/messages (1000 characters)
+    static let maxNoteLength = 1000
+    
+    /// Maximum length for reminder messages (500 characters)
+    static let maxMessageLength = 500
+    
+    /// Maximum transaction amount ($1 million)
+    static let maxTransactionAmount: Double = 1_000_000
+    
+    /// Maximum subscription amount ($100k/year)
+    static let maxSubscriptionAmount: Double = 100_000
 }
 
 // MARK: - View Extensions
@@ -459,5 +461,14 @@ extension View {
                 }
             }
         )
+    }
+    
+    /// Limits text field input to a maximum length
+    func limitTextLength(to maxLength: Int, text: Binding<String>) -> some View {
+        self.onChange(of: text.wrappedValue) { _, newValue in
+            if newValue.count > maxLength {
+                text.wrappedValue = String(newValue.prefix(maxLength))
+            }
+        }
     }
 }

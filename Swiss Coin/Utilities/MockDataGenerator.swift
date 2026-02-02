@@ -510,11 +510,13 @@ struct MockDataGenerator {
         transaction.amount = amount
         transaction.date = date(daysAgo: daysAgo, hoursAgo: hoursAgo)
         transaction.payer = payer
+        transaction.createdBy = payer // For mock data, assume payer created the transaction
         transaction.splitMethod = splitMethod
         transaction.group = group
 
-        // Create splits
-        let shareAmount = amount / Double(participants.count)
+        // Create splits (guard against empty participants)
+        let participantCount = max(1, participants.count)
+        let shareAmount = amount / Double(participantCount)
         for participant in participants {
             let split = TransactionSplit(context: context)
             split.amount = shareAmount
