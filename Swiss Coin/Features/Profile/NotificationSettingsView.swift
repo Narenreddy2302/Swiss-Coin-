@@ -2,8 +2,7 @@
 //  NotificationSettingsView.swift
 //  Swiss Coin
 //
-//  View for managing notification preferences.
-//  All settings are stored locally via AppStorage.
+//  Simplified notification settings with card-based design.
 //
 
 import Combine
@@ -14,14 +13,11 @@ import UserNotifications
 
 @MainActor
 final class NotificationSettingsViewModel: ObservableObject {
-    // MARK: - Published Properties
-
     // Master Toggle
     @Published var allNotificationsEnabled: Bool = true
 
     // Transaction Notifications
     @Published var newExpenseAdded: Bool = true
-    @Published var expenseModified: Bool = true
     @Published var someonePaidYou: Bool = true
 
     // Reminder Notifications
@@ -31,27 +27,9 @@ final class NotificationSettingsViewModel: ObservableObject {
     // Subscription Notifications
     @Published var subscriptionDueSoon: Bool = true
     @Published var subscriptionDueDays: Int = 3
-    @Published var subscriptionOverdue: Bool = true
-
-    // Settlement Notifications
-    @Published var settlementReceived: Bool = true
-    @Published var settlementSent: Bool = true
-
-    // Group Notifications
-    @Published var addedToGroup: Bool = true
-    @Published var groupExpenseAdded: Bool = true
-
-    // Chat Notifications
-    @Published var newMessage: Bool = true
 
     // Summary Notifications
     @Published var weeklySummary: Bool = true
-    @Published var monthlyReport: Bool = false
-
-    // Quiet Hours
-    @Published var quietHoursEnabled: Bool = false
-    @Published var quietHoursStart: Date = Calendar.current.date(from: DateComponents(hour: 22, minute: 0)) ?? Date()
-    @Published var quietHoursEnd: Date = Calendar.current.date(from: DateComponents(hour: 8, minute: 0)) ?? Date()
 
     // State
     @Published var isLoading: Bool = false
@@ -59,51 +37,29 @@ final class NotificationSettingsViewModel: ObservableObject {
     @Published var showSystemSettingsPrompt: Bool = false
     @Published var permissionStatus: UNAuthorizationStatus = .notDetermined
 
-    // MARK: - Private Properties
-
     private var cancellables = Set<AnyCancellable>()
-
-    // MARK: - AppStorage (local persistence)
 
     @AppStorage("notifications_enabled") private var storedAllNotifications = true
     @AppStorage("notify_new_expense") private var storedNewExpense = true
-    @AppStorage("notify_expense_modified") private var storedExpenseModified = true
     @AppStorage("notify_someone_paid") private var storedSomeonePaid = true
     @AppStorage("notify_payment_reminders") private var storedPaymentReminders = true
     @AppStorage("reminder_days_before") private var storedReminderDays = 3
     @AppStorage("notify_subscription_due") private var storedSubscriptionDue = true
     @AppStorage("subscription_due_days") private var storedSubscriptionDays = 3
-    @AppStorage("notify_subscription_overdue") private var storedSubscriptionOverdue = true
-    @AppStorage("notify_settlement_received") private var storedSettlementReceived = true
-    @AppStorage("notify_settlement_sent") private var storedSettlementSent = true
-    @AppStorage("notify_added_to_group") private var storedAddedToGroup = true
-    @AppStorage("notify_group_expense") private var storedGroupExpense = true
-    @AppStorage("notify_new_message") private var storedNewMessage = true
     @AppStorage("notify_weekly_summary") private var storedWeeklySummary = true
-    @AppStorage("notify_monthly_report") private var storedMonthlyReport = false
-    @AppStorage("quiet_hours_enabled") private var storedQuietHoursEnabled = false
-
-    // MARK: - Init
 
     init() {
         loadFromLocalStorage()
         setupAutoSave()
     }
 
-    // MARK: - Public Methods
-
     func loadSettings() async {
         isLoading = true
-
-        // Check system notification permission via NotificationManager
         await NotificationManager.shared.refreshPermissionStatus()
         let status = NotificationManager.shared.permissionStatus
         permissionStatus = status
         systemNotificationsEnabled = status == .authorized
-
-        // Load from local storage
         loadFromLocalStorage()
-
         isLoading = false
     }
 
@@ -112,7 +68,6 @@ final class NotificationSettingsViewModel: ObservableObject {
         let status = NotificationManager.shared.permissionStatus
         permissionStatus = status
         systemNotificationsEnabled = granted
-
         if !granted && status == .denied {
             showSystemSettingsPrompt = true
         }
@@ -124,86 +79,41 @@ final class NotificationSettingsViewModel: ObservableObject {
         }
     }
 
-    // MARK: - Private Methods
-
-    private func checkSystemNotificationStatus() async {
-        await NotificationManager.shared.refreshPermissionStatus()
-        let status = NotificationManager.shared.permissionStatus
-        permissionStatus = status
-        systemNotificationsEnabled = status == .authorized
-    }
-
     private func loadFromLocalStorage() {
         allNotificationsEnabled = storedAllNotifications
         newExpenseAdded = storedNewExpense
-        expenseModified = storedExpenseModified
         someonePaidYou = storedSomeonePaid
         paymentReminders = storedPaymentReminders
         reminderDaysBefore = storedReminderDays
         subscriptionDueSoon = storedSubscriptionDue
         subscriptionDueDays = storedSubscriptionDays
-        subscriptionOverdue = storedSubscriptionOverdue
-        settlementReceived = storedSettlementReceived
-        settlementSent = storedSettlementSent
-        addedToGroup = storedAddedToGroup
-        groupExpenseAdded = storedGroupExpense
-        newMessage = storedNewMessage
         weeklySummary = storedWeeklySummary
-        monthlyReport = storedMonthlyReport
-        quietHoursEnabled = storedQuietHoursEnabled
     }
 
     private func syncToLocalStorage() {
         storedAllNotifications = allNotificationsEnabled
         storedNewExpense = newExpenseAdded
-        storedExpenseModified = expenseModified
         storedSomeonePaid = someonePaidYou
         storedPaymentReminders = paymentReminders
         storedReminderDays = reminderDaysBefore
         storedSubscriptionDue = subscriptionDueSoon
         storedSubscriptionDays = subscriptionDueDays
-        storedSubscriptionOverdue = subscriptionOverdue
-        storedSettlementReceived = settlementReceived
-        storedSettlementSent = settlementSent
-        storedAddedToGroup = addedToGroup
-        storedGroupExpense = groupExpenseAdded
-        storedNewMessage = newMessage
         storedWeeklySummary = weeklySummary
-        storedMonthlyReport = monthlyReport
-        storedQuietHoursEnabled = quietHoursEnabled
     }
 
     private func setupAutoSave() {
-        // Combine all publishers for auto-save to local storage
-        let boolPublishers = Publishers.MergeMany([
+        let publishers = Publishers.MergeMany([
             $allNotificationsEnabled.map { _ in () }.eraseToAnyPublisher(),
             $newExpenseAdded.map { _ in () }.eraseToAnyPublisher(),
-            $expenseModified.map { _ in () }.eraseToAnyPublisher(),
             $someonePaidYou.map { _ in () }.eraseToAnyPublisher(),
             $paymentReminders.map { _ in () }.eraseToAnyPublisher(),
             $subscriptionDueSoon.map { _ in () }.eraseToAnyPublisher(),
-            $subscriptionOverdue.map { _ in () }.eraseToAnyPublisher(),
-            $settlementReceived.map { _ in () }.eraseToAnyPublisher(),
-            $settlementSent.map { _ in () }.eraseToAnyPublisher(),
-            $addedToGroup.map { _ in () }.eraseToAnyPublisher(),
-            $groupExpenseAdded.map { _ in () }.eraseToAnyPublisher(),
-            $newMessage.map { _ in () }.eraseToAnyPublisher(),
             $weeklySummary.map { _ in () }.eraseToAnyPublisher(),
-            $monthlyReport.map { _ in () }.eraseToAnyPublisher(),
-            $quietHoursEnabled.map { _ in () }.eraseToAnyPublisher()
+            $reminderDaysBefore.map { _ in () }.eraseToAnyPublisher(),
+            $subscriptionDueDays.map { _ in () }.eraseToAnyPublisher()
         ])
 
-        let intPublishers = Publishers.Merge(
-            $reminderDaysBefore.map { _ in () },
-            $subscriptionDueDays.map { _ in () }
-        )
-
-        let datePublishers = Publishers.Merge(
-            $quietHoursStart.map { _ in () },
-            $quietHoursEnd.map { _ in () }
-        )
-
-        Publishers.Merge3(boolPublishers, intPublishers.eraseToAnyPublisher(), datePublishers.eraseToAnyPublisher())
+        publishers
             .dropFirst()
             .debounce(for: .milliseconds(300), scheduler: DispatchQueue.main)
             .sink { [weak self] _ in
@@ -220,259 +130,164 @@ struct NotificationSettingsView: View {
     @Environment(\.dismiss) var dismiss
 
     var body: some View {
-        Form {
-            // System Notification Status
-            if viewModel.permissionStatus == .denied {
-                Section {
-                    HStack {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .foregroundColor(AppColors.warning)
+        ZStack {
+            AppColors.backgroundSecondary
+                .ignoresSafeArea()
 
-                        VStack(alignment: .leading, spacing: Spacing.xs) {
-                            Text("Notifications Blocked")
-                                .font(AppTypography.subheadlineMedium())
-
-                            Text("Notifications are disabled in System Settings. Tap to open Settings and enable them.")
-                                .font(AppTypography.caption())
-                                .foregroundColor(AppColors.textSecondary)
-                        }
-
-                        Spacer()
-
-                        Button("Settings") {
-                            viewModel.openSystemSettings()
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .controlSize(.small)
+            ScrollView {
+                VStack(spacing: Spacing.xxl) {
+                    // System Status Card
+                    if viewModel.permissionStatus == .denied {
+                        SystemStatusCard(
+                            icon: "exclamationmark.triangle.fill",
+                            iconColor: AppColors.warning,
+                            title: "Notifications Blocked",
+                            message: "Enable notifications in System Settings to receive alerts.",
+                            buttonTitle: "Open Settings",
+                            action: { viewModel.openSystemSettings() }
+                        )
+                        .padding(.horizontal)
+                    } else if viewModel.permissionStatus == .notDetermined {
+                        SystemStatusCard(
+                            icon: "bell.badge.fill",
+                            iconColor: AppColors.accent,
+                            title: "Enable Notifications",
+                            message: "Allow Swiss Coin to send you payment reminders and updates.",
+                            buttonTitle: "Allow",
+                            action: {
+                                Task {
+                                    await viewModel.requestNotificationPermission()
+                                }
+                            }
+                        )
+                        .padding(.horizontal)
                     }
-                    .padding(.vertical, Spacing.xs)
-                    .accessibilityElement(children: .combine)
-                    .accessibilityLabel("Notifications are blocked. Tap Settings to enable them.")
-                }
-            } else if viewModel.permissionStatus == .notDetermined {
-                Section {
-                    HStack {
-                        Image(systemName: "bell.badge.fill")
-                            .foregroundColor(AppColors.accent)
 
-                        VStack(alignment: .leading, spacing: Spacing.xs) {
-                            Text("Enable Notifications")
-                                .font(AppTypography.subheadlineMedium())
+                    // Main Toggle
+                    VStack(alignment: .leading, spacing: Spacing.md) {
+                        HStack {
+                            Image(systemName: "bell.fill")
+                                .font(.system(size: 14))
+                                .foregroundColor(AppColors.accent)
+                            Text("All Notifications")
+                                .font(AppTypography.headline())
+                                .foregroundColor(AppColors.textPrimary)
+                            Spacer()
+                            Toggle("", isOn: $viewModel.allNotificationsEnabled)
+                                .labelsHidden()
+                                .onChange(of: viewModel.allNotificationsEnabled) { _, newValue in
+                                    HapticManager.toggle()
+                                    if newValue && viewModel.permissionStatus == .notDetermined {
+                                        Task {
+                                            await viewModel.requestNotificationPermission()
+                                        }
+                                    }
+                                }
+                        }
+                        .padding(.horizontal, Spacing.lg)
+                        .padding(.vertical, Spacing.md)
+                        .background(
+                            RoundedRectangle(cornerRadius: CornerRadius.md)
+                                .fill(AppColors.cardBackground)
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: CornerRadius.md)
+                                .strokeBorder(AppColors.separator.opacity(0.5), lineWidth: 0.5)
+                        )
+                        .padding(.horizontal)
+                    }
 
-                            Text("Allow Swiss Coin to send you reminders about upcoming payments.")
-                                .font(AppTypography.caption())
-                                .foregroundColor(AppColors.textSecondary)
+                    if viewModel.allNotificationsEnabled {
+                        // Transaction Notifications
+                        SettingsGroup(title: "Transactions") {
+                            NotificationToggle(
+                                title: "New expense added",
+                                icon: "plus.circle.fill",
+                                isOn: $viewModel.newExpenseAdded
+                            )
+
+                            Divider().padding(.leading, 50)
+
+                            NotificationToggle(
+                                title: "Someone paid you",
+                                icon: "dollarsign.circle.fill",
+                                isOn: $viewModel.someonePaidYou
+                            )
                         }
 
-                        Spacer()
+                        // Payment Reminders
+                        SettingsGroup(title: "Payment Reminders") {
+                            NotificationToggle(
+                                title: "Upcoming payments",
+                                icon: "bell.badge.fill",
+                                isOn: $viewModel.paymentReminders
+                            )
 
-                        Button("Enable") {
-                            Task {
-                                await viewModel.requestNotificationPermission()
+                            if viewModel.paymentReminders {
+                                Divider().padding(.leading, 50)
+
+                                HStack {
+                                    Text("Remind me")
+                                        .font(AppTypography.body())
+                                    Spacer()
+                                    Picker("", selection: $viewModel.reminderDaysBefore) {
+                                        ForEach(1...7, id: \.self) { day in
+                                            Text("\(day) days before").tag(day)
+                                        }
+                                    }
+                                    .pickerStyle(.menu)
+                                }
+                                .padding(.horizontal, Spacing.lg)
+                                .padding(.vertical, Spacing.md)
                             }
                         }
-                        .buttonStyle(.borderedProminent)
-                        .controlSize(.small)
-                    }
-                    .padding(.vertical, Spacing.xs)
-                }
-            }
 
-            // Master Toggle
-            Section {
-                Toggle(isOn: $viewModel.allNotificationsEnabled) {
-                    Label("All Notifications", systemImage: "bell.fill")
-                }
-                .onChange(of: viewModel.allNotificationsEnabled) { _, newValue in
-                    HapticManager.toggle()
-                    if newValue && viewModel.permissionStatus == .notDetermined {
-                        Task {
-                            await viewModel.requestNotificationPermission()
+                        // Subscription Notifications
+                        SettingsGroup(title: "Subscriptions") {
+                            NotificationToggle(
+                                title: "Subscription due soon",
+                                icon: "calendar.badge.clock",
+                                isOn: $viewModel.subscriptionDueSoon
+                            )
+
+                            if viewModel.subscriptionDueSoon {
+                                Divider().padding(.leading, 50)
+
+                                HStack {
+                                    Text("Notify me")
+                                        .font(AppTypography.body())
+                                    Spacer()
+                                    Picker("", selection: $viewModel.subscriptionDueDays) {
+                                        ForEach(1...7, id: \.self) { day in
+                                            Text("\(day) days before").tag(day)
+                                        }
+                                    }
+                                    .pickerStyle(.menu)
+                                }
+                                .padding(.horizontal, Spacing.lg)
+                                .padding(.vertical, Spacing.md)
+                            }
+                        }
+
+                        // Summary Notifications
+                        SettingsGroup(title: "Summaries") {
+                            NotificationToggle(
+                                title: "Weekly summary",
+                                icon: "chart.bar.fill",
+                                isOn: $viewModel.weeklySummary
+                            )
                         }
                     }
                 }
-            } footer: {
-                Text("Turn off to disable all notifications from Swiss Coin.")
-                    .font(AppTypography.caption())
-            }
-
-            if viewModel.allNotificationsEnabled {
-                // Transaction Notifications
-                Section {
-                    NotificationToggle(
-                        title: "New expense added",
-                        icon: "plus.circle.fill",
-                        isOn: $viewModel.newExpenseAdded
-                    )
-
-                    NotificationToggle(
-                        title: "Expense modified",
-                        icon: "pencil.circle.fill",
-                        isOn: $viewModel.expenseModified
-                    )
-
-                    NotificationToggle(
-                        title: "Someone paid you",
-                        icon: "dollarsign.circle.fill",
-                        isOn: $viewModel.someonePaidYou
-                    )
-                } header: {
-                    Label("Transactions", systemImage: "creditcard.fill")
-                        .font(AppTypography.subheadlineMedium())
-                }
-
-                // Payment Reminders
-                Section {
-                    NotificationToggle(
-                        title: "Payment reminders",
-                        icon: "bell.badge.fill",
-                        isOn: $viewModel.paymentReminders
-                    )
-
-                    if viewModel.paymentReminders {
-                        Stepper(
-                            "\(viewModel.reminderDaysBefore) days before due",
-                            value: $viewModel.reminderDaysBefore,
-                            in: 1...14
-                        )
-                    }
-                } header: {
-                    Label("Reminders", systemImage: "bell.badge.fill")
-                        .font(AppTypography.subheadlineMedium())
-                }
-
-                // Subscription Notifications
-                Section {
-                    NotificationToggle(
-                        title: "Subscription due soon",
-                        icon: "calendar.badge.clock",
-                        isOn: $viewModel.subscriptionDueSoon
-                    )
-
-                    if viewModel.subscriptionDueSoon {
-                        Stepper(
-                            "\(viewModel.subscriptionDueDays) days before billing",
-                            value: $viewModel.subscriptionDueDays,
-                            in: 1...14
-                        )
-                    }
-
-                    NotificationToggle(
-                        title: "Subscription overdue",
-                        icon: "exclamationmark.circle.fill",
-                        isOn: $viewModel.subscriptionOverdue
-                    )
-                } header: {
-                    Label("Subscriptions", systemImage: "repeat.circle.fill")
-                        .font(AppTypography.subheadlineMedium())
-                }
-
-                // Settlement Notifications
-                Section {
-                    NotificationToggle(
-                        title: "Settlement received",
-                        icon: "arrow.down.circle.fill",
-                        isOn: $viewModel.settlementReceived
-                    )
-
-                    NotificationToggle(
-                        title: "Settlement sent",
-                        icon: "arrow.up.circle.fill",
-                        isOn: $viewModel.settlementSent
-                    )
-                } header: {
-                    Label("Settlements", systemImage: "checkmark.circle.fill")
-                        .font(AppTypography.subheadlineMedium())
-                }
-
-                // Group Notifications
-                Section {
-                    NotificationToggle(
-                        title: "Added to group",
-                        icon: "person.badge.plus.fill",
-                        isOn: $viewModel.addedToGroup
-                    )
-
-                    NotificationToggle(
-                        title: "Group expense added",
-                        icon: "person.3.fill",
-                        isOn: $viewModel.groupExpenseAdded
-                    )
-                } header: {
-                    Label("Groups", systemImage: "person.3.fill")
-                        .font(AppTypography.subheadlineMedium())
-                }
-
-                // Chat Notifications
-                Section {
-                    NotificationToggle(
-                        title: "New messages",
-                        icon: "message.fill",
-                        isOn: $viewModel.newMessage
-                    )
-                } header: {
-                    Label("Messages", systemImage: "message.fill")
-                        .font(AppTypography.subheadlineMedium())
-                }
-
-                // Summary Notifications
-                Section {
-                    NotificationToggle(
-                        title: "Weekly summary",
-                        icon: "chart.bar.fill",
-                        isOn: $viewModel.weeklySummary
-                    )
-
-                    NotificationToggle(
-                        title: "Monthly report",
-                        icon: "chart.pie.fill",
-                        isOn: $viewModel.monthlyReport
-                    )
-                } header: {
-                    Label("Summaries", systemImage: "chart.bar.fill")
-                        .font(AppTypography.subheadlineMedium())
-                } footer: {
-                    Text("Get periodic summaries of your spending and balances.")
-                        .font(AppTypography.caption())
-                }
-
-                // Quiet Hours
-                Section {
-                    NotificationToggle(
-                        title: "Quiet Hours",
-                        icon: "moon.fill",
-                        isOn: $viewModel.quietHoursEnabled
-                    )
-
-                    if viewModel.quietHoursEnabled {
-                        DatePicker(
-                            "Start",
-                            selection: $viewModel.quietHoursStart,
-                            displayedComponents: .hourAndMinute
-                        )
-
-                        DatePicker(
-                            "End",
-                            selection: $viewModel.quietHoursEnd,
-                            displayedComponents: .hourAndMinute
-                        )
-                    }
-                } header: {
-                    Label("Quiet Hours", systemImage: "moon.fill")
-                        .font(AppTypography.subheadlineMedium())
-                } footer: {
-                    if viewModel.quietHoursEnabled {
-                        Text("Notifications will be silenced during quiet hours.")
-                            .font(AppTypography.caption())
-                    }
-                }
+                .padding(.top, Spacing.lg)
+                .padding(.bottom, Spacing.section)
             }
         }
         .navigationTitle("Notifications")
-        .navigationBarTitleDisplayMode(.inline)
+        .navigationBarTitleDisplayMode(.large)
         .overlay {
             if viewModel.isLoading {
-                NotificationLoadingOverlay()
+                LoadingOverlay()
             }
         }
         .alert("Enable Notifications", isPresented: $viewModel.showSystemSettingsPrompt) {
@@ -489,7 +304,89 @@ struct NotificationSettingsView: View {
     }
 }
 
-// MARK: - Notification Toggle
+// MARK: - Supporting Views
+
+private struct SystemStatusCard: View {
+    let icon: String
+    let iconColor: Color
+    let title: String
+    let message: String
+    let buttonTitle: String
+    let action: () -> Void
+
+    var body: some View {
+        HStack(spacing: Spacing.md) {
+            Image(systemName: icon)
+                .font(.system(size: 24))
+                .foregroundColor(iconColor)
+                .frame(width: 44, height: 44)
+                .background(iconColor.opacity(0.1))
+                .clipShape(RoundedRectangle(cornerRadius: CornerRadius.sm))
+
+            VStack(alignment: .leading, spacing: Spacing.xs) {
+                Text(title)
+                    .font(AppTypography.subheadlineMedium())
+                    .foregroundColor(AppColors.textPrimary)
+
+                Text(message)
+                    .font(AppTypography.caption())
+                    .foregroundColor(AppColors.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Spacer()
+
+            Button(action: action) {
+                Text(buttonTitle)
+                    .font(AppTypography.caption())
+                    .fontWeight(.semibold)
+                    .foregroundColor(.white)
+                    .padding(.horizontal, Spacing.md)
+                    .padding(.vertical, Spacing.xs)
+                    .background(
+                        RoundedRectangle(cornerRadius: CornerRadius.sm)
+                            .fill(AppColors.accent)
+                    )
+            }
+        }
+        .padding(Spacing.lg)
+        .background(
+            RoundedRectangle(cornerRadius: CornerRadius.md)
+                .fill(AppColors.cardBackground)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: CornerRadius.md)
+                .strokeBorder(iconColor.opacity(0.3), lineWidth: 1)
+        )
+    }
+}
+
+private struct SettingsGroup<Content: View>: View {
+    let title: String
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Spacing.md) {
+            Text(title)
+                .font(AppTypography.headline())
+                .foregroundColor(AppColors.textPrimary)
+                .padding(.horizontal, Spacing.sm)
+
+            VStack(spacing: 0) {
+                content
+            }
+            .background(
+                RoundedRectangle(cornerRadius: CornerRadius.md)
+                    .fill(AppColors.cardBackground)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: CornerRadius.md)
+                    .strokeBorder(AppColors.separator.opacity(0.5), lineWidth: 0.5)
+            )
+        }
+        .padding(.horizontal)
+    }
+}
 
 private struct NotificationToggle: View {
     let title: String
@@ -497,48 +394,51 @@ private struct NotificationToggle: View {
     @Binding var isOn: Bool
 
     var body: some View {
-        Toggle(isOn: $isOn) {
-            HStack(spacing: Spacing.sm) {
-                Image(systemName: icon)
-                    .font(.system(size: 14))
-                    .foregroundColor(AppColors.textSecondary)
-                    .frame(width: 20)
+        HStack(spacing: Spacing.md) {
+            Image(systemName: icon)
+                .font(.system(size: 16))
+                .foregroundColor(AppColors.accent)
+                .frame(width: 28)
 
-                Text(title)
-            }
+            Text(title)
+                .font(AppTypography.body())
+                .foregroundColor(AppColors.textPrimary)
+
+            Spacer()
+
+            Toggle("", isOn: $isOn)
+                .labelsHidden()
+                .onChange(of: isOn) { _, _ in
+                    HapticManager.toggle()
+                }
         }
-        .onChange(of: isOn) { _, _ in
-            HapticManager.toggle()
-        }
+        .padding(.horizontal, Spacing.lg)
+        .padding(.vertical, Spacing.md)
     }
 }
 
-// MARK: - Loading Overlay
-
-private struct NotificationLoadingOverlay: View {
+private struct LoadingOverlay: View {
     var body: some View {
         ZStack {
-            Color(.label).opacity(0.3)
+            Color.black.opacity(0.3)
                 .ignoresSafeArea()
 
             VStack(spacing: Spacing.md) {
                 ProgressView()
                     .scaleEffect(1.2)
 
-                Text("Loading notifications...")
-                    .font(AppTypography.subheadlineMedium())
+                Text("Loading...")
+                    .font(AppTypography.subheadline())
                     .foregroundColor(AppColors.textPrimary)
             }
             .padding(Spacing.xl)
             .background(
-                RoundedRectangle(cornerRadius: CornerRadius.lg)
-                    .fill(AppColors.cardBackgroundElevated)
+                RoundedRectangle(cornerRadius: CornerRadius.md)
+                    .fill(AppColors.cardBackground)
             )
         }
     }
 }
-
-// MARK: - Preview
 
 #Preview {
     NavigationStack {

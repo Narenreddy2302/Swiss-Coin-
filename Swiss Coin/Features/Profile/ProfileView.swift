@@ -2,7 +2,7 @@
 //  ProfileView.swift
 //  Swiss Coin
 //
-//  Main profile view with settings navigation.
+//  Simplified, user-friendly profile view with card-based design.
 //
 
 import CoreData
@@ -32,150 +32,146 @@ struct ProfileView: View {
 
     var body: some View {
         NavigationStack {
-            List {
-                // Header Profile Section
-                Section {
-                    HStack(spacing: Spacing.lg) {
-                        Circle()
-                            .fill(Color(hex: userColor).opacity(0.3))
-                            .frame(width: 60, height: 60)
-                            .overlay(
-                                Text(userInitials)
-                                    .font(.system(size: 22, weight: .semibold))
-                                    .foregroundColor(Color(hex: userColor))
-                            )
-                            .overlay(
-                                Circle()
-                                    .stroke(Color(hex: userColor), lineWidth: 2)
-                            )
-                            .accessibilityHidden(true)
+            ZStack {
+                AppColors.backgroundSecondary
+                    .ignoresSafeArea()
 
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(userName)
-                                .font(AppTypography.title2())
-                                .foregroundColor(AppColors.textPrimary)
+                ScrollView {
+                    VStack(spacing: Spacing.xxl) {
+                        // Profile Header Card
+                        ProfileHeaderCard(
+                            name: userName,
+                            initials: userInitials,
+                            color: userColor,
+                            currency: defaultCurrency
+                        )
+                        .padding(.horizontal)
 
-                            HStack(spacing: Spacing.xs) {
-                                Image(systemName: "dollarsign.circle.fill")
-                                    .font(.system(size: 12))
-                                    .foregroundColor(AppColors.accent)
-                                Text(defaultCurrency)
-                                    .font(AppTypography.subheadline())
-                                    .foregroundColor(AppColors.textSecondary)
+                        // Settings Sections
+                        VStack(alignment: .leading, spacing: Spacing.lg) {
+                            // Account Section
+                            SettingsSection(title: "Account") {
+                                NavigationLink(destination: PersonalDetailsView()) {
+                                    SettingsRow(
+                                        icon: "person.fill",
+                                        title: "Personal Details",
+                                        subtitle: "Name, photo, contact info"
+                                    )
+                                }
+
+                                NavigationLink(destination: NotificationSettingsView()) {
+                                    SettingsRow(
+                                        icon: "bell.fill",
+                                        title: "Notifications",
+                                        subtitle: "Manage alerts and reminders"
+                                    )
+                                }
+
+                                NavigationLink(destination: CurrencySettingsView()) {
+                                    SettingsRow(
+                                        icon: "dollarsign.circle.fill",
+                                        title: "Currency",
+                                        subtitle: "Default: \(defaultCurrency)"
+                                    )
+                                }
+                            }
+
+                            // Preferences Section
+                            SettingsSection(title: "Preferences") {
+                                NavigationLink(destination: AppearanceSettingsView()) {
+                                    SettingsRow(
+                                        icon: "paintbrush.fill",
+                                        title: "Appearance",
+                                        subtitle: "Theme and display"
+                                    )
+                                }
+
+                                NavigationLink(destination: PrivacySecurityView()) {
+                                    SettingsRow(
+                                        icon: "lock.fill",
+                                        title: "Privacy & Security",
+                                        subtitle: "Data and account protection"
+                                    )
+                                }
+                            }
+
+                            // Support Section
+                            SettingsSection(title: "Support") {
+                                Button {
+                                    HapticManager.tap()
+                                    openURL("https://swisscoin.app/help")
+                                } label: {
+                                    SettingsRow(
+                                        icon: "questionmark.circle.fill",
+                                        title: "Help Center",
+                                        subtitle: "FAQs and guides",
+                                        isExternal: true
+                                    )
+                                }
+
+                                Button {
+                                    HapticManager.tap()
+                                    shareApp()
+                                } label: {
+                                    SettingsRow(
+                                        icon: "heart.fill",
+                                        title: "Share Swiss Coin",
+                                        subtitle: "Invite friends",
+                                        isExternal: true
+                                    )
+                                }
+                            }
+
+                            // About Section
+                            SettingsSection(title: "About") {
+                                HStack {
+                                    SettingsRow(
+                                        icon: "info.circle.fill",
+                                        title: "Version",
+                                        subtitle: nil
+                                    )
+                                    Spacer()
+                                    Text(appVersion)
+                                        .font(AppTypography.subheadline())
+                                        .foregroundColor(AppColors.textSecondary)
+                                }
                             }
                         }
+                        .padding(.horizontal)
 
-                        Spacer()
-
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(AppColors.textSecondary)
-                    }
-                    .padding(.vertical, Spacing.sm)
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        HapticManager.tap()
-                    }
-                    .background(
-                        NavigationLink(destination: PersonalDetailsView()) {
-                            EmptyView()
+                        // Log Out Button
+                        Button {
+                            HapticManager.warning()
+                            showingLogoutAlert = true
+                        } label: {
+                            HStack {
+                                Spacer()
+                                Image(systemName: "arrow.right.square.fill")
+                                    .font(.system(size: IconSize.sm))
+                                Text("Log Out")
+                                    .font(AppTypography.subheadlineMedium())
+                                Spacer()
+                            }
+                            .foregroundColor(AppColors.negative)
+                            .frame(height: ButtonHeight.md)
+                            .background(
+                                RoundedRectangle(cornerRadius: CornerRadius.md)
+                                    .fill(AppColors.cardBackground)
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: CornerRadius.md)
+                                    .strokeBorder(AppColors.separator.opacity(0.5), lineWidth: 0.5)
+                            )
                         }
-                        .opacity(0)
-                    )
-                }
-
-                // Account Settings
-                Section {
-                    NavigationLink(destination: PersonalDetailsView()) {
-                        SettingsRow(icon: "person.text.rectangle", title: "Personal Details", color: .blue)
+                        .padding(.horizontal)
+                        .padding(.top, Spacing.md)
                     }
-
-                    NavigationLink(destination: NotificationSettingsView()) {
-                        SettingsRow(icon: "bell.fill", title: "Notifications", color: .red)
-                    }
-
-                    NavigationLink(destination: PrivacySecurityView()) {
-                        SettingsRow(icon: "lock.fill", title: "Privacy & Security", color: .green)
-                    }
-                } header: {
-                    Text("Account")
-                        .font(AppTypography.subheadlineMedium())
-                }
-
-                // App Settings
-                Section {
-                    NavigationLink(destination: AppearanceSettingsView()) {
-                        SettingsRow(icon: "paintbrush.fill", title: "Appearance", color: .purple)
-                    }
-
-                    NavigationLink(destination: CurrencySettingsView()) {
-                        SettingsRow(icon: "dollarsign.circle.fill", title: "Currency", color: .orange)
-                    }
-                } header: {
-                    Text("Preferences")
-                        .font(AppTypography.subheadlineMedium())
-                }
-
-                // Support Section
-                Section {
-                    Button {
-                        HapticManager.tap()
-                        openURL("https://swisscoin.app/help")
-                    } label: {
-                        SettingsRow(icon: "questionmark.circle.fill", title: "Help & Support", color: .teal)
-                    }
-
-                    Button {
-                        HapticManager.tap()
-                        openURL("https://swisscoin.app/feedback")
-                    } label: {
-                        SettingsRow(icon: "envelope.fill", title: "Send Feedback", color: .indigo)
-                    }
-
-                    Button {
-                        HapticManager.tap()
-                        shareApp()
-                    } label: {
-                        SettingsRow(icon: "heart.fill", title: "Share Swiss Coin", color: .pink)
-                    }
-                } header: {
-                    Text("Support")
-                        .font(AppTypography.subheadlineMedium())
-                }
-
-                // About Section
-                Section {
-                    HStack {
-                        SettingsRow(icon: "info.circle.fill", title: "Version", color: .gray)
-                        Spacer()
-                        Text(appVersion)
-                            .font(AppTypography.subheadline())
-                            .foregroundColor(AppColors.textSecondary)
-                    }
-                } header: {
-                    Text("About")
-                        .font(AppTypography.subheadlineMedium())
-                }
-
-                // Log Out Section
-                Section {
-                    Button {
-                        HapticManager.warning()
-                        showingLogoutAlert = true
-                    } label: {
-                        HStack {
-                            Spacer()
-                            Text("Log Out")
-                                .font(AppTypography.bodyBold())
-                                .foregroundColor(AppColors.negative)
-                            Spacer()
-                        }
-                    }
+                    .padding(.top, Spacing.lg)
+                    .padding(.bottom, Spacing.section)
                 }
             }
-            .listStyle(.insetGrouped)
             .navigationTitle("Profile")
-            .navigationBarTitleDisplayMode(.inline)
+            .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Done") {
@@ -206,8 +202,7 @@ struct ProfileView: View {
 
     private var appVersion: String {
         let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
-        let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"
-        return "\(version) (\(build))"
+        return version
     }
 
     // MARK: - Functions
@@ -239,28 +234,156 @@ struct ProfileView: View {
     }
 }
 
-// MARK: - Settings Row Component
+// MARK: - Profile Header Card
+
+private struct ProfileHeaderCard: View {
+    let name: String
+    let initials: String
+    let color: String
+    let currency: String
+
+    var body: some View {
+        VStack(spacing: Spacing.md) {
+            // Avatar
+            ZStack {
+                Circle()
+                    .fill(Color(hex: color).opacity(0.2))
+                    .frame(width: 90, height: 90)
+
+                Text(initials)
+                    .font(.system(size: 36, weight: .semibold))
+                    .foregroundColor(Color(hex: color))
+            }
+            .overlay(
+                Circle()
+                    .stroke(Color(hex: color).opacity(0.3), lineWidth: 2)
+            )
+
+            // Name and Currency
+            VStack(spacing: Spacing.xs) {
+                Text(name)
+                    .font(AppTypography.title2())
+                    .foregroundColor(AppColors.textPrimary)
+
+                HStack(spacing: Spacing.xs) {
+                    Image(systemName: "dollarsign.circle.fill")
+                        .font(.system(size: 12))
+                        .foregroundColor(AppColors.accent)
+                    Text(currency)
+                        .font(AppTypography.subheadline())
+                        .foregroundColor(AppColors.textSecondary)
+                }
+            }
+
+            // Edit Profile Button
+            NavigationLink(destination: PersonalDetailsView()) {
+                HStack(spacing: Spacing.xs) {
+                    Image(systemName: "pencil")
+                        .font(.system(size: 12, weight: .medium))
+                    Text("Edit Profile")
+                        .font(AppTypography.subheadlineMedium())
+                }
+                .foregroundColor(AppColors.accent)
+                .padding(.horizontal, Spacing.lg)
+                .padding(.vertical, Spacing.sm)
+                .background(
+                    RoundedRectangle(cornerRadius: CornerRadius.lg)
+                        .fill(AppColors.accent.opacity(0.1))
+                )
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, Spacing.xl)
+        .background(
+            RoundedRectangle(cornerRadius: CornerRadius.md)
+                .fill(AppColors.cardBackground)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: CornerRadius.md)
+                .strokeBorder(AppColors.separator.opacity(0.5), lineWidth: 0.5)
+        )
+    }
+}
+
+// MARK: - Settings Section
+
+private struct SettingsSection<Content: View>: View {
+    let title: String
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Spacing.md) {
+            Text(title)
+                .font(AppTypography.headline())
+                .foregroundColor(AppColors.textPrimary)
+                .padding(.horizontal, Spacing.sm)
+
+            VStack(spacing: 0) {
+                content
+            }
+            .background(
+                RoundedRectangle(cornerRadius: CornerRadius.md)
+                    .fill(AppColors.cardBackground)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: CornerRadius.md)
+                    .strokeBorder(AppColors.separator.opacity(0.5), lineWidth: 0.5)
+            )
+        }
+    }
+}
+
+// MARK: - Settings Row
 
 struct SettingsRow: View {
     let icon: String
     let title: String
-    let color: Color
+    let subtitle: String?
+    var isExternal: Bool = false
 
     var body: some View {
         HStack(spacing: Spacing.md) {
-            Image(systemName: icon)
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundColor(.white)
-                .frame(width: 28, height: 28)
-                .background(color)
-                .cornerRadius(6)
-                .accessibilityHidden(true)
+            // Icon
+            ZStack {
+                RoundedRectangle(cornerRadius: CornerRadius.sm)
+                    .fill(AppColors.accent.opacity(0.1))
+                    .frame(width: 36, height: 36)
 
-            Text(title)
-                .font(AppTypography.body())
-                .foregroundColor(AppColors.textPrimary)
+                Image(systemName: icon)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(AppColors.accent)
+            }
+
+            // Text
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(AppTypography.body())
+                    .foregroundColor(AppColors.textPrimary)
+
+                if let subtitle = subtitle {
+                    Text(subtitle)
+                        .font(AppTypography.caption())
+                        .foregroundColor(AppColors.textSecondary)
+                        .lineLimit(1)
+                }
+            }
+
+            Spacer()
+
+            // Arrow
+            if isExternal {
+                Image(systemName: "arrow.up.right.square")
+                    .font(.system(size: 14))
+                    .foregroundColor(AppColors.textTertiary)
+            } else {
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(AppColors.textTertiary)
+            }
         }
-        .accessibilityElement(children: .combine)
+        .padding(.horizontal, Spacing.lg)
+        .padding(.vertical, Spacing.md)
+        .contentShape(Rectangle())
     }
 }
 
