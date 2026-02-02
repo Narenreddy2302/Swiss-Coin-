@@ -9,6 +9,7 @@
 
 import CoreData
 import Foundation
+import os
 
 // MARK: - Configuration
 
@@ -916,10 +917,38 @@ struct MockDataGenerator {
         subscription.amount = amount
         subscription.cycle = cycle
         subscription.startDate = startDate
+        subscription.isActive = true
         subscription.isShared = isShared
+
+        // Calculate a proper nextBillingDate by advancing from startDate until it's in the future
+        subscription.nextBillingDate = calculateFutureNextBillingDate(startDate: startDate, cycle: cycle)
 
         for subscriber in subscribers {
             subscription.addToSubscribers(subscriber)
         }
+    }
+
+    /// Advances the billing date from startDate forward until it is in the future
+    private static func calculateFutureNextBillingDate(startDate: Date, cycle: String, customDays: Int = 30) -> Date {
+        let calendar = Calendar.current
+        var nextDate = startDate
+        let now = Date()
+
+        while nextDate <= now {
+            switch cycle {
+            case "Weekly":
+                nextDate = calendar.date(byAdding: .day, value: 7, to: nextDate) ?? nextDate
+            case "Monthly":
+                nextDate = calendar.date(byAdding: .month, value: 1, to: nextDate) ?? nextDate
+            case "Yearly":
+                nextDate = calendar.date(byAdding: .year, value: 1, to: nextDate) ?? nextDate
+            case "Custom":
+                nextDate = calendar.date(byAdding: .day, value: customDays, to: nextDate) ?? nextDate
+            default:
+                nextDate = calendar.date(byAdding: .month, value: 1, to: nextDate) ?? nextDate
+            }
+        }
+
+        return nextDate
     }
 }

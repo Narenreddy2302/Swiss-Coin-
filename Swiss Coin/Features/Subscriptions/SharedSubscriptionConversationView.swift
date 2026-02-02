@@ -7,6 +7,7 @@
 //
 
 import CoreData
+import os
 import SwiftUI
 
 struct SharedSubscriptionConversationView: View {

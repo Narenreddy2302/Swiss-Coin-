@@ -11,14 +11,18 @@ import os.log
 
 /// Production-safe logger that uses os.Logger for structured, low-overhead logging.
 /// Messages appear in Console.app but are NOT printed to stdout in release builds.
+///
+/// Note: Each Logger uses an inline string literal for the subsystem to avoid
+/// referencing a shared `static let` property. This prevents Swift 6 strict
+/// concurrency issues where inter-property dependencies in static initializers
+/// cause actor-isolation inference, making the properties inaccessible from
+/// `Task.detached`, nonisolated actors, or Sendable closures.
 enum AppLogger {
-    private static let subsystem = Bundle.main.bundleIdentifier ?? "com.swisscoin"
-
-    static let general = Logger(subsystem: subsystem, category: "general")
-    static let coreData = Logger(subsystem: subsystem, category: "coredata")
-    static let notifications = Logger(subsystem: subsystem, category: "notifications")
-    static let contacts = Logger(subsystem: subsystem, category: "contacts")
-    static let transactions = Logger(subsystem: subsystem, category: "transactions")
-    static let subscriptions = Logger(subsystem: subsystem, category: "subscriptions")
-    static let auth = Logger(subsystem: subsystem, category: "auth")
+    static let general = Logger(subsystem: "com.swisscoin", category: "general")
+    static let coreData = Logger(subsystem: "com.swisscoin", category: "coredata")
+    static let notifications = Logger(subsystem: "com.swisscoin", category: "notifications")
+    static let contacts = Logger(subsystem: "com.swisscoin", category: "contacts")
+    static let transactions = Logger(subsystem: "com.swisscoin", category: "transactions")
+    static let subscriptions = Logger(subsystem: "com.swisscoin", category: "subscriptions")
+    static let auth = Logger(subsystem: "com.swisscoin", category: "auth")
 }

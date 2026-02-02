@@ -124,14 +124,17 @@ extension Subscription {
 
     // MARK: - Shared Subscription Properties
 
+    /// Total number of people sharing this subscription (including current user).
+    /// The `subscribers` relationship should include ALL participants (current user + others).
     var subscriberCount: Int {
         let count = subscribers?.count ?? 0
-        // Include current user if this is a shared subscription
-        return isShared ? count + 1 : 1
+        return isShared ? max(count, 1) : 1
     }
 
+    /// Number of other members (excluding current user) for display purposes
     var memberCount: Int {
-        subscribers?.count ?? 0
+        let allMembers = subscribers as? Set<Person> ?? []
+        return allMembers.filter { !CurrentUser.isCurrentUser($0.id) }.count
     }
 
     var myShare: Double {

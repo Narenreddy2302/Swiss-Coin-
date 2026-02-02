@@ -7,6 +7,7 @@
 
 import CoreData
 import Foundation
+import os
 
 /// Utility for managing current user operations
 final class CurrentUser {

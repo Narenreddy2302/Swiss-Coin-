@@ -8,7 +8,7 @@
 import CoreData
 import os.log
 
-private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "com.swisscoin", category: "persistence")
+private let logger = Logger(subsystem: "com.swisscoin", category: "persistence")
 
 struct PersistenceController {
     static let shared = PersistenceController()

@@ -222,6 +222,9 @@ struct AddSubscriptionView: View {
         subscription.notes = notes.isEmpty ? nil : notes
 
         if isShared {
+            // Add current user as a subscriber so subscriberCount is accurate
+            let currentUser = CurrentUser.getOrCreate(in: viewContext)
+            subscription.addToSubscribers(currentUser)
             for member in selectedMembers {
                 subscription.addToSubscribers(member)
             }
@@ -245,21 +248,30 @@ struct AddSubscriptionView: View {
         }
     }
 
+    /// Calculates the next billing date by advancing from startDate until it is in the future.
+    /// This handles the case where the user picks a startDate in the past.
     private func calculateNextBillingDate() -> Date {
         let calendar = Calendar.current
+        let now = Date()
+        var nextDate = startDate
 
-        switch cycle {
-        case "Weekly":
-            return calendar.date(byAdding: .day, value: 7, to: startDate) ?? startDate
-        case "Monthly":
-            return calendar.date(byAdding: .month, value: 1, to: startDate) ?? startDate
-        case "Yearly":
-            return calendar.date(byAdding: .year, value: 1, to: startDate) ?? startDate
-        case "Custom":
-            return calendar.date(byAdding: .day, value: customCycleDays, to: startDate) ?? startDate
-        default:
-            return calendar.date(byAdding: .month, value: 1, to: startDate) ?? startDate
+        // Advance until the date is in the future
+        while nextDate <= now {
+            switch cycle {
+            case "Weekly":
+                nextDate = calendar.date(byAdding: .day, value: 7, to: nextDate) ?? nextDate
+            case "Monthly":
+                nextDate = calendar.date(byAdding: .month, value: 1, to: nextDate) ?? nextDate
+            case "Yearly":
+                nextDate = calendar.date(byAdding: .year, value: 1, to: nextDate) ?? nextDate
+            case "Custom":
+                nextDate = calendar.date(byAdding: .day, value: customCycleDays, to: nextDate) ?? nextDate
+            default:
+                nextDate = calendar.date(byAdding: .month, value: 1, to: nextDate) ?? nextDate
+            }
         }
+
+        return nextDate
     }
 }
 

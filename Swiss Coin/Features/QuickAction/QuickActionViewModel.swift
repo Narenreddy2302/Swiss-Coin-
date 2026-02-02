@@ -7,6 +7,7 @@
 
 import Combine
 import CoreData
+import os
 import SwiftUI
 
 @MainActor
@@ -472,6 +473,7 @@ class QuickActionViewModel: ObservableObject {
         // Payer: Use current user if paidByPerson is nil
         transaction.payer = paidByPerson ?? currentUser
         transaction.splitMethod = splitMethod.rawValue
+        transaction.group = selectedGroup
 
         if isSplit {
             for (userId, detail) in splits {

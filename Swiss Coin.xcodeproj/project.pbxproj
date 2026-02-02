@@ -400,7 +400,6 @@
 				DEVELOPMENT_TEAM = 4A7TYP7FGW;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = "Swiss Coin/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "Swiss Coin";
 				INFOPLIST_KEY_NSContactsUsageDescription = "Swiss Coin needs access to your contacts to help you split bills and track shared expenses with friends and family.";
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "Swiss Coin uses Face ID to protect your financial data and keep your account secure.";
@@ -438,7 +437,6 @@
 				DEVELOPMENT_TEAM = 4A7TYP7FGW;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = "Swiss Coin/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "Swiss Coin";
 				INFOPLIST_KEY_NSContactsUsageDescription = "Swiss Coin needs access to your contacts to help you split bills and track shared expenses with friends and family.";
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "Swiss Coin uses Face ID to protect your financial data and keep your account secure.";

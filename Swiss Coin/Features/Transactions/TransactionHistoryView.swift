@@ -1,4 +1,5 @@
 import CoreData
+import os
 import SwiftUI
 
 struct TransactionHistoryView: View {
@@ -6,7 +7,6 @@ struct TransactionHistoryView: View {
 
     @FetchRequest(
         sortDescriptors: [NSSortDescriptor(keyPath: \FinancialTransaction.date, ascending: false)],
-        fetchBatchSize: 20,
         animation: .default)
     private var transactions: FetchedResults<FinancialTransaction>
 

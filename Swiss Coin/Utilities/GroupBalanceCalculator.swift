@@ -9,8 +9,11 @@ import Foundation
 
 extension UserGroup {
 
-    /// Calculate net balance for the current user in this group
-    /// Positive = members owe you, Negative = you owe members
+    /// Calculate net balance for the current user in this group based on group transactions only.
+    /// Positive = members owe you, Negative = you owe members.
+    /// Note: Settlements are tracked at the person level (BalanceCalculator), not at the group level,
+    /// because the Settlement entity has no group relationship. Including all settlements between
+    /// group members here would incorrectly mix in non-group debts.
     func calculateBalance() -> Double {
         var balance: Double = 0
 
@@ -35,37 +38,11 @@ extension UserGroup {
             }
         }
 
-        // Get members for settlement calculations
-        let membersSet = members as? Set<Person> ?? []
-
-        // Apply settlements between current user and group members
-        for member in membersSet {
-            guard !CurrentUser.isCurrentUser(member.id) else { continue }
-
-            // Settlements where member paid current user
-            let memberSentToUser = (member.sentSettlements as? Set<Settlement> ?? [])
-                .filter { CurrentUser.isCurrentUser($0.toPerson?.id) }
-
-            // Settlements where current user paid member
-            let userSentToMember = (member.receivedSettlements as? Set<Settlement> ?? [])
-                .filter { CurrentUser.isCurrentUser($0.fromPerson?.id) }
-
-            // Their payment to you reduces what they owe (balance decreases)
-            for settlement in memberSentToUser {
-                balance -= settlement.amount
-            }
-
-            // Your payment to them reduces your debt (balance increases)
-            for settlement in userSentToMember {
-                balance += settlement.amount
-            }
-        }
-
         return balance
     }
 
-    /// Calculate balance between current user and a specific group member
-    /// Positive = they owe you, Negative = you owe them
+    /// Calculate balance between current user and a specific group member based on group transactions only.
+    /// Positive = they owe you, Negative = you owe them.
     func calculateBalanceWith(member: Person) -> Double {
         guard !CurrentUser.isCurrentUser(member.id) else { return 0 }
 
@@ -88,21 +65,6 @@ extension UserGroup {
                     balance -= mySplit.amount
                 }
             }
-        }
-
-        // Apply settlements between current user and this member
-        let memberSentToUser = (member.sentSettlements as? Set<Settlement> ?? [])
-            .filter { CurrentUser.isCurrentUser($0.toPerson?.id) }
-
-        let userSentToMember = (member.receivedSettlements as? Set<Settlement> ?? [])
-            .filter { CurrentUser.isCurrentUser($0.fromPerson?.id) }
-
-        for settlement in memberSentToUser {
-            balance -= settlement.amount
-        }
-
-        for settlement in userSentToMember {
-            balance += settlement.amount
         }
 
         return balance

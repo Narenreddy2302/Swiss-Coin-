@@ -1,5 +1,6 @@
 import Combine
 import Contacts
+import os
 import SwiftUI
 
 class ContactsManager: ObservableObject {

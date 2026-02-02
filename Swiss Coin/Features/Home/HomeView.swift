@@ -5,10 +5,12 @@ struct HomeView: View {
     @Environment(\.managedObjectContext) private var viewContext
 
     // Fetch last 5 transactions (limited at fetch level for efficiency)
-    @FetchRequest(
-        sortDescriptors: [NSSortDescriptor(keyPath: \FinancialTransaction.date, ascending: false)],
-        fetchLimit: 5,
-        animation: .default)
+    @FetchRequest(fetchRequest: {
+        let request: NSFetchRequest<FinancialTransaction> = FinancialTransaction.fetchRequest()
+        request.sortDescriptors = [NSSortDescriptor(keyPath: \FinancialTransaction.date, ascending: false)]
+        request.fetchLimit = 5
+        return request
+    }(), animation: .default)
     private var allTransactions: FetchedResults<FinancialTransaction>
 
     // Fetch all people to calculate balances

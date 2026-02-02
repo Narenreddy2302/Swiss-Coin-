@@ -50,7 +50,9 @@ struct EditSubscriptionView: View {
         _notificationEnabled = State(initialValue: subscription.notificationEnabled)
         _notificationDays = State(initialValue: Int(subscription.notificationDaysBefore))
         _notes = State(initialValue: subscription.notes ?? "")
-        _selectedMembers = State(initialValue: subscription.subscribers as? Set<Person> ?? [])
+        // Exclude the current user from selectedMembers (they're added automatically on save)
+        let allSubscribers = subscription.subscribers as? Set<Person> ?? []
+        _selectedMembers = State(initialValue: allSubscribers.filter { !CurrentUser.isCurrentUser($0.id) })
     }
 
     private var canSave: Bool {
@@ -233,8 +235,10 @@ struct EditSubscriptionView: View {
             }
         }
 
-        // Add new members
+        // Add new members (including current user for accurate subscriber count)
         if isShared {
+            let currentUser = CurrentUser.getOrCreate(in: viewContext)
+            subscription.addToSubscribers(currentUser)
             for member in selectedMembers {
                 subscription.addToSubscribers(member)
             }
