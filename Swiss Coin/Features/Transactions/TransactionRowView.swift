@@ -8,7 +8,6 @@ struct TransactionRowView: View {
     var onDelete: (() -> Void)? = nil
 
     @State private var isPressed = false
-    @State private var showingDetail = false
     @State private var showingEditSheet = false
     @State private var showingDeleteAlert = false
 
@@ -25,7 +24,8 @@ struct TransactionRowView: View {
                     HStack(spacing: Spacing.xxs) {
                         Text(dateString)
                         Text("|")
-                        Text("Created by \(creatorName)")
+                        Text("By \(creatorName)")
+                            .lineLimit(1)
                     }
                     .font(AppTypography.footnote())
                     .foregroundColor(AppColors.textSecondary)
@@ -79,13 +79,6 @@ struct TransactionRowView: View {
         .contextMenu {
             Button {
                 HapticManager.tap()
-                showingDetail = true
-            } label: {
-                Label("View Details", systemImage: "info.circle")
-            }
-
-            Button {
-                HapticManager.tap()
                 if let onEdit = onEdit {
                     onEdit()
                 } else {
@@ -126,9 +119,6 @@ struct TransactionRowView: View {
         .sheet(isPresented: $showingEditSheet) {
             TransactionEditView(transaction: transaction)
         }
-        .navigationDestination(isPresented: $showingDetail) {
-            TransactionDetailView(transaction: transaction)
-        }
         .alert("Delete Transaction", isPresented: $showingDeleteAlert) {
             Button("Cancel", role: .cancel) {}
             Button("Delete", role: .destructive) {
@@ -147,11 +137,13 @@ struct TransactionRowView: View {
     }
 
     private var creatorName: String {
-        if let payerId = transaction.payer?.id {
-            if CurrentUser.isCurrentUser(payerId) {
+        // Use createdBy if available, otherwise fall back to payer for backward compatibility
+        let creator = transaction.createdBy ?? transaction.payer
+        if let creatorId = creator?.id {
+            if CurrentUser.isCurrentUser(creatorId) {
                 return "You"
             }
-            return transaction.payer?.name ?? "Unknown"
+            return creator?.firstName ?? "Unknown"
         }
         return "Unknown"
     }

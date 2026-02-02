@@ -39,10 +39,7 @@ struct TransactionDetailView: View {
 
     private var formattedDate: String {
         guard let date = transaction.date else { return "Unknown date" }
-        let formatter = DateFormatter()
-        formatter.dateStyle = .long
-        formatter.timeStyle = .none
-        return formatter.string(from: date)
+        return DateFormatter.longDate.string(from: date)
     }
 
     private var participantCount: Int {

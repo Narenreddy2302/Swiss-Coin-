@@ -32,8 +32,10 @@ struct AddTransactionView: View {
                 // MARK: - 1. Meta Data
                 Section(header: Text("Transaction Info")) {
                     TextField("Title", text: $viewModel.title)
+                        .limitTextLength(to: ValidationLimits.maxTransactionTitleLength, text: $viewModel.title)
                     TextField("Total Amount", text: $viewModel.totalAmount)
                         .keyboardType(.decimalPad)
+                        .limitTextLength(to: 12, text: $viewModel.totalAmount)
                     DatePicker("Date", selection: $viewModel.date, displayedComponents: .date)
 
                     PayerPicker(selection: $viewModel.selectedPayer)

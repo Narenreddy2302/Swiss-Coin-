@@ -234,13 +234,16 @@ final class TransactionViewModel: ObservableObject {
             } else {
                 transaction.payer = CurrentUser.getOrCreate(in: viewContext)
             }
+            
+            // 5. Set creator (always the current user)
+            transaction.createdBy = CurrentUser.getOrCreate(in: viewContext)
 
-            // 5. Assign group if this is a group transaction
+            // 6. Assign group if this is a group transaction
             if let group = selectedGroup {
                 transaction.group = group
             }
 
-            // 6. Create splits for each participant
+            // 7. Create splits for each participant
             for person in selectedParticipants {
                 let splitData = TransactionSplit(context: viewContext)
                 splitData.owedBy = person
@@ -255,17 +258,17 @@ final class TransactionViewModel: ObservableObject {
                 }
             }
 
-            // 7. Save to CoreData
+            // 8. Save to CoreData
             try viewContext.save()
 
-            // 8. Success feedback
+            // 9. Success feedback
             HapticManager.success()
 
-            // 9. Call completion handler
+            // 10. Call completion handler
             completion(true)
 
         } catch {
-            // 10. Handle save error
+            // 11. Handle save error
             viewContext.rollback()
             HapticManager.error()
             AppLogger.transactions.error("Failed to save transaction: \(error.localizedDescription)")

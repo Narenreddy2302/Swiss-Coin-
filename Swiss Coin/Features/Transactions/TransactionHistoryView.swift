@@ -5,9 +5,12 @@ import SwiftUI
 struct TransactionHistoryView: View {
     @Environment(\.managedObjectContext) private var viewContext
 
-    @FetchRequest(
-        sortDescriptors: [NSSortDescriptor(keyPath: \FinancialTransaction.date, ascending: false)],
-        animation: .default)
+    @FetchRequest(fetchRequest: {
+        let request: NSFetchRequest<FinancialTransaction> = FinancialTransaction.fetchRequest()
+        request.sortDescriptors = [NSSortDescriptor(keyPath: \FinancialTransaction.date, ascending: false)]
+        request.fetchBatchSize = 50
+        return request
+    }(), animation: .default)
     private var transactions: FetchedResults<FinancialTransaction>
 
     @State private var showingDeleteAlert = false

@@ -80,6 +80,7 @@ struct TransactionEditView: View {
                             .foregroundColor(AppColors.textSecondary)
                         TextField("Transaction title", text: $title)
                             .font(AppTypography.body())
+                            .limitTextLength(to: ValidationLimits.maxTransactionTitleLength, text: $title)
                     }
 
                     VStack(alignment: .leading, spacing: Spacing.xs) {
@@ -93,6 +94,7 @@ struct TransactionEditView: View {
                             TextField("0.00", text: $amount)
                                 .font(AppTypography.body())
                                 .keyboardType(.decimalPad)
+                                .limitTextLength(to: 12, text: $amount)
                         }
                     }
 

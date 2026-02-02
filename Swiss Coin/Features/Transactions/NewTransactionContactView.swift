@@ -56,50 +56,58 @@ struct NewTransactionContactView: View {
                             }
                         }
 
-                        // Contacts List
-                        Section(header: Text("Contacts on Swiff")) {
-                            ForEach(filteredContacts) { contact in
-                                Button(action: {
-                                    selectContact(contact)
-                                }) {
-                                    HStack {
-                                        if let data = contact.thumbnailImageData,
-                                            let uiImage = UIImage(data: data)
-                                        {
-                                            Image(uiImage: uiImage)
-                                                .resizable()
-                                                .scaledToFill()
-                                                .frame(width: 40, height: 40)
-                                                .clipShape(Circle())
-                                        } else {
-                                            ZStack {
-                                                Circle()
-                                                    .fill(AppColors.backgroundSecondary)
-                                                Text(contact.initials)
-                                                    .font(AppTypography.caption())
-                                                    .foregroundColor(AppColors.textSecondary)
-                                            }
+                        // Contacts List - Clean, borderless style
+                        ForEach(Array(filteredContacts.enumerated()), id: \.element.id) { index, contact in
+                            Button(action: {
+                                selectContact(contact)
+                            }) {
+                                HStack(spacing: Spacing.md) {
+                                    if let data = contact.thumbnailImageData,
+                                        let uiImage = UIImage(data: data)
+                                    {
+                                        Image(uiImage: uiImage)
+                                            .resizable()
+                                            .scaledToFill()
                                             .frame(width: AvatarSize.md, height: AvatarSize.md)
+                                            .clipShape(Circle())
+                                    } else {
+                                        ZStack {
+                                            Circle()
+                                                .fill(AppColors.backgroundSecondary)
+                                            Text(contact.initials)
+                                                .font(AppTypography.caption())
+                                                .foregroundColor(AppColors.textSecondary)
                                         }
-
-                                        VStack(alignment: .leading) {
-                                            Text(contact.fullName)
-                                                .font(AppTypography.headline())
-                                                .foregroundColor(AppColors.textPrimary)
-                                            if let phone = contact.phoneNumbers.first {
-                                                Text(phone)
-                                                    .font(AppTypography.subheadline())
-                                                    .foregroundColor(AppColors.textSecondary)
-                                            }
-                                        }
-
-                                        Spacer()
+                                        .frame(width: AvatarSize.md, height: AvatarSize.md)
                                     }
+
+                                    VStack(alignment: .leading, spacing: Spacing.xxs) {
+                                        Text(contact.fullName)
+                                            .font(AppTypography.body())
+                                            .foregroundColor(AppColors.textPrimary)
+                                        if let phone = contact.phoneNumbers.first {
+                                            Text(phone)
+                                                .font(AppTypography.caption())
+                                                .foregroundColor(AppColors.textSecondary)
+                                        }
+                                    }
+
+                                    Spacer()
                                 }
+                                .padding(.vertical, Spacing.xs)
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                            .simultaneousGesture(TapGesture().onEnded {
+                                HapticManager.selectionChanged()
+                            })
+                            
+                            if index < filteredContacts.count - 1 {
+                                Divider()
+                                    .padding(.leading, AvatarSize.md + Spacing.md + Spacing.lg)
                             }
                         }
                     }
-                    .listStyle(.plain)  // WhatsApp uses plain list style for contacts
+                    .listStyle(.plain)
                     .scrollContentBackground(.hidden)
                     .searchable(
                         text: $searchText, placement: .navigationBarDrawer(displayMode: .always))
