@@ -23,6 +23,7 @@ extension FinancialTransaction {
     @NSManaged public var date: Date?
     @NSManaged public var splitMethod: String?
     @NSManaged public var payer: Person?
+    @NSManaged public var createdBy: Person?
     @NSManaged public var group: UserGroup?
     @NSManaged public var splits: NSSet?
 

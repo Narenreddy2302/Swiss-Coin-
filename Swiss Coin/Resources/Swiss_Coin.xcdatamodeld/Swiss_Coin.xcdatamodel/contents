@@ -18,6 +18,7 @@
         <relationship name="sentSubscriptionSettlements" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="SubscriptionSettlement" inverseName="fromPerson" inverseEntity="SubscriptionSettlement"/>
         <relationship name="receivedSubscriptionSettlements" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="SubscriptionSettlement" inverseName="toPerson" inverseEntity="SubscriptionSettlement"/>
         <relationship name="receivedSubscriptionReminders" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="SubscriptionReminder" inverseName="toPerson" inverseEntity="SubscriptionReminder"/>
+        <relationship name="createdTransactions" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="FinancialTransaction" inverseName="createdBy" inverseEntity="FinancialTransaction"/>
     </entity>
     <entity name="ChatMessage" representedClassName="ChatMessage" syncable="YES">
         <attribute name="id" optional="NO" attributeType="UUID" usesScalarValueType="NO"/>
@@ -95,6 +96,7 @@
         <attribute name="date" optional="NO" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="splitMethod" optional="YES" attributeType="String"/>
         <relationship name="payer" optional="YES" maxCount="1" toMany="NO" deletionRule="Nullify" destinationEntity="Person" inverseName="toTransactions" inverseEntity="Person"/>
+        <relationship name="createdBy" optional="YES" maxCount="1" toMany="NO" deletionRule="Nullify" destinationEntity="Person" inverseName="createdTransactions" inverseEntity="Person"/>
         <relationship name="group" optional="YES" maxCount="1" toMany="NO" deletionRule="Nullify" destinationEntity="UserGroup" inverseName="transactions" inverseEntity="UserGroup"/>
         <relationship name="splits" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="TransactionSplit" inverseName="transaction" inverseEntity="TransactionSplit"/>
     </entity>
@@ -123,13 +125,13 @@
         <relationship name="toPerson" optional="YES" maxCount="1" toMany="NO" deletionRule="Nullify" destinationEntity="Person" inverseName="receivedReminders" inverseEntity="Person"/>
     </entity>
     <elements>
-        <element name="Person" positionX="0" positionY="0" width="128" height="254"/>
+        <element name="Person" positionX="0" positionY="0" width="128" height="269"/>
         <element name="UserGroup" positionX="200" positionY="0" width="128" height="165"/>
         <element name="Subscription" positionX="400" positionY="0" width="128" height="329"/>
         <element name="SubscriptionPayment" positionX="600" positionY="0" width="128" height="165"/>
         <element name="SubscriptionSettlement" positionX="600" positionY="200" width="128" height="150"/>
         <element name="SubscriptionReminder" positionX="600" positionY="400" width="128" height="150"/>
-        <element name="FinancialTransaction" positionX="0" positionY="300" width="128" height="150"/>
+        <element name="FinancialTransaction" positionX="0" positionY="300" width="128" height="165"/>
         <element name="TransactionSplit" positionX="200" positionY="300" width="128" height="100"/>
         <element name="Settlement" positionX="400" positionY="400" width="128" height="150"/>
         <element name="Reminder" positionX="0" positionY="500" width="128" height="150"/>

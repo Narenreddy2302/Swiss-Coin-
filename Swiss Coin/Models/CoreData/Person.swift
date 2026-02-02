@@ -34,6 +34,7 @@ extension Person {
     @NSManaged public var sentSubscriptionSettlements: NSSet?
     @NSManaged public var receivedSubscriptionSettlements: NSSet?
     @NSManaged public var receivedSubscriptionReminders: NSSet?
+    @NSManaged public var createdTransactions: NSSet?
 
 }
 
@@ -215,6 +216,21 @@ extension Person {
 
     @objc(removeReceivedSubscriptionReminders:)
     @NSManaged public func removeFromReceivedSubscriptionReminders(_ values: NSSet)
+}
+
+// MARK: Generated accessors for createdTransactions
+extension Person {
+    @objc(addCreatedTransactionsObject:)
+    @NSManaged public func addToCreatedTransactions(_ value: FinancialTransaction)
+
+    @objc(removeCreatedTransactionsObject:)
+    @NSManaged public func removeFromCreatedTransactions(_ value: FinancialTransaction)
+
+    @objc(addCreatedTransactions:)
+    @NSManaged public func addToCreatedTransactions(_ values: NSSet)
+
+    @objc(removeCreatedTransactions:)
+    @NSManaged public func removeFromCreatedTransactions(_ values: NSSet)
 }
 
 extension Person: Identifiable {
