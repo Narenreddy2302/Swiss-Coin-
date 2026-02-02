@@ -77,6 +77,7 @@ struct EditGroupView: View {
 
                 TextField("Enter group name", text: $groupName)
                     .font(AppTypography.body())
+                    .limitTextLength(to: ValidationLimits.maxNameLength, text: $groupName)
                     .padding(Spacing.md)
                     .background(AppColors.backgroundTertiary)
                     .cornerRadius(CornerRadius.sm)

@@ -8,6 +8,8 @@ import SwiftUI
 struct MessageBubbleView: View {
     let message: ChatMessage
 
+    @Environment(\.colorScheme) private var colorScheme
+
     private var isFromUser: Bool {
         message.isFromUser
     }
@@ -25,7 +27,7 @@ struct MessageBubbleView: View {
                 .padding(.vertical, 10)
                 .background(
                     RoundedRectangle(cornerRadius: CornerRadius.lg)
-                        .fill(isFromUser ? AppColors.accent : AppColors.otherBubble)
+                        .fill(isFromUser ? AppColors.accent : AppColors.cardBackground)
                 )
 
             if !isFromUser {

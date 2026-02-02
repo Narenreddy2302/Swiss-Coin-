@@ -30,6 +30,18 @@ struct TransactionCardView: View {
             return transaction.payer?.firstName ?? "Someone"
         }
     }
+    
+    private var creatorName: String {
+        // Use createdBy if available, otherwise fall back to payer for backward compatibility
+        let creator = transaction.createdBy ?? transaction.payer
+        if let creatorId = creator?.id {
+            if CurrentUser.isCurrentUser(creatorId) {
+                return "You"
+            }
+            return creator?.firstName ?? "Someone"
+        }
+        return "Someone"
+    }
 
     private var displayAmount: Double {
         let splits = transaction.splits as? Set<TransactionSplit> ?? []
@@ -111,11 +123,8 @@ struct TransactionCardView: View {
     }
 
     private var metaText: String {
-        if isUserPayer || isPersonPayer {
-            return "\(dateText) | Paid by \(payerName)"
-        } else {
-            return "\(dateText) | Created by \(payerName)"
-        }
+        // Show payer info (who paid the money)
+        "\(dateText) | By \(payerName)"
     }
 
     var body: some View {
@@ -130,6 +139,7 @@ struct TransactionCardView: View {
                 Text(metaText)
                     .font(AppTypography.footnote())
                     .foregroundColor(AppColors.textSecondary)
+                    .lineLimit(1)
             }
 
             Spacer()

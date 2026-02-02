@@ -58,12 +58,21 @@ struct EditPersonView: View {
             Section(header: Text("Details").font(AppTypography.subheadlineMedium())) {
                 TextField("Name", text: $name)
                     .font(AppTypography.body())
+                    .limitTextLength(to: ValidationLimits.maxNameLength, text: $name)
 
                 TextField("Phone Number", text: $phoneNumber)
                     .font(AppTypography.body())
                     .keyboardType(.phonePad)
+                    .limitTextLength(to: ValidationLimits.maxPhoneLength, text: $phoneNumber)
                     .onChange(of: phoneNumber) { _, newValue in
-                        checkDuplicatePhone(newValue)
+                        // Filter to only allow valid phone number characters
+                        let filtered = newValue.filter { char in
+                            char.isNumber || char == "+" || char == " " || char == "-" || char == "(" || char == ")"
+                        }
+                        if filtered != newValue {
+                            phoneNumber = filtered
+                        }
+                        checkDuplicatePhone(filtered)
                     }
 
                 if showingDuplicateWarning {

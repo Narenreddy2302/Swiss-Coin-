@@ -199,7 +199,7 @@ struct PersonDetailView: View {
                 deletePerson()
             }
         } message: {
-            Text("Are you sure you want to delete \(person.name ?? "this person")? This will remove all associated data.")
+            Text("This will permanently delete \(person.name ?? "this person") and ALL their transactions, payment history, and shared expenses. Other people's balances will be affected. This action cannot be undone.")
         }
     }
 

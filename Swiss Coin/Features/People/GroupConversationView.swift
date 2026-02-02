@@ -77,7 +77,7 @@ struct GroupConversationView: View {
                     }
                     .padding(.vertical, 16)
                 }
-                .background(AppColors.background)
+                .background(AppColors.backgroundSecondary)
                 .onTapGesture {
                     hideKeyboard()
                 }
@@ -107,10 +107,10 @@ struct GroupConversationView: View {
                 onSend: sendMessage
             )
         }
-        .background(AppColors.background)
+        .background(AppColors.backgroundSecondary)
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(AppColors.backgroundSecondary, for: .navigationBar)
+        .toolbarBackground(AppColors.backgroundTertiary, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
         .toolbar(.hidden, for: .tabBar) // Hide tab bar like iMessage
         .tint(AppColors.textSecondary)
@@ -334,9 +334,9 @@ struct GroupConversationActionBar: View {
     }
 
     var body: some View {
-        HStack(spacing: Spacing.sm) {
+        ActionBarContainer {
             // Add Transaction Button (Primary - Green Accent)
-            GroupActionButton(
+            ActionBarButton(
                 title: "Add",
                 icon: "plus",
                 isPrimary: true,
@@ -345,7 +345,7 @@ struct GroupConversationActionBar: View {
             )
 
             // Remind Button
-            GroupActionButton(
+            ActionBarButton(
                 title: "Remind",
                 icon: "bell.fill",
                 isPrimary: false,
@@ -358,7 +358,7 @@ struct GroupConversationActionBar: View {
             )
 
             // Settle Button
-            GroupActionButton(
+            ActionBarButton(
                 title: "Settle",
                 icon: "checkmark",
                 isPrimary: false,
@@ -370,66 +370,6 @@ struct GroupConversationActionBar: View {
                 }
             )
         }
-        .padding(.horizontal, Spacing.lg)
-        .padding(.vertical, Spacing.md)
-        .background(AppColors.background)
-        .onAppear {
-            HapticManager.prepare()
-        }
-    }
-}
-
-// MARK: - Group Action Button
-
-private struct GroupActionButton: View {
-    let title: String
-    let icon: String
-    let isPrimary: Bool
-    let isEnabled: Bool
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: {
-            if isEnabled || isPrimary {
-                HapticManager.tap()
-                action()
-            }
-        }) {
-            HStack(spacing: Spacing.sm) {
-                if isPrimary {
-                    // Green circle with plus icon for Add button
-                    ZStack {
-                        Circle()
-                            .fill(AppColors.accent)
-                            .frame(width: IconSize.lg, height: IconSize.lg)
-
-                        Image(systemName: icon)
-                            .font(.system(size: IconSize.xs, weight: .bold))
-                            .foregroundColor(.white)
-                    }
-                } else {
-                    Image(systemName: icon)
-                        .font(.system(size: IconSize.sm, weight: .medium))
-                        .foregroundColor(isEnabled ? AppColors.textSecondary : AppColors.disabled)
-                }
-
-                Text(title)
-                    .font(AppTypography.subheadlineMedium())
-                    .foregroundColor(isPrimary ? AppColors.accent : (isEnabled ? AppColors.textSecondary : AppColors.disabled))
-            }
-            .frame(maxWidth: .infinity)
-            .frame(height: ButtonHeight.lg)
-            .background(
-                RoundedRectangle(cornerRadius: CornerRadius.md)
-                    .fill(AppColors.cardBackground)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: CornerRadius.md)
-                    .strokeBorder(AppColors.separator, lineWidth: 0.5)
-            )
-        }
-        .buttonStyle(AppButtonStyle(haptic: .none))
-        .disabled(!isEnabled && !isPrimary)
     }
 }
 

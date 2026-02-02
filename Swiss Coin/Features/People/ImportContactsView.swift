@@ -28,71 +28,79 @@ struct ImportContactsView: View {
         NavigationStack {
             VStack {
                 if contactsManager.authorizationStatus == .authorized {
-                    List {
-                        ForEach(filteredContacts) { contact in
-                            let isAlreadyAdded = contactAlreadyExists(contact)
-                            Button(action: {
-                                guard !isAlreadyAdded else { return }
-                                HapticManager.selectionChanged()
-                                toggleSelection(contact)
-                            }) {
-                                HStack(spacing: Spacing.md) {
-                                    if let data = contact.thumbnailImageData,
-                                        let uiImage = UIImage(data: data)
-                                    {
-                                        Image(uiImage: uiImage)
-                                            .resizable()
-                                            .scaledToFill()
-                                            .frame(width: AvatarSize.sm, height: AvatarSize.sm)
-                                            .clipShape(Circle())
-                                    } else {
-                                        Circle()
-                                            .fill(AppColors.textSecondary.opacity(0.3))
-                                            .frame(width: AvatarSize.sm, height: AvatarSize.sm)
-                                            .overlay(
-                                                Text(contact.initials)
+                    ScrollView {
+                        VStack(spacing: 0) {
+                            ForEach(Array(filteredContacts.enumerated()), id: \.element.id) { index, contact in
+                                let isAlreadyAdded = contactAlreadyExists(contact)
+                                Button(action: {
+                                    guard !isAlreadyAdded else { return }
+                                    HapticManager.selectionChanged()
+                                    toggleSelection(contact)
+                                }) {
+                                    HStack(spacing: Spacing.md) {
+                                        if let data = contact.thumbnailImageData,
+                                            let uiImage = UIImage(data: data)
+                                        {
+                                            Image(uiImage: uiImage)
+                                                .resizable()
+                                                .scaledToFill()
+                                                .frame(width: AvatarSize.sm, height: AvatarSize.sm)
+                                                .clipShape(Circle())
+                                        } else {
+                                            Circle()
+                                                .fill(AppColors.textSecondary.opacity(0.3))
+                                                .frame(width: AvatarSize.sm, height: AvatarSize.sm)
+                                                .overlay(
+                                                    Text(contact.initials)
+                                                        .font(AppTypography.caption())
+                                                        .foregroundColor(AppColors.textPrimary)
+                                                )
+                                        }
+
+                                        VStack(alignment: .leading, spacing: Spacing.xxs) {
+                                            Text(contact.fullName)
+                                                .font(AppTypography.body())
+                                                .foregroundColor(isAlreadyAdded ? AppColors.textSecondary : AppColors.textPrimary)
+                                            if let phone = contact.phoneNumbers.first {
+                                                Text(phone)
                                                     .font(AppTypography.caption())
-                                                    .foregroundColor(AppColors.textPrimary)
-                                            )
-                                    }
-
-                                    VStack(alignment: .leading, spacing: Spacing.xs) {
-                                        Text(contact.fullName)
-                                            .font(AppTypography.headline())
-                                            .foregroundColor(isAlreadyAdded ? AppColors.textSecondary : AppColors.textPrimary)
-                                        if let phone = contact.phoneNumbers.first {
-                                            Text(phone)
-                                                .font(AppTypography.caption())
-                                                .foregroundColor(AppColors.textSecondary)
+                                                    .foregroundColor(AppColors.textSecondary)
+                                            }
+                                            if isAlreadyAdded {
+                                                Text("Already added")
+                                                    .font(AppTypography.caption())
+                                                    .foregroundColor(AppColors.warning)
+                                            }
                                         }
+
+                                        Spacer()
+
                                         if isAlreadyAdded {
-                                            Text("Already added")
-                                                .font(AppTypography.caption())
-                                                .foregroundColor(AppColors.warning)
+                                            Image(systemName: "checkmark.circle.fill")
+                                                .font(.system(size: IconSize.md))
+                                                .foregroundColor(AppColors.textSecondary.opacity(0.5))
+                                        } else {
+                                            Image(systemName: selectedContacts.contains(contact) ? "checkmark.circle.fill" : "circle")
+                                                .font(.system(size: IconSize.md))
+                                                .foregroundColor(selectedContacts.contains(contact) ? AppColors.accent : AppColors.textSecondary)
                                         }
                                     }
-
-                                    Spacer()
-
-                                    if isAlreadyAdded {
-                                        Image(systemName: "checkmark.circle.fill")
-                                            .font(.system(size: IconSize.md))
-                                            .foregroundColor(AppColors.textSecondary.opacity(0.5))
-                                    } else {
-                                        Image(systemName: selectedContacts.contains(contact) ? "checkmark.circle.fill" : "circle")
-                                            .font(.system(size: IconSize.md))
-                                            .foregroundColor(selectedContacts.contains(contact) ? AppColors.accent : AppColors.textSecondary)
-                                    }
+                                    .padding(.horizontal, Spacing.lg)
+                                    .padding(.vertical, Spacing.sm)
+                                    .opacity(isAlreadyAdded ? 0.6 : 1.0)
                                 }
-                                .padding(.vertical, Spacing.xs)
-                                .opacity(isAlreadyAdded ? 0.6 : 1.0)
+                                .buttonStyle(PlainButtonStyle())
+                                .disabled(isAlreadyAdded)
+                                .background(AppColors.background)
+                                
+                                if index < filteredContacts.count - 1 {
+                                    Divider()
+                                        .padding(.leading, AvatarSize.sm + Spacing.md + Spacing.lg)
+                                }
                             }
-                            .buttonStyle(.plain)
-                            .disabled(isAlreadyAdded)
                         }
                     }
-                    .listStyle(.plain)
-                    .scrollContentBackground(.hidden)
+                    .background(AppColors.backgroundSecondary)
                     .searchable(text: $searchText)
                 } else if contactsManager.authorizationStatus == .denied {
                     VStack(spacing: Spacing.lg) {

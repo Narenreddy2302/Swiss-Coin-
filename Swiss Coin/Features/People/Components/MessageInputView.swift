@@ -17,6 +17,7 @@ struct MessageInputView: View {
         HStack(spacing: Spacing.sm) {
             // Text Input Field
             TextField("iMessage", text: $messageText, axis: .vertical)
+                .limitTextLength(to: ValidationLimits.maxMessageLength, text: $messageText)
                 .font(AppTypography.body())
                 .padding(.horizontal, Spacing.md)
                 .padding(.vertical, Spacing.sm)
@@ -43,7 +44,7 @@ struct MessageInputView: View {
         }
         .padding(.horizontal, Spacing.md)
         .padding(.vertical, Spacing.sm)
-        .background(AppColors.background)
+        .background(AppColors.backgroundSecondary)
         .onAppear {
             HapticManager.prepare()
         }

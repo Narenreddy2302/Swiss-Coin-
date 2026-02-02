@@ -71,7 +71,7 @@ struct PersonConversationView: View {
                     }
                     .padding(.vertical, 16)
                 }
-                .background(AppColors.background)
+                .background(AppColors.backgroundSecondary)
                 .onTapGesture {
                     hideKeyboard()
                 }
@@ -100,10 +100,10 @@ struct PersonConversationView: View {
                 onSend: sendMessage
             )
         }
-        .background(AppColors.background)
+        .background(AppColors.backgroundSecondary)
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(AppColors.backgroundSecondary, for: .navigationBar)
+        .toolbarBackground(AppColors.backgroundTertiary, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
         .toolbar(.hidden, for: .tabBar) // Hide tab bar like iMessage
         .tint(AppColors.textSecondary)

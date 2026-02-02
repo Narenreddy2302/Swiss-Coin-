@@ -63,7 +63,7 @@ struct TransactionBubbleView: View {
                 .padding(.vertical, 10)
                 .background(
                     BubbleShape(isFromUser: isFromUser)
-                        .fill(isFromUser ? AppColors.userBubble : AppColors.otherBubble)
+                        .fill(isFromUser ? AppColors.userBubble : AppColors.cardBackground)
                 )
 
                 // Timestamp

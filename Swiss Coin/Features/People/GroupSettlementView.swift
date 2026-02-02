@@ -207,6 +207,7 @@ struct GroupSettlementView: View {
                                         .foregroundColor(AppColors.textSecondary)
 
                                     TextField("Add a note...", text: $note)
+                                        .limitTextLength(to: ValidationLimits.maxNoteLength, text: $note)
                                         .font(AppTypography.body())
                                         .padding(Spacing.lg)
                                         .background(

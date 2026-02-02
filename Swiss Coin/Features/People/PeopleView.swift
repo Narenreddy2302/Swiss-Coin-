@@ -6,6 +6,11 @@ struct PeopleView: View {
     @State private var selectedSegment = 0
     @Environment(\.managedObjectContext) private var viewContext
     @State private var showingNewMessage = false
+    @State private var showingContactPicker = false
+    @State private var showingManualEntry = false
+    
+    // Navigation state for conversation view after adding contact
+    @State private var selectedPersonForConversation: Person?
 
     var body: some View {
         NavigationStack {
@@ -43,6 +48,10 @@ struct PeopleView: View {
             .background(AppColors.backgroundSecondary)
             .navigationTitle("Contacts")
             .navigationBarTitleDisplayMode(.large)
+            // Navigation to conversation after contact selection
+            .navigationDestination(item: $selectedPersonForConversation) { person in
+                PersonConversationView(person: person)
+            }
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     HStack {
@@ -53,12 +62,12 @@ struct PeopleView: View {
                             } label: {
                                 Image(systemName: "square.and.pencil")
                             }
-                            NavigationLink(destination: AddPersonView()) {
+                            Button {
+                                HapticManager.tap()
+                                showingContactPicker = true
+                            } label: {
                                 Image(systemName: "plus")
                             }
-                            .simultaneousGesture(TapGesture().onEnded {
-                                HapticManager.tap()
-                            })
                         } else {
                             NavigationLink(destination: AddGroupView()) {
                                 Image(systemName: "plus")
@@ -74,30 +83,75 @@ struct PeopleView: View {
                 NewTransactionContactView()
                     .environment(\.managedObjectContext, viewContext)
             }
+            .sheet(isPresented: $showingContactPicker) {
+                ContactPickerView { person in
+                    // Contact added/selected - dismiss picker and navigate to conversation
+                    AppLogger.contacts.info("Contact selected: \(person.name ?? "Unknown")")
+                    showingContactPicker = false
+                    // Small delay to allow sheet dismissal animation
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        selectedPersonForConversation = person
+                    }
+                }
+                .environment(\.managedObjectContext, viewContext)
+            }
+            .sheet(isPresented: $showingManualEntry) {
+                NavigationStack {
+                    AddPersonView()
+                        .environment(\.managedObjectContext, viewContext)
+                }
+            }
             .onAppear {
                 HapticManager.prepare()
+                setupNotifications()
+            }
+            .onDisappear {
+                removeNotifications()
             }
         }
+    }
+    
+    private func setupNotifications() {
+        NotificationCenter.default.addObserver(
+            forName: .showManualContactEntry,
+            object: nil,
+            queue: .main
+        ) { _ in
+            showingManualEntry = true
+        }
+        
+        NotificationCenter.default.addObserver(
+            forName: .contactAddedSuccessfully,
+            object: nil,
+            queue: .main
+        ) { _ in
+            showingContactPicker = false
+        }
+    }
+    
+    private func removeNotifications() {
+        NotificationCenter.default.removeObserver(self, name: .showManualContactEntry, object: nil)
+        NotificationCenter.default.removeObserver(self, name: .contactAddedSuccessfully, object: nil)
     }
 }
 
 struct PersonListView: View {
-    @FetchRequest(
-        sortDescriptors: [NSSortDescriptor(keyPath: \Person.name, ascending: true)],
-        predicate: {
-            if let userId = CurrentUser.currentUserId {
-                return NSPredicate(
-                    format: "id != %@ AND (toTransactions.@count > 0 OR owedSplits.@count > 0 OR sentSettlements.@count > 0 OR receivedSettlements.@count > 0 OR chatMessages.@count > 0)",
-                    userId as CVarArg
-                )
-            } else {
-                // No current user ID — show all people with transactions
-                return NSPredicate(
-                    format: "toTransactions.@count > 0 OR owedSplits.@count > 0 OR sentSettlements.@count > 0 OR receivedSettlements.@count > 0 OR chatMessages.@count > 0"
-                )
-            }
-        }(),
-        animation: .default)
+    @FetchRequest(fetchRequest: {
+        let request: NSFetchRequest<Person> = Person.fetchRequest()
+        request.sortDescriptors = [NSSortDescriptor(keyPath: \Person.name, ascending: true)]
+        if let userId = CurrentUser.currentUserId {
+            request.predicate = NSPredicate(
+                format: "id != %@ AND (toTransactions.@count > 0 OR owedSplits.@count > 0 OR sentSettlements.@count > 0 OR receivedSettlements.@count > 0 OR chatMessages.@count > 0)",
+                userId as CVarArg
+            )
+        } else {
+            request.predicate = NSPredicate(
+                format: "toTransactions.@count > 0 OR owedSplits.@count > 0 OR sentSettlements.@count > 0 OR receivedSettlements.@count > 0 OR chatMessages.@count > 0"
+            )
+        }
+        request.fetchBatchSize = 20
+        return request
+    }(), animation: .default)
     private var people: FetchedResults<Person>
 
     var body: some View {
@@ -292,7 +346,7 @@ struct PersonListRowView: View {
                 deletePerson()
             }
         } message: {
-            Text("Are you sure you want to delete \(person.name ?? "this person")? This will remove all associated data.")
+            Text("This will permanently delete \(person.name ?? "this person") and ALL their transactions, payment history, and shared expenses. Other people's balances will be affected. This action cannot be undone.")
         }
     }
 
@@ -310,9 +364,12 @@ struct PersonListRowView: View {
 }
 
 struct GroupListView: View {
-    @FetchRequest(
-        sortDescriptors: [NSSortDescriptor(keyPath: \UserGroup.name, ascending: true)],
-        animation: .default)
+    @FetchRequest(fetchRequest: {
+        let request: NSFetchRequest<UserGroup> = UserGroup.fetchRequest()
+        request.sortDescriptors = [NSSortDescriptor(keyPath: \UserGroup.name, ascending: true)]
+        request.fetchBatchSize = 20
+        return request
+    }(), animation: .default)
     private var groups: FetchedResults<UserGroup>
 
     var body: some View {

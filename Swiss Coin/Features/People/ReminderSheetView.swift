@@ -46,6 +46,7 @@ struct ReminderSheetView: View {
                         .foregroundColor(AppColors.textSecondary)
 
                     TextField("Add a friendly reminder message...", text: $message, axis: .vertical)
+                        .limitTextLength(to: ValidationLimits.maxMessageLength, text: $message)
                         .font(AppTypography.body())
                         .lineLimit(3...6)
                         .padding(Spacing.lg)
