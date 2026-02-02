@@ -67,116 +67,11 @@ struct EditSubscriptionView: View {
     var body: some View {
         NavigationStack {
             Form {
-                // Basic Info Section
-                Section {
-                    TextField("Name (e.g., Netflix)", text: $name)
-
-                    HStack {
-                        Text(CurrencyFormatter.currencySymbol)
-                            .foregroundColor(AppColors.textSecondary)
-                        TextField("Amount", text: $amount)
-                            .keyboardType(.decimalPad)
-                    }
-
-                    Picker("Billing Cycle", selection: $cycle) {
-                        ForEach(cycles, id: \.self) { Text($0) }
-                    }
-
-                    if cycle == "Custom" {
-                        Stepper("Every \(customCycleDays) days", value: $customCycleDays, in: 1...365)
-                    }
-
-                    DatePicker("Start Date", selection: $startDate, displayedComponents: .date)
-
-                    DatePicker("Next Billing", selection: $nextBillingDate, displayedComponents: .date)
-
-                    Picker("Category", selection: $selectedCategory) {
-                        ForEach(categories, id: \.self) { Text($0) }
-                    }
-                } header: {
-                    Text("Subscription Details")
-                        .font(AppTypography.subheadlineMedium())
-                }
-
-                // Appearance Section
-                Section {
-                    IconPickerRow(selectedIcon: $selectedIcon)
-
-                    ColorPickerRow(selectedColor: $selectedColor)
-                } header: {
-                    Text("Appearance")
-                        .font(AppTypography.subheadlineMedium())
-                }
-
-                // Shared Toggle Section
-                Section {
-                    Toggle("Shared Subscription", isOn: $isShared)
-                        .onChange(of: isShared) { _, newValue in
-                            HapticManager.toggle()
-                            if !newValue {
-                                selectedMembers.removeAll()
-                            }
-                        }
-
-                    if isShared {
-                        Button {
-                            HapticManager.tap()
-                            showingMemberPicker = true
-                        } label: {
-                            HStack {
-                                Text("Members")
-                                    .foregroundColor(AppColors.textPrimary)
-                                Spacer()
-                                Text("\(selectedMembers.count) selected")
-                                    .foregroundColor(AppColors.textSecondary)
-                                Image(systemName: "chevron.right")
-                                    .font(.system(size: 14, weight: .semibold))
-                                    .foregroundColor(AppColors.textSecondary)
-                            }
-                        }
-
-                        if !selectedMembers.isEmpty {
-                            ScrollView(.horizontal, showsIndicators: false) {
-                                HStack(spacing: Spacing.sm) {
-                                    ForEach(Array(selectedMembers).sorted { ($0.name ?? "") < ($1.name ?? "") }) { member in
-                                        MemberChip(person: member) {
-                                            HapticManager.tap()
-                                            selectedMembers.remove(member)
-                                        }
-                                    }
-                                }
-                                .padding(.vertical, Spacing.xs)
-                            }
-                        }
-                    }
-                } header: {
-                    Text("Sharing")
-                        .font(AppTypography.subheadlineMedium())
-                }
-
-                // Notifications Section
-                Section {
-                    Toggle("Payment Reminders", isOn: $notificationEnabled)
-                        .onChange(of: notificationEnabled) { _, _ in
-                            HapticManager.toggle()
-                        }
-
-                    if notificationEnabled {
-                        Stepper("\(notificationDays) days before", value: $notificationDays, in: 1...14)
-                    }
-                } header: {
-                    Text("Reminders")
-                        .font(AppTypography.subheadlineMedium())
-                }
-
-                // Notes Section
-                Section {
-                    TextEditor(text: $notes)
-                        .frame(height: 80)
-                } header: {
-                    Text("Notes (Optional)")
-                        .font(AppTypography.subheadlineMedium())
-                }
+                basicInfoSection
+                appearanceSection
+                sharingSection
+                remindersSection
+                notesSection
             }
             .navigationTitle("Edit Subscription")
             .navigationBarTitleDisplayMode(.inline)
@@ -207,6 +102,135 @@ struct EditSubscriptionView: View {
             } message: {
                 Text(errorMessage)
             }
+        }
+    }
+
+    // MARK: - Section Views
+
+    private var basicInfoSection: some View {
+        Section {
+            TextField("Name (e.g., Netflix)", text: $name)
+                .limitTextLength(to: ValidationLimits.maxNameLength, text: $name)
+
+            HStack {
+                Text(CurrencyFormatter.currencySymbol)
+                    .foregroundColor(AppColors.textSecondary)
+                TextField("Amount", text: $amount)
+                    .keyboardType(.decimalPad)
+                    .limitTextLength(to: 12, text: $amount)
+            }
+
+            Picker("Billing Cycle", selection: $cycle) {
+                ForEach(cycles, id: \.self) { Text($0) }
+            }
+
+            if cycle == "Custom" {
+                Stepper("Every \(customCycleDays) days", value: $customCycleDays, in: 1...365)
+            }
+
+            DatePicker("Start Date", selection: $startDate, displayedComponents: .date)
+
+            DatePicker("Next Billing", selection: $nextBillingDate, displayedComponents: .date)
+
+            Picker("Category", selection: $selectedCategory) {
+                ForEach(categories, id: \.self) { Text($0) }
+            }
+        } header: {
+            Text("Subscription Details")
+                .font(AppTypography.subheadlineMedium())
+        }
+    }
+
+    private var appearanceSection: some View {
+        Section {
+            IconPickerRow(selectedIcon: $selectedIcon)
+            ColorPickerRow(selectedColor: $selectedColor)
+        } header: {
+            Text("Appearance")
+                .font(AppTypography.subheadlineMedium())
+        }
+    }
+
+    private var sharingSection: some View {
+        Section {
+            Toggle("Shared Subscription", isOn: $isShared)
+                .onChange(of: isShared) { _, newValue in
+                    HapticManager.toggle()
+                    if !newValue {
+                        selectedMembers.removeAll()
+                    }
+                }
+
+            if isShared {
+                Button {
+                    HapticManager.tap()
+                    showingMemberPicker = true
+                } label: {
+                    HStack {
+                        Text("Members")
+                            .foregroundColor(AppColors.textPrimary)
+                        Spacer()
+                        Text("\(selectedMembers.count) selected")
+                            .foregroundColor(AppColors.textSecondary)
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(AppColors.textSecondary)
+                    }
+                }
+
+                if !selectedMembers.isEmpty {
+                    memberChipsView
+                }
+            }
+        } header: {
+            Text("Sharing")
+                .font(AppTypography.subheadlineMedium())
+        }
+    }
+
+    private var memberChipsView: some View {
+        let sortedMembers = Array(selectedMembers).sorted(by: { member1, member2 in
+            let name1 = member1.name ?? ""
+            let name2 = member2.name ?? ""
+            return name1 < name2
+        })
+        return ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: Spacing.sm) {
+                ForEach(sortedMembers) { member in
+                    MemberChip(person: member) {
+                        HapticManager.tap()
+                        selectedMembers.remove(member)
+                    }
+                }
+            }
+            .padding(.vertical, Spacing.xs)
+        }
+    }
+
+    private var remindersSection: some View {
+        Section {
+            Toggle("Payment Reminders", isOn: $notificationEnabled)
+                .onChange(of: notificationEnabled) { _, _ in
+                    HapticManager.toggle()
+                }
+
+            if notificationEnabled {
+                Stepper("\(notificationDays) days before", value: $notificationDays, in: 1...14)
+            }
+        } header: {
+            Text("Reminders")
+                .font(AppTypography.subheadlineMedium())
+        }
+    }
+
+    private var notesSection: some View {
+        Section {
+            TextEditor(text: $notes)
+                .frame(height: 80)
+                .limitTextLength(to: ValidationLimits.maxNoteLength, text: $notes)
+        } header: {
+            Text("Notes")
+                .font(AppTypography.subheadlineMedium())
         }
     }
 

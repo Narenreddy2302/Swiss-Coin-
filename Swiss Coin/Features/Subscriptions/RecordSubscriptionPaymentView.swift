@@ -102,6 +102,7 @@ struct RecordSubscriptionPaymentView: View {
                 // Note
                 Section {
                     TextField("Add a note (optional)", text: $note)
+                        .limitTextLength(to: ValidationLimits.maxNoteLength, text: $note)
                 } header: {
                     Text("Note")
                         .font(AppTypography.subheadlineMedium())

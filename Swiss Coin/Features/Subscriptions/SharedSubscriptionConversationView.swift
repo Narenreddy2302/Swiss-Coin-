@@ -85,7 +85,7 @@ struct SharedSubscriptionConversationView: View {
                     }
                     .padding(.vertical, 16)
                 }
-                .background(AppColors.background)
+                .background(AppColors.backgroundSecondary)
                 .onTapGesture {
                     hideKeyboard()
                 }
@@ -115,10 +115,10 @@ struct SharedSubscriptionConversationView: View {
                 onSend: sendMessage
             )
         }
-        .background(AppColors.background)
+        .background(AppColors.backgroundSecondary)
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(AppColors.backgroundSecondary, for: .navigationBar)
+        .toolbarBackground(AppColors.backgroundTertiary, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
         .toolbar(.hidden, for: .tabBar)
         .tint(AppColors.textSecondary)

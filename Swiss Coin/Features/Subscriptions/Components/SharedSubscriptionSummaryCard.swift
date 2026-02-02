@@ -34,7 +34,7 @@ struct SharedSubscriptionSummaryCard: View {
 
                     Text("\(activeCount) shared")
                         .font(AppTypography.subheadlineMedium())
-                        .foregroundColor(AppColors.accent)
+                        .foregroundColor(AppColors.textSecondary)
                 }
             }
 

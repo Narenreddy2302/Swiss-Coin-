@@ -168,6 +168,7 @@ struct SubscriptionSettlementView: View {
                         }
 
                         TextField("Add a note (optional)", text: $note)
+                            .limitTextLength(to: ValidationLimits.maxNoteLength, text: $note)
                     } header: {
                         Text("Settlement Amount")
                             .font(AppTypography.subheadlineMedium())

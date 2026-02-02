@@ -112,6 +112,7 @@ struct SubscriptionReminderSheetView: View {
                 if !membersWhoOwe.isEmpty {
                     Section {
                         TextField("Add a message (optional)", text: $message)
+                            .limitTextLength(to: ValidationLimits.maxMessageLength, text: $message)
                     } header: {
                         Text("Message")
                             .font(AppTypography.subheadlineMedium())

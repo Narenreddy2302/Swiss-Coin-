@@ -50,13 +50,9 @@ struct SubscriptionConversationDateGroup: Identifiable {
         } else if calendar.isDateInYesterday(date) {
             return "Yesterday"
         } else if calendar.isDate(date, equalTo: Date(), toGranularity: .weekOfYear) {
-            let formatter = DateFormatter()
-            formatter.dateFormat = "EEEE"
-            return formatter.string(from: date)
+            return DateFormatter.dayOfWeek.string(from: date)
         } else {
-            let formatter = DateFormatter()
-            formatter.dateFormat = "MMM d, yyyy"
-            return formatter.string(from: date)
+            return DateFormatter.mediumDate.string(from: date)
         }
     }
 }

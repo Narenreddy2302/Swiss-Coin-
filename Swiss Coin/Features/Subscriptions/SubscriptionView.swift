@@ -17,12 +17,6 @@ struct SubscriptionView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                // Subscription Cost Summary
-                SubscriptionCostSummaryCard()
-                    .padding(.horizontal)
-                    .padding(.top, Spacing.sm)
-                    .padding(.bottom, Spacing.xs)
-
                 // Segment Header (matching People's page)
                 HStack(spacing: Spacing.md) {
                     ActionHeaderButton(
