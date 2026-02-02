@@ -82,7 +82,7 @@ struct PersonDetailView: View {
                         }
 
                         Button(action: {
-                            HapticManager.navigate()
+                            HapticManager.tap()
                             showingConversation = true
                         }) {
                             HStack(spacing: Spacing.xs) {

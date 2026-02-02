@@ -56,14 +56,14 @@ struct PeopleView: View {
                                 Image(systemName: "plus")
                             }
                             .simultaneousGesture(TapGesture().onEnded {
-                                HapticManager.navigate()
+                                HapticManager.tap()
                             })
                         } else {
                             NavigationLink(destination: AddGroupView()) {
                                 Image(systemName: "plus")
                             }
                             .simultaneousGesture(TapGesture().onEnded {
-                                HapticManager.navigate()
+                                HapticManager.tap()
                             })
                         }
                     }
@@ -85,7 +85,7 @@ struct PersonListView: View {
         sortDescriptors: [NSSortDescriptor(keyPath: \Person.name, ascending: true)],
         predicate: NSPredicate(
             format: "id != %@ AND (toTransactions.@count > 0 OR owedSplits.@count > 0 OR sentSettlements.@count > 0 OR receivedSettlements.@count > 0 OR chatMessages.@count > 0)",
-            CurrentUser.uuid as CVarArg
+            (CurrentUser.currentUserId ?? UUID()) as CVarArg
         ),
         animation: .default)
     private var people: FetchedResults<Person>

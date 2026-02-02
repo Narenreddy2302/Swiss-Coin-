@@ -184,7 +184,7 @@ struct GroupTransactionCardView: View {
                 isPressed = pressing
             }
             if pressing {
-                HapticManager.longPress()
+                HapticManager.tap()
             }
         }, perform: {})
     }

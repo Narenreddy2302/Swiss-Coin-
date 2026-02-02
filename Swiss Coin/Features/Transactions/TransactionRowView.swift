@@ -85,7 +85,7 @@ struct TransactionRowView: View {
                 isPressed = pressing
             }
             if pressing {
-                HapticManager.longPress()
+                HapticManager.tap()
             }
         }, perform: {})
     }

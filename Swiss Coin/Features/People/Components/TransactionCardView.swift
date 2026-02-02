@@ -197,7 +197,7 @@ struct TransactionCardView: View {
                 isPressed = pressing
             }
             if pressing {
-                HapticManager.longPress()
+                HapticManager.tap()
             }
         }, perform: {})
     }

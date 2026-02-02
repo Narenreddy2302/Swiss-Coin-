@@ -81,7 +81,7 @@ private struct SubscriptionActionButton: View {
     var body: some View {
         Button(action: {
             if isEnabled || isPrimary {
-                HapticManager.buttonPress()
+                HapticManager.tap()
                 action()
             }
         }) {

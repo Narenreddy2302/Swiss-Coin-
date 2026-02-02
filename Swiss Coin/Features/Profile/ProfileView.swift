@@ -74,7 +74,7 @@ struct ProfileView: View {
                     .padding(.vertical, Spacing.sm)
                     .contentShape(Rectangle())
                     .onTapGesture {
-                        HapticManager.navigate()
+                        HapticManager.tap()
                     }
                     .background(
                         NavigationLink(destination: PersonalDetailsView()) {
@@ -213,7 +213,7 @@ struct ProfileView: View {
     // MARK: - Functions
 
     private func loadCurrentUser() {
-        currentUser = CurrentUser.fetch(from: viewContext)
+        currentUser = CurrentUser.getOrCreate(in: viewContext)
     }
 
     private func logOut() {
