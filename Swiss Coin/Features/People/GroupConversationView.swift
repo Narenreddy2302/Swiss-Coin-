@@ -112,61 +112,12 @@ struct GroupConversationView: View {
         .tint(AppColors.textSecondary)
         .navigationBarBackButtonHidden(true)
         .toolbar {
-            // Leading: Back button + Group Icon + Name
             ToolbarItem(placement: .topBarLeading) {
-                HStack(spacing: Spacing.sm) {
-                    // Custom back button (chevron only)
-                    Button {
-                        HapticManager.navigate()
-                        dismiss()
-                    } label: {
-                        Image(systemName: "chevron.left")
-                            .font(AppTypography.bodyBold())
-                            .foregroundColor(AppColors.accent)
-                    }
-
-                    // Group Icon + Name (tappable for group detail)
-                    Button {
-                        HapticManager.navigate()
-                        showingGroupDetail = true
-                    } label: {
-                        HStack(spacing: Spacing.sm) {
-                            RoundedRectangle(cornerRadius: CornerRadius.sm)
-                                .fill(Color(hex: group.colorHex ?? CurrentUser.defaultColorHex).opacity(0.2))
-                                .frame(width: AvatarSize.sm, height: AvatarSize.sm)
-                                .overlay(
-                                    Image(systemName: "person.3.fill")
-                                        .font(.system(size: IconSize.sm, weight: .semibold))
-                                        .foregroundColor(Color(hex: group.colorHex ?? CurrentUser.defaultColorHex))
-                                )
-
-                            VStack(alignment: .leading, spacing: 1) {
-                                Text(group.name ?? "Unknown Group")
-                                    .font(AppTypography.bodyBold())
-                                    .foregroundColor(AppColors.textPrimary)
-                                    .lineLimit(1)
-
-                                Text("\(memberCount) members")
-                                    .font(AppTypography.caption())
-                                    .foregroundColor(AppColors.textSecondary)
-                            }
-                        }
-                    }
-                    .buttonStyle(.plain)
-                }
+                toolbarLeadingContent
             }
 
-            // Trailing: Balance info
             ToolbarItem(placement: .topBarTrailing) {
-                VStack(alignment: .trailing, spacing: 2) {
-                    Text(balanceLabel)
-                        .font(AppTypography.caption())
-                        .foregroundColor(AppColors.textSecondary)
-
-                    Text(balanceAmount)
-                        .font(AppTypography.amountSmall())
-                        .foregroundColor(balanceColor)
-                }
+                toolbarTrailingContent
             }
         }
         .sheet(isPresented: $showingAddTransaction) {
@@ -194,6 +145,70 @@ struct GroupConversationView: View {
             Button("OK", role: .cancel) {}
         } message: {
             Text(errorMessage)
+        }
+    }
+
+    // MARK: - Toolbar Content
+
+    @ViewBuilder
+    private var toolbarLeadingContent: some View {
+        HStack(spacing: Spacing.sm) {
+            // Custom back button
+            Button {
+                HapticManager.tap()
+                dismiss()
+            } label: {
+                Image(systemName: "chevron.left")
+                    .font(AppTypography.bodyBold())
+                    .foregroundColor(AppColors.accent)
+            }
+
+            // Group Icon + Name (tappable for group detail)
+            Button {
+                HapticManager.tap()
+                showingGroupDetail = true
+            } label: {
+                groupHeaderContent
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    @ViewBuilder
+    private var groupHeaderContent: some View {
+        HStack(spacing: Spacing.sm) {
+            RoundedRectangle(cornerRadius: CornerRadius.sm)
+                .fill(Color(hex: group.colorHex ?? CurrentUser.defaultColorHex).opacity(0.2))
+                .frame(width: AvatarSize.sm, height: AvatarSize.sm)
+                .overlay(
+                    Image(systemName: "person.3.fill")
+                        .font(.system(size: IconSize.sm, weight: .semibold))
+                        .foregroundColor(Color(hex: group.colorHex ?? CurrentUser.defaultColorHex))
+                )
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text(group.name ?? "Unknown Group")
+                    .font(AppTypography.bodyBold())
+                    .foregroundColor(AppColors.textPrimary)
+                    .lineLimit(1)
+
+                Text("\(memberCount) members")
+                    .font(AppTypography.caption())
+                    .foregroundColor(AppColors.textSecondary)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var toolbarTrailingContent: some View {
+        VStack(alignment: .trailing, spacing: 2) {
+            Text(balanceLabel)
+                .font(AppTypography.caption())
+                .foregroundColor(AppColors.textSecondary)
+
+            Text(balanceAmount)
+                .font(AppTypography.amountSmall())
+                .foregroundColor(balanceColor)
         }
     }
 

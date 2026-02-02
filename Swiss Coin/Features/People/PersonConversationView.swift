@@ -105,55 +105,11 @@ struct PersonConversationView: View {
         .tint(AppColors.textSecondary)
         .navigationBarBackButtonHidden(true)
         .toolbar {
-            // Leading: Back button + Avatar + Name
             ToolbarItem(placement: .topBarLeading) {
-                HStack(spacing: Spacing.sm) {
-                    // Custom back button (chevron only)
-                    Button {
-                        HapticManager.navigate()
-                        dismiss()
-                    } label: {
-                        Image(systemName: "chevron.left")
-                            .font(AppTypography.bodyBold())
-                            .foregroundColor(AppColors.accent)
-                    }
-
-                    // Avatar + Name (tappable for profile)
-                    Button {
-                        HapticManager.navigate()
-                        showingPersonDetail = true
-                    } label: {
-                        HStack(spacing: Spacing.sm) {
-                            Circle()
-                                .fill(Color(hex: person.colorHex ?? CurrentUser.defaultColorHex).opacity(0.2))
-                                .frame(width: AvatarSize.sm, height: AvatarSize.sm)
-                                .overlay(
-                                    Text(person.initials)
-                                        .font(AppTypography.subheadlineMedium())
-                                        .foregroundColor(Color(hex: person.colorHex ?? CurrentUser.defaultColorHex))
-                                )
-
-                            Text(person.name ?? "Unknown")
-                                .font(AppTypography.bodyBold())
-                                .foregroundColor(AppColors.textPrimary)
-                                .lineLimit(1)
-                        }
-                    }
-                    .buttonStyle(.plain)
-                }
+                toolbarLeadingContent
             }
-
-            // Trailing: Balance info
             ToolbarItem(placement: .topBarTrailing) {
-                VStack(alignment: .trailing, spacing: 2) {
-                    Text(balanceLabel)
-                        .font(AppTypography.caption())
-                        .foregroundColor(AppColors.textSecondary)
-
-                    Text(balanceAmount)
-                        .font(AppTypography.amountSmall())
-                        .foregroundColor(balanceColor)
-                }
+                toolbarTrailingContent
             }
         }
         .sheet(isPresented: $showingAddTransaction) {
@@ -181,6 +137,66 @@ struct PersonConversationView: View {
             Button("OK", role: .cancel) {}
         } message: {
             Text(errorMessage)
+        }
+    }
+
+    // MARK: - Toolbar Components
+
+    @ViewBuilder
+    private var toolbarLeadingContent: some View {
+        HStack(spacing: Spacing.sm) {
+            // Custom back button
+            Button {
+                HapticManager.tap()
+                dismiss()
+            } label: {
+                Image(systemName: "chevron.left")
+                    .font(AppTypography.bodyBold())
+                    .foregroundColor(AppColors.accent)
+            }
+
+            // Person header button
+            Button {
+                HapticManager.tap()
+                showingPersonDetail = true
+            } label: {
+                personHeaderContent
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    @ViewBuilder
+    private var personHeaderContent: some View {
+        HStack(spacing: Spacing.sm) {
+            // Avatar circle
+            Circle()
+                .fill(Color(hex: person.colorHex ?? CurrentUser.defaultColorHex).opacity(0.2))
+                .frame(width: AvatarSize.sm, height: AvatarSize.sm)
+                .overlay(
+                    Text(person.initials)
+                        .font(AppTypography.subheadlineMedium())
+                        .foregroundColor(Color(hex: person.colorHex ?? CurrentUser.defaultColorHex))
+                )
+
+            // Person name
+            Text(person.name ?? "Unknown")
+                .font(AppTypography.bodyBold())
+                .foregroundColor(AppColors.textPrimary)
+                .lineLimit(1)
+        }
+    }
+
+    @ViewBuilder
+    private var toolbarTrailingContent: some View {
+        VStack(alignment: .trailing, spacing: 2) {
+            Text(balanceLabel)
+                .font(AppTypography.caption())
+                .foregroundColor(AppColors.textSecondary)
+
+            Text(balanceAmount)
+                .font(AppTypography.amountSmall())
+                .foregroundColor(balanceColor)
         }
     }
 
