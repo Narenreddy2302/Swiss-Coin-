@@ -84,7 +84,10 @@ struct SharedSubscriptionConversationView: View {
                     }
                     .padding(.vertical, 16)
                 }
-                .background(Color.black)
+                .background(AppColors.background)
+                .onTapGesture {
+                    hideKeyboard()
+                }
                 .onAppear {
                     HapticManager.prepare()
                     scrollToBottom(proxy)
@@ -111,13 +114,13 @@ struct SharedSubscriptionConversationView: View {
                 onSend: sendMessage
             )
         }
-        .background(Color.black)
+        .background(AppColors.background)
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(Color.black, for: .navigationBar)
+        .toolbarBackground(AppColors.backgroundSecondary, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
         .toolbar(.hidden, for: .tabBar)
-        .tint(Color(UIColor.systemGray))
+        .tint(AppColors.textSecondary)
         .navigationBarBackButtonHidden(true)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
@@ -171,7 +174,7 @@ struct SharedSubscriptionConversationView: View {
             } label: {
                 Image(systemName: "chevron.left")
                     .font(.system(size: 18, weight: .semibold))
-                    .foregroundColor(Color(UIColor.systemGray))
+                    .foregroundColor(AppColors.textSecondary)
             }
 
             // Subscription Icon + Name (tappable for details)
@@ -200,12 +203,12 @@ struct SharedSubscriptionConversationView: View {
             VStack(alignment: .leading, spacing: 1) {
                 Text(subscription.name ?? "Subscription")
                     .font(.system(size: 17, weight: .semibold))
-                    .foregroundColor(.white)
+                    .foregroundColor(AppColors.textPrimary)
                     .lineLimit(1)
 
                 Text("\(memberCount + 1) members")
                     .font(.system(size: 12, weight: .regular))
-                    .foregroundColor(Color(UIColor.systemGray))
+                    .foregroundColor(AppColors.textSecondary)
             }
         }
     }
@@ -215,7 +218,7 @@ struct SharedSubscriptionConversationView: View {
         VStack(alignment: .trailing, spacing: 2) {
             Text(balanceLabel)
                 .font(.system(size: 12, weight: .regular))
-                .foregroundColor(Color(UIColor.systemGray))
+                .foregroundColor(AppColors.textSecondary)
 
             Text(balanceAmount)
                 .font(.system(size: 16, weight: .bold))

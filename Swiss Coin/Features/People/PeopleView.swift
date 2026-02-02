@@ -83,10 +83,19 @@ struct PeopleView: View {
 struct PersonListView: View {
     @FetchRequest(
         sortDescriptors: [NSSortDescriptor(keyPath: \Person.name, ascending: true)],
-        predicate: NSPredicate(
-            format: "id != %@ AND (toTransactions.@count > 0 OR owedSplits.@count > 0 OR sentSettlements.@count > 0 OR receivedSettlements.@count > 0 OR chatMessages.@count > 0)",
-            (CurrentUser.currentUserId ?? UUID()) as CVarArg
-        ),
+        predicate: {
+            if let userId = CurrentUser.currentUserId {
+                return NSPredicate(
+                    format: "id != %@ AND (toTransactions.@count > 0 OR owedSplits.@count > 0 OR sentSettlements.@count > 0 OR receivedSettlements.@count > 0 OR chatMessages.@count > 0)",
+                    userId as CVarArg
+                )
+            } else {
+                // No current user ID — show all people with transactions
+                return NSPredicate(
+                    format: "toTransactions.@count > 0 OR owedSplits.@count > 0 OR sentSettlements.@count > 0 OR receivedSettlements.@count > 0 OR chatMessages.@count > 0"
+                )
+            }
+        }(),
         animation: .default)
     private var people: FetchedResults<Person>
 

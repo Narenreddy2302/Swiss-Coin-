@@ -84,7 +84,9 @@ struct QuickActionSheetPresenter: View {
                     {
                         Button("Done") {
                             viewModel.saveTransaction()
-                            dismiss()
+                            if !viewModel.showingError {
+                                dismiss()
+                            }
                         }
                         .fontWeight(.semibold)
                     }
@@ -177,7 +179,7 @@ struct SearchBarView: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
-        .background(Color(UIColor.systemGray6))
+        .background(AppColors.surface)
         .cornerRadius(10)
     }
 }

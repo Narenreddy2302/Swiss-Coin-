@@ -3,6 +3,7 @@ import CoreData
 import SwiftUI
 import Foundation
 
+@MainActor
 final class TransactionViewModel: ObservableObject {
     @Published var title: String = ""
     @Published var totalAmount: String = ""

@@ -157,14 +157,21 @@ struct SubscriptionDetailView: View {
                     get: { subscription.notificationEnabled },
                     set: { newValue in
                         subscription.notificationEnabled = newValue
-                        try? viewContext.save()
-                        HapticManager.toggle()
+                        do {
+                            try viewContext.save()
+                            HapticManager.toggle()
 
-                        // Schedule or cancel notification
-                        if newValue {
-                            NotificationManager.shared.scheduleSubscriptionReminder(for: subscription)
-                        } else {
-                            NotificationManager.shared.cancelSubscriptionReminder(for: subscription)
+                            // Schedule or cancel notification
+                            if newValue {
+                                NotificationManager.shared.scheduleSubscriptionReminder(for: subscription)
+                            } else {
+                                NotificationManager.shared.cancelSubscriptionReminder(for: subscription)
+                            }
+                        } catch {
+                            viewContext.rollback()
+                            HapticManager.error()
+                            errorMessage = "Failed to update notification setting: \(error.localizedDescription)"
+                            showingError = true
                         }
                     }
                 ))
@@ -176,10 +183,17 @@ struct SubscriptionDetailView: View {
                             get: { Int(subscription.notificationDaysBefore) },
                             set: { newValue in
                                 subscription.notificationDaysBefore = Int16(newValue)
-                                try? viewContext.save()
+                                do {
+                                    try viewContext.save()
 
-                                // Reschedule with updated days-before value
-                                NotificationManager.shared.scheduleSubscriptionReminder(for: subscription)
+                                    // Reschedule with updated days-before value
+                                    NotificationManager.shared.scheduleSubscriptionReminder(for: subscription)
+                                } catch {
+                                    viewContext.rollback()
+                                    HapticManager.error()
+                                    errorMessage = "Failed to update reminder days: \(error.localizedDescription)"
+                                    showingError = true
+                                }
                             }
                         ),
                         in: 1...14

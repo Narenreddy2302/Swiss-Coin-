@@ -28,7 +28,7 @@ struct CustomSegmentedControl: View {
                             RoundedRectangle(cornerRadius: CornerRadius.sm)
                                 .fill(AppColors.backgroundTertiary)
                                 .matchedGeometryEffect(id: "selection", in: namespace)
-                                .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
+                                .shadow(color: AppColors.shadow, radius: 2, x: 0, y: 1)
                         }
 
                         Text(options[index])

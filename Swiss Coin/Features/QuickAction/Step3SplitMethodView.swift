@@ -96,8 +96,8 @@ struct Step3SplitMethodView: View {
                         .padding(.horizontal, 24)
                         .padding(.vertical, 16)
                         .background(
-                            RoundedRectangle(cornerRadius: 12)
-                                .fill(Color(UIColor.systemGray6))
+                            RoundedRectangle(cornerRadius: CornerRadius.md)
+                                .fill(AppColors.cardBackground)
                         )
                 }
 
@@ -275,7 +275,7 @@ struct SplitPersonRow: View {
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
-            .background(Color(UIColor.systemGray6))
+            .background(AppColors.surface)
             .cornerRadius(8)
 
         case .percentage:
@@ -296,7 +296,7 @@ struct SplitPersonRow: View {
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
-            .background(Color(UIColor.systemGray6))
+            .background(AppColors.surface)
             .cornerRadius(8)
 
         case .shares:
@@ -332,7 +332,7 @@ struct SplitPersonRow: View {
                         .frame(width: 36, height: 36)
                 }
             }
-            .background(Color(UIColor.systemGray6))
+            .background(AppColors.surface)
             .cornerRadius(8)
 
         case .adjustment:
@@ -353,7 +353,7 @@ struct SplitPersonRow: View {
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
-            .background(Color(UIColor.systemGray6))
+            .background(AppColors.surface)
             .cornerRadius(8)
         }
     }

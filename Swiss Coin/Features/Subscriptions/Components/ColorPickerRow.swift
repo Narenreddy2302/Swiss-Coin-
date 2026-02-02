@@ -63,7 +63,7 @@ struct ColorPickerRow: View {
                                     .frame(width: 50, height: 50)
                                     .overlay(
                                         Circle()
-                                            .strokeBorder(selectedColor == color ? Color.white : Color.clear, lineWidth: 3)
+                                            .strokeBorder(selectedColor == color ? AppColors.textPrimary : Color.clear, lineWidth: 3)
                                     )
                                     .overlay(
                                         Image(systemName: "checkmark")

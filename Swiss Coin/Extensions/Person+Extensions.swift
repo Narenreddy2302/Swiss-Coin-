@@ -65,7 +65,10 @@ extension Person {
     
     /// Full name with safety for empty strings
     var safeName: String {
-        return name?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false ? name! : "Unnamed Person"
+        guard let name = name, !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return "Unnamed Person"
+        }
+        return name
     }
     
     // MARK: - Avatar and Color Properties

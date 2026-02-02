@@ -77,6 +77,9 @@ struct GroupConversationView: View {
                     .padding(.vertical, 16)
                 }
                 .background(AppColors.background)
+                .onTapGesture {
+                    hideKeyboard()
+                }
                 .onAppear {
                     hapticGenerator.prepare()
                     scrollToBottom(proxy)
@@ -400,7 +403,7 @@ private struct GroupActionButton: View {
 
                         Image(systemName: icon)
                             .font(.system(size: IconSize.xs, weight: .bold))
-                            .foregroundColor(.black)
+                            .foregroundColor(.white)
                     }
                 } else {
                     Image(systemName: icon)
@@ -416,11 +419,11 @@ private struct GroupActionButton: View {
             .frame(height: ButtonHeight.lg)
             .background(
                 RoundedRectangle(cornerRadius: CornerRadius.md)
-                    .fill(Color(UIColor.systemGray6))
+                    .fill(AppColors.cardBackground)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: CornerRadius.md)
-                    .strokeBorder(Color(UIColor.systemGray4), lineWidth: 0.5)
+                    .strokeBorder(AppColors.separator, lineWidth: 0.5)
             )
         }
         .buttonStyle(AppButtonStyle(haptic: .none))
@@ -470,7 +473,7 @@ struct GroupSettlementMessageView: View {
             .padding(.vertical, 8)
             .background(
                 Capsule()
-                    .fill(Color(UIColor.systemGray5))
+                    .fill(AppColors.backgroundSecondary)
             )
 
             if let note = settlement.note, !note.isEmpty {

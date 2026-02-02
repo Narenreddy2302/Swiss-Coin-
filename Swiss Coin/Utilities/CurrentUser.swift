@@ -113,7 +113,12 @@ final class CurrentUser {
             user.phoneNumber = phoneNumber
         }
         
-        try? context.save()
+        do {
+            try context.save()
+        } catch {
+            context.rollback()
+            print("Error saving user profile: \(error.localizedDescription)")
+        }
     }
     
     /// Get the current user ID (for storage/sync purposes)

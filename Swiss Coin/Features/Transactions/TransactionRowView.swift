@@ -142,9 +142,7 @@ struct TransactionRowView: View {
 
     private var dateString: String {
         guard let date = transaction.date else { return "" }
-        let formatter = DateFormatter()
-        formatter.dateFormat = "MMM d, yyyy"
-        return formatter.string(from: date)
+        return DateFormatter.mediumDate.string(from: date)
     }
 
     private var creatorName: String {

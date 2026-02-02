@@ -55,7 +55,7 @@ struct BalanceHeaderView: View {
                                 .font(AppTypography.title1())
                                 .foregroundColor(.white)
                         )
-                        .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 4)
+                        .shadow(color: AppColors.shadow, radius: 8, x: 0, y: 4)
 
                     Text(person.name ?? "Unknown")
                         .font(AppTypography.title3())

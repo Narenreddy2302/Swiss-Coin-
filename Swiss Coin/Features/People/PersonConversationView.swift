@@ -71,6 +71,9 @@ struct PersonConversationView: View {
                     .padding(.vertical, 16)
                 }
                 .background(AppColors.background)
+                .onTapGesture {
+                    hideKeyboard()
+                }
                 .onAppear {
                     hapticGenerator.prepare()
                     scrollToBottom(proxy)

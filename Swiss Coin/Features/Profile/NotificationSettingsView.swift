@@ -518,22 +518,21 @@ private struct NotificationToggle: View {
 private struct NotificationLoadingOverlay: View {
     var body: some View {
         ZStack {
-            Color.black.opacity(0.3)
+            Color(.label).opacity(0.3)
                 .ignoresSafeArea()
 
             VStack(spacing: Spacing.md) {
                 ProgressView()
                     .scaleEffect(1.2)
-                    .tint(.white)
 
                 Text("Loading notifications...")
                     .font(AppTypography.subheadlineMedium())
-                    .foregroundColor(.white)
+                    .foregroundColor(AppColors.textPrimary)
             }
             .padding(Spacing.xl)
             .background(
                 RoundedRectangle(cornerRadius: CornerRadius.lg)
-                    .fill(Color(UIColor.systemGray5))
+                    .fill(AppColors.cardBackgroundElevated)
             )
         }
     }

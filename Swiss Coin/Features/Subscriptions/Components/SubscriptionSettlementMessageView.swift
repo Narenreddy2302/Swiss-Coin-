@@ -47,7 +47,7 @@ struct SubscriptionSettlementMessageView: View {
             .padding(.vertical, 8)
             .background(
                 Capsule()
-                    .fill(Color(UIColor.systemGray5))
+                    .fill(AppColors.backgroundSecondary)
             )
 
             if let note = settlement.note, !note.isEmpty {

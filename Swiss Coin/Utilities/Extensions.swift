@@ -27,4 +27,18 @@ extension DateFormatter {
         formatter.timeStyle = .short
         return formatter
     }()
+    
+    /// "MMM d, yyyy" format (e.g. "Jan 5, 2026") — used in transaction cards and rows
+    static let mediumDate: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMM d, yyyy"
+        return formatter
+    }()
+    
+    /// Day-of-week format (e.g. "Monday") — used in date headers
+    static let dayOfWeek: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "EEEE"
+        return formatter
+    }()
 }

@@ -9,6 +9,7 @@ import Combine
 import CoreData
 import SwiftUI
 
+@MainActor
 class QuickActionViewModel: ObservableObject {
 
     // MARK: - Core Data

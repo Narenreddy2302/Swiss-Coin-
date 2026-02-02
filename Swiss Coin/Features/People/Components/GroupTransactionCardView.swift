@@ -98,9 +98,7 @@ struct GroupTransactionCardView: View {
     }
 
     private var dateText: String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "MMM d, yyyy"
-        return formatter.string(from: transaction.date ?? Date())
+        return DateFormatter.mediumDate.string(from: transaction.date ?? Date())
     }
 
     private var metaText: String {

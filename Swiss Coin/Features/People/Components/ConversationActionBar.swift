@@ -91,7 +91,7 @@ private struct ActionButton: View {
 
                         Image(systemName: icon)
                             .font(.system(size: IconSize.xs, weight: .bold))
-                            .foregroundColor(.black)
+                            .foregroundColor(.white)
                     }
                 } else {
                     Image(systemName: icon)
@@ -111,7 +111,7 @@ private struct ActionButton: View {
             )
             .overlay(
                 RoundedRectangle(cornerRadius: CornerRadius.md)
-                    .strokeBorder(AppColors.cardBackground, lineWidth: 0.5)
+                    .strokeBorder(AppColors.separator, lineWidth: 0.5)
             )
         }
         .buttonStyle(AppButtonStyle(haptic: .none)) // Haptic handled in action

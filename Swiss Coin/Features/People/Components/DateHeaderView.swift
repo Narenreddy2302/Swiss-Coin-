@@ -16,13 +16,9 @@ struct DateHeaderView: View {
         } else if calendar.isDateInYesterday(date) {
             self.dateString = "Yesterday"
         } else if calendar.isDate(date, equalTo: Date(), toGranularity: .weekOfYear) {
-            let formatter = DateFormatter()
-            formatter.dateFormat = "EEEE"
-            self.dateString = formatter.string(from: date)
+            self.dateString = DateFormatter.dayOfWeek.string(from: date)
         } else {
-            let formatter = DateFormatter()
-            formatter.dateFormat = "MMM d, yyyy"
-            self.dateString = formatter.string(from: date)
+            self.dateString = DateFormatter.mediumDate.string(from: date)
         }
     }
 

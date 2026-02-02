@@ -10,6 +10,7 @@ import SwiftUI
 
 struct ContentView: View {
     @StateObject private var authManager = AuthManager.shared
+    @AppStorage("has_seen_onboarding") private var hasSeenOnboarding = false
 
     var body: some View {
         Group {
@@ -20,8 +21,13 @@ struct ContentView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             case .authenticated:
-                // User is logged in — show main app
-                MainTabView()
+                if hasSeenOnboarding {
+                    // User has completed onboarding — show main app
+                    MainTabView()
+                } else {
+                    // First launch — show onboarding walkthrough
+                    OnboardingView()
+                }
 
             case .unauthenticated:
                 // User needs to log in — show welcome screen
@@ -29,6 +35,7 @@ struct ContentView: View {
             }
         }
         .animation(AppAnimation.standard, value: authManager.authState)
+        .animation(AppAnimation.standard, value: hasSeenOnboarding)
     }
 }
 

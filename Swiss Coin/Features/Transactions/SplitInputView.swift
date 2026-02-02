@@ -88,8 +88,8 @@ struct SplitInputView: View {
             if currentInput.isEmpty {
                 switch viewModel.splitMethod {
                 case .percentage:
-                    let defaultPercent = viewModel.selectedParticipants.isEmpty ? 100 : (100 / viewModel.selectedParticipants.count)
-                    viewModel.rawInputs[personId] = String(defaultPercent)
+                    let defaultPercent = viewModel.selectedParticipants.isEmpty ? 100.0 : (100.0 / Double(viewModel.selectedParticipants.count))
+                    viewModel.rawInputs[personId] = String(format: "%.1f", defaultPercent)
                 case .amount:
                     let defaultAmount = viewModel.totalAmountDouble / max(1, Double(viewModel.selectedParticipants.count))
                     viewModel.rawInputs[personId] = String(format: "%.2f", defaultAmount)

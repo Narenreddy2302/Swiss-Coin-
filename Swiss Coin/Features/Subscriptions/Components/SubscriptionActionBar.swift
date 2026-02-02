@@ -95,7 +95,7 @@ private struct SubscriptionActionButton: View {
 
                         Image(systemName: icon)
                             .font(.system(size: IconSize.xs, weight: .bold))
-                            .foregroundColor(.black)
+                            .foregroundColor(.white)
                     }
                 } else {
                     Image(systemName: icon)
@@ -111,11 +111,11 @@ private struct SubscriptionActionButton: View {
             .frame(height: ButtonHeight.lg)
             .background(
                 RoundedRectangle(cornerRadius: CornerRadius.md)
-                    .fill(Color(UIColor.systemGray6))
+                    .fill(AppColors.cardBackground)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: CornerRadius.md)
-                    .strokeBorder(Color(UIColor.systemGray4), lineWidth: 0.5)
+                    .strokeBorder(AppColors.separator, lineWidth: 0.5)
             )
         }
         .buttonStyle(AppButtonStyle(haptic: .none))

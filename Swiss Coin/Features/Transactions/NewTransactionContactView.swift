@@ -73,10 +73,10 @@ struct NewTransactionContactView: View {
                                         } else {
                                             ZStack {
                                                 Circle()
-                                                    .fill(Color.gray.opacity(0.3))
+                                                    .fill(AppColors.backgroundSecondary)
                                                 Text(contact.initials)
                                                     .font(AppTypography.caption())
-                                                    .foregroundColor(.white)
+                                                    .foregroundColor(AppColors.textSecondary)
                                             }
                                             .frame(width: AvatarSize.md, height: AvatarSize.md)
                                         }

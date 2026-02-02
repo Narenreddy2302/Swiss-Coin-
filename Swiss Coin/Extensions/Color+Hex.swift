@@ -42,28 +42,23 @@ extension Color {
     /// Convert Color to hex string
     /// - Returns: Hex string representation (e.g., "#FF5733")
     func toHex() -> String {
-        guard let components = UIColor(self).cgColor.components else {
-            return AppColors.defaultAvatarColorHex // Default avatar blue
-        }
-        
-        let r = Float(components[0])
-        let g = Float(components[1])
-        let b = Float(components[2])
+        let uiColor = UIColor(self)
+        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        uiColor.getRed(&r, green: &g, blue: &b, alpha: &a)
         
         return String(format: "#%02lX%02lX%02lX",
-                     lroundf(r * 255),
-                     lroundf(g * 255),
-                     lroundf(b * 255))
+                     lroundf(Float(r) * 255),
+                     lroundf(Float(g) * 255),
+                     lroundf(Float(b) * 255))
     }
     
     /// Check if color is light (for contrast calculation)
     var isLight: Bool {
-        guard let components = UIColor(self).cgColor.components else { return true }
+        let uiColor = UIColor(self)
+        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        uiColor.getRed(&r, green: &g, blue: &b, alpha: &a)
         
-        let red = components[0] * 299
-        let green = components[1] * 587
-        let blue = components[2] * 114
-        let brightness = (red + green + blue) / 1000
+        let brightness = (r * 299 + g * 587 + b * 114) / 1000
         
         return brightness > 0.5
     }

@@ -169,8 +169,8 @@ enum AppColors {
 
     // MARK: - Background Colors
 
-    /// Primary background
-    static let background = Color.black
+    /// Primary background (adapts to light/dark mode)
+    static let background = Color(.systemBackground)
 
     /// Secondary background
     static let backgroundSecondary = Color(UIColor.secondarySystemBackground)
@@ -178,25 +178,38 @@ enum AppColors {
     /// Tertiary background
     static let backgroundTertiary = Color(UIColor.tertiarySystemBackground)
 
+    /// Grouped background (for grouped list/table style)
+    static let groupedBackground = Color(.systemGroupedBackground)
+
     /// Surface background (search bars, input fields)
     static let surface = Color(UIColor.systemGray5)
 
     /// Card background
-    static let cardBackground = Color(UIColor.systemGray6).opacity(0.3)
+    static let cardBackground = Color(UIColor.secondarySystemBackground)
 
     /// Elevated card background
-    static let cardBackgroundElevated = Color(UIColor.systemGray5)
+    static let cardBackgroundElevated = Color(UIColor.tertiarySystemBackground)
 
     // MARK: - Text Colors
 
     /// Primary text
-    static let textPrimary = Color.primary
+    static let textPrimary = Color(.label)
 
     /// Secondary text
-    static let textSecondary = Color.secondary
+    static let textSecondary = Color(.secondaryLabel)
 
     /// Tertiary text
     static let textTertiary = Color(UIColor.tertiaryLabel)
+
+    // MARK: - Separator / Border
+
+    /// Separator color
+    static let separator = Color(.separator)
+
+    // MARK: - Shadow
+
+    /// Adaptive shadow color (works in both light and dark mode)
+    static let shadow = Color(.label).opacity(0.08)
 
     // MARK: - Interactive Colors
 
@@ -204,10 +217,10 @@ enum AppColors {
     static let userBubble = Color.green
 
     /// Other person message bubble
-    static let otherBubble = Color(UIColor.systemGray5)
+    static let otherBubble = Color(UIColor.secondarySystemBackground)
 
     /// Disabled state
-    static let disabled = Color.secondary.opacity(0.4)
+    static let disabled = Color(.secondaryLabel).opacity(0.4)
 }
 
 // MARK: - Typography

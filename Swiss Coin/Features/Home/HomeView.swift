@@ -18,6 +18,7 @@ struct HomeView: View {
     private var allPeople: FetchedResults<Person>
 
     @State private var showingProfile = false
+    @State private var showingSettleSheet = false
 
     // MARK: - Computed Properties
 
@@ -75,6 +76,39 @@ struct HomeView: View {
                                 }
                                 .padding(.horizontal)
                             }
+
+                            // Quick Settle button
+                            if totalYouOwe > 0.01 {
+                                Button {
+                                    HapticManager.tap()
+                                    showingSettleSheet = true
+                                } label: {
+                                    HStack(spacing: Spacing.sm) {
+                                        Image(systemName: "checkmark.circle.fill")
+                                            .font(.system(size: IconSize.sm))
+                                        Text("Settle Up")
+                                            .font(AppTypography.subheadlineMedium())
+                                    }
+                                    .foregroundColor(.white)
+                                    .frame(maxWidth: .infinity)
+                                    .frame(height: ButtonHeight.md)
+                                    .background(AppColors.positive)
+                                    .cornerRadius(CornerRadius.md)
+                                }
+                                .buttonStyle(AppButtonStyle(haptic: .none))
+                                .padding(.horizontal)
+                            }
+                        }
+
+                        // Monthly Spending Summary
+                        VStack(alignment: .leading, spacing: Spacing.md) {
+                            Text("This Month")
+                                .font(AppTypography.title2())
+                                .foregroundColor(AppColors.textPrimary)
+                                .padding(.horizontal)
+
+                            MonthlySpendingCard()
+                                .padding(.horizontal)
                         }
 
                         Divider()
@@ -131,6 +165,9 @@ struct HomeView: View {
             }
             .sheet(isPresented: $showingProfile) {
                 ProfileView()
+            }
+            .sheet(isPresented: $showingSettleSheet) {
+                QuickSettleSheetView(people: Array(allPeople))
             }
         }
     }
@@ -198,7 +235,7 @@ struct SummaryCard: View {
         .padding(Spacing.lg)
         .background(AppColors.backgroundTertiary)
         .cornerRadius(CornerRadius.md)
-        .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
+        .shadow(color: AppColors.shadow, radius: 5, x: 0, y: 2)
     }
 }
 
