@@ -60,8 +60,8 @@ class QuickActionViewModel: ObservableObject {
     // Actually the reference allows toggling "You" in the list.
 
     // To properly support "Me" which isn't in CoreData Person list usually:
-    // We use the centralized CurrentUser.uuid for consistency across the app.
-    var currentUserUUID: UUID { CurrentUser.uuid }
+    // We use the centralized CurrentUser.currentUserId for consistency across the app.
+    var currentUserUUID: UUID { CurrentUser.currentUserId ?? UUID() }
 
     @Published var participantIds: Set<UUID> = []
 

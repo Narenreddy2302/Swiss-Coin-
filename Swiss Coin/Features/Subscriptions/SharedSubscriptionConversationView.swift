@@ -123,61 +123,12 @@ struct SharedSubscriptionConversationView: View {
         .tint(Color(UIColor.systemGray))
         .navigationBarBackButtonHidden(true)
         .toolbar {
-            // Leading: Back button + Icon + Name
             ToolbarItem(placement: .topBarLeading) {
-                HStack(spacing: Spacing.sm) {
-                    // Custom back button
-                    Button {
-                        HapticManager.navigate()
-                        dismiss()
-                    } label: {
-                        Image(systemName: "chevron.left")
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundColor(Color(UIColor.systemGray))
-                    }
-
-                    // Subscription Icon + Name (tappable for details)
-                    Button {
-                        HapticManager.navigate()
-                        showingSubscriptionDetail = true
-                    } label: {
-                        HStack(spacing: Spacing.sm) {
-                            RoundedRectangle(cornerRadius: 10)
-                                .fill(Color(hex: subscription.colorHex ?? "#007AFF"))
-                                .frame(width: AvatarSize.sm, height: AvatarSize.sm)
-                                .overlay(
-                                    Image(systemName: subscription.iconName ?? "person.2.circle.fill")
-                                        .font(.system(size: 14, weight: .semibold))
-                                        .foregroundColor(.white)
-                                )
-
-                            VStack(alignment: .leading, spacing: 1) {
-                                Text(subscription.name ?? "Subscription")
-                                    .font(.system(size: 17, weight: .semibold))
-                                    .foregroundColor(.white)
-                                    .lineLimit(1)
-
-                                Text("\(memberCount + 1) members")
-                                    .font(.system(size: 12, weight: .regular))
-                                    .foregroundColor(Color(UIColor.systemGray))
-                            }
-                        }
-                    }
-                    .buttonStyle(.plain)
-                }
+                toolbarLeadingContent
             }
 
-            // Trailing: Balance info
             ToolbarItem(placement: .topBarTrailing) {
-                VStack(alignment: .trailing, spacing: 2) {
-                    Text(balanceLabel)
-                        .font(.system(size: 12, weight: .regular))
-                        .foregroundColor(Color(UIColor.systemGray))
-
-                    Text(balanceAmount)
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundColor(balanceColor)
-                }
+                toolbarTrailingContent
             }
         }
         .sheet(isPresented: $showingRecordPayment) {
@@ -208,6 +159,70 @@ struct SharedSubscriptionConversationView: View {
             Button("OK", role: .cancel) {}
         } message: {
             Text(errorMessage)
+        }
+    }
+
+    // MARK: - Toolbar Content
+
+    @ViewBuilder
+    private var toolbarLeadingContent: some View {
+        HStack(spacing: Spacing.sm) {
+            // Custom back button
+            Button {
+                HapticManager.tap()
+                dismiss()
+            } label: {
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundColor(Color(UIColor.systemGray))
+            }
+
+            // Subscription Icon + Name (tappable for details)
+            Button {
+                HapticManager.tap()
+                showingSubscriptionDetail = true
+            } label: {
+                subscriptionHeaderContent
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    @ViewBuilder
+    private var subscriptionHeaderContent: some View {
+        HStack(spacing: Spacing.sm) {
+            RoundedRectangle(cornerRadius: 10)
+                .fill(Color(hex: subscription.colorHex ?? "#007AFF"))
+                .frame(width: AvatarSize.sm, height: AvatarSize.sm)
+                .overlay(
+                    Image(systemName: subscription.iconName ?? "person.2.circle.fill")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(.white)
+                )
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text(subscription.name ?? "Subscription")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundColor(.white)
+                    .lineLimit(1)
+
+                Text("\(memberCount + 1) members")
+                    .font(.system(size: 12, weight: .regular))
+                    .foregroundColor(Color(UIColor.systemGray))
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var toolbarTrailingContent: some View {
+        VStack(alignment: .trailing, spacing: 2) {
+            Text(balanceLabel)
+                .font(.system(size: 12, weight: .regular))
+                .foregroundColor(Color(UIColor.systemGray))
+
+            Text(balanceAmount)
+                .font(.system(size: 16, weight: .bold))
+                .foregroundColor(balanceColor)
         }
     }
 
