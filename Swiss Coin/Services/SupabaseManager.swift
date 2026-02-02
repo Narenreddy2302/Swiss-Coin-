@@ -139,7 +139,7 @@ final class SupabaseManager: ObservableObject {
 
     /// Verify current session is valid
     private func verifySession() async {
-        guard let token = sessionToken else {
+        guard sessionToken != nil else {
             authState = .unauthenticated
             return
         }
@@ -1071,7 +1071,11 @@ final class SupabaseManager: ObservableObject {
         switch httpResponse.statusCode {
         case 200...299:
             if T.self == EmptyResponse.self {
-                return EmptyResponse() as! T
+                if let emptyResponse = EmptyResponse() as? T {
+                    return emptyResponse
+                } else {
+                    throw URLError(.cannotParseResponse)
+                }
             }
             do {
                 return try decoder.decode(T.self, from: data)
@@ -1699,19 +1703,42 @@ struct NotificationSettingsUpdate {
 }
 
 struct PrivacySettingsUpdate {
+    // Basic visibility
     var profileVisibility: String?
-    var showOnlineStatus: Bool?
+    var showPhoneNumber: Bool?
+    var showEmail: Bool?
+    var showFullName: Bool?
     var showLastSeen: Bool?
-    var allowFriendRequests: Bool?
-    var allowGroupInvites: Bool?
+    var showProfilePhoto: Bool?
+    var showBalancesToContacts: Bool?
+    var showTransactionHistory: Bool?
+
+    // Contact & Discovery
+    var allowContactDiscovery: Bool?
+    var syncContactsWithPhone: Bool?
+
+    // Privacy & Analytics
+    var allowAnalytics: Bool?
+    var allowCrashReports: Bool?
+    var personalizedSuggestions: Bool?
+    var dataExportEnabled: Bool?
 
     var dictionary: [String: Any] {
         var dict: [String: Any] = [:]
         if let v = profileVisibility { dict["profile_visibility"] = v }
-        if let v = showOnlineStatus { dict["show_online_status"] = v }
+        if let v = showPhoneNumber { dict["show_phone_number"] = v }
+        if let v = showEmail { dict["show_email"] = v }
+        if let v = showFullName { dict["show_full_name"] = v }
         if let v = showLastSeen { dict["show_last_seen"] = v }
-        if let v = allowFriendRequests { dict["allow_friend_requests"] = v }
-        if let v = allowGroupInvites { dict["allow_group_invites"] = v }
+        if let v = showProfilePhoto { dict["show_profile_photo"] = v }
+        if let v = showBalancesToContacts { dict["show_balances_to_contacts"] = v }
+        if let v = showTransactionHistory { dict["show_transaction_history"] = v }
+        if let v = allowContactDiscovery { dict["allow_contact_discovery"] = v }
+        if let v = syncContactsWithPhone { dict["sync_contacts_with_phone"] = v }
+        if let v = allowAnalytics { dict["allow_analytics"] = v }
+        if let v = allowCrashReports { dict["allow_crash_reports"] = v }
+        if let v = personalizedSuggestions { dict["personalized_suggestions"] = v }
+        if let v = dataExportEnabled { dict["data_export_enabled"] = v }
         return dict
     }
 }
