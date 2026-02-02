@@ -231,7 +231,7 @@ struct AddGroupView: View {
                 }
                 newGroup.addToMembers(person)
             } catch {
-                print("Error finding/creating person: \(error)")
+                AppLogger.coreData.error("Failed to find/create person: \(error.localizedDescription)")
             }
         }
 

@@ -267,7 +267,7 @@ struct TransactionRowView: View {
         } catch {
             context.rollback()
             HapticManager.error()
-            print("Error deleting transaction: \(error.localizedDescription)")
+            AppLogger.transactions.error("Failed to delete transaction: \(error.localizedDescription)")
         }
     }
 }

@@ -267,7 +267,7 @@ final class TransactionViewModel: ObservableObject {
             // 10. Handle save error
             viewContext.rollback()
             HapticManager.error()
-            print("Error saving transaction: \(error.localizedDescription)")
+            AppLogger.transactions.error("Failed to save transaction: \(error.localizedDescription)")
             completion(false)
         }
     }

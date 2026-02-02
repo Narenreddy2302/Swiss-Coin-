@@ -224,6 +224,7 @@ struct GroupConversationView: View {
             Image(systemName: "person.3.fill")
                 .font(.system(size: IconSize.xxl))
                 .foregroundColor(AppColors.textSecondary.opacity(0.5))
+                .accessibilityHidden(true)
 
             Text("No activity yet")
                 .font(AppTypography.headline())
@@ -309,7 +310,7 @@ struct GroupConversationView: View {
             // Show error to user
             errorMessage = "Failed to send message. Please try again."
             showingError = true
-            print("Error saving message: \(error)")
+            AppLogger.coreData.error("Failed to save message: \(error.localizedDescription)")
         }
     }
 }

@@ -16,25 +16,29 @@ import UIKit
 struct QuickActionSheetPresenter: View {
     @StateObject private var viewModel: QuickActionViewModel
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.managedObjectContext) private var viewContext
 
     /// Initialize with a pre-selected person
     init(initialPerson: Person) {
+        // Use the person's own context which is available at init time
+        let ctx = initialPerson.managedObjectContext ?? PersistenceController.shared.container.viewContext
         _viewModel = StateObject(wrappedValue: QuickActionViewModel(
-            context: PersistenceController.shared.container.viewContext,
+            context: ctx,
             initialPerson: initialPerson
         ))
     }
 
     /// Initialize with a pre-selected group
     init(initialGroup: UserGroup) {
+        let ctx = initialGroup.managedObjectContext ?? PersistenceController.shared.container.viewContext
         _viewModel = StateObject(wrappedValue: QuickActionViewModel(
-            context: PersistenceController.shared.container.viewContext,
+            context: ctx,
             initialGroup: initialGroup
         ))
     }
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             VStack(spacing: 0) {
                 // Step Indicator Dots
                 HStack(spacing: 6) {
@@ -92,6 +96,11 @@ struct QuickActionSheetPresenter: View {
                     }
                 }
             }
+            .alert("Error", isPresented: $viewModel.showingError) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(viewModel.errorMessage)
+            }
         }
     }
 
@@ -123,6 +132,8 @@ struct FloatingActionButton: View {
                 )
         }
         .buttonStyle(.plain)
+        .accessibilityLabel("Add new transaction")
+        .accessibilityAddTraits(.isButton)
     }
 }
 
@@ -175,6 +186,7 @@ struct SearchBarView: View {
                         .font(.system(size: 16))
                         .foregroundColor(.secondary)
                 }
+                .accessibilityLabel("Clear search")
             }
         }
         .padding(.horizontal, 12)
@@ -201,6 +213,7 @@ struct PersonAvatar: View {
                 Image(systemName: "person.fill")
                     .font(.system(size: size * 0.4))
                     .foregroundColor(isSelected ? .white : .secondary)
+                    .accessibilityHidden(true)
             } else {
                 Text(initials)
                     .font(.system(size: size * 0.35, weight: .semibold))
@@ -208,6 +221,9 @@ struct PersonAvatar: View {
             }
         }
         .frame(width: size, height: size)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(isCurrentUser ? "You" : initials)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }
 

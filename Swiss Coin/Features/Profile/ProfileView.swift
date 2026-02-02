@@ -31,7 +31,7 @@ struct ProfileView: View {
     }
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             List {
                 // Header Profile Section
                 Section {
@@ -48,6 +48,7 @@ struct ProfileView: View {
                                 Circle()
                                     .stroke(Color(hex: userColor), lineWidth: 2)
                             )
+                            .accessibilityHidden(true)
 
                         VStack(alignment: .leading, spacing: 4) {
                             Text(userName)
@@ -253,11 +254,13 @@ struct SettingsRow: View {
                 .frame(width: 28, height: 28)
                 .background(color)
                 .cornerRadius(6)
+                .accessibilityHidden(true)
 
             Text(title)
                 .font(AppTypography.body())
                 .foregroundColor(AppColors.textPrimary)
         }
+        .accessibilityElement(children: .combine)
     }
 }
 

@@ -53,7 +53,7 @@ final class NotificationManager: NSObject, ObservableObject {
             await refreshPermissionStatus()
             return granted
         } catch {
-            print("❌ NotificationManager: Failed to request permission — \(error.localizedDescription)")
+            AppLogger.notifications.error("Failed to request notification permission: \(error.localizedDescription)")
             await refreshPermissionStatus()
             return false
         }
@@ -132,7 +132,7 @@ final class NotificationManager: NSObject, ObservableObject {
 
         center.add(request) { error in
             if let error = error {
-                print("❌ NotificationManager: Failed to schedule subscription reminder — \(error.localizedDescription)")
+                AppLogger.notifications.error("Failed to schedule subscription reminder: \(error.localizedDescription)")
             }
         }
     }
@@ -172,7 +172,7 @@ final class NotificationManager: NSObject, ObservableObject {
                         self?.scheduleSubscriptionReminder(for: subscription)
                     }
                 } catch {
-                    print("❌ NotificationManager: Failed to fetch subscriptions for rescheduling — \(error.localizedDescription)")
+                    AppLogger.notifications.error("Failed to fetch subscriptions for rescheduling: \(error.localizedDescription)")
                 }
             }
         }
@@ -215,7 +215,7 @@ final class NotificationManager: NSObject, ObservableObject {
 
         center.add(request) { error in
             if let error = error {
-                print("❌ NotificationManager: Failed to schedule reminder follow-up — \(error.localizedDescription)")
+                AppLogger.notifications.error("Failed to schedule reminder follow-up: \(error.localizedDescription)")
             }
         }
     }

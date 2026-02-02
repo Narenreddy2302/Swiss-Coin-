@@ -287,7 +287,7 @@ struct SharedSubscriptionConversationView: View {
             try viewContext.save()
         } catch {
             viewContext.rollback()
-            print("Error marking reminder as read: \(error)")
+            AppLogger.subscriptions.error("Failed to mark reminder as read: \(error.localizedDescription)")
         }
     }
 
@@ -331,7 +331,7 @@ struct SharedSubscriptionConversationView: View {
             // Show error to user
             errorMessage = "Failed to send message. Please try again."
             showingError = true
-            print("Error saving message: \(error)")
+            AppLogger.coreData.error("Failed to save message: \(error.localizedDescription)")
         }
     }
 }

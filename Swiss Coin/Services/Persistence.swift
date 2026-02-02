@@ -6,6 +6,9 @@
 //
 
 import CoreData
+import os.log
+
+private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "com.swisscoin", category: "persistence")
 
 struct PersistenceController {
     static let shared = PersistenceController()
@@ -54,14 +57,14 @@ struct PersistenceController {
                             // Retry loading safely
                             container.loadPersistentStores { _, secondError in
                                 if let secondError = secondError {
-                                    print("❌ CoreData Error: Failed to load store after reset: \(secondError)")
-                                    print("⚠️ Continuing with in-memory store as fallback")
+                                    logger.error("CoreData: Failed to load store after reset: \(String(describing: secondError))")
+                                    logger.warning("Continuing with in-memory store as fallback")
                                 }
                             }
                             return
                         } catch {
-                            print("❌ CoreData Error: Failed to destroy persistent store: \(error)")
-                            print("⚠️ Continuing with corrupted store - data may be unavailable")
+                            logger.error("CoreData: Failed to destroy persistent store: \(error.localizedDescription)")
+                            logger.warning("Continuing with corrupted store — data may be unavailable")
                         }
                     }
 
@@ -73,8 +76,8 @@ struct PersistenceController {
                      * The store could not be migrated to the current model version.
                      Check the error message to determine what the actual problem was.
                      */
-                    print("❌ CoreData Error: \(error), \(error.userInfo)")
-                    print("⚠️ Continuing with in-memory store as fallback")
+                    logger.error("CoreData: \(error.localizedDescription), \(String(describing: error.userInfo))")
+                    logger.warning("Continuing with in-memory store as fallback")
                     // App continues - views will show empty state
                 }
             }

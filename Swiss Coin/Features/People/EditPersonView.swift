@@ -149,6 +149,7 @@ struct EditPersonView: View {
                 showingDuplicateWarning = false
             }
         } catch {
+            AppLogger.coreData.error("Failed to check duplicate phone: \(error.localizedDescription)")
             showingDuplicateWarning = false
         }
     }

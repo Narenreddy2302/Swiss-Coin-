@@ -24,7 +24,7 @@ struct ImportContactsView: View {
     }
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             VStack {
                 if contactsManager.authorizationStatus == .authorized {
                     List {
@@ -212,7 +212,7 @@ struct ImportContactsView: View {
                 .filter { !$0.isEmpty }
             existingPhoneNumbers = Set(phones)
         } catch {
-            print("Error fetching existing phone numbers: \(error)")
+            AppLogger.contacts.error("Failed to fetch existing phone numbers: \(error.localizedDescription)")
         }
     }
 
@@ -262,7 +262,7 @@ struct ImportContactsView: View {
             dismiss()
         } catch {
             viewContext.rollback()
-            print("Error saving imported contacts: \(error)")
+            AppLogger.coreData.error("Failed to save imported contacts: \(error.localizedDescription)")
             HapticManager.error()
         }
     }

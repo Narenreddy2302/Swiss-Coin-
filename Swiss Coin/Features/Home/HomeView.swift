@@ -86,6 +86,7 @@ struct HomeView: View {
                                     HStack(spacing: Spacing.sm) {
                                         Image(systemName: "checkmark.circle.fill")
                                             .font(.system(size: IconSize.sm))
+                                            .accessibilityHidden(true)
                                         Text("Settle Up")
                                             .font(AppTypography.subheadlineMedium())
                                     }
@@ -179,6 +180,7 @@ struct EmptyStateView: View {
             Image(systemName: "sparkles")
                 .font(.system(size: IconSize.xxl))
                 .foregroundColor(AppColors.accent.opacity(0.7))
+                .accessibilityHidden(true)
 
             Text("Welcome to Swiss Coin!")
                 .font(AppTypography.title3())
@@ -219,6 +221,7 @@ struct SummaryCard: View {
                 Image(systemName: icon)
                     .font(AppTypography.title2())
                     .foregroundColor(color)
+                    .accessibilityHidden(true)
                 Spacer()
             }
 
@@ -236,6 +239,8 @@ struct SummaryCard: View {
         .background(AppColors.backgroundTertiary)
         .cornerRadius(CornerRadius.md)
         .shadow(color: AppColors.shadow, radius: 5, x: 0, y: 2)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(title): \(CurrencyFormatter.format(amount))")
     }
 }
 

@@ -44,7 +44,12 @@ extension Color {
     func toHex() -> String {
         let uiColor = UIColor(self)
         var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
-        uiColor.getRed(&r, green: &g, blue: &b, alpha: &a)
+        // getRed returns false for grayscale-space colors — fall back to getWhite
+        if !uiColor.getRed(&r, green: &g, blue: &b, alpha: &a) {
+            var white: CGFloat = 0
+            uiColor.getWhite(&white, alpha: &a)
+            r = white; g = white; b = white
+        }
         
         return String(format: "#%02lX%02lX%02lX",
                      lroundf(Float(r) * 255),
@@ -56,7 +61,12 @@ extension Color {
     var isLight: Bool {
         let uiColor = UIColor(self)
         var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
-        uiColor.getRed(&r, green: &g, blue: &b, alpha: &a)
+        // getRed returns false for grayscale-space colors — fall back to getWhite
+        if !uiColor.getRed(&r, green: &g, blue: &b, alpha: &a) {
+            var white: CGFloat = 0
+            uiColor.getWhite(&white, alpha: &a)
+            r = white; g = white; b = white
+        }
         
         let brightness = (r * 299 + g * 587 + b * 114) / 1000
         

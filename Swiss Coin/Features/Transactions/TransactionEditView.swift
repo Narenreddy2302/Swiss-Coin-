@@ -70,7 +70,7 @@ struct TransactionEditView: View {
     // MARK: - Body
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             Form {
                 // Transaction Info Section
                 Section {

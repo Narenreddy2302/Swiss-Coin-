@@ -6,14 +6,13 @@
 //
 
 import SwiftUI
-import UIKit
 
 struct QuickActionSheet: View {
 
     @ObservedObject var viewModel: QuickActionViewModel
 
     var body: some View {
-        NavigationView {  // Used NavigationView for broader compatibility, reference used NavigationStack
+        NavigationStack {
             VStack(spacing: 0) {
 
                 // MARK: Step Indicator Dots

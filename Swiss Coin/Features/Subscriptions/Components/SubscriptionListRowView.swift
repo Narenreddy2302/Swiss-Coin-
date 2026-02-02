@@ -53,6 +53,7 @@ struct SubscriptionListRowView: View {
                         .font(AppTypography.headline())
                         .foregroundColor(Color(hex: subscription.colorHex ?? "#007AFF"))
                 )
+                .accessibilityHidden(true)
 
             // Name and Status
             VStack(alignment: .leading, spacing: Spacing.xs) {
@@ -157,7 +158,7 @@ struct SubscriptionListRowView: View {
         } catch {
             viewContext.rollback()
             HapticManager.error()
-            print("Error toggling subscription status: \(error)")
+            AppLogger.subscriptions.error("Failed to toggle subscription status: \(error.localizedDescription)")
         }
     }
 
@@ -191,7 +192,7 @@ struct SubscriptionListRowView: View {
         } catch {
             viewContext.rollback()
             HapticManager.error()
-            print("Error marking subscription as paid: \(error)")
+            AppLogger.subscriptions.error("Failed to mark subscription as paid: \(error.localizedDescription)")
         }
     }
 
@@ -207,7 +208,7 @@ struct SubscriptionListRowView: View {
         } catch {
             viewContext.rollback()
             HapticManager.error()
-            print("Error deleting subscription: \(error)")
+            AppLogger.subscriptions.error("Failed to delete subscription: \(error.localizedDescription)")
         }
     }
 }

@@ -52,14 +52,11 @@ struct CustomSegmentedControl: View {
     }
 }
 
-struct CustomSegmentedControl_Previews: PreviewProvider {
-    static var previews: some View {
-        VStack {
-            CustomSegmentedControl(selection: .constant(0), options: ["People", "Groups"])
-            CustomSegmentedControl(selection: .constant(1), options: ["Personal", "Shared"])
-        }
-        .padding()
-        .preferredColorScheme(.dark)
-        .previewLayout(.sizeThatFits)
+#Preview {
+    VStack {
+        CustomSegmentedControl(selection: .constant(0), options: ["People", "Groups"])
+        CustomSegmentedControl(selection: .constant(1), options: ["Personal", "Shared"])
     }
+    .padding()
+    .preferredColorScheme(.dark)
 }

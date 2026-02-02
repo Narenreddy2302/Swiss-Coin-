@@ -129,6 +129,7 @@ struct PersonEmptyStateView: View {
             Image(systemName: "person.2.slash")
                 .font(.system(size: IconSize.xxl))
                 .foregroundColor(AppColors.textSecondary)
+                .accessibilityHidden(true)
 
             Text("No People Yet")
                 .font(AppTypography.title2())
@@ -193,6 +194,7 @@ struct PersonListRowView: View {
                         .font(AppTypography.title3())
                         .foregroundColor(Color(hex: person.colorHex ?? CurrentUser.defaultColorHex))
                 )
+                .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: Spacing.xs) {
                 Text(person.name ?? "Unknown")
@@ -217,6 +219,8 @@ struct PersonListRowView: View {
         .scaleEffect(isPressed ? 0.98 : 1.0)
         .animation(AppAnimation.quick, value: isPressed)
         .contentShape(Rectangle())
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(person.name ?? "Unknown"), \(balanceText)")
         .contextMenu {
             Button {
                 HapticManager.tap()
@@ -299,7 +303,7 @@ struct PersonListRowView: View {
         } catch {
             viewContext.rollback()
             HapticManager.error()
-            print("Error deleting person: \(error)")
+            AppLogger.coreData.error("Failed to delete person: \(error.localizedDescription)")
         }
     }
 }
@@ -340,6 +344,7 @@ struct GroupEmptyStateView: View {
             Image(systemName: "person.3.slash")
                 .font(.system(size: IconSize.xxl))
                 .foregroundColor(AppColors.textSecondary)
+                .accessibilityHidden(true)
 
             Text("No Groups Yet")
                 .font(AppTypography.title2())
@@ -408,6 +413,7 @@ struct GroupListRowView: View {
                         .font(AppTypography.headline())
                         .foregroundColor(Color(hex: group.colorHex ?? "#007AFF"))
                 )
+                .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: Spacing.xs) {
                 Text(group.name ?? "Unknown Group")
@@ -442,6 +448,8 @@ struct GroupListRowView: View {
         .scaleEffect(isPressed ? 0.98 : 1.0)
         .animation(AppAnimation.quick, value: isPressed)
         .contentShape(Rectangle())
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(group.name ?? "Unknown Group"), \(memberCount) members, \(balanceText)")
         .contextMenu {
             Button {
                 HapticManager.tap()
@@ -524,7 +532,7 @@ struct GroupListRowView: View {
         } catch {
             viewContext.rollback()
             HapticManager.error()
-            print("Error deleting group: \(error)")
+            AppLogger.coreData.error("Failed to delete group: \(error.localizedDescription)")
         }
     }
 }

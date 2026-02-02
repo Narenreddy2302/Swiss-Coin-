@@ -4,7 +4,7 @@ import SwiftUI
 
 struct NewTransactionContactView: View {
     @StateObject private var contactsManager = ContactsManager()
-    @Environment(\.presentationMode) var presentationMode
+    @Environment(\.dismiss) private var dismiss
     @Environment(\.managedObjectContext) private var viewContext
 
     @State private var searchText = ""
@@ -141,7 +141,7 @@ struct NewTransactionContactView: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {
-                        presentationMode.wrappedValue.dismiss()
+                        dismiss()
                     }
                 }
             }
@@ -196,7 +196,7 @@ struct NewTransactionContactView: View {
             // 3. Navigate
             self.navigateToAddTransaction = true
         } catch {
-            print("Error selecting contact: \(error.localizedDescription)")
+            AppLogger.contacts.error("Failed to select contact: \(error.localizedDescription)")
             HapticManager.error()
         }
     }

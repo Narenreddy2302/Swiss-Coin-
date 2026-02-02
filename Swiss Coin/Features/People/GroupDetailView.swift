@@ -232,7 +232,7 @@ struct GroupDetailView: View {
         } catch {
             viewContext.rollback()
             HapticManager.error()
-            print("Error deleting group: \(error)")
+            AppLogger.coreData.error("Failed to delete group: \(error.localizedDescription)")
         }
     }
 }

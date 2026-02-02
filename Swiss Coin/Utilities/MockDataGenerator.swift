@@ -88,7 +88,7 @@ struct MockDataGenerator {
         do {
             try context.save()
         } catch {
-            print("MockDataGenerator: Failed to save context - \(error)")
+            AppLogger.coreData.error("MockDataGenerator: Failed to save context — \(error.localizedDescription)")
         }
     }
 

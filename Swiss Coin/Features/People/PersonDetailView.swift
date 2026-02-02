@@ -211,7 +211,7 @@ struct PersonDetailView: View {
         } catch {
             viewContext.rollback()
             HapticManager.error()
-            print("Error deleting person: \(error)")
+            AppLogger.coreData.error("Failed to delete person: \(error.localizedDescription)")
         }
     }
 

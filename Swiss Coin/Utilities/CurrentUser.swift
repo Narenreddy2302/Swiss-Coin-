@@ -65,7 +65,7 @@ final class CurrentUser {
                 return existingUser
             }
         } catch {
-            print("Error fetching current user: \(error)")
+            AppLogger.coreData.error("Failed to fetch current user: \(error.localizedDescription)")
         }
         
         // User not found, create new one
@@ -117,7 +117,7 @@ final class CurrentUser {
             try context.save()
         } catch {
             context.rollback()
-            print("Error saving user profile: \(error.localizedDescription)")
+            AppLogger.coreData.error("Failed to save user profile: \(error.localizedDescription)")
         }
     }
     

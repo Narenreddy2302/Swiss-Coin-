@@ -4,6 +4,13 @@ xcuserdata/
 *.xccheckout
 *.xcscmblueprint
 DerivedData/
+*.xcworkspace/xcuserdata/
+
+# Build artifacts
+build/
+*.ipa
+*.dSYM.zip
+*.dSYM
 
 # Swift Package Manager
 .build/
@@ -14,6 +21,7 @@ Package.resolved
 .DS_Store
 .AppleDouble
 .LSOverride
+._*
 
 # CocoaPods
 Pods/
@@ -26,3 +34,14 @@ fastlane/report.xml
 fastlane/Preview.html
 fastlane/screenshots/**/*.png
 fastlane/test_output
+
+# Code Injection
+iOSInjectionProject/
+
+# Playgrounds
+timeline.xctimeline
+playground.xcworkspace
+
+# Temporary files
+*.swp
+*~

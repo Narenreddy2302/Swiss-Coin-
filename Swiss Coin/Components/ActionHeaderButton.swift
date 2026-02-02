@@ -49,6 +49,8 @@ struct ActionHeaderButton: View {
             .animation(AppAnimation.buttonPress, value: isPressed)
         }
         .buttonStyle(PlainButtonStyle())
+        .accessibilityLabel(title)
+        .accessibilityAddTraits(.isButton)
         .onLongPressGesture(minimumDuration: 0, maximumDistance: .infinity, pressing: { pressing in
             isPressed = pressing
         }, perform: {})
@@ -57,29 +59,26 @@ struct ActionHeaderButton: View {
 
 // MARK: - Preview
 
-struct ActionHeaderButton_Previews: PreviewProvider {
-    static var previews: some View {
-        VStack(spacing: Spacing.md) {
-            // Selected state
-            ActionHeaderButton(
-                title: "Personal",
-                icon: "person.fill",
-                color: AppColors.accent
-            ) {
-                print("Personal tapped")
-            }
-            
-            // Unselected state
-            ActionHeaderButton(
-                title: "Shared",
-                icon: "person.2.fill",
-                color: AppColors.textSecondary
-            ) {
-                print("Shared tapped")
-            }
+#Preview {
+    VStack(spacing: Spacing.md) {
+        // Selected state
+        ActionHeaderButton(
+            title: "Personal",
+            icon: "person.fill",
+            color: AppColors.accent
+        ) {
+            // Preview action
         }
-        .padding()
-        .background(AppColors.backgroundSecondary)
-        .previewLayout(.sizeThatFits)
+        
+        // Unselected state
+        ActionHeaderButton(
+            title: "Shared",
+            icon: "person.2.fill",
+            color: AppColors.textSecondary
+        ) {
+            // Preview action
+        }
     }
+    .padding()
+    .background(AppColors.backgroundSecondary)
 }

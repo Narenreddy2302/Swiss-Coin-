@@ -22,16 +22,19 @@ struct SearchView: View {
 
     @FetchRequest(
         sortDescriptors: [NSSortDescriptor(keyPath: \Person.name, ascending: true)],
+        fetchBatchSize: 20,
         animation: .default)
     private var allPeople: FetchedResults<Person>
 
     @FetchRequest(
         sortDescriptors: [NSSortDescriptor(keyPath: \UserGroup.name, ascending: true)],
+        fetchBatchSize: 20,
         animation: .default)
     private var allGroups: FetchedResults<UserGroup>
 
     @FetchRequest(
         sortDescriptors: [NSSortDescriptor(keyPath: \Subscription.name, ascending: true)],
+        fetchBatchSize: 20,
         animation: .default)
     private var allSubscriptions: FetchedResults<Subscription>
 
@@ -501,6 +504,7 @@ private struct SearchNoResultsView: View {
             Image(systemName: "magnifyingglass")
                 .font(.system(size: IconSize.xxl))
                 .foregroundColor(AppColors.textSecondary.opacity(0.5))
+                .accessibilityHidden(true)
 
             Text("No Results")
                 .font(AppTypography.title2())
@@ -529,6 +533,7 @@ private struct SearchEmptyPromptView: View {
             Image(systemName: "magnifyingglass.circle")
                 .font(.system(size: IconSize.xxl))
                 .foregroundColor(AppColors.textSecondary.opacity(0.5))
+                .accessibilityHidden(true)
 
             Text("Search Everything")
                 .font(AppTypography.title2())

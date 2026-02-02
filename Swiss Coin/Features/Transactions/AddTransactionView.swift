@@ -3,7 +3,7 @@ import SwiftUI
 
 struct AddTransactionView: View {
     @StateObject private var viewModel: TransactionViewModel
-    @Environment(\.presentationMode) var presentationMode
+    @Environment(\.dismiss) private var dismiss
     @Environment(\.managedObjectContext) private var viewContext
 
     // We need to inject the context into the ViewModel.
@@ -18,19 +18,16 @@ struct AddTransactionView: View {
     init(viewContext: NSManagedObjectContext? = nil, initialParticipant: Person? = nil, initialGroup: UserGroup? = nil) {
         self.initialParticipant = initialParticipant
         self.initialGroup = initialGroup
-        // We can't access Environment here easily for the default init used by navigation.
-        // So we will rely on ".onAppear" pattern or just passing it if possible.
-        // Actually, let's just make it ObservedObject and create it in the wrapper? No, that's messy.
-        // Correct pattern for SwiftUI 2.0+ is StateObject. We will defer context assignment or use a closure.
-        // Let's just create it with a dummy and assign in onAppear for simplicity in this constrained agent environment.
+        let ctx = viewContext
+            ?? initialParticipant?.managedObjectContext
+            ?? initialGroup?.managedObjectContext
+            ?? PersistenceController.shared.container.viewContext
         _viewModel = StateObject(
-            wrappedValue: TransactionViewModel(
-                context: PersistenceController.shared.container.viewContext))
-        // Note: This relies on the shared persistence controller which is global.
+            wrappedValue: TransactionViewModel(context: ctx))
     }
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             Form {
                 // MARK: - 1. Meta Data
                 Section(header: Text("Transaction Info")) {
@@ -124,7 +121,7 @@ struct AddTransactionView: View {
                     Button("Save Transaction") {
                         viewModel.saveTransaction { success in
                             if success {
-                                presentationMode.wrappedValue.dismiss()
+                                dismiss()
                             }
                         }
                     }
@@ -136,7 +133,7 @@ struct AddTransactionView: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {
-                        presentationMode.wrappedValue.dismiss()
+                        dismiss()
                     }
                 }
             }

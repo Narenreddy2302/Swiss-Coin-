@@ -101,14 +101,6 @@ class QuickActionViewModel: ObservableObject {
 
     // MARK: - Init
 
-    init() {
-        // Will be set up later via setup(context:)
-        self.viewContext = PersistenceController.shared.container.viewContext
-        
-        // Default participant is Me
-        participantIds.insert(currentUserUUID)
-    }
-    
     init(context: NSManagedObjectContext) {
         self.viewContext = context
         fetchData()
@@ -158,7 +150,7 @@ class QuickActionViewModel: ObservableObject {
             allPeople = try viewContext.fetch(personRequest)
             allGroups = try viewContext.fetch(groupRequest)
         } catch {
-            print("Error fetching data: \(error)")
+            AppLogger.coreData.error("Failed to fetch data: \(error.localizedDescription)")
         }
     }
 
@@ -494,7 +486,7 @@ class QuickActionViewModel: ObservableObject {
                 } else if let person = getPerson(byId: userId) {
                     split.owedBy = person
                 } else {
-                    print("Warning: Could not find person with ID \(userId)")
+                    AppLogger.transactions.warning("Could not find person with ID \(userId)")
                     continue
                 }
             }
@@ -513,7 +505,7 @@ class QuickActionViewModel: ObservableObject {
             HapticManager.error()
             errorMessage = "Failed to save transaction. Please try again."
             showingError = true
-            print("Error creating transaction: \(error)")
+            AppLogger.transactions.error("Failed to create transaction: \(error.localizedDescription)")
         }
     }
 }

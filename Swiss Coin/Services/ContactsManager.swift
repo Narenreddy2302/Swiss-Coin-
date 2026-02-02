@@ -41,7 +41,7 @@ class ContactsManager: ObservableObject {
             }
             return granted
         } catch {
-            print("Error requesting contact access: \(error)")
+            AppLogger.contacts.error("Failed to request contact access: \(error.localizedDescription)")
             await MainActor.run {
                 self.authorizationStatus = .denied
             }
@@ -87,7 +87,7 @@ class ContactsManager: ObservableObject {
                 self.contacts = fetchedContacts
             }
         } catch {
-            print("Failed to fetch contacts: \(error)")
+            AppLogger.contacts.error("Failed to fetch contacts: \(error.localizedDescription)")
         }
     }
 }

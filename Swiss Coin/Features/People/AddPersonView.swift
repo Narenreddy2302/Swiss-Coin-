@@ -84,6 +84,7 @@ struct AddPersonView: View {
                 showingDuplicateWarning = false
             }
         } catch {
+            AppLogger.coreData.error("Failed to check duplicate phone: \(error.localizedDescription)")
             showingDuplicateWarning = false
         }
     }
@@ -113,7 +114,7 @@ struct AddPersonView: View {
         } catch {
             viewContext.rollback()
             HapticManager.error()
-            print("Error saving person: \(error)")
+            AppLogger.coreData.error("Failed to save person: \(error.localizedDescription)")
         }
     }
 }

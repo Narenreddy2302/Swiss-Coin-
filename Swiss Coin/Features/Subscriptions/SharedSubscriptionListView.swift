@@ -14,6 +14,7 @@ struct SharedSubscriptionListView: View {
     @FetchRequest(
         sortDescriptors: [NSSortDescriptor(keyPath: \Subscription.nextBillingDate, ascending: true)],
         predicate: NSPredicate(format: "isShared == YES"),
+        fetchBatchSize: 20,
         animation: .default)
     private var subscriptions: FetchedResults<Subscription>
 

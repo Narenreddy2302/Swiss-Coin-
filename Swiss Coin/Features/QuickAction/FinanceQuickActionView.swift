@@ -12,7 +12,7 @@ import SwiftUI
 struct FinanceQuickActionView: View {
 
     @Environment(\.managedObjectContext) private var viewContext
-    @StateObject private var viewModel = QuickActionViewModel()
+    @StateObject private var viewModel = QuickActionViewModel(context: PersistenceController.shared.container.viewContext)
 
     var body: some View {
         ZStack {

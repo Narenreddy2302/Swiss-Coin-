@@ -6,6 +6,7 @@ struct TransactionHistoryView: View {
 
     @FetchRequest(
         sortDescriptors: [NSSortDescriptor(keyPath: \FinancialTransaction.date, ascending: false)],
+        fetchBatchSize: 20,
         animation: .default)
     private var transactions: FetchedResults<FinancialTransaction>
 
@@ -52,6 +53,7 @@ struct TransactionHistoryView: View {
             Image(systemName: "arrow.left.arrow.right.circle")
                 .font(.system(size: IconSize.xxl))
                 .foregroundColor(AppColors.textSecondary)
+                .accessibilityHidden(true)
 
             Text("No Transactions Yet")
                 .font(AppTypography.title2())
@@ -125,7 +127,7 @@ struct TransactionHistoryView: View {
         } catch {
             viewContext.rollback()
             HapticManager.error()
-            print("Error deleting transaction: \(error.localizedDescription)")
+            AppLogger.transactions.error("Failed to delete transaction: \(error.localizedDescription)")
         }
     }
 }
