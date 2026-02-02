@@ -4,7 +4,10 @@ struct ProfileButton: View {
     var action: () -> Void
 
     var body: some View {
-        Button(action: action) {
+        Button {
+            HapticManager.lightTap()
+            action()
+        } label: {
             ZStack {
                 // Clean circular background - Apple style
                 Circle()
@@ -25,17 +28,12 @@ struct ProfileButton: View {
     }
 }
 
-/// Apple-style button interaction with subtle scale and haptic feedback
+/// Apple-style button interaction with subtle scale animation
 private struct ProfileButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .scaleEffect(configuration.isPressed ? 0.92 : 1.0)
             .animation(AppAnimation.quick, value: configuration.isPressed)
-            .onChange(of: configuration.isPressed) { _, isPressed in
-                if isPressed {
-                    HapticManager.lightTap()
-                }
-            }
     }
 }
 

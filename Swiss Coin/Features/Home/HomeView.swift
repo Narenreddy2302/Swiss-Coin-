@@ -13,10 +13,13 @@ struct HomeView: View {
     }(), animation: .default)
     private var allTransactions: FetchedResults<FinancialTransaction>
 
-    // Fetch all people to calculate balances
-    @FetchRequest(
-        sortDescriptors: [NSSortDescriptor(keyPath: \Person.name, ascending: true)],
-        animation: .default)
+    // Fetch all people to calculate balances (with batch size for memory efficiency)
+    @FetchRequest(fetchRequest: {
+        let request: NSFetchRequest<Person> = Person.fetchRequest()
+        request.sortDescriptors = [NSSortDescriptor(keyPath: \Person.name, ascending: true)]
+        request.fetchBatchSize = 20
+        return request
+    }(), animation: .default)
     private var allPeople: FetchedResults<Person>
 
     @State private var showingProfile = false
@@ -103,19 +106,8 @@ struct HomeView: View {
                             }
                         }
 
-                        // Monthly Spending Summary
-                        VStack(alignment: .leading, spacing: Spacing.md) {
-                            Text("This Month")
-                                .font(AppTypography.title2())
-                                .foregroundColor(AppColors.textPrimary)
-                                .padding(.horizontal)
-
-                            MonthlySpendingCard()
-                                .padding(.horizontal)
-                        }
-
                         Divider()
-                            .padding(.leading)
+                            .padding(.horizontal)
 
                         // Recent Activity (Up Next style)
                         VStack(alignment: .leading, spacing: Spacing.sm) {
