@@ -10,7 +10,7 @@ import Combine
 import CoreData
 import Foundation
 import os
-import UserNotifications
+@preconcurrency import UserNotifications
 
 /// Singleton service for scheduling and managing local notifications.
 @MainActor
@@ -156,22 +156,24 @@ final class NotificationManager: NSObject, ObservableObject {
     /// - Parameter context: The Core Data context to fetch subscriptions from.
     func rescheduleAllSubscriptionReminders(in context: NSManagedObjectContext) {
         // Remove all existing subscription reminders
-        center.getPendingNotificationRequests { [weak self] requests in
+        // Capture center reference before the closure to avoid Sendable capture issues
+        let notificationCenter = self.center
+        notificationCenter.getPendingNotificationRequests { requests in
             let subscriptionIds = requests
                 .filter { $0.identifier.hasPrefix(IdentifierPrefix.subscriptionReminder) }
                 .map { $0.identifier }
 
-            self?.center.removePendingNotificationRequests(withIdentifiers: subscriptionIds)
+            notificationCenter.removePendingNotificationRequests(withIdentifiers: subscriptionIds)
 
             // Fetch all active subscriptions with notifications enabled
-            Task { @MainActor [weak self] in
+            Task { @MainActor in
                 let fetchRequest: NSFetchRequest<Subscription> = Subscription.fetchRequest()
                 fetchRequest.predicate = NSPredicate(format: "isActive == YES AND notificationEnabled == YES")
 
                 do {
                     let subscriptions = try context.fetch(fetchRequest)
                     for subscription in subscriptions {
-                        self?.scheduleSubscriptionReminder(for: subscription)
+                        NotificationManager.shared.scheduleSubscriptionReminder(for: subscription)
                     }
                 } catch {
                     AppLogger.notifications.error("Failed to fetch subscriptions for rescheduling: \(error.localizedDescription)")
