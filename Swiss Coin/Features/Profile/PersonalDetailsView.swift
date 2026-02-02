@@ -6,6 +6,7 @@
 //  Integrates with both local CoreData and remote Supabase.
 //
 
+import Combine
 import CoreData
 import PhotosUI
 import SwiftUI
@@ -385,7 +386,6 @@ private struct ContactInfoSection: View {
 
 // MARK: - View Model
 
-@MainActor
 class PersonalDetailsViewModel: ObservableObject {
     // Form fields
     @Published var displayName: String = ""
@@ -461,13 +461,12 @@ class PersonalDetailsViewModel: ObservableObject {
 
     func loadCurrentUserData(context: NSManagedObjectContext) {
         // Load from CoreData first
-        if let currentUser = CurrentUser.fetch(from: context) {
-            displayName = currentUser.name ?? "You"
-            profileColor = currentUser.colorHex ?? "#34C759"
-        }
+        let currentUser = CurrentUser.getOrCreate(in: context)
+        displayName = currentUser.name ?? "You"
+        profileColor = currentUser.colorHex ?? "#34C759"
 
         // Try to load from Supabase if authenticated
-        if CurrentUser.isAuthenticated {
+        if CurrentUser.currentUserId != nil {
             Task {
                 await loadFromSupabase()
             }
@@ -546,7 +545,7 @@ class PersonalDetailsViewModel: ObservableObject {
             try context.save()
 
             // Update Supabase if authenticated
-            if CurrentUser.isAuthenticated {
+            if CurrentUser.currentUserId != nil {
                 var update = ProfileDetailsUpdate()
 
                 if displayName != originalDisplayName {
@@ -565,9 +564,13 @@ class PersonalDetailsViewModel: ObservableObject {
                 _ = try await supabase.updateProfileDetails(update)
             }
 
-            // Update CurrentUserManager
-            try await CurrentUserManager.shared.updateDisplayName(displayName)
-            try await CurrentUserManager.shared.updateColor(profileColor)
+            // Update CurrentUser profile in CoreData
+            CurrentUser.updateProfile(
+                name: displayName,
+                colorHex: profileColor,
+                phoneNumber: phoneNumber.isEmpty ? nil : phoneNumber,
+                in: context
+            )
 
             await MainActor.run {
                 self.isSaving = false

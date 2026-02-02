@@ -6,6 +6,7 @@
 //  Integrates with Supabase for persistent storage and sync.
 //
 
+import Combine
 import CryptoKit
 import LocalAuthentication
 import SwiftUI
@@ -206,7 +207,7 @@ private struct DevicesSection: View {
             }
 
             Button {
-                HapticManager.buttonPress()
+                HapticManager.tap()
                 viewModel.showingSignOutAll = true
             } label: {
                 Label("Sign Out All Other Devices", systemImage: "rectangle.portrait.and.arrow.forward")
@@ -427,7 +428,7 @@ class PrivacySecurityViewModel: ObservableObject {
         checkBiometricType()
         loadFromLocal()
 
-        if CurrentUser.isAuthenticated {
+        if CurrentUser.currentUserId != nil {
             Task {
                 await loadFromSupabase()
                 await loadCounts()
@@ -536,7 +537,7 @@ class PrivacySecurityViewModel: ObservableObject {
                     self.biometricEnabled = true
                     UserDefaults.standard.set(true, forKey: "biometric_enabled")
 
-                    if CurrentUser.isAuthenticated {
+                    if CurrentUser.currentUserId != nil {
                         Task {
                             try? await self.supabase.setBiometricEnabled(true, biometricType: self.biometricTypeString)
                         }
@@ -554,7 +555,7 @@ class PrivacySecurityViewModel: ObservableObject {
         biometricEnabled = false
         UserDefaults.standard.set(false, forKey: "biometric_enabled")
 
-        if CurrentUser.isAuthenticated {
+        if CurrentUser.currentUserId != nil {
             try? await supabase.setBiometricEnabled(false, biometricType: nil)
         }
     }
@@ -579,7 +580,7 @@ class PrivacySecurityViewModel: ObservableObject {
         UserDefaults.standard.set(true, forKey: "pin_enabled")
 
         // Save to Supabase
-        if CurrentUser.isAuthenticated {
+        if CurrentUser.currentUserId != nil {
             do {
                 try await supabase.setPIN(pinHash: pinHash)
                 HapticManager.success()
@@ -595,7 +596,7 @@ class PrivacySecurityViewModel: ObservableObject {
         pinEnabled = false
         UserDefaults.standard.set(false, forKey: "pin_enabled")
 
-        if CurrentUser.isAuthenticated {
+        if CurrentUser.currentUserId != nil {
             try? await supabase.disablePIN()
         }
     }
@@ -612,7 +613,7 @@ class PrivacySecurityViewModel: ObservableObject {
         autoLockTimeout = minutes
         UserDefaults.standard.set(minutes, forKey: "auto_lock_timeout")
 
-        if CurrentUser.isAuthenticated {
+        if CurrentUser.currentUserId != nil {
             try? await supabase.setAutoLockTimeout(minutes)
         }
     }
@@ -621,7 +622,7 @@ class PrivacySecurityViewModel: ObservableObject {
         requireAuthSensitive = required
         UserDefaults.standard.set(required, forKey: "require_auth_sensitive")
 
-        if CurrentUser.isAuthenticated {
+        if CurrentUser.currentUserId != nil {
             try? await supabase.setRequireAuthForSensitiveActions(required)
         }
     }
@@ -629,10 +630,10 @@ class PrivacySecurityViewModel: ObservableObject {
     func updateNotifyOnNewDevice(_ notify: Bool) async {
         notifyOnNewDevice = notify
 
-        if CurrentUser.isAuthenticated {
+        if CurrentUser.currentUserId != nil {
             var update = SecuritySettingsUpdate()
             update.biometricEnabled = nil
-            let _: Void = try? await supabase.updateSecuritySettings(SecuritySettingsUpdate())
+            _ = try? await supabase.updateSecuritySettings(SecuritySettingsUpdate())
         }
     }
 
@@ -641,7 +642,7 @@ class PrivacySecurityViewModel: ObservableObject {
         update[keyPath: keyPath] = value
         saveToLocal()
 
-        if CurrentUser.isAuthenticated {
+        if CurrentUser.currentUserId != nil {
             try? await supabase.updatePrivacySettings(update)
         }
     }
