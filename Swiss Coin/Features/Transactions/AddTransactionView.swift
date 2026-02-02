@@ -169,7 +169,7 @@ struct PayerPicker: View {
 
     // Filter out current user since "Me" is already shown as an option
     private var otherPeople: [Person] {
-        people.filter { !CurrentUser.isCurrentUser($0) }
+        people.filter { !CurrentUser.isCurrentUser($0.id) }
     }
 
     var body: some View {

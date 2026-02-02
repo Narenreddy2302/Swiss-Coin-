@@ -37,7 +37,7 @@ struct ParticipantSelectorView: View {
                         }) {
                             HStack {
                                 // Show "Me" for current user, otherwise show name
-                                if CurrentUser.isCurrentUser(person) {
+                                if CurrentUser.isCurrentUser(person.id) {
                                     Text("Me")
                                         .font(AppTypography.bodyBold())
                                         .foregroundColor(AppColors.textPrimary)

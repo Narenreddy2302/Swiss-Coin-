@@ -28,7 +28,7 @@ struct HomeView: View {
     /// Calculate total amount the current user owes to others
     private var totalYouOwe: Double {
         allPeople
-            .filter { !CurrentUser.isCurrentUser($0) }
+            .filter { !CurrentUser.isCurrentUser($0.id) }
             .compactMap { person in
                 let balance = person.calculateBalance()
                 return balance < 0 ? abs(balance) : nil
@@ -39,7 +39,7 @@ struct HomeView: View {
     /// Calculate total amount others owe to the current user
     private var totalOwedToYou: Double {
         allPeople
-            .filter { !CurrentUser.isCurrentUser($0) }
+            .filter { !CurrentUser.isCurrentUser($0.id) }
             .compactMap { person in
                 let balance = person.calculateBalance()
                 return balance > 0 ? balance : nil
