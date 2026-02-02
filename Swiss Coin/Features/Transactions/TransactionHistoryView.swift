@@ -9,20 +9,17 @@ struct TransactionHistoryView: View {
         animation: .default)
     private var transactions: FetchedResults<FinancialTransaction>
 
+    @State private var showingDeleteAlert = false
+    @State private var transactionToDelete: FinancialTransaction?
+
     var body: some View {
-        NavigationView {
+        NavigationStack {
             ZStack {
-                List {
-                    ForEach(transactions) { transaction in
-                        TransactionRowView(transaction: transaction)
-                            .listRowInsets(EdgeInsets())
-                            .listRowBackground(Color(uiColor: .secondarySystemBackground))
-                            .alignmentGuide(.listRowSeparatorLeading) { _ in 0 }
-                    }
-                    .onDelete(perform: deleteItems)
+                if transactions.isEmpty {
+                    emptyStateView
+                } else {
+                    transactionList
                 }
-                .listStyle(.plain)
-                .scrollContentBackground(.hidden)
 
                 // Overlay the Quick Action FAB
                 FinanceQuickActionView()
@@ -30,28 +27,105 @@ struct TransactionHistoryView: View {
             .background(Color(uiColor: .secondarySystemBackground))
             .navigationTitle("History")
             .navigationBarTitleDisplayMode(.large)
+            .alert("Delete Transaction", isPresented: $showingDeleteAlert) {
+                Button("Cancel", role: .cancel) {
+                    transactionToDelete = nil
+                }
+                Button("Delete", role: .destructive) {
+                    if let transaction = transactionToDelete {
+                        deleteTransaction(transaction)
+                    }
+                    transactionToDelete = nil
+                }
+            } message: {
+                Text("Are you sure you want to delete this transaction? This action cannot be undone.")
+            }
         }
     }
+
+    // MARK: - Empty State
+
+    private var emptyStateView: some View {
+        VStack(spacing: Spacing.lg) {
+            Spacer()
+
+            Image(systemName: "arrow.left.arrow.right.circle")
+                .font(.system(size: IconSize.xxl))
+                .foregroundColor(AppColors.textSecondary)
+
+            Text("No Transactions Yet")
+                .font(AppTypography.title2())
+                .foregroundColor(AppColors.textPrimary)
+
+            Text("Your transaction history will appear here once you add expenses or split bills with friends.")
+                .font(AppTypography.subheadline())
+                .foregroundColor(AppColors.textSecondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, Spacing.xxl)
+
+            HStack(spacing: Spacing.xs) {
+                Image(systemName: "plus.circle.fill")
+                    .font(.system(size: IconSize.sm))
+                Text("Tap + to create your first transaction")
+                    .font(AppTypography.subheadline())
+            }
+            .foregroundColor(AppColors.accent)
+            .padding(.top, Spacing.md)
+
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(AppColors.backgroundSecondary)
+    }
+
+    // MARK: - Transaction List
+
+    private var transactionList: some View {
+        List {
+            ForEach(transactions) { transaction in
+                TransactionRowView(
+                    transaction: transaction,
+                    onEdit: nil,
+                    onDelete: {
+                        transactionToDelete = transaction
+                        showingDeleteAlert = true
+                    }
+                )
+                .listRowInsets(EdgeInsets())
+                .listRowBackground(Color(uiColor: .secondarySystemBackground))
+                .alignmentGuide(.listRowSeparatorLeading) { _ in 0 }
+            }
+            .onDelete(perform: deleteItems)
+        }
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
+    }
+
+    // MARK: - Delete Logic
 
     private func deleteItems(offsets: IndexSet) {
         withAnimation {
             offsets.map { transactions[$0] }.forEach { transaction in
-                // Delete associated splits first
-                if let splits = transaction.splits as? Set<TransactionSplit> {
-                    splits.forEach { viewContext.delete($0) }
-                }
-                // Delete the transaction
-                viewContext.delete(transaction)
+                deleteTransaction(transaction)
             }
-            
-            do {
-                try viewContext.save()
-                HapticManager.success()
-            } catch {
-                viewContext.rollback()
-                HapticManager.error()
-                print("Error deleting transactions: \(error.localizedDescription)")
-            }
+        }
+    }
+
+    private func deleteTransaction(_ transaction: FinancialTransaction) {
+        // Delete associated splits first
+        if let splits = transaction.splits as? Set<TransactionSplit> {
+            splits.forEach { viewContext.delete($0) }
+        }
+        // Delete the transaction
+        viewContext.delete(transaction)
+
+        do {
+            try viewContext.save()
+            HapticManager.success()
+        } catch {
+            viewContext.rollback()
+            HapticManager.error()
+            print("Error deleting transaction: \(error.localizedDescription)")
         }
     }
 }

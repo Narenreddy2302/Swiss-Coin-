@@ -2,9 +2,13 @@ import CoreData
 import SwiftUI
 
 struct GroupDetailView: View {
+    @Environment(\.managedObjectContext) private var viewContext
+    @Environment(\.dismiss) private var dismiss
     @ObservedObject var group: UserGroup
     @State private var showingAddTransaction = false
     @State private var showingSettlement = false
+    @State private var showingEditGroup = false
+    @State private var showingDeleteConfirmation = false
 
     private var balance: Double {
         group.calculateBalance()
@@ -178,8 +182,57 @@ struct GroupDetailView: View {
         .scrollContentBackground(.hidden)
         .background(AppColors.backgroundSecondary)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Menu {
+                    Button {
+                        HapticManager.tap()
+                        showingEditGroup = true
+                    } label: {
+                        Label("Edit", systemImage: "pencil")
+                    }
+
+                    Button(role: .destructive) {
+                        HapticManager.tap()
+                        showingDeleteConfirmation = true
+                    } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                        .font(.system(size: IconSize.md))
+                }
+            }
+        }
+        .sheet(isPresented: $showingEditGroup) {
+            NavigationStack {
+                EditGroupView(group: group)
+                    .environment(\.managedObjectContext, viewContext)
+            }
+        }
+        .alert("Delete Group", isPresented: $showingDeleteConfirmation) {
+            Button("Cancel", role: .cancel) {}
+            Button("Delete", role: .destructive) {
+                deleteGroup()
+            }
+        } message: {
+            Text("Are you sure you want to delete \"\(group.name ?? "this group")\"? This will remove the group and its data.")
+        }
         .onAppear {
             HapticManager.prepare()
+        }
+    }
+
+    private func deleteGroup() {
+        viewContext.delete(group)
+        do {
+            try viewContext.save()
+            HapticManager.success()
+            dismiss()
+        } catch {
+            viewContext.rollback()
+            HapticManager.error()
+            print("Error deleting group: \(error)")
         }
     }
 }

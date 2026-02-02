@@ -9,6 +9,7 @@ struct ImportContactsView: View {
 
     @State private var selectedContacts: Set<ContactsManager.PhoneContact> = []
     @State private var searchText = ""
+    @State private var existingPhoneNumbers: Set<String> = []
 
     var onImport: (([Person]) -> Void)?
 
@@ -28,7 +29,9 @@ struct ImportContactsView: View {
                 if contactsManager.authorizationStatus == .authorized {
                     List {
                         ForEach(filteredContacts) { contact in
+                            let isAlreadyAdded = contactAlreadyExists(contact)
                             Button(action: {
+                                guard !isAlreadyAdded else { return }
                                 HapticManager.selectionChanged()
                                 toggleSelection(contact)
                             }) {
@@ -55,23 +58,36 @@ struct ImportContactsView: View {
                                     VStack(alignment: .leading, spacing: Spacing.xs) {
                                         Text(contact.fullName)
                                             .font(AppTypography.headline())
-                                            .foregroundColor(AppColors.textPrimary)
+                                            .foregroundColor(isAlreadyAdded ? AppColors.textSecondary : AppColors.textPrimary)
                                         if let phone = contact.phoneNumbers.first {
                                             Text(phone)
                                                 .font(AppTypography.caption())
                                                 .foregroundColor(AppColors.textSecondary)
                                         }
+                                        if isAlreadyAdded {
+                                            Text("Already added")
+                                                .font(AppTypography.caption())
+                                                .foregroundColor(AppColors.warning)
+                                        }
                                     }
 
                                     Spacer()
 
-                                    Image(systemName: selectedContacts.contains(contact) ? "checkmark.circle.fill" : "circle")
-                                        .font(.system(size: IconSize.md))
-                                        .foregroundColor(selectedContacts.contains(contact) ? AppColors.accent : AppColors.textSecondary)
+                                    if isAlreadyAdded {
+                                        Image(systemName: "checkmark.circle.fill")
+                                            .font(.system(size: IconSize.md))
+                                            .foregroundColor(AppColors.textSecondary.opacity(0.5))
+                                    } else {
+                                        Image(systemName: selectedContacts.contains(contact) ? "checkmark.circle.fill" : "circle")
+                                            .font(.system(size: IconSize.md))
+                                            .foregroundColor(selectedContacts.contains(contact) ? AppColors.accent : AppColors.textSecondary)
+                                    }
                                 }
                                 .padding(.vertical, Spacing.xs)
+                                .opacity(isAlreadyAdded ? 0.6 : 1.0)
                             }
                             .buttonStyle(.plain)
+                            .disabled(isAlreadyAdded)
                         }
                     }
                     .listStyle(.plain)
@@ -155,6 +171,8 @@ struct ImportContactsView: View {
             }
         }
         .task {
+            // Load existing phone numbers to detect duplicates
+            loadExistingPhoneNumbers()
             // Re-check status on appear in case user came back from settings
             if contactsManager.authorizationStatus == .authorized {
                 await contactsManager.fetchContacts()
@@ -183,6 +201,31 @@ struct ImportContactsView: View {
         }
     }
 
+    private func loadExistingPhoneNumbers() {
+        let fetchRequest: NSFetchRequest<Person> = Person.fetchRequest()
+        fetchRequest.predicate = NSPredicate(format: "phoneNumber != nil AND phoneNumber != %@", "")
+        fetchRequest.propertiesToFetch = ["phoneNumber"]
+
+        do {
+            let results = try viewContext.fetch(fetchRequest)
+            let phones = results.compactMap { $0.phoneNumber?.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
+            existingPhoneNumbers = Set(phones)
+        } catch {
+            print("Error fetching existing phone numbers: \(error)")
+        }
+    }
+
+    private func contactAlreadyExists(_ contact: ContactsManager.PhoneContact) -> Bool {
+        for phone in contact.phoneNumbers {
+            let cleaned = phone.trimmingCharacters(in: .whitespacesAndNewlines)
+            if existingPhoneNumbers.contains(cleaned) {
+                return true
+            }
+        }
+        return false
+    }
+
     private func toggleSelection(_ contact: ContactsManager.PhoneContact) {
         if selectedContacts.contains(contact) {
             selectedContacts.remove(contact)
@@ -195,6 +238,11 @@ struct ImportContactsView: View {
         var newPeople: [Person] = []
 
         for contact in selectedContacts {
+            // Skip contacts that already exist (safety check)
+            if contactAlreadyExists(contact) {
+                continue
+            }
+
             let newPerson = Person(context: viewContext)
             newPerson.id = UUID()
             newPerson.name = contact.fullName
@@ -216,7 +264,6 @@ struct ImportContactsView: View {
             viewContext.rollback()
             print("Error saving imported contacts: \(error)")
             HapticManager.error()
-            // TODO: Show error alert to user
         }
     }
 }

@@ -7,6 +7,7 @@ struct HomeView: View {
     // Fetch last 5 transactions (limited at fetch level for efficiency)
     @FetchRequest(
         sortDescriptors: [NSSortDescriptor(keyPath: \FinancialTransaction.date, ascending: false)],
+        fetchLimit: 5,
         animation: .default)
     private var allTransactions: FetchedResults<FinancialTransaction>
 
@@ -20,9 +21,9 @@ struct HomeView: View {
 
     // MARK: - Computed Properties
 
-    /// Recent transactions (last 5)
+    /// Recent transactions (already limited to 5 by fetchLimit)
     private var recentTransactions: [FinancialTransaction] {
-        Array(allTransactions.prefix(5))
+        Array(allTransactions)
     }
 
     /// Calculate total amount the current user owes to others
@@ -110,6 +111,11 @@ struct HomeView: View {
                     .padding(.bottom, Spacing.section + Spacing.sm)
                 }
                 .background(AppColors.backgroundSecondary)
+                .refreshable {
+                    // Force CoreData to re-fetch by touching the context
+                    viewContext.refreshAllObjects()
+                    HapticManager.lightTap()
+                }
 
                 // Overlay the Quick Action FAB
                 FinanceQuickActionView()
@@ -132,19 +138,32 @@ struct HomeView: View {
 
 struct EmptyStateView: View {
     var body: some View {
-        VStack(spacing: Spacing.md) {
-            Image(systemName: "list.bullet.rectangle.portrait")
+        VStack(spacing: Spacing.lg) {
+            Image(systemName: "sparkles")
                 .font(.system(size: IconSize.xxl))
-                .foregroundColor(AppColors.textSecondary)
-            Text("No recent activity")
-                .font(AppTypography.headline())
+                .foregroundColor(AppColors.accent.opacity(0.7))
+
+            Text("Welcome to Swiss Coin!")
+                .font(AppTypography.title3())
                 .foregroundColor(AppColors.textPrimary)
-            Text("Transactions you add will appear here.")
+
+            Text("Start by adding your first expense.\nSplit bills with friends and keep track of who owes what.")
                 .font(AppTypography.subheadline())
                 .foregroundColor(AppColors.textSecondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, Spacing.lg)
+
+            HStack(spacing: Spacing.xs) {
+                Image(systemName: "plus.circle.fill")
+                    .font(.system(size: IconSize.sm))
+                Text("Tap the + button to get started")
+                    .font(AppTypography.subheadline())
+            }
+            .foregroundColor(AppColors.accent)
+            .padding(.top, Spacing.sm)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, Spacing.section + Spacing.sm)
+        .padding(.vertical, Spacing.section)
         .background(AppColors.backgroundTertiary)
         .cornerRadius(CornerRadius.md)
         .padding(.horizontal)

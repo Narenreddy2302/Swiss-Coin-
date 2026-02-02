@@ -26,7 +26,7 @@ extension Color {
         case 8: // ARGB (32-bit)
             (a, r, g, b) = (int >> 24, int >> 16 & 0xFF, int >> 8 & 0xFF, int & 0xFF)
         default:
-            // Invalid hex, fallback to blue
+            // Invalid hex, fallback to AppColors.defaultAvatarColor (#007AFF)
             (a, r, g, b) = (255, 0, 122, 255)
         }
         
@@ -43,7 +43,7 @@ extension Color {
     /// - Returns: Hex string representation (e.g., "#FF5733")
     func toHex() -> String {
         guard let components = UIColor(self).cgColor.components else {
-            return "#007AFF" // Default blue
+            return AppColors.defaultAvatarColorHex // Default avatar blue
         }
         
         let r = Float(components[0])

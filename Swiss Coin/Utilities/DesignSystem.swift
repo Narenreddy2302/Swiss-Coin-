@@ -163,6 +163,10 @@ enum AppColors {
     /// Primary accent color
     static let accent = Color.green
 
+    /// Default avatar color (system blue) — use as the single source of truth
+    static let defaultAvatarColorHex = "#007AFF"
+    static let defaultAvatarColor = Color(hex: "#007AFF")
+
     // MARK: - Background Colors
 
     /// Primary background
@@ -173,6 +177,9 @@ enum AppColors {
 
     /// Tertiary background
     static let backgroundTertiary = Color(UIColor.tertiarySystemBackground)
+
+    /// Surface background (search bars, input fields)
+    static let surface = Color(UIColor.systemGray5)
 
     /// Card background
     static let cardBackground = Color(UIColor.systemGray6).opacity(0.3)

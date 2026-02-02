@@ -2,9 +2,13 @@ import CoreData
 import SwiftUI
 
 struct PersonDetailView: View {
+    @Environment(\.managedObjectContext) private var viewContext
+    @Environment(\.dismiss) private var dismiss
     @ObservedObject var person: Person
     @State private var showingAddTransaction = false
     @State private var showingConversation = false
+    @State private var showingEditPerson = false
+    @State private var showingDeleteConfirmation = false
     
     private var balance: Double {
         person.calculateBalance()
@@ -160,6 +164,55 @@ struct PersonDetailView: View {
         .background(AppColors.backgroundSecondary)
         .navigationBarTitleDisplayMode(.inline)
         .navigationTitle(person.name ?? "Person")
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Menu {
+                    Button {
+                        HapticManager.tap()
+                        showingEditPerson = true
+                    } label: {
+                        Label("Edit", systemImage: "pencil")
+                    }
+
+                    Button(role: .destructive) {
+                        HapticManager.tap()
+                        showingDeleteConfirmation = true
+                    } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                        .font(.system(size: IconSize.md))
+                }
+            }
+        }
+        .sheet(isPresented: $showingEditPerson) {
+            NavigationStack {
+                EditPersonView(person: person)
+                    .environment(\.managedObjectContext, viewContext)
+            }
+        }
+        .alert("Delete Person", isPresented: $showingDeleteConfirmation) {
+            Button("Cancel", role: .cancel) {}
+            Button("Delete", role: .destructive) {
+                deletePerson()
+            }
+        } message: {
+            Text("Are you sure you want to delete \(person.name ?? "this person")? This will remove all associated data.")
+        }
+    }
+
+    private func deletePerson() {
+        viewContext.delete(person)
+        do {
+            try viewContext.save()
+            HapticManager.success()
+            dismiss()
+        } catch {
+            viewContext.rollback()
+            HapticManager.error()
+            print("Error deleting person: \(error)")
+        }
     }
 
     // Helper to combine "Paid By" and "Owed In" transactions

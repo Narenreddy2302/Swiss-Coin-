@@ -242,6 +242,14 @@ struct EditSubscriptionView: View {
 
         do {
             try viewContext.save()
+
+            // Reschedule notification based on updated settings
+            if notificationEnabled {
+                NotificationManager.shared.scheduleSubscriptionReminder(for: subscription)
+            } else {
+                NotificationManager.shared.cancelSubscriptionReminder(for: subscription)
+            }
+
             HapticManager.success()
             dismiss()
         } catch {

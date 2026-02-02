@@ -48,7 +48,7 @@ struct BalanceHeaderView: View {
             Button(action: onAvatarTap) {
                 VStack(spacing: 12) {
                     Circle()
-                        .fill(Color(hex: person.colorHex ?? "#34C759"))
+                        .fill(Color(hex: person.colorHex ?? AppColors.defaultAvatarColorHex))
                         .frame(width: AvatarSize.xl, height: AvatarSize.xl)
                         .overlay(
                             Text(person.initials)

@@ -9,6 +9,8 @@ struct AddPersonView: View {
     @State private var showingContactPicker = false
     @State private var name: String = ""
     @State private var phoneNumber: String = ""
+    @State private var showingDuplicateWarning = false
+    @State private var duplicatePersonName: String = ""
 
     var body: some View {
         Form {
@@ -18,6 +20,20 @@ struct AddPersonView: View {
                 TextField("Phone Number", text: $phoneNumber)
                     .font(AppTypography.body())
                     .keyboardType(.phonePad)
+                    .onChange(of: phoneNumber) { _, newValue in
+                        checkDuplicatePhone(newValue)
+                    }
+
+                if showingDuplicateWarning {
+                    HStack(spacing: Spacing.xs) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.system(size: IconSize.sm))
+                            .foregroundColor(AppColors.warning)
+                        Text("Phone number already used by \(duplicatePersonName)")
+                            .font(AppTypography.caption())
+                            .foregroundColor(AppColors.warning)
+                    }
+                }
             }
 
             Section {
@@ -45,6 +61,30 @@ struct AddPersonView: View {
         .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showingContactPicker) {
             ContactPicker(name: $name, phoneNumber: $phoneNumber)
+        }
+    }
+
+    private func checkDuplicatePhone(_ phone: String) {
+        let trimmed = phone.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            showingDuplicateWarning = false
+            return
+        }
+
+        let fetchRequest: NSFetchRequest<Person> = Person.fetchRequest()
+        fetchRequest.predicate = NSPredicate(format: "phoneNumber == %@", trimmed)
+        fetchRequest.fetchLimit = 1
+
+        do {
+            let results = try viewContext.fetch(fetchRequest)
+            if let existing = results.first {
+                duplicatePersonName = existing.name ?? "another person"
+                showingDuplicateWarning = true
+            } else {
+                showingDuplicateWarning = false
+            }
+        } catch {
+            showingDuplicateWarning = false
         }
     }
 

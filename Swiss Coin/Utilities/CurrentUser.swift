@@ -28,7 +28,7 @@ final class CurrentUser {
     }()
     
     /// Current user's default color for UI elements
-    static let defaultColorHex = "#007AFF"
+    static let defaultColorHex = AppColors.defaultAvatarColorHex
     
     /// Current user's display name
     static let displayName = "You"
@@ -81,7 +81,7 @@ final class CurrentUser {
         let user = Person(context: context)
         user.id = id ?? UUID()
         user.name = "Me" // Default name
-        user.colorHex = defaultColorHex
+        user.colorHex = AppColors.defaultAvatarColorHex
         user.phoneNumber = nil // Will be set when user adds it
         user.photoData = nil // Will be set when user adds photo
         

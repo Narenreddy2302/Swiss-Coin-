@@ -7,52 +7,91 @@ struct TransactionRowView: View {
     var onDelete: (() -> Void)? = nil
 
     @State private var isPressed = false
+    @State private var showingDetail = false
+    @State private var showingEditSheet = false
+    @State private var showingDeleteAlert = false
 
     var body: some View {
-        HStack(alignment: .center, spacing: Spacing.md) {
-            // Main Content
-            VStack(alignment: .leading, spacing: Spacing.xs) {
-                Text(transaction.title ?? "Unknown")
-                    .font(AppTypography.headline())
-                    .foregroundColor(AppColors.textPrimary)
-                    .lineLimit(2)
+        NavigationLink(destination: TransactionDetailView(transaction: transaction)) {
+            HStack(alignment: .center, spacing: Spacing.md) {
+                // Main Content
+                VStack(alignment: .leading, spacing: Spacing.xs) {
+                    Text(transaction.title ?? "Unknown")
+                        .font(AppTypography.headline())
+                        .foregroundColor(AppColors.textPrimary)
+                        .lineLimit(2)
 
-                HStack(spacing: Spacing.xxs) {
-                    Text(dateString)
-                    Text("|")
-                    Text("Created by \(creatorName)")
-                }
-                .font(AppTypography.footnote())
-                .foregroundColor(AppColors.textSecondary)
-            }
-
-            Spacer()
-
-            // Amount and Details
-            VStack(alignment: .trailing, spacing: Spacing.xxs) {
-                Text(CurrencyFormatter.format(amountToShow))
-                    .font(AppTypography.amount())
-                    .foregroundColor(amountColor)
-
-                Text(splitDetails)
-                    .font(AppTypography.caption())
+                    HStack(spacing: Spacing.xxs) {
+                        Text(dateString)
+                        Text("|")
+                        Text("Created by \(creatorName)")
+                    }
+                    .font(AppTypography.footnote())
                     .foregroundColor(AppColors.textSecondary)
+                }
+
+                Spacer()
+
+                // Amount and Details
+                VStack(alignment: .trailing, spacing: Spacing.xxs) {
+                    Text(CurrencyFormatter.format(amountToShow))
+                        .font(AppTypography.amount())
+                        .foregroundColor(amountColor)
+
+                    Text(splitDetails)
+                        .font(AppTypography.caption())
+                        .foregroundColor(AppColors.textSecondary)
+                }
             }
+            .padding(.vertical, Spacing.lg)
+            .padding(.horizontal, Spacing.lg)
         }
-        .padding(.vertical, Spacing.lg)
-        .padding(.horizontal, Spacing.lg)
+        .buttonStyle(.plain)
         .background(AppColors.backgroundSecondary)
         .scaleEffect(isPressed ? 0.98 : 1.0)
         .animation(AppAnimation.quick, value: isPressed)
         .contentShape(Rectangle())
-        .contextMenu {
-            if onEdit != nil {
-                Button {
-                    HapticManager.tap()
-                    onEdit?()
-                } label: {
-                    Label("Edit Transaction", systemImage: "pencil")
+        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+            Button(role: .destructive) {
+                HapticManager.delete()
+                if let onDelete = onDelete {
+                    onDelete()
+                } else {
+                    showingDeleteAlert = true
                 }
+            } label: {
+                Label("Delete", systemImage: "trash")
+            }
+
+            Button {
+                HapticManager.tap()
+                if let onEdit = onEdit {
+                    onEdit()
+                } else {
+                    showingEditSheet = true
+                }
+            } label: {
+                Label("Edit", systemImage: "pencil")
+            }
+            .tint(AppColors.accent)
+        }
+        .contextMenu {
+            Button {
+                HapticManager.tap()
+                showingDetail = true
+            } label: {
+                Label("View Details", systemImage: "info.circle")
+            }
+
+            Button {
+                HapticManager.tap()
+                if let onEdit = onEdit {
+                    onEdit()
+                } else {
+                    showingEditSheet = true
+                }
+            } label: {
+                Label("Edit Transaction", systemImage: "pencil")
             }
 
             Button {
@@ -62,22 +101,17 @@ struct TransactionRowView: View {
                 Label("Share", systemImage: "square.and.arrow.up")
             }
 
-            Button {
-                HapticManager.tap()
-                showTransactionDetails()
-            } label: {
-                Label("View Details", systemImage: "info.circle")
-            }
+            Divider()
 
-            if onDelete != nil {
-                Divider()
-
-                Button(role: .destructive) {
-                    HapticManager.delete()
-                    onDelete?()
-                } label: {
-                    Label("Delete Transaction", systemImage: "trash")
+            Button(role: .destructive) {
+                HapticManager.delete()
+                if let onDelete = onDelete {
+                    onDelete()
+                } else {
+                    showingDeleteAlert = true
                 }
+            } label: {
+                Label("Delete Transaction", systemImage: "trash")
             }
         }
         .onLongPressGesture(minimumDuration: 0.5, pressing: { pressing in
@@ -88,6 +122,20 @@ struct TransactionRowView: View {
                 HapticManager.tap()
             }
         }, perform: {})
+        .sheet(isPresented: $showingEditSheet) {
+            TransactionEditView(transaction: transaction)
+        }
+        .navigationDestination(isPresented: $showingDetail) {
+            TransactionDetailView(transaction: transaction)
+        }
+        .alert("Delete Transaction", isPresented: $showingDeleteAlert) {
+            Button("Cancel", role: .cancel) {}
+            Button("Delete", role: .destructive) {
+                deleteTransaction()
+            }
+        } message: {
+            Text("Are you sure you want to delete this transaction? This action cannot be undone.")
+        }
     }
 
     // MARK: - Helpers
@@ -176,9 +224,9 @@ struct TransactionRowView: View {
         let peopleText = count == 1 ? "1 Person" : "\(count) People"
         return "\(formattedTotal) / \(peopleText)"
     }
-    
+
     // MARK: - Actions
-    
+
     private func shareTransaction() {
         let shareText = """
         \(transaction.title ?? "Transaction")
@@ -186,26 +234,42 @@ struct TransactionRowView: View {
         Date: \(dateString)
         Split between \(splitCount) people
         """
-        
+
         guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
               let rootViewController = windowScene.windows.first?.rootViewController else {
             return
         }
-        
+
         let activityController = UIActivityViewController(activityItems: [shareText], applicationActivities: nil)
-        
+
         // For iPad
         if let popoverController = activityController.popoverPresentationController {
             popoverController.sourceView = rootViewController.view
             popoverController.sourceRect = CGRect(x: rootViewController.view.bounds.midX, y: rootViewController.view.bounds.midY, width: 0, height: 0)
             popoverController.permittedArrowDirections = []
         }
-        
+
         rootViewController.present(activityController, animated: true)
     }
-    
-    private func showTransactionDetails() {
-        // TODO: Implement transaction detail view navigation
-        print("Show details for transaction: \(transaction.title ?? "Unknown")")
+
+    private func deleteTransaction() {
+        guard let context = transaction.managedObjectContext else { return }
+
+        // Delete associated splits first
+        if let splits = transaction.splits as? Set<TransactionSplit> {
+            splits.forEach { context.delete($0) }
+        }
+
+        // Delete the transaction
+        context.delete(transaction)
+
+        do {
+            try context.save()
+            HapticManager.success()
+        } catch {
+            context.rollback()
+            HapticManager.error()
+            print("Error deleting transaction: \(error.localizedDescription)")
+        }
     }
 }

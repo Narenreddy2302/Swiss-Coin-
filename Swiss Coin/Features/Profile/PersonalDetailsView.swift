@@ -325,7 +325,7 @@ class PersonalDetailsViewModel: ObservableObject {
     @Published var fullName: String = ""
     @Published var phoneNumber: String = ""
     @Published var email: String = ""
-    @Published var profileColor: String = "#34C759"
+    @Published var profileColor: String = AppColors.defaultAvatarColorHex
     @Published var selectedImage: UIImage?
 
     // UI state
@@ -356,23 +356,80 @@ class PersonalDetailsViewModel: ObservableObject {
         }
     }
 
+    /// Formats phone number for international display.
+    /// Auto-detects country code and applies the appropriate format:
+    /// - +41 (Swiss): +41 XX XXX XX XX
+    /// - +1 (US/CA): +1 (XXX) XXX-XXXX
+    /// - +44 (UK): +44 XXXX XXXXXX
+    /// - +91 (India): +91 XXXXX XXXXX
+    /// - Others: grouped in blocks of 3-4
     var formattedPhoneNumber: String {
-        guard phoneNumber.count >= 10 else { return phoneNumber }
-
         let digits = phoneNumber.filter { $0.isNumber }
-        if digits.count == 10 {
-            let areaCode = digits.prefix(3)
-            let middle = digits.dropFirst(3).prefix(3)
-            let last = digits.suffix(4)
-            return "(\(areaCode)) \(middle)-\(last)"
-        } else if digits.count == 11 && digits.first == "1" {
-            let withoutCountry = String(digits.dropFirst())
-            let areaCode = withoutCountry.prefix(3)
-            let middle = withoutCountry.dropFirst(3).prefix(3)
-            let last = withoutCountry.suffix(4)
-            return "+1 (\(areaCode)) \(middle)-\(last)"
+        guard digits.count >= 7 else { return phoneNumber }
+
+        // Swiss: +41 XX XXX XX XX (11 digits with country code)
+        if digits.hasPrefix("41") && digits.count == 11 {
+            let area = String(digits.dropFirst(2).prefix(2))
+            let rest = String(digits.dropFirst(4))
+            let p1 = String(rest.prefix(3))
+            let p2 = String(rest.dropFirst(3).prefix(2))
+            let p3 = String(rest.dropFirst(5))
+            return "+41 \(area) \(p1) \(p2) \(p3)"
         }
-        return phoneNumber
+
+        // Swiss local: 0XX XXX XX XX (10 digits starting with 0)
+        if digits.hasPrefix("0") && digits.count == 10 {
+            let area = String(digits.prefix(3))
+            let rest = String(digits.dropFirst(3))
+            let p1 = String(rest.prefix(3))
+            let p2 = String(rest.dropFirst(3).prefix(2))
+            let p3 = String(rest.dropFirst(5))
+            return "\(area) \(p1) \(p2) \(p3)"
+        }
+
+        // US/Canada: +1 (XXX) XXX-XXXX (11 digits with country code)
+        if digits.hasPrefix("1") && digits.count == 11 {
+            let body = String(digits.dropFirst())
+            let area = String(body.prefix(3))
+            let mid = String(body.dropFirst(3).prefix(3))
+            let last = String(body.suffix(4))
+            return "+1 (\(area)) \(mid)-\(last)"
+        }
+
+        // US local: (XXX) XXX-XXXX (10 digits)
+        if digits.count == 10 && !digits.hasPrefix("0") && !digits.hasPrefix("44") && !digits.hasPrefix("91") {
+            let area = String(digits.prefix(3))
+            let mid = String(digits.dropFirst(3).prefix(3))
+            let last = String(digits.suffix(4))
+            return "(\(area)) \(mid)-\(last)"
+        }
+
+        // UK: +44 XXXX XXXXXX (12 digits with country code)
+        if digits.hasPrefix("44") && digits.count == 12 {
+            let body = String(digits.dropFirst(2))
+            let p1 = String(body.prefix(4))
+            let p2 = String(body.dropFirst(4))
+            return "+44 \(p1) \(p2)"
+        }
+
+        // India: +91 XXXXX XXXXX (12 digits with country code)
+        if digits.hasPrefix("91") && digits.count == 12 {
+            let body = String(digits.dropFirst(2))
+            let p1 = String(body.prefix(5))
+            let p2 = String(body.dropFirst(5))
+            return "+91 \(p1) \(p2)"
+        }
+
+        // Generic international: preserve + prefix and group digits
+        let hasPlus = phoneNumber.trimmingCharacters(in: .whitespaces).hasPrefix("+")
+        var result = ""
+        for (i, char) in digits.enumerated() {
+            if i > 0 && i % 4 == 0 {
+                result += " "
+            }
+            result.append(char)
+        }
+        return hasPlus ? "+\(result)" : result
     }
 
     var canSave: Bool {
@@ -388,7 +445,7 @@ class PersonalDetailsViewModel: ObservableObject {
     func loadCurrentUserData(context: NSManagedObjectContext) {
         let currentUser = CurrentUser.getOrCreate(in: context)
         displayName = currentUser.name ?? "You"
-        profileColor = currentUser.colorHex ?? "#34C759"
+        profileColor = currentUser.colorHex ?? AppColors.defaultAvatarColorHex
         phoneNumber = currentUser.phoneNumber ?? ""
 
         // Load photo from CoreData

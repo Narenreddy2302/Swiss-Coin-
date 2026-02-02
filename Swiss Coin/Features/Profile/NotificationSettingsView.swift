@@ -57,6 +57,7 @@ final class NotificationSettingsViewModel: ObservableObject {
     @Published var isLoading: Bool = false
     @Published var systemNotificationsEnabled: Bool = true
     @Published var showSystemSettingsPrompt: Bool = false
+    @Published var permissionStatus: UNAuthorizationStatus = .notDetermined
 
     // MARK: - Private Properties
 
@@ -94,8 +95,11 @@ final class NotificationSettingsViewModel: ObservableObject {
     func loadSettings() async {
         isLoading = true
 
-        // Check system notification permission
-        await checkSystemNotificationStatus()
+        // Check system notification permission via NotificationManager
+        await NotificationManager.shared.refreshPermissionStatus()
+        let status = NotificationManager.shared.permissionStatus
+        permissionStatus = status
+        systemNotificationsEnabled = status == .authorized
 
         // Load from local storage
         loadFromLocalStorage()
@@ -104,16 +108,13 @@ final class NotificationSettingsViewModel: ObservableObject {
     }
 
     func requestNotificationPermission() async {
-        do {
-            let granted = try await UNUserNotificationCenter.current()
-                .requestAuthorization(options: [.alert, .badge, .sound])
-            systemNotificationsEnabled = granted
+        let granted = await NotificationManager.shared.requestPermission()
+        let status = NotificationManager.shared.permissionStatus
+        permissionStatus = status
+        systemNotificationsEnabled = granted
 
-            if !granted {
-                showSystemSettingsPrompt = true
-            }
-        } catch {
-            systemNotificationsEnabled = false
+        if !granted && status == .denied {
+            showSystemSettingsPrompt = true
         }
     }
 
@@ -126,8 +127,10 @@ final class NotificationSettingsViewModel: ObservableObject {
     // MARK: - Private Methods
 
     private func checkSystemNotificationStatus() async {
-        let settings = await UNUserNotificationCenter.current().notificationSettings()
-        systemNotificationsEnabled = settings.authorizationStatus == .authorized
+        await NotificationManager.shared.refreshPermissionStatus()
+        let status = NotificationManager.shared.permissionStatus
+        permissionStatus = status
+        systemNotificationsEnabled = status == .authorized
     }
 
     private func loadFromLocalStorage() {
@@ -219,17 +222,44 @@ struct NotificationSettingsView: View {
     var body: some View {
         Form {
             // System Notification Status
-            if !viewModel.systemNotificationsEnabled {
+            if viewModel.permissionStatus == .denied {
                 Section {
                     HStack {
                         Image(systemName: "exclamationmark.triangle.fill")
                             .foregroundColor(AppColors.warning)
 
                         VStack(alignment: .leading, spacing: Spacing.xs) {
-                            Text("Notifications Disabled")
+                            Text("Notifications Blocked")
                                 .font(AppTypography.subheadlineMedium())
 
-                            Text("Enable notifications in Settings to receive alerts.")
+                            Text("Notifications are disabled in System Settings. Tap to open Settings and enable them.")
+                                .font(AppTypography.caption())
+                                .foregroundColor(AppColors.textSecondary)
+                        }
+
+                        Spacer()
+
+                        Button("Settings") {
+                            viewModel.openSystemSettings()
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.small)
+                    }
+                    .padding(.vertical, Spacing.xs)
+                    .accessibilityElement(children: .combine)
+                    .accessibilityLabel("Notifications are blocked. Tap Settings to enable them.")
+                }
+            } else if viewModel.permissionStatus == .notDetermined {
+                Section {
+                    HStack {
+                        Image(systemName: "bell.badge.fill")
+                            .foregroundColor(AppColors.accent)
+
+                        VStack(alignment: .leading, spacing: Spacing.xs) {
+                            Text("Enable Notifications")
+                                .font(AppTypography.subheadlineMedium())
+
+                            Text("Allow Swiss Coin to send you reminders about upcoming payments.")
                                 .font(AppTypography.caption())
                                 .foregroundColor(AppColors.textSecondary)
                         }
@@ -237,7 +267,9 @@ struct NotificationSettingsView: View {
                         Spacer()
 
                         Button("Enable") {
-                            viewModel.openSystemSettings()
+                            Task {
+                                await viewModel.requestNotificationPermission()
+                            }
                         }
                         .buttonStyle(.borderedProminent)
                         .controlSize(.small)
@@ -251,8 +283,13 @@ struct NotificationSettingsView: View {
                 Toggle(isOn: $viewModel.allNotificationsEnabled) {
                     Label("All Notifications", systemImage: "bell.fill")
                 }
-                .onChange(of: viewModel.allNotificationsEnabled) { _, _ in
+                .onChange(of: viewModel.allNotificationsEnabled) { _, newValue in
                     HapticManager.toggle()
+                    if newValue && viewModel.permissionStatus == .notDetermined {
+                        Task {
+                            await viewModel.requestNotificationPermission()
+                        }
+                    }
                 }
             } footer: {
                 Text("Turn off to disable all notifications from Swiss Coin.")

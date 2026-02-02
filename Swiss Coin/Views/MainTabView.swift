@@ -18,9 +18,9 @@ struct MainTabView: View {
                     Label("Subscriptions", systemImage: "creditcard.fill")
                 }
 
-            TransactionHistoryView()
+            SearchView()
                 .tabItem {
-                    Label("History", systemImage: "clock.fill")
+                    Label("Search", systemImage: "magnifyingglass")
                 }
         }
         .tint(AppColors.accent)

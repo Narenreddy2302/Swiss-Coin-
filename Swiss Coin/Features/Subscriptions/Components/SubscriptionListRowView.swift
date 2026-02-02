@@ -145,6 +145,14 @@ struct SubscriptionListRowView: View {
         subscription.isActive.toggle()
         do {
             try viewContext.save()
+
+            // Reschedule or cancel notification based on active state
+            if subscription.isActive && subscription.notificationEnabled {
+                NotificationManager.shared.scheduleSubscriptionReminder(for: subscription)
+            } else {
+                NotificationManager.shared.cancelSubscriptionReminder(for: subscription)
+            }
+
             HapticManager.success()
         } catch {
             viewContext.rollback()
@@ -173,6 +181,12 @@ struct SubscriptionListRowView: View {
 
         do {
             try viewContext.save()
+
+            // Reschedule notification for the new billing date
+            if subscription.notificationEnabled {
+                NotificationManager.shared.scheduleSubscriptionReminder(for: subscription)
+            }
+
             HapticManager.success()
         } catch {
             viewContext.rollback()
@@ -183,6 +197,10 @@ struct SubscriptionListRowView: View {
 
     private func deleteSubscription() {
         HapticManager.delete()
+
+        // Cancel any pending notification before deleting
+        NotificationManager.shared.cancelSubscriptionReminder(for: subscription)
+
         viewContext.delete(subscription)
         do {
             try viewContext.save()

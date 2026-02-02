@@ -22,7 +22,7 @@ struct AddSubscriptionView: View {
     @State private var isShared: Bool
     @State private var selectedCategory = "Entertainment"
     @State private var selectedIcon = "creditcard.fill"
-    @State private var selectedColor = "#007AFF"
+    @State private var selectedColor = AppColors.defaultAvatarColorHex
     @State private var notificationEnabled = true
     @State private var notificationDays = 3
     @State private var notes = ""
@@ -229,6 +229,12 @@ struct AddSubscriptionView: View {
 
         do {
             try viewContext.save()
+
+            // Schedule notification if enabled
+            if notificationEnabled {
+                NotificationManager.shared.scheduleSubscriptionReminder(for: subscription)
+            }
+
             HapticManager.success()
             dismiss()
         } catch {

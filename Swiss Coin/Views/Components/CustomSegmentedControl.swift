@@ -1,3 +1,10 @@
+//
+//  CustomSegmentedControl.swift
+//  Swiss Coin
+//
+//  Custom segmented control using the design system for consistent styling.
+//
+
 import SwiftUI
 
 struct CustomSegmentedControl: View {
@@ -11,34 +18,37 @@ struct CustomSegmentedControl: View {
         HStack(spacing: 0) {
             ForEach(options.indices, id: \.self) { index in
                 Button(action: {
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                    withAnimation(AppAnimation.spring) {
                         selection = index
+                        HapticManager.selectionChanged()
                     }
                 }) {
                     ZStack {
                         if selection == index {
-                            RoundedRectangle(cornerRadius: 8)
-                                .fill(Color(uiColor: .tertiarySystemGroupedBackground))
-                                // Light gray/elevated background for selection
+                            RoundedRectangle(cornerRadius: CornerRadius.sm)
+                                .fill(AppColors.backgroundTertiary)
                                 .matchedGeometryEffect(id: "selection", in: namespace)
                                 .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
                         }
 
                         Text(options[index])
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                            .foregroundColor(selection == index ? .primary : .secondary)
-                            .padding(.vertical, 8)
+                            .font(AppTypography.subheadlineMedium())
+                            .foregroundColor(selection == index ? AppColors.textPrimary : AppColors.textSecondary)
+                            .padding(.vertical, Spacing.sm)
                     }
                     .frame(maxWidth: .infinity)
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(PlainButtonStyle())
+                .accessibilityLabel("\(options[index]), tab \(index + 1) of \(options.count)")
+                .accessibilityAddTraits(selection == index ? .isSelected : [])
             }
         }
-        .padding(4)
-        .background(Color(uiColor: .secondarySystemFill))  // Darker background track
-        .cornerRadius(10)
+        .padding(Spacing.xxs)
+        .background(AppColors.backgroundSecondary)
+        .cornerRadius(CornerRadius.md)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Segment picker")
     }
 }
 

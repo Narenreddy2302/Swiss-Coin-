@@ -27,7 +27,7 @@ struct ProfileView: View {
     }
 
     private var userColor: String {
-        currentUser?.colorHex ?? "#34C759"
+        currentUser?.colorHex ?? AppColors.defaultAvatarColorHex
     }
 
     var body: some View {

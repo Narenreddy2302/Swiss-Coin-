@@ -139,11 +139,14 @@ struct PersonEmptyStateView: View {
 }
 
 struct PersonListRowView: View {
+    @Environment(\.managedObjectContext) private var viewContext
     @ObservedObject var person: Person
     @State private var isPressed = false
     @State private var showingProfile = false
     @State private var showingAddExpense = false
     @State private var showingReminder = false
+    @State private var showingEditPerson = false
+    @State private var showingDeleteConfirmation = false
 
     private var balance: Double {
         person.calculateBalance()
@@ -215,6 +218,13 @@ struct PersonListRowView: View {
 
             Button {
                 HapticManager.tap()
+                showingEditPerson = true
+            } label: {
+                Label("Edit", systemImage: "pencil")
+            }
+
+            Button {
+                HapticManager.tap()
                 showingAddExpense = true
             } label: {
                 Label("Add Expense", systemImage: "plus.circle")
@@ -227,6 +237,15 @@ struct PersonListRowView: View {
                 } label: {
                     Label("Send Reminder", systemImage: "bell")
                 }
+            }
+
+            Divider()
+
+            Button(role: .destructive) {
+                HapticManager.tap()
+                showingDeleteConfirmation = true
+            } label: {
+                Label("Delete", systemImage: "trash")
             }
         }
         .sheet(isPresented: $showingProfile) {
@@ -241,11 +260,37 @@ struct PersonListRowView: View {
                     }
             }
         }
+        .sheet(isPresented: $showingEditPerson) {
+            NavigationStack {
+                EditPersonView(person: person)
+                    .environment(\.managedObjectContext, viewContext)
+            }
+        }
         .sheet(isPresented: $showingAddExpense) {
             QuickActionSheetPresenter(initialPerson: person)
         }
         .sheet(isPresented: $showingReminder) {
             ReminderSheetView(person: person, amount: balance)
+        }
+        .alert("Delete Person", isPresented: $showingDeleteConfirmation) {
+            Button("Cancel", role: .cancel) {}
+            Button("Delete", role: .destructive) {
+                deletePerson()
+            }
+        } message: {
+            Text("Are you sure you want to delete \(person.name ?? "this person")? This will remove all associated data.")
+        }
+    }
+
+    private func deletePerson() {
+        viewContext.delete(person)
+        do {
+            try viewContext.save()
+            HapticManager.success()
+        } catch {
+            viewContext.rollback()
+            HapticManager.error()
+            print("Error deleting person: \(error)")
         }
     }
 }
@@ -305,11 +350,14 @@ struct GroupEmptyStateView: View {
 }
 
 struct GroupListRowView: View {
+    @Environment(\.managedObjectContext) private var viewContext
     @ObservedObject var group: UserGroup
     @State private var isPressed = false
     @State private var showingGroupInfo = false
     @State private var showingAddExpense = false
     @State private var showingReminders = false
+    @State private var showingEditGroup = false
+    @State private var showingDeleteConfirmation = false
 
     private var balance: Double {
         group.calculateBalance()
@@ -395,6 +443,13 @@ struct GroupListRowView: View {
 
             Button {
                 HapticManager.tap()
+                showingEditGroup = true
+            } label: {
+                Label("Edit", systemImage: "pencil")
+            }
+
+            Button {
+                HapticManager.tap()
                 showingAddExpense = true
             } label: {
                 Label("Add Expense", systemImage: "plus.circle")
@@ -407,6 +462,15 @@ struct GroupListRowView: View {
                 } label: {
                     Label("Send Reminders", systemImage: "bell")
                 }
+            }
+
+            Divider()
+
+            Button(role: .destructive) {
+                HapticManager.tap()
+                showingDeleteConfirmation = true
+            } label: {
+                Label("Delete", systemImage: "trash")
             }
         }
         .sheet(isPresented: $showingGroupInfo) {
@@ -421,11 +485,37 @@ struct GroupListRowView: View {
                     }
             }
         }
+        .sheet(isPresented: $showingEditGroup) {
+            NavigationStack {
+                EditGroupView(group: group)
+                    .environment(\.managedObjectContext, viewContext)
+            }
+        }
         .sheet(isPresented: $showingAddExpense) {
             QuickActionSheetPresenter(initialGroup: group)
         }
         .sheet(isPresented: $showingReminders) {
             GroupReminderSheetView(group: group)
+        }
+        .alert("Delete Group", isPresented: $showingDeleteConfirmation) {
+            Button("Cancel", role: .cancel) {}
+            Button("Delete", role: .destructive) {
+                deleteGroup()
+            }
+        } message: {
+            Text("Are you sure you want to delete \"\(group.name ?? "this group")\"? This will remove the group and its data.")
+        }
+    }
+
+    private func deleteGroup() {
+        viewContext.delete(group)
+        do {
+            try viewContext.save()
+            HapticManager.success()
+        } catch {
+            viewContext.rollback()
+            HapticManager.error()
+            print("Error deleting group: \(error)")
         }
     }
 }

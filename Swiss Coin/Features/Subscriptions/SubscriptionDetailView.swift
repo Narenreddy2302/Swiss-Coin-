@@ -159,6 +159,13 @@ struct SubscriptionDetailView: View {
                         subscription.notificationEnabled = newValue
                         try? viewContext.save()
                         HapticManager.toggle()
+
+                        // Schedule or cancel notification
+                        if newValue {
+                            NotificationManager.shared.scheduleSubscriptionReminder(for: subscription)
+                        } else {
+                            NotificationManager.shared.cancelSubscriptionReminder(for: subscription)
+                        }
                     }
                 ))
 
@@ -170,6 +177,9 @@ struct SubscriptionDetailView: View {
                             set: { newValue in
                                 subscription.notificationDaysBefore = Int16(newValue)
                                 try? viewContext.save()
+
+                                // Reschedule with updated days-before value
+                                NotificationManager.shared.scheduleSubscriptionReminder(for: subscription)
                             }
                         ),
                         in: 1...14
@@ -262,6 +272,14 @@ struct SubscriptionDetailView: View {
         subscription.isActive.toggle()
         do {
             try viewContext.save()
+
+            // Reschedule or cancel notification based on active state
+            if subscription.isActive && subscription.notificationEnabled {
+                NotificationManager.shared.scheduleSubscriptionReminder(for: subscription)
+            } else {
+                NotificationManager.shared.cancelSubscriptionReminder(for: subscription)
+            }
+
             HapticManager.success()
         } catch {
             viewContext.rollback()
@@ -273,6 +291,10 @@ struct SubscriptionDetailView: View {
 
     private func deleteSubscription() {
         HapticManager.delete()
+
+        // Cancel any pending notification before deleting
+        NotificationManager.shared.cancelSubscriptionReminder(for: subscription)
+
         viewContext.delete(subscription)
         do {
             try viewContext.save()
