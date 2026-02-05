@@ -164,6 +164,7 @@ struct SelectedPayerCard: View {
             Text(viewModel.paidByName)
                 .font(AppTypography.body())
                 .foregroundColor(AppColors.textPrimary)
+                .lineLimit(1)
 
             Spacer()
 
@@ -417,6 +418,7 @@ struct ParticipantsListView: View {
                             Text(person.name ?? "Unknown")
                                 .font(AppTypography.body())
                                 .foregroundColor(AppColors.textPrimary)
+                                .lineLimit(1)
                         }
 
                         Spacer()

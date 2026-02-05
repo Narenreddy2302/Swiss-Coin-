@@ -61,6 +61,7 @@ struct SubscriptionListRowView: View {
                 Text(subscription.name ?? "Unknown")
                     .font(AppTypography.headline())
                     .foregroundColor(AppColors.textPrimary)
+                    .lineLimit(1)
 
                 HStack(spacing: Spacing.xs) {
                     Text(subscription.cycle ?? "Monthly")
@@ -75,6 +76,7 @@ struct SubscriptionListRowView: View {
                         .font(AppTypography.subheadline())
                         .foregroundColor(billingStatus.color)
                 }
+                .lineLimit(1)
             }
 
             Spacer()

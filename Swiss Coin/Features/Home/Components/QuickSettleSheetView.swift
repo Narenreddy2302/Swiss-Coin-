@@ -71,6 +71,7 @@ struct QuickSettleSheetView: View {
                                             Text(item.person.name ?? "Unknown")
                                                 .font(AppTypography.bodyBold())
                                                 .foregroundColor(AppColors.textPrimary)
+                                                .lineLimit(1)
 
                                             Text("You owe")
                                                 .font(AppTypography.caption())

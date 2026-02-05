@@ -244,10 +244,12 @@ struct PersonListRowView: View {
                 Text(person.name ?? "Unknown")
                     .font(AppTypography.headline())
                     .foregroundColor(AppColors.textPrimary)
+                    .lineLimit(1)
 
                 Text(balanceText)
                     .font(AppTypography.subheadline())
                     .foregroundColor(balanceColor)
+                    .lineLimit(1)
             }
 
             Spacer()
@@ -466,6 +468,7 @@ struct GroupListRowView: View {
                 Text(group.name ?? "Unknown Group")
                     .font(AppTypography.headline())
                     .foregroundColor(AppColors.textPrimary)
+                    .lineLimit(1)
 
                 HStack(spacing: Spacing.xs) {
                     Text("\(memberCount) members")
@@ -480,6 +483,7 @@ struct GroupListRowView: View {
                         .font(AppTypography.subheadline())
                         .foregroundColor(balanceColor)
                 }
+                .lineLimit(1)
             }
 
             Spacer()

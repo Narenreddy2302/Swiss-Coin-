@@ -250,7 +250,7 @@ struct ContactSearchRow: View {
                 Text(person.displayName)
                     .font(.system(size: 17))
                     .foregroundColor(.primary)
-                // Email or phone if available?
+                    .lineLimit(1)
             }
 
             Spacer()
@@ -285,9 +285,7 @@ struct GroupSearchRow: View {
                 Text(group.name ?? "Unnamed Group")
                     .font(.system(size: 17))
                     .foregroundColor(.primary)
-
-                // Member count if available
-                // Text("\(group.members?.count ?? 0) members")
+                    .lineLimit(1)
             }
 
             Spacer()
@@ -317,6 +315,7 @@ struct SelectedGroupBadge: View {
             Text(group.name ?? "Group")
                 .font(.system(size: 15, weight: .medium))
                 .foregroundColor(AppColors.accent)
+                .lineLimit(1)
 
             Button(action: onDismiss) {
                 Image(systemName: "xmark")

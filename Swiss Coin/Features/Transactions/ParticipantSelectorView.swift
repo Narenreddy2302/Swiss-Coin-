@@ -45,6 +45,7 @@ struct ParticipantSelectorView: View {
                                     Text(person.name ?? "Unknown")
                                         .font(AppTypography.body())
                                         .foregroundColor(AppColors.textPrimary)
+                                        .lineLimit(1)
                                 }
                                 Spacer()
                                 if selectedParticipants.contains(person) {
@@ -71,6 +72,7 @@ struct ParticipantSelectorView: View {
                                     Text(group.name ?? "Unknown Group")
                                         .font(AppTypography.body())
                                         .foregroundColor(AppColors.textPrimary)
+                                        .lineLimit(1)
                                     let memberCount = (group.members as? Set<Person>)?.count ?? 0
                                     Text("\(memberCount) member\(memberCount == 1 ? "" : "s")")
                                         .font(AppTypography.caption())

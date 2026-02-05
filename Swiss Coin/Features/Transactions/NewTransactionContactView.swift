@@ -85,6 +85,7 @@ struct NewTransactionContactView: View {
                                         Text(contact.fullName)
                                             .font(AppTypography.body())
                                             .foregroundColor(AppColors.textPrimary)
+                                            .lineLimit(1)
                                         if let phone = contact.phoneNumbers.first {
                                             Text(phone)
                                                 .font(AppTypography.caption())

@@ -25,6 +25,7 @@ struct MemberChip: View {
             Text(person.displayName)
                 .font(AppTypography.subheadline())
                 .foregroundColor(AppColors.textPrimary)
+                .lineLimit(1)
             
             // Remove button
             Button {

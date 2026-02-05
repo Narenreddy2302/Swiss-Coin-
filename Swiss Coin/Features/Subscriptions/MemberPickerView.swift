@@ -60,6 +60,7 @@ struct MemberPickerView: View {
                                 Text(member.displayName)
                                     .font(AppTypography.body())
                                     .foregroundColor(AppColors.textPrimary)
+                                    .lineLimit(1)
 
                                 Spacer()
 
@@ -116,6 +117,7 @@ struct MemberPickerView: View {
                                         Text(person.displayName)
                                             .font(AppTypography.body())
                                             .foregroundColor(AppColors.textPrimary)
+                                            .lineLimit(1)
 
                                         Spacer()
 
