@@ -31,24 +31,24 @@ struct ProfileView: View {
     @State private var showingBiometricError = false
     @State private var biometricErrorMessage = ""
 
-    // Currency list
-    private let currencies: [(code: String, name: String, flag: String)] = [
-        ("USD", "US Dollar", "\u{1F1FA}\u{1F1F8}"),
-        ("EUR", "Euro", "\u{1F1EA}\u{1F1FA}"),
-        ("GBP", "British Pound", "\u{1F1EC}\u{1F1E7}"),
-        ("CHF", "Swiss Franc", "\u{1F1E8}\u{1F1ED}"),
-        ("CAD", "Canadian Dollar", "\u{1F1E8}\u{1F1E6}"),
-        ("AUD", "Australian Dollar", "\u{1F1E6}\u{1F1FA}"),
-        ("JPY", "Japanese Yen", "\u{1F1EF}\u{1F1F5}"),
-        ("INR", "Indian Rupee", "\u{1F1EE}\u{1F1F3}"),
-        ("CNY", "Chinese Yuan", "\u{1F1E8}\u{1F1F3}"),
-        ("KRW", "South Korean Won", "\u{1F1F0}\u{1F1F7}"),
-        ("SGD", "Singapore Dollar", "\u{1F1F8}\u{1F1EC}"),
-        ("AED", "UAE Dirham", "\u{1F1E6}\u{1F1EA}"),
-        ("BRL", "Brazilian Real", "\u{1F1E7}\u{1F1F7}"),
-        ("MXN", "Mexican Peso", "\u{1F1F2}\u{1F1FD}"),
-        ("SEK", "Swedish Krona", "\u{1F1F8}\u{1F1EA}"),
-        ("NZD", "New Zealand Dollar", "\u{1F1F3}\u{1F1FF}"),
+    // Currency list (reuses CurrencyOption from CurrencySettingsView)
+    private let currencies: [CurrencyOption] = [
+        CurrencyOption(code: "USD", name: "US Dollar", symbol: "$", flag: "\u{1F1FA}\u{1F1F8}"),
+        CurrencyOption(code: "EUR", name: "Euro", symbol: "\u{20AC}", flag: "\u{1F1EA}\u{1F1FA}"),
+        CurrencyOption(code: "GBP", name: "British Pound", symbol: "\u{00A3}", flag: "\u{1F1EC}\u{1F1E7}"),
+        CurrencyOption(code: "CHF", name: "Swiss Franc", symbol: "CHF", flag: "\u{1F1E8}\u{1F1ED}"),
+        CurrencyOption(code: "CAD", name: "Canadian Dollar", symbol: "CA$", flag: "\u{1F1E8}\u{1F1E6}"),
+        CurrencyOption(code: "AUD", name: "Australian Dollar", symbol: "A$", flag: "\u{1F1E6}\u{1F1FA}"),
+        CurrencyOption(code: "JPY", name: "Japanese Yen", symbol: "\u{00A5}", flag: "\u{1F1EF}\u{1F1F5}"),
+        CurrencyOption(code: "INR", name: "Indian Rupee", symbol: "\u{20B9}", flag: "\u{1F1EE}\u{1F1F3}"),
+        CurrencyOption(code: "CNY", name: "Chinese Yuan", symbol: "\u{00A5}", flag: "\u{1F1E8}\u{1F1F3}"),
+        CurrencyOption(code: "KRW", name: "South Korean Won", symbol: "\u{20A9}", flag: "\u{1F1F0}\u{1F1F7}"),
+        CurrencyOption(code: "SGD", name: "Singapore Dollar", symbol: "S$", flag: "\u{1F1F8}\u{1F1EC}"),
+        CurrencyOption(code: "AED", name: "UAE Dirham", symbol: "AED", flag: "\u{1F1E6}\u{1F1EA}"),
+        CurrencyOption(code: "BRL", name: "Brazilian Real", symbol: "R$", flag: "\u{1F1E7}\u{1F1F7}"),
+        CurrencyOption(code: "MXN", name: "Mexican Peso", symbol: "MX$", flag: "\u{1F1F2}\u{1F1FD}"),
+        CurrencyOption(code: "SEK", name: "Swedish Krona", symbol: "kr", flag: "\u{1F1F8}\u{1F1EA}"),
+        CurrencyOption(code: "NZD", name: "New Zealand Dollar", symbol: "NZ$", flag: "\u{1F1F3}\u{1F1FF}"),
     ]
 
     // MARK: - Computed
@@ -160,7 +160,7 @@ struct ProfileView: View {
     private var generalSection: some View {
         Section {
             Picker("Currency", selection: $defaultCurrency) {
-                ForEach(currencies, id: \.code) { currency in
+                ForEach(currencies) { currency in
                     Text("\(currency.flag) \(currency.code) - \(currency.name)")
                         .tag(currency.code)
                 }
