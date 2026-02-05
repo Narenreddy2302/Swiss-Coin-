@@ -104,7 +104,7 @@ struct Step2SplitConfigView: View {
                 } label: {
                     Text("Back")
                         .font(AppTypography.bodyBold())
-                        .foregroundColor(AppColors.accent)
+                        .foregroundColor(AppColors.textPrimary)
                         .padding(.horizontal, Spacing.xl)
                         .frame(height: ButtonHeight.lg)
                         .background(
@@ -176,10 +176,10 @@ struct SelectedPayerCard: View {
             } label: {
                 Text("Change")
                     .font(AppTypography.subheadlineMedium())
-                    .foregroundColor(AppColors.accent)
+                    .foregroundColor(AppColors.textPrimary)
                     .padding(.horizontal, Spacing.lg)
                     .padding(.vertical, Spacing.sm)
-                    .background(AppColors.accent.opacity(0.1))
+                    .background(AppColors.buttonBackground.opacity(0.1))
                     .cornerRadius(CornerRadius.sm)
             }
         }

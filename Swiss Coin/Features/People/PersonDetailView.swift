@@ -96,7 +96,7 @@ struct PersonDetailView: View {
                                 Text("Chat")
                                     .font(AppTypography.subheadlineMedium())
                             }
-                            .foregroundColor(AppColors.accent)
+                            .foregroundColor(AppColors.textPrimary)
                             .frame(height: ButtonHeight.md)
                             .frame(maxWidth: .infinity)
                             .background(AppColors.cardBackground)

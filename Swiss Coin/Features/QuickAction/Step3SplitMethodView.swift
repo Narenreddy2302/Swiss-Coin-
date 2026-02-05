@@ -92,7 +92,7 @@ struct Step3SplitMethodView: View {
                 } label: {
                     Text("Back")
                         .font(.system(size: 17, weight: .semibold))
-                        .foregroundColor(AppColors.accent)
+                        .foregroundColor(AppColors.textPrimary)
                         .padding(.horizontal, 24)
                         .padding(.vertical, 16)
                         .background(
