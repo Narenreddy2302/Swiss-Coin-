@@ -117,10 +117,10 @@ struct HomeView: View {
                                         Text("Settle Up")
                                             .font(AppTypography.subheadlineMedium())
                                     }
-                                    .foregroundColor(.white)
+                                    .foregroundColor(AppColors.buttonForeground)
                                     .frame(maxWidth: .infinity)
                                     .frame(height: ButtonHeight.md)
-                                    .background(AppColors.positive)
+                                    .background(AppColors.buttonBackground)
                                     .cornerRadius(CornerRadius.md)
                                 }
                                 .buttonStyle(AppButtonStyle(haptic: .none))

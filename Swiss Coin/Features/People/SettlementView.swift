@@ -66,10 +66,10 @@ struct SettlementView: View {
                         Text("Settle Full Amount")
                             .font(AppTypography.bodyBold())
                     }
-                    .foregroundColor(.white)
+                    .foregroundColor(AppColors.buttonForeground)
                     .frame(maxWidth: .infinity)
                     .frame(height: ButtonHeight.lg)
-                    .background(AppColors.positive)
+                    .background(AppColors.buttonBackground)
                     .cornerRadius(CornerRadius.md)
                 }
                 .buttonStyle(AppButtonStyle(haptic: .none))

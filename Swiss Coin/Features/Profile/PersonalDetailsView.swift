@@ -281,7 +281,7 @@ private struct ProfilePhotoSection: View {
                         .overlay(
                             Image(systemName: "camera.fill")
                                 .font(.system(size: 14, weight: .semibold))
-                                .foregroundColor(.white)
+                                .foregroundColor(AppColors.buttonForeground)
                         )
                         .offset(x: 35, y: 35)
                 }

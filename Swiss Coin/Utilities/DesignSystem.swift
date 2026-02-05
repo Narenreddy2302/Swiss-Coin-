@@ -160,8 +160,8 @@ enum AppColors {
     /// Warning / reminder color
     static let warning = Color.orange
 
-    /// Primary accent color
-    static let accent = Color.blue
+    /// Primary accent color — black in light mode, white in dark mode
+    static let accent = Color(.label)
 
     /// Default avatar color (system blue) — use as the single source of truth
     static let defaultAvatarColorHex = "#007AFF"

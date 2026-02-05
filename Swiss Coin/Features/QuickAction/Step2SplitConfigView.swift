@@ -369,7 +369,7 @@ struct ParticipantsListView: View {
                         .overlay(
                             Image(systemName: "checkmark")
                                 .font(.system(size: 12, weight: .bold))
-                                .foregroundColor(.white)
+                                .foregroundColor(AppColors.buttonForeground)
                                 .opacity(meSelected ? 1 : 0)
                         )
                         .frame(width: 24, height: 24)
@@ -429,7 +429,7 @@ struct ParticipantsListView: View {
                             .overlay(
                                 Image(systemName: "checkmark")
                                     .font(.system(size: 12, weight: .bold))
-                                    .foregroundColor(.white)
+                                    .foregroundColor(AppColors.buttonForeground)
                                     .opacity(isSelected ? 1 : 0)
                             )
                             .frame(width: 24, height: 24)
