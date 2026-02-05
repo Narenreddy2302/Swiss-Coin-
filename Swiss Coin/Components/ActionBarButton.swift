@@ -68,35 +68,34 @@ struct ActionBarButton: View {
     }
     
     // MARK: - Colors
-    
+
     private var iconBackgroundColor: Color {
         if isPrimary {
-            return AppColors.accent
+            return AppColors.buttonBackground
         }
-        return isEnabled 
-            ? AppColors.accent.opacity(0.15)
+        return isEnabled
+            ? AppColors.buttonBackground.opacity(0.12)
             : AppColors.textSecondary.opacity(0.1)
     }
-    
+
     private var iconColor: Color {
         if isPrimary {
-            return .white
-        }
-        return isEnabled ? AppColors.accent : AppColors.textSecondary
-    }
-    
-    private var textColor: Color {
-        if isPrimary {
-            return AppColors.accent
+            return AppColors.buttonForeground
         }
         return isEnabled ? AppColors.textPrimary : AppColors.textSecondary
     }
-    
+
+    private var textColor: Color {
+        if isPrimary {
+            return AppColors.textPrimary
+        }
+        return isEnabled ? AppColors.textPrimary : AppColors.textSecondary
+    }
+
     private var buttonBackground: Color {
         if isPrimary {
-            return AppColors.accent.opacity(0.12)
+            return AppColors.buttonBackground.opacity(0.12)
         }
-        // Use a slightly elevated background that works in both modes
         return AppColors.backgroundTertiary
     }
 }

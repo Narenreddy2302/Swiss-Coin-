@@ -145,10 +145,10 @@ struct AddGroupView: View {
                         } label: {
                             Text("Grant Access")
                                 .font(AppTypography.bodyBold())
-                                .foregroundColor(.white)
+                                .foregroundColor(AppColors.buttonForeground)
                                 .frame(maxWidth: .infinity)
                                 .frame(height: ButtonHeight.md)
-                                .background(AppColors.accent)
+                                .background(AppColors.buttonBackground)
                                 .cornerRadius(CornerRadius.md)
                         }
                         .buttonStyle(.plain)

@@ -18,7 +18,7 @@ struct PhoneLoginView: View {
             LinearGradient(
                 colors: [
                     AppColors.accent.opacity(0.08),
-                    Color(.systemBackground)
+                    AppColors.background
                 ],
                 startPoint: .top,
                 endPoint: .bottom
@@ -92,8 +92,8 @@ struct PhoneLoginView: View {
                         .font(AppTypography.bodyBold())
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, Spacing.lg)
-                        .background(AppColors.accent)
-                        .foregroundStyle(.white)
+                        .background(AppColors.buttonBackground)
+                        .foregroundStyle(AppColors.buttonForeground)
                         .clipShape(RoundedRectangle(cornerRadius: CornerRadius.md))
                 }
                 .padding(.horizontal, Spacing.xxl)

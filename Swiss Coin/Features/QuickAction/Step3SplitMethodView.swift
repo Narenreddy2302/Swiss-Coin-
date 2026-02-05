@@ -78,7 +78,7 @@ struct Step3SplitMethodView: View {
                     }
                 }
             }
-            .background(Color(UIColor.secondarySystemGroupedBackground))
+            .background(AppColors.cardBackground)
             .cornerRadius(12)
 
             // MARK: Who Owes Whom Summary
@@ -109,12 +109,12 @@ struct Step3SplitMethodView: View {
                 } label: {
                     Text("Save Transaction")
                         .font(.system(size: 17, weight: .semibold))
-                        .foregroundColor(.white)
+                        .foregroundColor(AppColors.buttonForeground)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 16)
                         .background(
                             RoundedRectangle(cornerRadius: CornerRadius.md)
-                                .fill(AppColors.accent)
+                                .fill(AppColors.buttonBackground)
                                 .opacity(viewModel.canSubmit ? 1 : 0.5)
                         )
                 }
@@ -157,7 +157,7 @@ struct SplitSummaryBar: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 14)
-        .background(Color(UIColor.secondarySystemGroupedBackground))
+        .background(AppColors.cardBackground)
         .cornerRadius(12)
     }
 }

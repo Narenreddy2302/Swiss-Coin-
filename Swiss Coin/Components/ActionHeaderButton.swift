@@ -28,21 +28,21 @@ struct ActionHeaderButton: View {
             HStack(spacing: Spacing.sm) {
                 Image(systemName: icon)
                     .font(.system(size: IconSize.sm, weight: .medium))
-                    .foregroundColor(color)
-                
+                    .foregroundColor(color == AppColors.accent ? AppColors.buttonForeground : color)
+
                 Text(title)
                     .font(AppTypography.bodyBold())
-                    .foregroundColor(color)
+                    .foregroundColor(color == AppColors.accent ? AppColors.buttonForeground : color)
             }
             .padding(.horizontal, Spacing.lg)
             .padding(.vertical, Spacing.md)
             .frame(maxWidth: .infinity)
             .background(
                 RoundedRectangle(cornerRadius: CornerRadius.md)
-                    .fill(color == AppColors.accent ? AppColors.accent.opacity(0.15) : Color.clear)
+                    .fill(color == AppColors.accent ? AppColors.buttonBackground : Color.clear)
                     .overlay(
                         RoundedRectangle(cornerRadius: CornerRadius.md)
-                            .stroke(color.opacity(0.3), lineWidth: 1)
+                            .stroke(color == AppColors.accent ? Color.clear : color.opacity(0.3), lineWidth: 1)
                     )
             )
             .scaleEffect(isPressed ? 0.96 : 1.0)

@@ -170,12 +170,12 @@ struct PersonalDetailsView: View {
                                 .font(AppTypography.subheadlineMedium())
                         }
                     }
-                    .foregroundColor(.white)
+                    .foregroundColor(AppColors.buttonForeground)
                     .frame(maxWidth: .infinity)
                     .frame(height: ButtonHeight.md)
                     .background(
                         RoundedRectangle(cornerRadius: CornerRadius.md)
-                            .fill(viewModel.canSave ? AppColors.accent : AppColors.disabled)
+                            .fill(viewModel.canSave ? AppColors.buttonBackground : AppColors.disabled)
                     )
                     .disabled(!viewModel.canSave)
                     .padding(.horizontal)

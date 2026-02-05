@@ -26,14 +26,14 @@ struct CustomSegmentedControl: View {
                     ZStack {
                         if selection == index {
                             RoundedRectangle(cornerRadius: CornerRadius.sm)
-                                .fill(AppColors.backgroundTertiary)
+                                .fill(AppColors.buttonBackground)
                                 .matchedGeometryEffect(id: "selection", in: namespace)
                                 .shadow(color: AppColors.shadow, radius: 2, x: 0, y: 1)
                         }
 
                         Text(options[index])
                             .font(AppTypography.subheadlineMedium())
-                            .foregroundColor(selection == index ? AppColors.textPrimary : AppColors.textSecondary)
+                            .foregroundColor(selection == index ? AppColors.buttonForeground : AppColors.textSecondary)
                             .padding(.vertical, Spacing.sm)
                     }
                     .frame(maxWidth: .infinity)

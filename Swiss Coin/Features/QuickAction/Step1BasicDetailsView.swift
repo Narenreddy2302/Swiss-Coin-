@@ -122,12 +122,12 @@ struct Step1BasicDetailsView: View {
             } label: {
                 Text("Continue")
                     .font(AppTypography.bodyBold())
-                    .foregroundColor(.white)
+                    .foregroundColor(AppColors.buttonForeground)
                     .frame(maxWidth: .infinity)
                     .frame(height: ButtonHeight.lg)
                     .background(
                         RoundedRectangle(cornerRadius: CornerRadius.md)
-                            .fill(viewModel.canProceedStep1 ? AppColors.accent : AppColors.disabled)
+                            .fill(viewModel.canProceedStep1 ? AppColors.buttonBackground : AppColors.disabled)
                     )
             }
             .disabled(!viewModel.canProceedStep1)

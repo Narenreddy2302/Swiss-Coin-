@@ -94,10 +94,10 @@ struct OnboardingView: View {
                         } label: {
                             Text("Next")
                                 .font(AppTypography.bodyBold())
-                                .foregroundColor(.white)
+                                .foregroundColor(AppColors.buttonForeground)
                                 .frame(maxWidth: .infinity)
                                 .frame(height: ButtonHeight.lg)
-                                .background(AppColors.accent)
+                                .background(AppColors.buttonBackground)
                                 .cornerRadius(CornerRadius.md)
                         }
                         .buttonStyle(AppButtonStyle(haptic: .none))
@@ -109,10 +109,10 @@ struct OnboardingView: View {
                         } label: {
                             Text("Get Started")
                                 .font(AppTypography.bodyBold())
-                                .foregroundColor(.white)
+                                .foregroundColor(AppColors.buttonForeground)
                                 .frame(maxWidth: .infinity)
                                 .frame(height: ButtonHeight.lg)
-                                .background(AppColors.accent)
+                                .background(AppColors.buttonBackground)
                                 .cornerRadius(CornerRadius.md)
                         }
                         .buttonStyle(AppButtonStyle(haptic: .none))

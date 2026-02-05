@@ -79,10 +79,10 @@ struct PersonDetailView: View {
                                 Text("Add Expense")
                                     .font(AppTypography.subheadlineMedium())
                             }
-                            .foregroundColor(.white)
+                            .foregroundColor(AppColors.buttonForeground)
                             .frame(height: ButtonHeight.md)
                             .frame(maxWidth: .infinity)
-                            .background(AppColors.accent)
+                            .background(AppColors.buttonBackground)
                             .clipShape(RoundedRectangle(cornerRadius: CornerRadius.md))
                         }
 

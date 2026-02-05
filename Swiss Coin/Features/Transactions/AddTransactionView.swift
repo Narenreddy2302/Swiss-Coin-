@@ -153,7 +153,7 @@ struct AddTransactionView: View {
                 }
             }
             .scrollContentBackground(.hidden)
-            .background(Color(uiColor: .secondarySystemBackground))
+            .background(AppColors.backgroundSecondary)
         }
     }
 }

@@ -28,7 +28,7 @@ struct TransactionHistoryView: View {
                 // Overlay the Quick Action FAB
                 FinanceQuickActionView()
             }
-            .background(Color(uiColor: .secondarySystemBackground))
+            .background(AppColors.backgroundSecondary)
             .navigationTitle("History")
             .navigationBarTitleDisplayMode(.large)
             .alert("Delete Transaction", isPresented: $showingDeleteAlert) {
@@ -97,7 +97,7 @@ struct TransactionHistoryView: View {
                     }
                 )
                 .listRowInsets(EdgeInsets())
-                .listRowBackground(Color(uiColor: .secondarySystemBackground))
+                .listRowBackground(AppColors.backgroundSecondary)
                 .alignmentGuide(.listRowSeparatorLeading) { _ in 0 }
             }
             .onDelete(perform: deleteItems)

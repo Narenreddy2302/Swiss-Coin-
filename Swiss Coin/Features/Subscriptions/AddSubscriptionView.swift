@@ -486,12 +486,12 @@ struct AddSubscriptionView: View {
                 VStack(spacing: Spacing.sm) {
                     ZStack {
                         Circle()
-                            .fill(isSelected ? AppColors.accent : AppColors.backgroundTertiary)
+                            .fill(isSelected ? AppColors.buttonBackground : AppColors.backgroundTertiary)
                             .frame(width: 56, height: 56)
-                        
+
                         Image(systemName: icon)
                             .font(.system(size: 24))
-                            .foregroundColor(isSelected ? .white : AppColors.textSecondary)
+                            .foregroundColor(isSelected ? AppColors.buttonForeground : AppColors.textSecondary)
                     }
                     
                     Text(title)
