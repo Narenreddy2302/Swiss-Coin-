@@ -489,6 +489,7 @@ struct ContactRowView: View {
                 Text(contact.fullName)
                     .font(AppTypography.body())
                     .foregroundColor(isExisting ? AppColors.textSecondary : AppColors.textPrimary)
+                    .lineLimit(1)
                 
                 if let phone = contact.phoneNumbers.first {
                     Text(phone)

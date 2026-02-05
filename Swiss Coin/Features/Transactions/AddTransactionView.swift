@@ -62,7 +62,7 @@ struct AddTransactionView: View {
                                     person in
                                     Text(person.name ?? "?")
                                         .padding(6)
-                                        .background(Color.blue.opacity(0.1))
+                                        .background(AppColors.accent.opacity(0.1))
                                         .cornerRadius(4)
                                 }
                             }

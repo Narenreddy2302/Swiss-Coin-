@@ -22,6 +22,15 @@ struct HomeView: View {
     }(), animation: .default)
     private var allPeople: FetchedResults<Person>
 
+    // Fetch active subscriptions for monthly cost summary
+    @FetchRequest(fetchRequest: {
+        let request: NSFetchRequest<Subscription> = Subscription.fetchRequest()
+        request.predicate = NSPredicate(format: "isActive == YES")
+        request.sortDescriptors = [NSSortDescriptor(keyPath: \Subscription.name, ascending: true)]
+        return request
+    }(), animation: .default)
+    private var activeSubscriptions: FetchedResults<Subscription>
+
     @State private var showingProfile = false
     @State private var showingSettleSheet = false
 
@@ -54,6 +63,13 @@ struct HomeView: View {
             .reduce(0, +)
     }
 
+    /// Calculate total monthly cost of all active subscriptions
+    private var totalMonthlySubscriptions: Double {
+        activeSubscriptions
+            .map { $0.monthlyEquivalent }
+            .reduce(0, +)
+    }
+
     var body: some View {
         NavigationStack {
             ZStack {
@@ -78,6 +94,12 @@ struct HomeView: View {
                                         amount: totalOwedToYou,
                                         color: AppColors.positive,
                                         icon: "arrow.up.right.circle.fill")
+                                    SummaryCard(
+                                        title: "Subscriptions",
+                                        amount: totalMonthlySubscriptions,
+                                        color: .purple,
+                                        icon: "repeat.circle.fill",
+                                        subtitle: "\(activeSubscriptions.count) active /mo")
                                 }
                                 .padding(.horizontal)
                             }
@@ -95,10 +117,10 @@ struct HomeView: View {
                                         Text("Settle Up")
                                             .font(AppTypography.subheadlineMedium())
                                     }
-                                    .foregroundColor(.white)
+                                    .foregroundColor(AppColors.buttonForeground)
                                     .frame(maxWidth: .infinity)
                                     .frame(height: ButtonHeight.md)
-                                    .background(AppColors.positive)
+                                    .background(AppColors.buttonBackground)
                                     .cornerRadius(CornerRadius.md)
                                 }
                                 .buttonStyle(AppButtonStyle(haptic: .none))
@@ -208,6 +230,7 @@ struct SummaryCard: View {
     let amount: Double
     let color: Color
     let icon: String
+    var subtitle: String? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
@@ -226,6 +249,11 @@ struct SummaryCard: View {
                 Text(CurrencyFormatter.format(amount))
                     .font(AppTypography.amountLarge())
                     .foregroundColor(AppColors.textPrimary)
+                if let subtitle = subtitle {
+                    Text(subtitle)
+                        .font(AppTypography.caption())
+                        .foregroundColor(AppColors.textTertiary)
+                }
             }
         }
         .frame(width: 160)

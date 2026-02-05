@@ -38,6 +38,7 @@ struct MemberBalancesCard: View {
                         Text(item.member.firstName)
                             .font(AppTypography.body())
                             .foregroundColor(AppColors.textPrimary)
+                            .lineLimit(1)
 
                         Spacer()
 

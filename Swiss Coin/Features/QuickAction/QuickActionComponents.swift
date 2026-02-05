@@ -212,12 +212,12 @@ struct PersonAvatar: View {
             if isCurrentUser {
                 Image(systemName: "person.fill")
                     .font(.system(size: size * 0.4))
-                    .foregroundColor(isSelected ? .white : .secondary)
+                    .foregroundColor(isSelected ? AppColors.buttonForeground : .secondary)
                     .accessibilityHidden(true)
             } else {
                 Text(initials)
                     .font(.system(size: size * 0.35, weight: .semibold))
-                    .foregroundColor(isSelected ? .white : .secondary)
+                    .foregroundColor(isSelected ? AppColors.buttonForeground : .secondary)
             }
         }
         .frame(width: size, height: size)
@@ -250,7 +250,7 @@ struct ContactSearchRow: View {
                 Text(person.displayName)
                     .font(.system(size: 17))
                     .foregroundColor(.primary)
-                // Email or phone if available?
+                    .lineLimit(1)
             }
 
             Spacer()
@@ -285,9 +285,7 @@ struct GroupSearchRow: View {
                 Text(group.name ?? "Unnamed Group")
                     .font(.system(size: 17))
                     .foregroundColor(.primary)
-
-                // Member count if available
-                // Text("\(group.members?.count ?? 0) members")
+                    .lineLimit(1)
             }
 
             Spacer()
@@ -317,6 +315,7 @@ struct SelectedGroupBadge: View {
             Text(group.name ?? "Group")
                 .font(.system(size: 15, weight: .medium))
                 .foregroundColor(AppColors.accent)
+                .lineLimit(1)
 
             Button(action: onDismiss) {
                 Image(systemName: "xmark")
@@ -438,7 +437,7 @@ struct SplitMethodChip: View {
                 // Icon
                 Text(method.icon)
                     .font(.system(size: 18, weight: .semibold))
-                    .foregroundColor(isSelected ? .white : .secondary)
+                    .foregroundColor(isSelected ? AppColors.buttonForeground : .secondary)
                     .frame(width: 36, height: 36)
                     .background(
                         Circle()
@@ -503,7 +502,7 @@ struct SplitOptionRow: View {
                     )
                     .overlay(
                         Circle()
-                            .fill(Color.white)
+                            .fill(AppColors.buttonForeground)
                             .frame(width: 8, height: 8)
                             .opacity(isSelected ? 1 : 0)
                     )

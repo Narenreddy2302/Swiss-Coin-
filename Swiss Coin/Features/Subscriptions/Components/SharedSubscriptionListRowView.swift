@@ -62,6 +62,7 @@ struct SharedSubscriptionListRowView: View {
                 Text(subscription.name ?? "Unknown")
                     .font(AppTypography.headline())
                     .foregroundColor(AppColors.textPrimary)
+                    .lineLimit(1)
 
                 HStack(spacing: Spacing.xs) {
                     Text("\(memberCount + 1) members")
@@ -76,6 +77,7 @@ struct SharedSubscriptionListRowView: View {
                         .font(AppTypography.subheadline())
                         .foregroundColor(balanceColor)
                 }
+                .lineLimit(1)
             }
 
             Spacer()

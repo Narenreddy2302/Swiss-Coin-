@@ -32,26 +32,26 @@ struct NewTransactionContactView: View {
                             NavigationLink(destination: AddGroupView()) {
                                 HStack {
                                     Image(systemName: "person.2.fill")
-                                        .foregroundColor(.blue)
+                                        .foregroundColor(AppColors.accent)
                                         .frame(width: AvatarSize.md, height: AvatarSize.md)
-                                        .background(Color.blue.opacity(0.1))
+                                        .background(AppColors.accent.opacity(0.1))
                                         .clipShape(Circle())
                                     Text("New Group")
                                         .font(AppTypography.headline())
-                                        .foregroundColor(.blue)
+                                        .foregroundColor(AppColors.accent)
                                 }
                             }
 
                             NavigationLink(destination: AddPersonView()) {
                                 HStack {
                                     Image(systemName: "person.fill.badge.plus")
-                                        .foregroundColor(.blue)
+                                        .foregroundColor(AppColors.accent)
                                         .frame(width: AvatarSize.md, height: AvatarSize.md)
-                                        .background(Color.blue.opacity(0.1))
+                                        .background(AppColors.accent.opacity(0.1))
                                         .clipShape(Circle())
                                     Text("New Contact")
                                         .font(AppTypography.headline())
-                                        .foregroundColor(.blue)
+                                        .foregroundColor(AppColors.accent)
                                 }
                             }
                         }
@@ -85,6 +85,7 @@ struct NewTransactionContactView: View {
                                         Text(contact.fullName)
                                             .font(AppTypography.body())
                                             .foregroundColor(AppColors.textPrimary)
+                                            .lineLimit(1)
                                         if let phone = contact.phoneNumbers.first {
                                             Text(phone)
                                                 .font(AppTypography.caption())
@@ -133,7 +134,7 @@ struct NewTransactionContactView: View {
                     VStack(spacing: Spacing.xl) {
                         Image(systemName: "person.2.circle")
                             .font(.system(size: IconSize.xxl))
-                            .foregroundColor(.blue)
+                            .foregroundColor(AppColors.accent)
                         Text("Load Contacts")
                             .font(AppTypography.title2())
                         Button("Continue") {

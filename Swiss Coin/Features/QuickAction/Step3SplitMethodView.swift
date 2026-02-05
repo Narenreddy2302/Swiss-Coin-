@@ -197,7 +197,7 @@ struct SplitPersonRow: View {
                     if isPayer {
                         Text("Paid")
                             .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(.white)
+                            .foregroundColor(AppColors.buttonForeground)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 2)
                             .background(AppColors.accent)

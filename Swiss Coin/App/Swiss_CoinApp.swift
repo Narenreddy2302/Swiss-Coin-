@@ -18,6 +18,7 @@ struct Swiss_CoinApp: App {
             ContentView()
                 .environment(\.managedObjectContext, persistenceController.container.viewContext)
                 .preferredColorScheme(colorScheme)
+                .tint(AppColors.accent)
         }
     }
     

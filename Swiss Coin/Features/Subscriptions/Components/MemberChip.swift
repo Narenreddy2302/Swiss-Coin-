@@ -25,6 +25,7 @@ struct MemberChip: View {
             Text(person.displayName)
                 .font(AppTypography.subheadline())
                 .foregroundColor(AppColors.textPrimary)
+                .lineLimit(1)
             
             // Remove button
             Button {
@@ -49,12 +50,12 @@ struct MemberChip: View {
     HStack {
         HStack(spacing: Spacing.xs) {
             Circle()
-                .fill(Color.blue.opacity(0.2))
+                .fill(AppColors.accent.opacity(0.2))
                 .frame(width: 28, height: 28)
                 .overlay(
                     Text("JD")
                         .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(.blue)
+                        .foregroundColor(AppColors.accent)
                 )
             
             Text("John Doe")

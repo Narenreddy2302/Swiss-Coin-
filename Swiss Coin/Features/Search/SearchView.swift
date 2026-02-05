@@ -337,6 +337,7 @@ private struct SearchPersonRow: View {
                 Text(person.name ?? "Unknown")
                     .font(AppTypography.headline())
                     .foregroundColor(AppColors.textPrimary)
+                    .lineLimit(1)
 
                 if abs(balance) > 0.01 {
                     Text(balance > 0 ? "owes you \(CurrencyFormatter.formatAbsolute(balance))" : "you owe \(CurrencyFormatter.formatAbsolute(balance))")
@@ -385,6 +386,7 @@ private struct SearchGroupRow: View {
                 Text(group.name ?? "Unknown Group")
                     .font(AppTypography.headline())
                     .foregroundColor(AppColors.textPrimary)
+                    .lineLimit(1)
 
                 Text("\(memberCount) member\(memberCount == 1 ? "" : "s")")
                     .font(AppTypography.subheadline())
@@ -423,6 +425,7 @@ private struct SearchSubscriptionRow: View {
                 Text(subscription.name ?? "Unknown")
                     .font(AppTypography.headline())
                     .foregroundColor(AppColors.textPrimary)
+                    .lineLimit(1)
 
                 HStack(spacing: Spacing.xs) {
                     Text(CurrencyFormatter.format(subscription.amount))
