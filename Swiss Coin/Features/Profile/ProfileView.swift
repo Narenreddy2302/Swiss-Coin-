@@ -283,12 +283,12 @@ private struct ProfileHeaderCard: View {
                     Text("Edit Profile")
                         .font(AppTypography.subheadlineMedium())
                 }
-                .foregroundColor(AppColors.accent)
+                .foregroundColor(AppColors.textPrimary)
                 .padding(.horizontal, Spacing.lg)
                 .padding(.vertical, Spacing.sm)
                 .background(
                     RoundedRectangle(cornerRadius: CornerRadius.lg)
-                        .fill(AppColors.accent.opacity(0.1))
+                        .fill(AppColors.buttonBackground.opacity(0.1))
                 )
             }
         }

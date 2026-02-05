@@ -324,21 +324,21 @@ private struct ThemeButton: View {
             VStack(spacing: Spacing.sm) {
                 Image(systemName: icon)
                     .font(.system(size: 24))
-                    .foregroundColor(isSelected ? AppColors.accent : AppColors.textSecondary)
+                    .foregroundColor(isSelected ? AppColors.textPrimary : AppColors.textSecondary)
 
                 Text(title)
                     .font(AppTypography.caption())
-                    .foregroundColor(isSelected ? AppColors.accent : AppColors.textSecondary)
+                    .foregroundColor(isSelected ? AppColors.textPrimary : AppColors.textSecondary)
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, Spacing.md)
             .background(
                 RoundedRectangle(cornerRadius: CornerRadius.sm)
-                    .fill(isSelected ? AppColors.accent.opacity(0.1) : AppColors.backgroundTertiary)
+                    .fill(isSelected ? AppColors.buttonBackground.opacity(0.12) : AppColors.backgroundTertiary)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: CornerRadius.sm)
-                    .strokeBorder(isSelected ? AppColors.accent : Color.clear, lineWidth: 1)
+                    .strokeBorder(isSelected ? AppColors.buttonBackground : Color.clear, lineWidth: 1)
             )
         }
         .buttonStyle(.plain)

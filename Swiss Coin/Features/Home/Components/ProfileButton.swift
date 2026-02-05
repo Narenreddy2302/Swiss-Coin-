@@ -9,17 +9,15 @@ struct ProfileButton: View {
             action()
         } label: {
             ZStack {
-                // Clean circular background - Apple style
                 Circle()
-                    .fill(AppColors.cardBackground)
+                    .fill(AppColors.buttonBackground)
                     .frame(width: AvatarSize.xs, height: AvatarSize.xs)
 
-                // SF Symbol person icon - Apple's standard approach
                 Image(systemName: "person.circle.fill")
                     .font(.system(size: AvatarSize.xs - 2, weight: .light))
                     .foregroundStyle(
-                        AppColors.textSecondary,
-                        AppColors.cardBackground
+                        AppColors.buttonForeground,
+                        AppColors.buttonBackground
                     )
             }
         }
@@ -41,10 +39,10 @@ private struct ProfileButtonStyle: ButtonStyle {
     VStack(spacing: 20) {
         ProfileButton(action: {})
             .padding()
-            .background(Color(UIColor.systemBackground))
+            .background(AppColors.background)
 
         ProfileButton(action: {})
             .padding()
-            .background(Color(UIColor.secondarySystemBackground))
+            .background(AppColors.backgroundSecondary)
     }
 }

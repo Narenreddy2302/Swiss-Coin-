@@ -175,12 +175,12 @@ struct AddPersonView: View {
                                         Text("Save Contact")
                                             .font(AppTypography.subheadlineMedium())
                                     }
-                                    .foregroundColor(.white)
+                                    .foregroundColor(AppColors.buttonForeground)
                                     .frame(maxWidth: .infinity)
                                     .frame(height: ButtonHeight.md)
                                     .background(
                                         RoundedRectangle(cornerRadius: CornerRadius.md)
-                                            .fill(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || showingDuplicateWarning ? AppColors.disabled : AppColors.accent)
+                                            .fill(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || showingDuplicateWarning ? AppColors.disabled : AppColors.buttonBackground)
                                     )
                                 }
                             }

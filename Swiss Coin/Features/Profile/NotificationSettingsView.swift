@@ -340,12 +340,12 @@ private struct SystemStatusCard: View {
                 Text(buttonTitle)
                     .font(AppTypography.caption())
                     .fontWeight(.semibold)
-                    .foregroundColor(.white)
+                    .foregroundColor(AppColors.buttonForeground)
                     .padding(.horizontal, Spacing.md)
                     .padding(.vertical, Spacing.xs)
                     .background(
                         RoundedRectangle(cornerRadius: CornerRadius.sm)
-                            .fill(AppColors.accent)
+                            .fill(AppColors.buttonBackground)
                     )
             }
         }

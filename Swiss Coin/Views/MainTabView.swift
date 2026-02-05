@@ -71,6 +71,6 @@ struct MainTabView: View {
                     Label("Search", systemImage: "magnifyingglass")
                 }
         }
-        .tint(AppColors.accent)
+        .tint(AppColors.textPrimary)
     }
 }

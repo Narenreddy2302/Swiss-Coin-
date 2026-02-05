@@ -144,7 +144,7 @@ enum AppAnimation {
 
 // MARK: - Colors
 
-/// Semantic color definitions
+/// Semantic color definitions — pitch black dark mode, pitch white light mode
 enum AppColors {
     // MARK: - Status Colors
 
@@ -169,26 +169,51 @@ enum AppColors {
 
     // MARK: - Background Colors
 
-    /// Primary background (adapts to light/dark mode)
-    static let background = Color(.systemBackground)
+    /// Primary background — pure white (light) / pure black (dark)
+    static let background = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark ? UIColor.black : UIColor.white
+    })
 
-    /// Secondary background
-    static let backgroundSecondary = Color(UIColor.secondarySystemBackground)
+    /// Secondary background — very subtle off-white / near-black
+    static let backgroundSecondary = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(red: 0.07, green: 0.07, blue: 0.07, alpha: 1) // #121212
+            : UIColor(red: 0.96, green: 0.96, blue: 0.96, alpha: 1) // #F5F5F5
+    })
 
     /// Tertiary background
-    static let backgroundTertiary = Color(UIColor.tertiarySystemBackground)
+    static let backgroundTertiary = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(red: 0.11, green: 0.11, blue: 0.11, alpha: 1) // #1C1C1C
+            : UIColor(red: 0.92, green: 0.92, blue: 0.92, alpha: 1) // #EBEBEB
+    })
 
     /// Grouped background (for grouped list/table style)
-    static let groupedBackground = Color(.systemGroupedBackground)
+    static let groupedBackground = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark ? UIColor.black
+            : UIColor(red: 0.96, green: 0.96, blue: 0.96, alpha: 1) // #F5F5F5
+    })
 
     /// Surface background (search bars, input fields)
-    static let surface = Color(UIColor.systemGray5)
+    static let surface = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(red: 0.11, green: 0.11, blue: 0.11, alpha: 1) // #1C1C1C
+            : UIColor(red: 0.92, green: 0.92, blue: 0.92, alpha: 1) // #EBEBEB
+    })
 
     /// Card background
-    static let cardBackground = Color(UIColor.secondarySystemBackground)
+    static let cardBackground = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(red: 0.07, green: 0.07, blue: 0.07, alpha: 1) // #121212
+            : UIColor.white
+    })
 
     /// Elevated card background
-    static let cardBackgroundElevated = Color(UIColor.tertiarySystemBackground)
+    static let cardBackgroundElevated = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(red: 0.11, green: 0.11, blue: 0.11, alpha: 1) // #1C1C1C
+            : UIColor.white
+    })
 
     // MARK: - Text Colors
 
@@ -204,12 +229,32 @@ enum AppColors {
     // MARK: - Separator / Border
 
     /// Separator color
-    static let separator = Color(.separator)
+    static let separator = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(white: 1.0, alpha: 0.12)
+            : UIColor(white: 0.0, alpha: 0.12)
+    })
 
     // MARK: - Shadow
 
-    /// Adaptive shadow color (works in both light and dark mode)
-    static let shadow: Color = Color(white: 0.5, opacity: 0.08)
+    /// Adaptive shadow color
+    static let shadow = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(white: 1.0, alpha: 0.05)  // Subtle white glow in dark
+            : UIColor(white: 0.0, alpha: 0.10)  // Standard dark shadow in light
+    })
+
+    // MARK: - Button Colors
+
+    /// Button background — black in light mode, white in dark mode
+    static let buttonBackground = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark ? UIColor.white : UIColor.black
+    })
+
+    /// Button foreground/text — white in light mode, black in dark mode
+    static let buttonForeground = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark ? UIColor.black : UIColor.white
+    })
 
     // MARK: - Interactive Colors
 
@@ -217,7 +262,11 @@ enum AppColors {
     static let userBubble = Color.blue
 
     /// Other person message bubble
-    static let otherBubble = Color(UIColor.secondarySystemBackground)
+    static let otherBubble = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(red: 0.07, green: 0.07, blue: 0.07, alpha: 1) // #121212
+            : UIColor(red: 0.92, green: 0.92, blue: 0.92, alpha: 1) // #EBEBEB
+    })
 
     /// Disabled state
     static let disabled = Color(.secondaryLabel).opacity(0.4)
@@ -340,7 +389,7 @@ struct AppButtonStyle: ButtonStyle {
     }
 }
 
-/// Primary action button style (accent color) - haptics should be triggered in button action
+/// Primary action button style — black in light mode, white in dark mode
 struct PrimaryButtonStyle: ButtonStyle {
     let isEnabled: Bool
 
@@ -351,12 +400,12 @@ struct PrimaryButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(AppTypography.bodyBold())
-            .foregroundColor(isEnabled ? .white : AppColors.textSecondary)
+            .foregroundColor(isEnabled ? AppColors.buttonForeground : AppColors.textSecondary)
             .frame(maxWidth: .infinity)
             .frame(height: ButtonHeight.lg)
             .background(
                 RoundedRectangle(cornerRadius: CornerRadius.md)
-                    .fill(isEnabled ? AppColors.accent : AppColors.disabled)
+                    .fill(isEnabled ? AppColors.buttonBackground : AppColors.disabled)
             )
             .scaleEffect(configuration.isPressed ? 0.96 : 1.0)
             .opacity(configuration.isPressed ? 0.9 : 1.0)
@@ -364,7 +413,7 @@ struct PrimaryButtonStyle: ButtonStyle {
     }
 }
 
-/// Secondary action button style - haptics should be triggered in button action
+/// Secondary action button style — outlined with theme-contrasting text
 struct SecondaryButtonStyle: ButtonStyle {
     let isEnabled: Bool
 
@@ -375,12 +424,16 @@ struct SecondaryButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(AppTypography.subheadlineMedium())
-            .foregroundColor(isEnabled ? AppColors.textSecondary : AppColors.disabled)
+            .foregroundColor(isEnabled ? AppColors.textPrimary : AppColors.disabled)
             .frame(maxWidth: .infinity)
             .frame(height: ButtonHeight.lg)
             .background(
                 RoundedRectangle(cornerRadius: CornerRadius.md)
                     .fill(AppColors.cardBackground)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: CornerRadius.md)
+                            .strokeBorder(AppColors.buttonBackground.opacity(0.2), lineWidth: 1)
+                    )
             )
             .scaleEffect(configuration.isPressed ? 0.96 : 1.0)
             .opacity(configuration.isPressed ? 0.9 : 1.0)

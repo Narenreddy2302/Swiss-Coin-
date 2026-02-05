@@ -156,7 +156,7 @@ struct NewTransactionContactView: View {
             }
 
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(Color(uiColor: .secondarySystemBackground))
+            .background(AppColors.backgroundSecondary)
             .navigationDestination(isPresented: $navigateToAddTransaction) {
                 if let person = selectedPersonForTransaction {
                     PersonDetailView(person: person)

@@ -201,7 +201,7 @@ struct TransactionEditView: View {
                 }
             }
             .scrollContentBackground(.hidden)
-            .background(Color(uiColor: .secondarySystemBackground))
+            .background(AppColors.backgroundSecondary)
             .alert("Error", isPresented: $showingError) {
                 Button("OK", role: .cancel) {
                     HapticManager.tap()

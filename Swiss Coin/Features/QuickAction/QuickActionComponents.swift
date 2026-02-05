@@ -72,7 +72,7 @@ struct QuickActionSheetPresenter: View {
                     .padding(.bottom, 40)
                 }
             }
-            .background(Color(UIColor.systemGroupedBackground))
+            .background(AppColors.groupedBackground)
             .navigationTitle(navigationTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -123,12 +123,12 @@ struct FloatingActionButton: View {
         Button(action: action) {
             Image(systemName: "plus")
                 .font(.system(size: 24, weight: .semibold))
-                .foregroundColor(.white)
+                .foregroundColor(AppColors.buttonForeground)
                 .frame(width: 60, height: 60)
                 .background(
                     Circle()
-                        .fill(AppColors.accent)
-                        .shadow(color: Color.accentColor.opacity(0.4), radius: 10, x: 0, y: 4)
+                        .fill(AppColors.buttonBackground)
+                        .shadow(color: AppColors.shadow, radius: 10, x: 0, y: 4)
                 )
         }
         .buttonStyle(.plain)
@@ -374,7 +374,7 @@ struct CurrencyPickerView: View {
                 }
             }
         }
-        .background(Color(UIColor.secondarySystemGroupedBackground))
+        .background(AppColors.cardBackground)
         .cornerRadius(12)
     }
 }
@@ -409,7 +409,7 @@ struct CategoryPickerView: View {
                     .padding(.vertical, 14)
                     .background(
                         RoundedRectangle(cornerRadius: 12)
-                            .fill(Color(UIColor.secondarySystemGroupedBackground))
+                            .fill(AppColors.cardBackground)
                             .overlay(
                                 RoundedRectangle(cornerRadius: 12)
                                     .stroke(
@@ -454,7 +454,7 @@ struct SplitMethodChip: View {
             .padding(.vertical, 14)
             .background(
                 RoundedRectangle(cornerRadius: 12)
-                    .fill(Color(UIColor.secondarySystemGroupedBackground))
+                    .fill(AppColors.cardBackground)
                     .overlay(
                         RoundedRectangle(cornerRadius: CornerRadius.md)
                             .stroke(isSelected ? AppColors.accent : Color.clear, lineWidth: 2)

@@ -104,7 +104,7 @@ struct Step2SplitConfigView: View {
                 } label: {
                     Text("Back")
                         .font(AppTypography.bodyBold())
-                        .foregroundColor(AppColors.accent)
+                        .foregroundColor(AppColors.textPrimary)
                         .padding(.horizontal, Spacing.xl)
                         .frame(height: ButtonHeight.lg)
                         .background(
@@ -124,12 +124,12 @@ struct Step2SplitConfigView: View {
                 } label: {
                     Text(viewModel.isSplit ? "Continue" : "Save")
                         .font(AppTypography.bodyBold())
-                        .foregroundColor(.white)
+                        .foregroundColor(AppColors.buttonForeground)
                         .frame(maxWidth: .infinity)
                         .frame(height: ButtonHeight.lg)
                         .background(
                             RoundedRectangle(cornerRadius: CornerRadius.md)
-                                .fill(viewModel.canProceedStep2 ? AppColors.accent : AppColors.disabled)
+                                .fill(viewModel.canProceedStep2 ? AppColors.buttonBackground : AppColors.disabled)
                         )
                 }
                 .disabled(!viewModel.canProceedStep2)
@@ -176,10 +176,10 @@ struct SelectedPayerCard: View {
             } label: {
                 Text("Change")
                     .font(AppTypography.subheadlineMedium())
-                    .foregroundColor(AppColors.accent)
+                    .foregroundColor(AppColors.textPrimary)
                     .padding(.horizontal, Spacing.lg)
                     .padding(.vertical, Spacing.sm)
-                    .background(AppColors.accent.opacity(0.1))
+                    .background(AppColors.buttonBackground.opacity(0.1))
                     .cornerRadius(CornerRadius.sm)
             }
         }
@@ -249,7 +249,7 @@ struct PaidBySearchView: View {
                     // Only show empty if searching and no match (ignoring Me)
                 }
             }
-            .background(Color(UIColor.secondarySystemGroupedBackground))
+            .background(AppColors.cardBackground)
             .cornerRadius(12)
 
             // Cancel button
@@ -282,7 +282,7 @@ struct SplitWithSearchResultsView: View {
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 10)
-                .background(Color(UIColor.systemGroupedBackground))
+                .background(AppColors.groupedBackground)
 
                 ForEach(viewModel.filteredSplitWithGroups, id: \.self) { group in
                     Button {
@@ -306,7 +306,7 @@ struct SplitWithSearchResultsView: View {
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 10)
-                .background(Color(UIColor.systemGroupedBackground))
+                .background(AppColors.groupedBackground)
 
                 ForEach(viewModel.filteredSplitWithContacts, id: \.self) { person in
                     Button {
@@ -330,7 +330,7 @@ struct SplitWithSearchResultsView: View {
                     .frame(maxWidth: .infinity)
             }
         }
-        .background(Color(UIColor.secondarySystemGroupedBackground))
+        .background(AppColors.cardBackground)
         .cornerRadius(12)
     }
 }
@@ -443,7 +443,7 @@ struct ParticipantsListView: View {
                 }
             }
         }
-        .background(Color(UIColor.secondarySystemGroupedBackground))
+        .background(AppColors.cardBackground)
         .cornerRadius(12)
     }
 }

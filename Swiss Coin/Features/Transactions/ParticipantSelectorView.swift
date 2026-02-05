@@ -89,9 +89,9 @@ struct ParticipantSelectorView: View {
             }
 
             .scrollContentBackground(.hidden)
-            .background(Color(uiColor: .secondarySystemBackground))
+            .background(AppColors.backgroundSecondary)
         }
-        .background(Color(uiColor: .secondarySystemBackground))
+        .background(AppColors.backgroundSecondary)
         .navigationTitle("Select Participants")
         .toolbar {
             ToolbarItem(placement: .primaryAction) {

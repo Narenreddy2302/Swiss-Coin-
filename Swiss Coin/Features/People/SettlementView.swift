@@ -146,10 +146,10 @@ struct SettlementView: View {
                 } label: {
                     Text("Confirm Settlement")
                         .font(AppTypography.bodyBold())
-                        .foregroundColor(.white)
+                        .foregroundColor(AppColors.buttonForeground)
                         .frame(maxWidth: .infinity)
                         .frame(height: ButtonHeight.lg)
-                        .background(isValidAmount ? AppColors.accent : AppColors.disabled)
+                        .background(isValidAmount ? AppColors.buttonBackground : AppColors.disabled)
                         .cornerRadius(CornerRadius.md)
                 }
                 .buttonStyle(AppButtonStyle(haptic: .none))
