@@ -5,7 +5,6 @@ import SwiftUI
 struct PeopleView: View {
     @State private var selectedSegment = 0
     @Environment(\.managedObjectContext) private var viewContext
-    @State private var showingNewMessage = false
     @State private var showingContactPicker = false
     @State private var showingManualEntry = false
     
@@ -58,12 +57,6 @@ struct PeopleView: View {
                         if selectedSegment == 0 {
                             Button {
                                 HapticManager.tap()
-                                showingNewMessage = true
-                            } label: {
-                                Image(systemName: "square.and.pencil")
-                            }
-                            Button {
-                                HapticManager.tap()
                                 showingContactPicker = true
                             } label: {
                                 Image(systemName: "plus")
@@ -78,10 +71,6 @@ struct PeopleView: View {
                         }
                     }
                 }
-            }
-            .sheet(isPresented: $showingNewMessage) {
-                NewTransactionContactView()
-                    .environment(\.managedObjectContext, viewContext)
             }
             .sheet(isPresented: $showingContactPicker) {
                 ContactPickerView { person in
