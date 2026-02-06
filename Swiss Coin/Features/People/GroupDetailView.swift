@@ -10,17 +10,19 @@ struct GroupDetailView: View {
     @State private var showingSettlement = false
     @State private var showingEditGroup = false
     @State private var showingDeleteConfirmation = false
+    @State private var showingConversation = false
 
     private var balance: Double {
         group.calculateBalance()
     }
 
-    private var canSettle: Bool {
-        abs(balance) > 0.01
-    }
-
     private var memberBalances: [(member: Person, balance: Double)] {
         group.getMemberBalances()
+    }
+
+    /// Enable settle if ANY member has a non-zero balance (not just net group total)
+    private var canSettle: Bool {
+        memberBalances.contains { abs($0.balance) > 0.01 }
     }
 
     var body: some View {
@@ -87,6 +89,25 @@ struct GroupDetailView: View {
 
                         Button(action: {
                             HapticManager.tap()
+                            showingConversation = true
+                        }) {
+                            HStack(spacing: Spacing.sm) {
+                                Image(systemName: "message.fill")
+                                Text("Chat")
+                            }
+                            .font(AppTypography.subheadlineMedium())
+                            .frame(minWidth: 120)
+                            .padding(.vertical, Spacing.sm)
+                            .background(AppColors.backgroundTertiary)
+                            .cornerRadius(CornerRadius.lg)
+                        }
+                        .buttonStyle(.plain)
+                    }
+
+                    // Settle Up Button
+                    if canSettle {
+                        Button(action: {
+                            HapticManager.tap()
                             showingSettlement = true
                         }) {
                             HStack(spacing: Spacing.sm) {
@@ -94,16 +115,17 @@ struct GroupDetailView: View {
                                 Text("Settle Up")
                             }
                             .font(AppTypography.subheadlineMedium())
-                            .frame(minWidth: 120)
+                            .foregroundColor(AppColors.positive)
+                            .frame(maxWidth: .infinity)
                             .padding(.vertical, Spacing.sm)
-                            .background(AppColors.backgroundTertiary)
+                            .background(AppColors.positive.opacity(0.12))
                             .cornerRadius(CornerRadius.lg)
-                            .opacity(canSettle ? 1.0 : 0.5)
                         }
                         .buttonStyle(.plain)
-                        .disabled(!canSettle)
+                        .padding(.horizontal, Spacing.xxl)
                     }
-                    .padding(.bottom, Spacing.sm)
+
+                    Spacer().frame(height: Spacing.sm)
                 }
                 .frame(maxWidth: .infinity)
                 .listRowBackground(Color.clear)
@@ -115,6 +137,18 @@ struct GroupDetailView: View {
             }
             .sheet(isPresented: $showingSettlement) {
                 GroupSettlementView(group: group)
+            }
+            .sheet(isPresented: $showingConversation) {
+                NavigationStack {
+                    GroupConversationView(group: group)
+                        .toolbar {
+                            ToolbarItem(placement: .navigationBarTrailing) {
+                                Button("Done") {
+                                    showingConversation = false
+                                }
+                            }
+                        }
+                }
             }
 
             Section(header: Text("Members").font(AppTypography.subheadlineMedium())) {
@@ -241,37 +275,81 @@ struct GroupDetailView: View {
 struct GroupDetailTransactionRow: View {
     let transaction: FinancialTransaction
     let group: UserGroup
-    @Environment(\.managedObjectContext) private var viewContext
-    
-    private var currentUserBalance: Double {
-        group.calculateBalanceWith(member: CurrentUser.getOrCreate(in: viewContext))
+
+    private var isUserPayer: Bool {
+        CurrentUser.isCurrentUser(transaction.payer?.id)
     }
-    
+
+    private var payerName: String {
+        if isUserPayer { return "You" }
+        return transaction.payer?.firstName ?? "Unknown"
+    }
+
+    /// Calculate the user's net impact from this transaction
+    private var userNetAmount: Double {
+        let splits = transaction.splits as? Set<TransactionSplit> ?? []
+
+        if isUserPayer {
+            // User paid - calculate how much others owe them
+            var othersOwe: Double = 0
+            for split in splits {
+                if !CurrentUser.isCurrentUser(split.owedBy?.id) {
+                    othersOwe += split.amount
+                }
+            }
+            return othersOwe
+        } else {
+            // Someone else paid - user owes their share
+            if let mySplit = splits.first(where: { CurrentUser.isCurrentUser($0.owedBy?.id) }) {
+                return -mySplit.amount
+            }
+            return 0
+        }
+    }
+
+    private var amountColor: Color {
+        if userNetAmount > 0.01 {
+            return AppColors.positive
+        } else if userNetAmount < -0.01 {
+            return AppColors.negative
+        }
+        return AppColors.textSecondary
+    }
+
+    private var amountPrefix: String {
+        if userNetAmount > 0.01 { return "+" }
+        return ""
+    }
+
     var body: some View {
         HStack(spacing: Spacing.md) {
             VStack(alignment: .leading, spacing: Spacing.xs) {
                 Text(transaction.title ?? "Expense")
                     .font(AppTypography.headline())
                     .foregroundColor(AppColors.textPrimary)
-                
+
                 if let date = transaction.date {
                     Text(DateFormatter.shortDate.string(from: date))
                         .font(AppTypography.caption())
                         .foregroundColor(AppColors.textSecondary)
                 }
-                
-                if let paidBy = transaction.payer {
-                    Text("Paid by \(paidBy.name ?? "Unknown")")
-                        .font(AppTypography.caption())
-                        .foregroundColor(AppColors.textSecondary)
-                }
+
+                Text("Paid by \(payerName)")
+                    .font(AppTypography.caption())
+                    .foregroundColor(AppColors.textSecondary)
             }
-            
+
             Spacer()
-            
-            Text(CurrencyFormatter.format(transaction.amount))
-                .font(AppTypography.amountSmall())
-                .foregroundColor(AppColors.textPrimary)
+
+            VStack(alignment: .trailing, spacing: Spacing.xxs) {
+                Text("\(amountPrefix)\(CurrencyFormatter.format(abs(userNetAmount)))")
+                    .font(AppTypography.amountSmall())
+                    .foregroundColor(amountColor)
+
+                Text("of \(CurrencyFormatter.format(transaction.amount))")
+                    .font(AppTypography.caption2())
+                    .foregroundColor(AppColors.textSecondary)
+            }
         }
         .padding(.vertical, Spacing.sm)
         .padding(.horizontal, Spacing.md)

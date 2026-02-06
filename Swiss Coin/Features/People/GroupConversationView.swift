@@ -2,7 +2,7 @@
 //  GroupConversationView.swift
 //  Swiss Coin
 //
-//  iMessage-style conversation view for groups.
+//  iMessage-style conversation view for group interactions.
 //
 
 import CoreData
@@ -14,6 +14,8 @@ struct GroupConversationView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.dismiss) var dismiss
 
+    // MARK: - State
+
     @State private var showingAddTransaction = false
     @State private var showingSettlement = false
     @State private var showingReminder = false
@@ -21,9 +23,20 @@ struct GroupConversationView: View {
     @State private var messageText = ""
     @State private var showingError = false
     @State private var errorMessage = ""
+    @State private var transactionToDelete: FinancialTransaction?
+    @State private var showingDeleteTransaction = false
+    @State private var showingTransactionDetail: FinancialTransaction?
+
+    // Undo toast state
+    @State private var showUndoToast = false
+    @State private var deletedMessageContent: String?
+    @State private var deletedMessageTimestamp: Date?
+    @State private var deletedMessageIsEdited: Bool = false
 
     // Retained haptic generator for reliable feedback
     private let hapticGenerator = UIImpactFeedbackGenerator(style: .light)
+
+    // MARK: - Computed Properties
 
     private var balance: Double {
         group.calculateBalance()
@@ -33,7 +46,10 @@ struct GroupConversationView: View {
         group.getGroupedConversationItems()
     }
 
-    // Balance display properties (for navigation bar)
+    private var totalItemCount: Int {
+        groupedItems.reduce(0) { $0 + $1.items.count }
+    }
+
     private var balanceLabel: String {
         if balance > 0.01 { return "you're owed" }
         else if balance < -0.01 { return "you owe" }
@@ -54,28 +70,31 @@ struct GroupConversationView: View {
         group.members?.count ?? 0
     }
 
+    // MARK: - Body
+
     var body: some View {
         VStack(spacing: 0) {
             // Messages Area
             ScrollViewReader { proxy in
                 ScrollView {
-                    LazyVStack(spacing: 8) {
+                    LazyVStack(spacing: Spacing.sm) {
                         if groupedItems.isEmpty {
                             emptyStateView
                         } else {
                             ForEach(groupedItems) { dateGroup in
                                 DateHeaderView(dateString: dateGroup.dateDisplayString)
-                                    .padding(.top, 16)
-                                    .padding(.bottom, 8)
+                                    .padding(.top, Spacing.lg)
+                                    .padding(.bottom, Spacing.sm)
 
                                 ForEach(dateGroup.items) { item in
                                     conversationItemView(for: item)
                                         .id(item.id)
+                                        .transition(.opacity.combined(with: .scale(scale: 0.95)))
                                 }
                             }
                         }
                     }
-                    .padding(.vertical, 16)
+                    .padding(.vertical, Spacing.lg)
                 }
                 .background(AppColors.backgroundSecondary)
                 .onTapGesture {
@@ -85,8 +104,8 @@ struct GroupConversationView: View {
                     hapticGenerator.prepare()
                     scrollToBottom(proxy)
                 }
-                .onChange(of: groupedItems.count) { _, _ in
-                    withAnimation {
+                .onChange(of: totalItemCount) { _, _ in
+                    withAnimation(AppAnimation.standard) {
                         scrollToBottom(proxy)
                     }
                 }
@@ -95,6 +114,7 @@ struct GroupConversationView: View {
             // Action Bar
             GroupConversationActionBar(
                 balance: balance,
+                memberBalances: group.getMemberBalances(),
                 membersWhoOweYou: group.getMembersWhoOweYou(),
                 onAdd: { showingAddTransaction = true },
                 onSettle: { showingSettlement = true },
@@ -112,14 +132,13 @@ struct GroupConversationView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(AppColors.backgroundTertiary, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
-        .toolbar(.hidden, for: .tabBar) // Hide tab bar like iMessage
+        .toolbar(.hidden, for: .tabBar)
         .tint(AppColors.textSecondary)
         .navigationBarBackButtonHidden(true)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 toolbarLeadingContent
             }
-
             ToolbarItem(placement: .topBarTrailing) {
                 toolbarTrailingContent
             }
@@ -145,11 +164,34 @@ struct GroupConversationView: View {
                     }
             }
         }
+        .sheet(item: $showingTransactionDetail) { transaction in
+            NavigationStack {
+                TransactionDetailSheet(transaction: transaction)
+            }
+        }
         .alert("Error", isPresented: $showingError) {
             Button("OK", role: .cancel) {}
         } message: {
             Text(errorMessage)
         }
+        .alert("Delete Transaction", isPresented: $showingDeleteTransaction) {
+            Button("Cancel", role: .cancel) {
+                transactionToDelete = nil
+            }
+            Button("Delete", role: .destructive) {
+                if let transaction = transactionToDelete {
+                    deleteTransaction(transaction)
+                }
+                transactionToDelete = nil
+            }
+        } message: {
+            Text("This will permanently delete this transaction and update all related balances. This cannot be undone.")
+        }
+        .undoToast(
+            isShowing: $showUndoToast,
+            message: "Message deleted",
+            onUndo: undoDeleteMessage
+        )
     }
 
     // MARK: - Toolbar Content
@@ -157,7 +199,6 @@ struct GroupConversationView: View {
     @ViewBuilder
     private var toolbarLeadingContent: some View {
         HStack(spacing: Spacing.sm) {
-            // Custom back button
             Button {
                 HapticManager.tap()
                 dismiss()
@@ -166,8 +207,8 @@ struct GroupConversationView: View {
                     .font(AppTypography.bodyBold())
                     .foregroundColor(AppColors.accent)
             }
+            .accessibilityLabel("Back")
 
-            // Group Icon + Name (tappable for group detail)
             Button {
                 HapticManager.tap()
                 showingGroupDetail = true
@@ -175,6 +216,7 @@ struct GroupConversationView: View {
                 groupHeaderContent
             }
             .buttonStyle(.plain)
+            .accessibilityLabel("View \(group.name ?? "group") details")
         }
     }
 
@@ -214,12 +256,14 @@ struct GroupConversationView: View {
                 .font(AppTypography.amountSmall())
                 .foregroundColor(balanceColor)
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Balance: \(balanceLabel) \(balanceAmount)")
     }
 
     // MARK: - Empty State
 
     private var emptyStateView: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: Spacing.lg) {
             Spacer()
 
             Image(systemName: "person.3.fill")
@@ -251,21 +295,33 @@ struct GroupConversationView: View {
         case .transaction(let transaction):
             GroupTransactionCardView(
                 transaction: transaction,
-                group: group
+                group: group,
+                onViewDetails: {
+                    showingTransactionDetail = transaction
+                },
+                onDelete: {
+                    transactionToDelete = transaction
+                    showingDeleteTransaction = true
+                }
             )
-            .padding(.vertical, 4)
+            .padding(.vertical, Spacing.xxs)
 
         case .settlement(let settlement):
             GroupSettlementMessageView(settlement: settlement)
-                .padding(.vertical, 4)
+                .padding(.vertical, Spacing.xxs)
 
         case .reminder(let reminder):
             GroupReminderMessageView(reminder: reminder)
-                .padding(.vertical, 4)
+                .padding(.vertical, Spacing.xxs)
 
         case .message(let chatMessage):
-            MessageBubbleView(message: chatMessage)
-                .padding(.vertical, 2)
+            MessageBubbleView(
+                message: chatMessage,
+                onDelete: { msg in
+                    deleteMessageWithUndo(msg)
+                }
+            )
+            .padding(.vertical, 2)
         }
     }
 
@@ -282,37 +338,93 @@ struct GroupConversationView: View {
         let trimmedText = messageText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedText.isEmpty else { return }
 
-        // Verify the group object is still valid
         guard !group.isDeleted && group.managedObjectContext != nil else {
             errorMessage = "Unable to send message. Please try again."
             showingError = true
             return
         }
 
-        // Create new chat message
         let newMessage = ChatMessage(context: viewContext)
         newMessage.id = UUID()
         newMessage.content = trimmedText
         newMessage.timestamp = Date()
         newMessage.isFromUser = true
+        newMessage.isEdited = false
         newMessage.withGroup = group
 
-        // Save context with proper error handling
         do {
             try viewContext.save()
-
-            // Clear input and provide haptic feedback
             messageText = ""
             hapticGenerator.impactOccurred()
         } catch {
-            // Rollback the failed save
             viewContext.rollback()
-
-            // Show error to user
             errorMessage = "Failed to send message. Please try again."
             showingError = true
             AppLogger.coreData.error("Failed to save message: \(error.localizedDescription)")
         }
+    }
+
+    private func deleteTransaction(_ transaction: FinancialTransaction) {
+        viewContext.delete(transaction)
+        do {
+            try viewContext.save()
+            HapticManager.success()
+        } catch {
+            viewContext.rollback()
+            HapticManager.error()
+            errorMessage = "Failed to delete transaction."
+            showingError = true
+            AppLogger.coreData.error("Failed to delete transaction: \(error.localizedDescription)")
+        }
+    }
+
+    // MARK: - Message Delete with Undo
+
+    private func deleteMessageWithUndo(_ message: ChatMessage) {
+        // Cache data for potential undo
+        deletedMessageContent = message.content
+        deletedMessageTimestamp = message.timestamp
+        deletedMessageIsEdited = message.isEdited
+
+        // Delete immediately
+        viewContext.delete(message)
+        do {
+            try viewContext.save()
+            HapticManager.delete()
+            withAnimation(AppAnimation.standard) {
+                showUndoToast = true
+            }
+        } catch {
+            viewContext.rollback()
+            HapticManager.error()
+            errorMessage = "Failed to delete message."
+            showingError = true
+            AppLogger.coreData.error("Failed to delete message: \(error.localizedDescription)")
+        }
+    }
+
+    private func undoDeleteMessage() {
+        guard let content = deletedMessageContent else { return }
+
+        let restored = ChatMessage(context: viewContext)
+        restored.id = UUID()
+        restored.content = content
+        restored.timestamp = deletedMessageTimestamp ?? Date()
+        restored.isFromUser = true
+        restored.isEdited = deletedMessageIsEdited
+        restored.withGroup = group
+
+        do {
+            try viewContext.save()
+            HapticManager.success()
+        } catch {
+            viewContext.rollback()
+            HapticManager.error()
+        }
+
+        deletedMessageContent = nil
+        deletedMessageTimestamp = nil
+        deletedMessageIsEdited = false
     }
 }
 
@@ -320,13 +432,15 @@ struct GroupConversationView: View {
 
 struct GroupConversationActionBar: View {
     let balance: Double
+    let memberBalances: [(member: Person, balance: Double)]
     let membersWhoOweYou: [(member: Person, amount: Double)]
     let onAdd: () -> Void
     let onSettle: () -> Void
     let onRemind: () -> Void
 
+    /// Enable settle if ANY member has a non-zero balance (not just net group total)
     private var canSettle: Bool {
-        abs(balance) > 0.01
+        memberBalances.contains { abs($0.balance) > 0.01 }
     }
 
     private var canRemind: Bool {
@@ -335,7 +449,6 @@ struct GroupConversationActionBar: View {
 
     var body: some View {
         ActionBarContainer {
-            // Add Transaction Button (Primary - Green Accent)
             ActionBarButton(
                 title: "Add",
                 icon: "plus",
@@ -344,7 +457,6 @@ struct GroupConversationActionBar: View {
                 action: onAdd
             )
 
-            // Remind Button
             ActionBarButton(
                 title: "Remind",
                 icon: "bell.fill",
@@ -357,7 +469,6 @@ struct GroupConversationActionBar: View {
                 }
             )
 
-            // Settle Button
             ActionBarButton(
                 title: "Settle",
                 icon: "checkmark",
@@ -370,112 +481,5 @@ struct GroupConversationActionBar: View {
                 }
             )
         }
-    }
-}
-
-// MARK: - Group Settlement Message View
-
-struct GroupSettlementMessageView: View {
-    let settlement: Settlement
-
-    private var messageText: String {
-        let formatted = CurrencyFormatter.format(settlement.amount)
-        let fromPersonId = settlement.fromPerson?.id
-        let toPersonId = settlement.toPerson?.id
-
-        if CurrentUser.isCurrentUser(fromPersonId) {
-            // Current user paid someone
-            let toName = settlement.toPerson?.name?.components(separatedBy: " ").first ?? "someone"
-            return "You paid \(toName) \(formatted)"
-        } else if CurrentUser.isCurrentUser(toPersonId) {
-            // Someone paid current user
-            let fromName = settlement.fromPerson?.name?.components(separatedBy: " ").first ?? "Someone"
-            return "\(fromName) paid you \(formatted)"
-        } else {
-            // Neither party is current user
-            let fromName = settlement.fromPerson?.name?.components(separatedBy: " ").first ?? "Someone"
-            let toName = settlement.toPerson?.name?.components(separatedBy: " ").first ?? "someone"
-            return "\(fromName) paid \(toName) \(formatted)"
-        }
-    }
-
-    var body: some View {
-        VStack(spacing: 4) {
-            HStack(spacing: 6) {
-                Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 12))
-                    .foregroundColor(.green)
-
-                Text(messageText)
-                    .font(.caption)
-                    .fontWeight(.medium)
-                    .foregroundColor(.secondary)
-            }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 8)
-            .background(
-                Capsule()
-                    .fill(AppColors.backgroundSecondary)
-            )
-
-            if let note = settlement.note, !note.isEmpty {
-                Text(note)
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
-                    .italic()
-            }
-
-            Text(settlement.date ?? Date(), style: .date)
-                .font(.caption2)
-                .foregroundColor(.secondary)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 8)
-    }
-}
-
-// MARK: - Group Reminder Message View
-
-struct GroupReminderMessageView: View {
-    let reminder: Reminder
-
-    private var messageText: String {
-        let formatted = CurrencyFormatter.format(reminder.amount)
-        let personName = reminder.toPerson?.name?.components(separatedBy: " ").first ?? "Someone"
-        return "Reminder sent to \(personName) for \(formatted)"
-    }
-
-    var body: some View {
-        VStack(spacing: 4) {
-            HStack(spacing: 6) {
-                Image(systemName: "bell.fill")
-                    .font(.system(size: 12))
-                    .foregroundColor(.orange)
-
-                Text(messageText)
-                    .font(.caption)
-                    .fontWeight(.medium)
-                    .foregroundColor(.secondary)
-            }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 8)
-            .background(
-                Capsule()
-                    .fill(Color.orange.opacity(0.15))
-            )
-
-            if let message = reminder.message, !message.isEmpty {
-                Text("\"\(message)\"")
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
-                    .italic()
-            }
-
-            Text(reminder.createdDate ?? Date(), style: .date)
-                .font(.caption2)
-                .foregroundColor(.secondary)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 8)
     }
 }

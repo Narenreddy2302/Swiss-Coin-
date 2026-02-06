@@ -1,15 +1,14 @@
 //
-//  SettlementMessageView.swift
+//  GroupSettlementMessageView.swift
 //  Swiss Coin
 //
-//  System message for settlements in person conversations.
+//  System message for settlements in group conversations.
 //
 
 import SwiftUI
 
-struct SettlementMessageView: View {
+struct GroupSettlementMessageView: View {
     let settlement: Settlement
-    let person: Person
 
     private var messageText: String {
         let formatted = CurrencyFormatter.format(settlement.amount)
@@ -17,17 +16,11 @@ struct SettlementMessageView: View {
         let toPersonId = settlement.toPerson?.id
 
         if CurrentUser.isCurrentUser(fromPersonId) {
-            if toPersonId == person.id {
-                return "You paid \(person.firstName) \(formatted)"
-            } else {
-                return "You paid \(settlement.toPerson?.firstName ?? "someone") \(formatted)"
-            }
+            let toName = settlement.toPerson?.firstName ?? "someone"
+            return "You paid \(toName) \(formatted)"
         } else if CurrentUser.isCurrentUser(toPersonId) {
-            if fromPersonId == person.id {
-                return "\(person.firstName) paid you \(formatted)"
-            } else {
-                return "\(settlement.fromPerson?.firstName ?? "Someone") paid you \(formatted)"
-            }
+            let fromName = settlement.fromPerson?.firstName ?? "Someone"
+            return "\(fromName) paid you \(formatted)"
         } else {
             let fromName = settlement.fromPerson?.firstName ?? "Someone"
             let toName = settlement.toPerson?.firstName ?? "someone"
@@ -44,6 +37,7 @@ struct SettlementMessageView: View {
 
                 Text(messageText)
                     .font(AppTypography.caption())
+                    .fontWeight(.medium)
                     .foregroundColor(AppColors.textSecondary)
             }
             .padding(.horizontal, 14)
