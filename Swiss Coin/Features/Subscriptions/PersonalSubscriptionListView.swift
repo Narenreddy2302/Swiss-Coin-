@@ -34,37 +34,8 @@ struct PersonalSubscriptionListView: View {
         subscriptions.filter { !$0.isActive }
     }
 
-    // Monthly total calculation
-    private var monthlyTotal: Double {
-        subscriptions
-            .filter { $0.isActive }
-            .reduce(0) { $0 + $1.monthlyEquivalent }
-    }
-
-    private var activeCount: Int {
-        subscriptions.filter { $0.isActive }.count
-    }
-
-    private var nextDueDate: Date? {
-        subscriptions
-            .filter { $0.isActive }
-            .compactMap { $0.nextBillingDate }
-            .min()
-    }
-
     var body: some View {
         List {
-            // Summary Section
-            Section {
-                PersonalSubscriptionSummaryCard(
-                    monthlyTotal: monthlyTotal,
-                    activeCount: activeCount,
-                    nextDueDate: nextDueDate
-                )
-            }
-            .listRowInsets(EdgeInsets(top: Spacing.lg, leading: Spacing.lg, bottom: Spacing.sm, trailing: Spacing.lg))
-            .listRowBackground(Color.clear)
-
             // Attention Required Section (Overdue + Due)
             if !overdueSubscriptions.isEmpty || !dueSubscriptions.isEmpty {
                 Section {

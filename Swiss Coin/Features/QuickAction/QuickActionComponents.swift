@@ -333,91 +333,265 @@ struct SelectedGroupBadge: View {
     }
 }
 
-// MARK: - Currency Picker
+// MARK: - Currency Picker Sheet
 
-struct CurrencyPickerView: View {
-    let currencies: [Currency]
+struct CurrencyPickerSheet: View {
     @Binding var selectedCurrency: Currency
     @Binding var isPresented: Bool
 
     var body: some View {
-        VStack(spacing: 0) {
-            ForEach(Array(currencies.enumerated()), id: \.element.id) { (index, currency) in
-                Button {
-                    selectedCurrency = currency
-                    isPresented = false
-                } label: {
-                    HStack(spacing: 12) {
-                        Text(currency.flag)
-                            .font(.system(size: 20))
-                        Text(currency.name)
-                            .font(.system(size: 17))
-                            .foregroundColor(.primary)
-                        Spacer()
-                        Text(currency.code)
-                            .font(.system(size: 17))
-                            .foregroundColor(.secondary)
-                        if selectedCurrency.id == currency.id {
-                            Image(systemName: "checkmark")
-                                .font(.system(size: 17, weight: .semibold))
-                                .foregroundColor(AppColors.accent)
+        NavigationStack {
+            List {
+                ForEach(Currency.all) { currency in
+                    Button {
+                        HapticManager.selectionChanged()
+                        selectedCurrency = currency
+                        isPresented = false
+                    } label: {
+                        HStack(spacing: Spacing.md) {
+                            Text(currency.flag)
+                                .font(.system(size: 24))
+                            VStack(alignment: .leading, spacing: Spacing.xxs) {
+                                Text(currency.name)
+                                    .font(AppTypography.body())
+                                    .foregroundColor(AppColors.textPrimary)
+                                Text(currency.code)
+                                    .font(AppTypography.caption())
+                                    .foregroundColor(AppColors.textSecondary)
+                            }
+                            Spacer()
+                            Text(currency.symbol)
+                                .font(AppTypography.body())
+                                .foregroundColor(AppColors.textSecondary)
+                            if selectedCurrency.id == currency.id {
+                                Image(systemName: "checkmark")
+                                    .font(.system(size: 17, weight: .semibold))
+                                    .foregroundColor(AppColors.accent)
+                            }
                         }
+                        .contentShape(Rectangle())
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 12)
+                    .buttonStyle(.plain)
                 }
-
-                if index < currencies.count - 1 {
-                    Divider()
-                        .padding(.leading, 48)
+            }
+            .listStyle(.insetGrouped)
+            .navigationTitle("Select Currency")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        HapticManager.tap()
+                        isPresented = false
+                    }
                 }
             }
         }
-        .background(AppColors.cardBackground)
-        .cornerRadius(12)
     }
 }
 
-// MARK: - Category Picker
+// MARK: - Category Picker Sheet
 
-struct CategoryPickerView: View {
-    let categories: [Category]
+struct CategoryPickerSheet: View {
     @Binding var selectedCategory: Category?
     @Binding var isPresented: Bool
+    @State private var showingNewCategory = false
 
-    private let columns = Array(repeating: GridItem(.flexible(), spacing: 10), count: 4)
+    private var categories: [Category] {
+        Category.all
+    }
 
     var body: some View {
-        LazyVGrid(columns: columns, spacing: 10) {
-            ForEach(categories) { category in
-                Button {
-                    selectedCategory = category
-                    isPresented = false
-                } label: {
-                    VStack(spacing: 6) {
-                        Text(category.icon)
-                            .font(.system(size: 28))
-                        Text(category.name)
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(
-                                selectedCategory?.id == category.id ? category.color : .primary
-                            )
-                            .lineLimit(1)
+        NavigationStack {
+            List {
+                Section {
+                    ForEach(categories) { category in
+                        Button {
+                            HapticManager.selectionChanged()
+                            selectedCategory = category
+                            isPresented = false
+                        } label: {
+                            HStack(spacing: Spacing.md) {
+                                Text(category.icon)
+                                    .font(.system(size: 24))
+                                Text(category.name)
+                                    .font(AppTypography.body())
+                                    .foregroundColor(AppColors.textPrimary)
+                                Spacer()
+                                if selectedCategory?.id == category.id {
+                                    Image(systemName: "checkmark")
+                                        .font(.system(size: 17, weight: .semibold))
+                                        .foregroundColor(AppColors.accent)
+                                }
+                            }
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(AppColors.cardBackground)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .stroke(
-                                        selectedCategory?.id == category.id
-                                            ? category.color : Color.clear,
-                                        lineWidth: 2
+                }
+
+                Section {
+                    Button {
+                        HapticManager.tap()
+                        showingNewCategory = true
+                    } label: {
+                        HStack(spacing: Spacing.md) {
+                            Image(systemName: "plus.circle.fill")
+                                .font(.system(size: 24))
+                                .foregroundColor(AppColors.accent)
+                            Text("Create New Category")
+                                .font(AppTypography.body())
+                                .foregroundColor(AppColors.accent)
+                        }
+                    }
+                }
+            }
+            .listStyle(.insetGrouped)
+            .navigationTitle("Select Category")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        HapticManager.tap()
+                        isPresented = false
+                    }
+                }
+            }
+            .sheet(isPresented: $showingNewCategory) {
+                NewCategorySheet(
+                    isPresented: $showingNewCategory,
+                    onSave: { category in
+                        Category.saveCustomCategory(category)
+                        selectedCategory = category
+                        isPresented = false
+                    }
+                )
+                .presentationDetents([.medium])
+            }
+        }
+    }
+}
+
+// MARK: - New Category Sheet
+
+struct NewCategorySheet: View {
+    @Binding var isPresented: Bool
+    let onSave: (Category) -> Void
+
+    @State private var name = ""
+    @State private var icon = "📌"
+    @State private var selectedColorName = "blue"
+
+    private let emojiOptions = ["📌", "🏠", "🎵", "📚", "🎮", "🐾", "💼", "🎁", "🔧", "⚽", "🌿", "💰"]
+
+    private var canSave: Bool {
+        !name.trimmingCharacters(in: .whitespaces).isEmpty
+    }
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: Spacing.xxl) {
+                // Icon picker
+                VStack(alignment: .leading, spacing: Spacing.md) {
+                    Text("Icon")
+                        .font(AppTypography.headline())
+                        .foregroundColor(AppColors.textPrimary)
+
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: Spacing.sm) {
+                            ForEach(emojiOptions, id: \.self) { emoji in
+                                Button {
+                                    HapticManager.selectionChanged()
+                                    icon = emoji
+                                } label: {
+                                    Text(emoji)
+                                        .font(.system(size: 28))
+                                        .frame(width: 48, height: 48)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: CornerRadius.sm)
+                                                .fill(icon == emoji ? AppColors.accent.opacity(0.15) : AppColors.backgroundTertiary)
+                                        )
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: CornerRadius.sm)
+                                                .stroke(icon == emoji ? AppColors.accent : Color.clear, lineWidth: 2)
+                                        )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Name field
+                VStack(alignment: .leading, spacing: Spacing.md) {
+                    Text("Name")
+                        .font(AppTypography.headline())
+                        .foregroundColor(AppColors.textPrimary)
+                    TextField("Category name", text: $name)
+                        .font(AppTypography.body())
+                        .padding(.horizontal, Spacing.lg)
+                        .padding(.vertical, Spacing.md)
+                        .background(AppColors.cardBackground)
+                        .cornerRadius(CornerRadius.md)
+                }
+
+                // Color picker
+                VStack(alignment: .leading, spacing: Spacing.md) {
+                    Text("Color")
+                        .font(AppTypography.headline())
+                        .foregroundColor(AppColors.textPrimary)
+
+                    LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 6), spacing: Spacing.sm) {
+                        ForEach(Category.colorOptions, id: \.name) { option in
+                            Button {
+                                HapticManager.selectionChanged()
+                                selectedColorName = option.name
+                            } label: {
+                                Circle()
+                                    .fill(option.color)
+                                    .frame(width: 36, height: 36)
+                                    .overlay(
+                                        Circle()
+                                            .stroke(Color.white, lineWidth: selectedColorName == option.name ? 3 : 0)
                                     )
-                            )
-                    )
+                                    .overlay(
+                                        Circle()
+                                            .stroke(AppColors.accent, lineWidth: selectedColorName == option.name ? 2 : 0)
+                                            .padding(-2)
+                                    )
+                            }
+                        }
+                    }
+                }
+
+                Spacer()
+            }
+            .padding(.horizontal, Spacing.lg)
+            .padding(.top, Spacing.lg)
+            .background(AppColors.backgroundSecondary)
+            .navigationTitle("New Category")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        HapticManager.tap()
+                        isPresented = false
+                    }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") {
+                        HapticManager.tap()
+                        let trimmedName = name.trimmingCharacters(in: .whitespaces)
+                        let id = "custom_\(trimmedName.lowercased().replacingOccurrences(of: " ", with: "_"))_\(UUID().uuidString.prefix(4))"
+                        let category = Category(
+                            id: id,
+                            name: trimmedName,
+                            icon: icon,
+                            color: Category.color(forName: selectedColorName),
+                            colorName: selectedColorName
+                        )
+                        onSave(category)
+                    }
+                    .font(AppTypography.bodyBold())
+                    .disabled(!canSave)
                 }
             }
         }
@@ -433,31 +607,25 @@ struct SplitMethodChip: View {
 
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 6) {
-                // Icon
+            VStack(spacing: Spacing.xs) {
                 Text(method.icon)
                     .font(.system(size: 18, weight: .semibold))
-                    .foregroundColor(isSelected ? AppColors.buttonForeground : .secondary)
+                    .foregroundColor(isSelected ? AppColors.buttonForeground : AppColors.textSecondary)
                     .frame(width: 36, height: 36)
                     .background(
                         Circle()
-                            .fill(isSelected ? AppColors.accent : AppColors.backgroundSecondary)
+                            .fill(isSelected ? AppColors.accent : AppColors.backgroundTertiary)
                     )
 
-                // Label
                 Text(method.displayName)
-                    .font(.system(size: 13, weight: .medium))
+                    .font(AppTypography.caption())
                     .foregroundColor(isSelected ? AppColors.accent : AppColors.textPrimary)
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 14)
+            .padding(.horizontal, Spacing.md)
+            .padding(.vertical, Spacing.md)
             .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(AppColors.cardBackground)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: CornerRadius.md)
-                            .stroke(isSelected ? AppColors.accent : Color.clear, lineWidth: 2)
-                    )
+                RoundedRectangle(cornerRadius: CornerRadius.sm)
+                    .fill(isSelected ? AppColors.accent.opacity(0.08) : Color.clear)
             )
         }
     }
@@ -474,42 +642,44 @@ struct SplitOptionRow: View {
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 14) {
-                // Icon
-                Text(icon)
-                    .font(.system(size: 32))
+            HStack(spacing: Spacing.md) {
+                Image(systemName: icon)
+                    .font(.system(size: 20, weight: .medium))
+                    .foregroundColor(isSelected ? AppColors.accent : AppColors.textSecondary)
+                    .frame(width: 44, height: 44)
+                    .background(AppColors.backgroundTertiary)
+                    .cornerRadius(CornerRadius.sm)
 
-                // Text content
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: Spacing.xxs) {
                     Text(title)
-                        .font(.system(size: 17, weight: .medium))
-                        .foregroundColor(.primary)
+                        .font(AppTypography.body())
+                        .foregroundColor(AppColors.textPrimary)
                     Text(subtitle)
-                        .font(.system(size: 15))
-                        .foregroundColor(.secondary)
+                        .font(AppTypography.caption())
+                        .foregroundColor(AppColors.textSecondary)
                 }
 
                 Spacer()
 
-                // Radio button
-                Circle()
-                    .strokeBorder(
-                        isSelected ? AppColors.accent : AppColors.textSecondary.opacity(0.5), lineWidth: 2
-                    )
-                    .background(
-                        Circle()
-                            .fill(isSelected ? AppColors.accent : Color.clear)
-                    )
-                    .overlay(
-                        Circle()
-                            .fill(AppColors.buttonForeground)
-                            .frame(width: 8, height: 8)
-                            .opacity(isSelected ? 1 : 0)
-                    )
-                    .frame(width: 24, height: 24)
+                ZStack {
+                    Circle()
+                        .strokeBorder(
+                            isSelected ? AppColors.accent : AppColors.textSecondary.opacity(0.4),
+                            lineWidth: 2
+                        )
+                    Circle()
+                        .fill(isSelected ? AppColors.accent : Color.clear)
+                        .padding(2)
+                    Circle()
+                        .fill(AppColors.buttonForeground)
+                        .frame(width: 8, height: 8)
+                        .opacity(isSelected ? 1 : 0)
+                }
+                .frame(width: 24, height: 24)
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 14)
+            .padding(.vertical, Spacing.sm)
+            .contentShape(Rectangle())
         }
+        .buttonStyle(.plain)
     }
 }

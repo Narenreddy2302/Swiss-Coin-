@@ -12,7 +12,7 @@ struct Step1BasicDetailsView: View {
     @ObservedObject var viewModel: QuickActionViewModel
 
     var body: some View {
-        VStack(spacing: Spacing.lg) {
+        VStack(alignment: .leading, spacing: Spacing.xxl) {
 
             // MARK: Transaction Type Segmented Control
             Picker("Transaction Type", selection: $viewModel.transactionType) {
@@ -25,93 +25,94 @@ struct Step1BasicDetailsView: View {
             }
 
             // MARK: Amount Input Section
-            HStack(spacing: Spacing.md) {
-                // Currency display (reads from global setting)
-                HStack(spacing: Spacing.xs) {
-                    Text(CurrencyFormatter.currencyFlag)
-                        .font(.system(size: IconSize.md))
-                    Text(CurrencyFormatter.currencySymbol)
-                        .font(AppTypography.title2())
-                        .foregroundColor(AppColors.textPrimary)
-                }
-                .padding(.horizontal, Spacing.md)
-                .padding(.vertical, Spacing.sm)
-                .background(AppColors.backgroundTertiary)
-                .cornerRadius(CornerRadius.sm)
+            VStack(alignment: .leading, spacing: Spacing.sm) {
+                Text("Amount")
+                    .font(AppTypography.subheadlineMedium())
+                    .foregroundColor(AppColors.textSecondary)
 
-                // Amount text field
-                TextField("0.00", text: $viewModel.amountString)
-                    .font(.system(size: 48, weight: .regular, design: .rounded))
-                    .keyboardType(.decimalPad)
-                    .multilineTextAlignment(.trailing)
-                    .foregroundColor(AppColors.textPrimary)
-            }
-            .padding(Spacing.lg)
-            .background(AppColors.cardBackground)
-            .cornerRadius(CornerRadius.md)
+                HStack(spacing: Spacing.md) {
+                    Button {
+                        HapticManager.tap()
+                        viewModel.showCurrencyPicker = true
+                    } label: {
+                        HStack(spacing: Spacing.xs) {
+                            Text(viewModel.selectedCurrency.flag)
+                                .font(.system(size: 20))
+                            Text(viewModel.selectedCurrency.symbol)
+                                .font(AppTypography.title2())
+                                .foregroundColor(AppColors.textPrimary)
+                            Image(systemName: "chevron.up.chevron.down")
+                                .font(.system(size: 10, weight: .semibold))
+                                .foregroundColor(AppColors.textSecondary)
+                        }
+                        .padding(.horizontal, Spacing.md)
+                        .padding(.vertical, Spacing.sm)
+                        .background(AppColors.backgroundTertiary)
+                        .cornerRadius(CornerRadius.sm)
+                    }
+                    .buttonStyle(.plain)
 
-            // MARK: Description & Category Fields
-            VStack(spacing: 0) {
-                // Description input row
-                HStack {
-                    Text("Description")
-                        .font(AppTypography.body())
-                        .foregroundColor(AppColors.textPrimary)
-                    Spacer()
-                    TextField("What's this for?", text: $viewModel.transactionName)
-                        .font(AppTypography.body())
+                    TextField("0.00", text: $viewModel.amountString)
+                        .font(.system(size: 44, weight: .light, design: .rounded))
+                        .keyboardType(.decimalPad)
                         .multilineTextAlignment(.trailing)
                         .foregroundColor(AppColors.textPrimary)
                 }
-                .padding(.horizontal, Spacing.lg)
-                .padding(.vertical, Spacing.md)
+            }
 
-                Divider()
-                    .padding(.leading, Spacing.lg)
+            // MARK: Description Field
+            VStack(alignment: .leading, spacing: Spacing.sm) {
+                Text("Description")
+                    .font(AppTypography.subheadlineMedium())
+                    .foregroundColor(AppColors.textSecondary)
 
-                // Category selector row
+                TextField("What's this for?", text: $viewModel.transactionName)
+                    .font(AppTypography.body())
+                    .foregroundColor(AppColors.textPrimary)
+                    .padding(.horizontal, Spacing.lg)
+                    .padding(.vertical, Spacing.md)
+                    .background(AppColors.backgroundTertiary)
+                    .cornerRadius(CornerRadius.sm)
+            }
+
+            // MARK: Category Field
+            VStack(alignment: .leading, spacing: Spacing.sm) {
+                Text("Category")
+                    .font(AppTypography.subheadlineMedium())
+                    .foregroundColor(AppColors.textSecondary)
+
                 Button {
                     HapticManager.tap()
-                    withAnimation {
-                        viewModel.showCategoryPicker.toggle()
-                    }
+                    viewModel.showCategoryPicker = true
                 } label: {
                     HStack {
-                        Text("Category")
-                            .font(AppTypography.body())
-                            .foregroundColor(AppColors.textPrimary)
-                        Spacer()
                         if let category = viewModel.selectedCategory {
-                            HStack(spacing: Spacing.xs) {
+                            HStack(spacing: Spacing.sm) {
                                 Text(category.icon)
+                                    .font(.system(size: 20))
                                 Text(category.name)
-                                    .foregroundColor(category.color)
+                                    .font(AppTypography.body())
+                                    .foregroundColor(AppColors.textPrimary)
                             }
-                            .font(AppTypography.body())
                         } else {
-                            Text("Select")
+                            Text("Select a category")
                                 .font(AppTypography.body())
                                 .foregroundColor(AppColors.textSecondary)
                         }
+                        Spacer()
                         Image(systemName: "chevron.right")
-                            .font(.system(size: IconSize.sm, weight: .semibold))
-                            .foregroundColor(AppColors.textSecondary)
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(AppColors.textTertiary)
                     }
                     .padding(.horizontal, Spacing.lg)
                     .padding(.vertical, Spacing.md)
+                    .background(AppColors.backgroundTertiary)
+                    .cornerRadius(CornerRadius.sm)
                 }
+                .buttonStyle(.plain)
             }
-            .background(AppColors.cardBackground)
-            .cornerRadius(CornerRadius.md)
 
-            // MARK: Category Picker
-            if viewModel.showCategoryPicker {
-                CategoryPickerView(
-                    categories: Category.all,
-                    selectedCategory: $viewModel.selectedCategory,
-                    isPresented: $viewModel.showCategoryPicker
-                )
-            }
+            Spacer().frame(height: Spacing.sm)
 
             // MARK: Continue Button
             Button {
@@ -131,6 +132,20 @@ struct Step1BasicDetailsView: View {
                     )
             }
             .disabled(!viewModel.canProceedStep1)
+        }
+        .sheet(isPresented: $viewModel.showCurrencyPicker) {
+            CurrencyPickerSheet(
+                selectedCurrency: $viewModel.selectedCurrency,
+                isPresented: $viewModel.showCurrencyPicker
+            )
+            .presentationDetents([.medium, .large])
+        }
+        .sheet(isPresented: $viewModel.showCategoryPicker) {
+            CategoryPickerSheet(
+                selectedCategory: $viewModel.selectedCategory,
+                isPresented: $viewModel.showCategoryPicker
+            )
+            .presentationDetents([.medium, .large])
         }
     }
 }
