@@ -134,7 +134,7 @@ struct Step2SplitConfigView: View {
             HStack(spacing: Spacing.sm) {
                 // "You" chip first
                 if viewModel.participantIds.contains(viewModel.currentUserUUID) {
-                    chipButton(name: "You") {
+                    removableChip(name: "You") {
                         viewModel.toggleParticipant(viewModel.currentUserUUID)
                     }
                 }
@@ -145,7 +145,7 @@ struct Step2SplitConfigView: View {
                     .sorted { viewModel.getName(for: $0) < viewModel.getName(for: $1) }
 
                 ForEach(otherIds, id: \.self) { userId in
-                    chipButton(name: viewModel.getName(for: userId)) {
+                    removableChip(name: viewModel.getName(for: userId)) {
                         viewModel.toggleParticipant(userId)
                     }
                 }
@@ -277,6 +277,32 @@ struct Step2SplitConfigView: View {
             action()
         } label: {
             chipLabel(name)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func removableChip(name: String, action: @escaping () -> Void) -> some View {
+        Button {
+            HapticManager.tap()
+            withAnimation(.easeInOut(duration: 0.2)) {
+                action()
+            }
+        } label: {
+            HStack(spacing: Spacing.xs) {
+                Text(name)
+                    .font(AppTypography.subheadline())
+                    .foregroundColor(AppColors.textPrimary)
+
+                Image(systemName: "xmark")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundColor(AppColors.textSecondary)
+            }
+            .padding(.leading, Spacing.lg)
+            .padding(.trailing, Spacing.md)
+            .padding(.vertical, Spacing.sm)
+            .background(AppColors.cardBackground)
+            .clipShape(Capsule())
+            .overlay(Capsule().stroke(AppColors.separator, lineWidth: 1))
         }
         .buttonStyle(.plain)
     }
