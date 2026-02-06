@@ -1,19 +1,19 @@
 //
-//  ReminderMessageView.swift
+//  GroupReminderMessageView.swift
 //  Swiss Coin
 //
-//  System message for reminders in person conversations.
+//  System message for reminders in group conversations.
 //
 
 import SwiftUI
 
-struct ReminderMessageView: View {
+struct GroupReminderMessageView: View {
     let reminder: Reminder
-    let person: Person
 
     private var messageText: String {
         let formatted = CurrencyFormatter.format(reminder.amount)
-        return "Reminder sent for \(formatted)"
+        let personName = reminder.toPerson?.firstName ?? "Someone"
+        return "Reminder sent to \(personName) for \(formatted)"
     }
 
     var body: some View {
@@ -25,6 +25,7 @@ struct ReminderMessageView: View {
 
                 Text(messageText)
                     .font(AppTypography.caption())
+                    .fontWeight(.medium)
                     .foregroundColor(AppColors.textSecondary)
             }
             .padding(.horizontal, 14)

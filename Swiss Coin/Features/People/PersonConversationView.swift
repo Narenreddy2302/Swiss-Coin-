@@ -2,6 +2,8 @@
 //  PersonConversationView.swift
 //  Swiss Coin
 //
+//  iMessage-style conversation view for person-to-person interactions.
+//
 
 import CoreData
 import os
@@ -11,6 +13,8 @@ struct PersonConversationView: View {
     @ObservedObject var person: Person
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.dismiss) var dismiss
+
+    // MARK: - State
 
     @State private var showingAddTransaction = false
     @State private var showingSettlement = false
@@ -22,11 +26,17 @@ struct PersonConversationView: View {
     @State private var transactionToDelete: FinancialTransaction?
     @State private var showingDeleteTransaction = false
     @State private var showingTransactionDetail: FinancialTransaction?
-    @State private var messageToDelete: ChatMessage?
-    @State private var showingDeleteMessage = false
+
+    // Undo toast state
+    @State private var showUndoToast = false
+    @State private var deletedMessageContent: String?
+    @State private var deletedMessageTimestamp: Date?
+    @State private var deletedMessageIsEdited: Bool = false
 
     // Retained haptic generator for reliable feedback
     private let hapticGenerator = UIImpactFeedbackGenerator(style: .light)
+
+    // MARK: - Computed Properties
 
     private var balance: Double {
         person.calculateBalance()
@@ -36,12 +46,10 @@ struct PersonConversationView: View {
         person.getGroupedConversationItems()
     }
 
-    /// Total count of all conversation items across all date groups (used for scroll trigger)
     private var totalItemCount: Int {
         groupedItems.reduce(0) { $0 + $1.items.count }
     }
 
-    // Balance display properties (for navigation bar)
     private var balanceLabel: String {
         if balance > 0.01 { return "owes you" }
         else if balance < -0.01 { return "you owe" }
@@ -58,28 +66,31 @@ struct PersonConversationView: View {
         else { return AppColors.neutral }
     }
 
+    // MARK: - Body
+
     var body: some View {
         VStack(spacing: 0) {
             // Messages Area
             ScrollViewReader { proxy in
                 ScrollView {
-                    LazyVStack(spacing: 8) {
+                    LazyVStack(spacing: Spacing.sm) {
                         if groupedItems.isEmpty {
                             emptyStateView
                         } else {
                             ForEach(groupedItems) { group in
                                 DateHeaderView(dateString: group.dateDisplayString)
-                                    .padding(.top, 16)
-                                    .padding(.bottom, 8)
+                                    .padding(.top, Spacing.lg)
+                                    .padding(.bottom, Spacing.sm)
 
                                 ForEach(group.items) { item in
                                     conversationItemView(for: item)
                                         .id(item.id)
+                                        .transition(.opacity.combined(with: .scale(scale: 0.95)))
                                 }
                             }
                         }
                     }
-                    .padding(.vertical, 16)
+                    .padding(.vertical, Spacing.lg)
                 }
                 .background(AppColors.backgroundSecondary)
                 .onTapGesture {
@@ -90,7 +101,7 @@ struct PersonConversationView: View {
                     scrollToBottom(proxy)
                 }
                 .onChange(of: totalItemCount) { _, _ in
-                    withAnimation {
+                    withAnimation(AppAnimation.standard) {
                         scrollToBottom(proxy)
                     }
                 }
@@ -115,7 +126,7 @@ struct PersonConversationView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(AppColors.backgroundTertiary, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
-        .toolbar(.hidden, for: .tabBar) // Hide tab bar like iMessage
+        .toolbar(.hidden, for: .tabBar)
         .tint(AppColors.textSecondary)
         .navigationBarBackButtonHidden(true)
         .toolbar {
@@ -170,19 +181,11 @@ struct PersonConversationView: View {
         } message: {
             Text("This will permanently delete this transaction and update all related balances. This cannot be undone.")
         }
-        .alert("Delete Message", isPresented: $showingDeleteMessage) {
-            Button("Cancel", role: .cancel) {
-                messageToDelete = nil
-            }
-            Button("Delete", role: .destructive) {
-                if let message = messageToDelete {
-                    deleteMessage(message)
-                }
-                messageToDelete = nil
-            }
-        } message: {
-            Text("This message will be permanently deleted.")
-        }
+        .undoToast(
+            isShowing: $showUndoToast,
+            message: "Message deleted",
+            onUndo: undoDeleteMessage
+        )
     }
 
     // MARK: - Toolbar Components
@@ -190,7 +193,6 @@ struct PersonConversationView: View {
     @ViewBuilder
     private var toolbarLeadingContent: some View {
         HStack(spacing: Spacing.sm) {
-            // Custom back button
             Button {
                 HapticManager.tap()
                 dismiss()
@@ -199,8 +201,8 @@ struct PersonConversationView: View {
                     .font(AppTypography.bodyBold())
                     .foregroundColor(AppColors.accent)
             }
+            .accessibilityLabel("Back")
 
-            // Person header button
             Button {
                 HapticManager.tap()
                 showingPersonDetail = true
@@ -208,13 +210,13 @@ struct PersonConversationView: View {
                 personHeaderContent
             }
             .buttonStyle(.plain)
+            .accessibilityLabel("View \(person.name ?? "person") details")
         }
     }
 
     @ViewBuilder
     private var personHeaderContent: some View {
         HStack(spacing: Spacing.sm) {
-            // Avatar circle
             Circle()
                 .fill(Color(hex: person.colorHex ?? CurrentUser.defaultColorHex).opacity(0.2))
                 .frame(width: AvatarSize.sm, height: AvatarSize.sm)
@@ -224,7 +226,6 @@ struct PersonConversationView: View {
                         .foregroundColor(Color(hex: person.colorHex ?? CurrentUser.defaultColorHex))
                 )
 
-            // Person name
             Text(person.name ?? "Unknown")
                 .font(AppTypography.bodyBold())
                 .foregroundColor(AppColors.textPrimary)
@@ -243,26 +244,28 @@ struct PersonConversationView: View {
                 .font(AppTypography.amountSmall())
                 .foregroundColor(balanceColor)
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Balance: \(balanceLabel) \(balanceAmount)")
     }
 
     // MARK: - Empty State
 
     private var emptyStateView: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: Spacing.lg) {
             Spacer()
 
             Image(systemName: "message.fill")
                 .font(.system(size: IconSize.xxl))
-                .foregroundColor(.secondary.opacity(0.5))
+                .foregroundColor(AppColors.textSecondary.opacity(0.5))
                 .accessibilityHidden(true)
 
             Text("No conversations yet")
                 .font(AppTypography.headline())
-                .foregroundColor(.secondary)
+                .foregroundColor(AppColors.textSecondary)
 
-            Text("Start a conversation with \(person.name?.components(separatedBy: " ").first ?? "them") or add an expense")
+            Text("Start a conversation with \(person.firstName) or add an expense")
                 .font(AppTypography.subheadline())
-                .foregroundColor(.secondary)
+                .foregroundColor(AppColors.textSecondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 40)
 
@@ -289,30 +292,24 @@ struct PersonConversationView: View {
                     showingDeleteTransaction = true
                 }
             )
-            .padding(.vertical, 4)
+            .padding(.vertical, Spacing.xxs)
 
         case .settlement(let settlement):
             SettlementMessageView(settlement: settlement, person: person)
-                .padding(.vertical, 4)
+                .padding(.vertical, Spacing.xxs)
 
         case .reminder(let reminder):
             ReminderMessageView(reminder: reminder, person: person)
-                .padding(.vertical, 4)
+                .padding(.vertical, Spacing.xxs)
 
         case .message(let chatMessage):
-            MessageBubbleView(message: chatMessage)
-                .padding(.vertical, 2)
-                .contextMenu {
-                    if chatMessage.isFromUser {
-                        Button(role: .destructive) {
-                            HapticManager.tap()
-                            messageToDelete = chatMessage
-                            showingDeleteMessage = true
-                        } label: {
-                            Label("Delete Message", systemImage: "trash")
-                        }
-                    }
+            MessageBubbleView(
+                message: chatMessage,
+                onDelete: { msg in
+                    deleteMessageWithUndo(msg)
                 }
+            )
+            .padding(.vertical, 2)
         }
     }
 
@@ -329,33 +326,26 @@ struct PersonConversationView: View {
         let trimmedText = messageText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedText.isEmpty else { return }
 
-        // Verify the person object is still valid
         guard !person.isDeleted && person.managedObjectContext != nil else {
             errorMessage = "Unable to send message. Please try again."
             showingError = true
             return
         }
 
-        // Create new chat message
         let newMessage = ChatMessage(context: viewContext)
         newMessage.id = UUID()
         newMessage.content = trimmedText
         newMessage.timestamp = Date()
         newMessage.isFromUser = true
+        newMessage.isEdited = false
         newMessage.withPerson = person
 
-        // Save context with proper error handling
         do {
             try viewContext.save()
-
-            // Clear input and provide haptic feedback
             messageText = ""
             hapticGenerator.impactOccurred()
         } catch {
-            // Rollback the failed save
             viewContext.rollback()
-
-            // Show error to user
             errorMessage = "Failed to send message. Please try again."
             showingError = true
             AppLogger.coreData.error("Failed to save message: \(error.localizedDescription)")
@@ -376,11 +366,22 @@ struct PersonConversationView: View {
         }
     }
 
-    private func deleteMessage(_ message: ChatMessage) {
+    // MARK: - Message Delete with Undo
+
+    private func deleteMessageWithUndo(_ message: ChatMessage) {
+        // Cache data for potential undo
+        deletedMessageContent = message.content
+        deletedMessageTimestamp = message.timestamp
+        deletedMessageIsEdited = message.isEdited
+
+        // Delete immediately
         viewContext.delete(message)
         do {
             try viewContext.save()
-            HapticManager.success()
+            HapticManager.delete()
+            withAnimation(AppAnimation.standard) {
+                showUndoToast = true
+            }
         } catch {
             viewContext.rollback()
             HapticManager.error()
@@ -388,5 +389,29 @@ struct PersonConversationView: View {
             showingError = true
             AppLogger.coreData.error("Failed to delete message: \(error.localizedDescription)")
         }
+    }
+
+    private func undoDeleteMessage() {
+        guard let content = deletedMessageContent else { return }
+
+        let restored = ChatMessage(context: viewContext)
+        restored.id = UUID()
+        restored.content = content
+        restored.timestamp = deletedMessageTimestamp ?? Date()
+        restored.isFromUser = true
+        restored.isEdited = deletedMessageIsEdited
+        restored.withPerson = person
+
+        do {
+            try viewContext.save()
+            HapticManager.success()
+        } catch {
+            viewContext.rollback()
+            HapticManager.error()
+        }
+
+        deletedMessageContent = nil
+        deletedMessageTimestamp = nil
+        deletedMessageIsEdited = false
     }
 }

@@ -21,6 +21,7 @@ extension ChatMessage {
     @NSManaged public var content: String?
     @NSManaged public var timestamp: Date?
     @NSManaged public var isFromUser: Bool
+    @NSManaged public var isEdited: Bool
     @NSManaged public var withPerson: Person?
     @NSManaged public var withGroup: UserGroup?
     @NSManaged public var withSubscription: Subscription?

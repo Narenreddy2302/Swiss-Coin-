@@ -2,6 +2,8 @@
 //  TransactionCardView.swift
 //  Swiss Coin
 //
+//  iMessage-style transaction card for person conversation context.
+//
 
 import SwiftUI
 
@@ -14,6 +16,8 @@ struct TransactionCardView: View {
 
     @State private var isPressed = false
 
+    // MARK: - Computed Properties
+
     private var isUserPayer: Bool {
         CurrentUser.isCurrentUser(transaction.payer?.id)
     }
@@ -23,90 +27,50 @@ struct TransactionCardView: View {
     }
 
     private var payerName: String {
-        if isUserPayer {
-            return "You"
-        } else if isPersonPayer {
-            return person.firstName
-        } else {
-            return transaction.payer?.firstName ?? "Someone"
-        }
+        if isUserPayer { return "You" }
+        if isPersonPayer { return person.firstName }
+        return transaction.payer?.firstName ?? "Unknown"
     }
 
-    private var creatorName: String {
-        let creator = transaction.createdBy ?? transaction.payer
-        if let creatorId = creator?.id {
-            if CurrentUser.isCurrentUser(creatorId) {
-                return "You"
-            }
-            return creator?.firstName ?? "Someone"
-        }
-        return "Someone"
-    }
-
+    /// Amount from user's perspective: positive = they owe you, negative = you owe
     private var displayAmount: Double {
         let splits = transaction.splits as? Set<TransactionSplit> ?? []
-
         if isUserPayer {
-            // User paid - show what they owe you (their share)
+            // User paid — show what person owes
             if let theirSplit = splits.first(where: { $0.owedBy?.id == person.id }) {
                 return theirSplit.amount
             }
+            return 0
         } else if isPersonPayer {
-            // They paid - show what you owe (your share)
+            // Person paid — show what user owes
             if let mySplit = splits.first(where: { CurrentUser.isCurrentUser($0.owedBy?.id) }) {
                 return mySplit.amount
             }
+            return 0
         } else {
-            // Third party paid (group expense) - show your share
+            // Third party paid — show user's split if any
             if let mySplit = splits.first(where: { CurrentUser.isCurrentUser($0.owedBy?.id) }) {
                 return mySplit.amount
             }
+            return 0
         }
-        return 0
     }
 
     private var amountText: String {
-        let formatted = CurrencyFormatter.format(displayAmount)
-
-        if isUserPayer && displayAmount > 0 {
-            return "+\(formatted)"
-        }
-        return formatted
+        let prefix = isUserPayer ? "+" : ""
+        return "\(prefix)\(CurrencyFormatter.format(displayAmount))"
     }
 
     private var amountColor: Color {
-        if displayAmount < 0.01 {
-            return AppColors.textSecondary
-        }
-        if isUserPayer {
-            return AppColors.positive
-        }
-        return AppColors.negative
+        isUserPayer ? AppColors.positive : AppColors.negative
     }
 
     private var splitCount: Int {
-        let splits = transaction.splits as? Set<TransactionSplit> ?? []
-
-        var participants = Set<UUID>()
-        if let payerId = transaction.payer?.id {
-            participants.insert(payerId)
-        }
-        for split in splits {
-            if let personId = split.owedBy?.id {
-                participants.insert(personId)
-            }
-        }
-
-        if participants.isEmpty && !splits.isEmpty {
-            return splits.count
-        }
-
-        return max(participants.count, 1)
+        (transaction.splits as? Set<TransactionSplit>)?.count ?? 0
     }
 
     private var splitCountText: String {
-        let count = splitCount
-        return count == 1 ? "1 Person" : "\(count) People"
+        splitCount == 1 ? "1 Person" : "\(splitCount) People"
     }
 
     private var totalAmountText: String {
@@ -114,21 +78,23 @@ struct TransactionCardView: View {
     }
 
     private var dateText: String {
-        return DateFormatter.mediumDate.string(from: transaction.date ?? Date())
+        guard let date = transaction.date else { return "" }
+        return DateFormatter.mediumDate.string(from: date)
     }
 
     private var metaText: String {
         "\(dateText) | By \(payerName)"
     }
 
+    // MARK: - Body
+
     var body: some View {
         HStack(alignment: .center, spacing: Spacing.md) {
-            // Left side - Title and Meta
-            VStack(alignment: .leading, spacing: Spacing.xs) {
-                Text(transaction.title ?? "Untitled Transaction")
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
+                Text(transaction.title ?? "Expense")
                     .font(AppTypography.headline())
                     .foregroundColor(AppColors.textPrimary)
-                    .lineLimit(2)
+                    .lineLimit(1)
 
                 Text(metaText)
                     .font(AppTypography.footnote())
@@ -138,7 +104,6 @@ struct TransactionCardView: View {
 
             Spacer()
 
-            // Right side - Amount and Split Info
             VStack(alignment: .trailing, spacing: Spacing.xxs) {
                 Text(amountText)
                     .font(AppTypography.amount())
@@ -155,47 +120,52 @@ struct TransactionCardView: View {
             RoundedRectangle(cornerRadius: CornerRadius.md)
                 .fill(AppColors.cardBackground)
         )
+        .padding(.horizontal, Spacing.lg)
         .scaleEffect(isPressed ? 0.98 : 1.0)
         .animation(AppAnimation.quick, value: isPressed)
-        .padding(.horizontal, Spacing.lg)
-        .contentShape(RoundedRectangle(cornerRadius: CornerRadius.md))
+        .onLongPressGesture(minimumDuration: 0.5, pressing: { pressing in
+            isPressed = pressing
+            if pressing { HapticManager.tap() }
+        }, perform: {})
         .contextMenu {
-            if onEdit != nil {
+            if let onViewDetails {
                 Button {
                     HapticManager.tap()
-                    onEdit?()
+                    onViewDetails()
                 } label: {
-                    Label("Edit Transaction", systemImage: "pencil")
+                    Label("View Details", systemImage: "doc.text.magnifyingglass")
                 }
             }
 
-            if onViewDetails != nil {
+            // Copy Amount
+            Button {
+                UIPasteboard.general.string = CurrencyFormatter.format(transaction.amount)
+                HapticManager.tap()
+            } label: {
+                Label("Copy Amount", systemImage: "doc.on.doc")
+            }
+
+            if let onEdit {
                 Button {
                     HapticManager.tap()
-                    onViewDetails?()
+                    onEdit()
                 } label: {
-                    Label("View Details", systemImage: "info.circle")
+                    Label("Edit", systemImage: "pencil")
                 }
             }
 
             if onDelete != nil {
                 Divider()
-
                 Button(role: .destructive) {
                     HapticManager.delete()
                     onDelete?()
                 } label: {
-                    Label("Delete Transaction", systemImage: "trash")
+                    Label("Delete", systemImage: "trash")
                 }
             }
         }
-        .onLongPressGesture(minimumDuration: 0.5, pressing: { pressing in
-            withAnimation(AppAnimation.quick) {
-                isPressed = pressing
-            }
-            if pressing {
-                HapticManager.tap()
-            }
-        }, perform: {})
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(transaction.title ?? "Expense"), \(amountText), \(metaText)")
+        .accessibilityHint("Double tap and hold for options")
     }
 }
