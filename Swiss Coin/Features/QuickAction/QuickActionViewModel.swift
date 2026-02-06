@@ -39,6 +39,7 @@ class QuickActionViewModel: ObservableObject {
     @Published var amountString: String = ""
     @Published var selectedCurrency: Currency = Currency.fromGlobalSetting()
     @Published var transactionName: String = ""
+    @Published var transactionDate: Date = Date()
     @Published var selectedCategory: Category? = nil
 
     @Published var showCurrencyPicker: Bool = false
@@ -282,6 +283,7 @@ class QuickActionViewModel: ObservableObject {
         amountString = ""
         selectedCurrency = Currency.fromGlobalSetting()
         transactionName = ""
+        transactionDate = Date()
         selectedCategory = nil
         showCurrencyPicker = false
         showCategoryPicker = false
@@ -310,6 +312,31 @@ class QuickActionViewModel: ObservableObject {
         if currentStep > 1 {
             currentStep -= 1
         }
+    }
+
+    /// Quick action: split the transaction equally and save immediately.
+    /// If only the current user is a participant, saves as a personal transaction.
+    func splitEqualAndSave() {
+        if participantIds.count > 1 {
+            isSplit = true
+            splitMethod = .equal
+        } else {
+            isSplit = false
+        }
+        saveTransaction()
+    }
+
+    /// Navigate to Step 3 for advanced split configuration.
+    /// Requires at least 2 participants for a meaningful split.
+    func goToMoreOptions() {
+        guard participantIds.count >= 2 else {
+            errorMessage = "Add at least one other person to configure split options"
+            showingError = true
+            HapticManager.error()
+            return
+        }
+        isSplit = true  // Makes totalSteps = 3 so nextStep() can proceed
+        nextStep()
     }
 
     func selectPayer(_ person: Person?) {
@@ -490,7 +517,7 @@ class QuickActionViewModel: ObservableObject {
         transaction.id = UUID()
         transaction.title = transactionName.trimmingCharacters(in: .whitespacesAndNewlines)
         transaction.amount = amount
-        transaction.date = Date()
+        transaction.date = transactionDate
         // Payer: Use current user if paidByPerson is nil
         transaction.payer = paidByPerson ?? currentUser
         // Creator: Always the current user

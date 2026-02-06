@@ -72,6 +72,7 @@ struct QuickActionSheetPresenter: View {
                     .padding(.horizontal, Spacing.lg)
                     .padding(.bottom, Spacing.xxl)
                 }
+                .scrollDismissesKeyboard(.interactively)
             }
             .background(AppColors.backgroundSecondary)
             .navigationTitle(navigationTitle)
@@ -99,11 +100,12 @@ struct QuickActionSheetPresenter: View {
         }
     }
 
+    // Step 1 and 2 titles are rendered in the step content itself
     private var navigationTitle: String {
         switch viewModel.currentStep {
-        case 1: return "New Transaction"
-        case 2: return "Split Options"
-        case 3: return "Split Details"
+        case 1: return ""
+        case 2: return ""
+        case 3: return ""
         default: return ""
         }
     }
