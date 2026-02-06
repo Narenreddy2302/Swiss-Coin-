@@ -35,11 +35,13 @@ struct AddTransactionView: View {
                         .limitTextLength(to: ValidationLimits.maxTransactionTitleLength, text: $viewModel.title)
                     TextField("Total Amount", text: $viewModel.totalAmount)
                         .keyboardType(.decimalPad)
+                        .font(.system(size: 17, weight: .bold, design: .rounded))
                         .limitTextLength(to: 12, text: $viewModel.totalAmount)
                     DatePicker("Date", selection: $viewModel.date, displayedComponents: .date)
 
                     PayerPicker(selection: $viewModel.selectedPayer)
                 }
+                .listRowBackground(AppColors.cardBackground)
 
                 // MARK: - 2. Participants
                 Section(header: Text("Split With (Select Participants)")) {
@@ -51,7 +53,7 @@ struct AddTransactionView: View {
                             Text("Participants")
                             Spacer()
                             Text("\(viewModel.selectedParticipants.count) selected")
-                                .foregroundColor(.secondary)
+                                .foregroundColor(AppColors.textSecondary)
                         }
                     }
                     // Quick view of selected
@@ -69,25 +71,32 @@ struct AddTransactionView: View {
                         }
                     }
                 }
+                .listRowBackground(AppColors.cardBackground)
 
                 // MARK: - 3. Split Logic
-                Picker("Method", selection: $viewModel.splitMethod) {
-                    ForEach(SplitMethod.allCases) { method in
-                        Image(systemName: method.systemImage).tag(method)
+                Section {
+                    Picker("Method", selection: $viewModel.splitMethod) {
+                        ForEach(SplitMethod.allCases) { method in
+                            Image(systemName: method.systemImage).tag(method)
+                        }
                     }
+                    .pickerStyle(SegmentedPickerStyle())
                 }
-                .pickerStyle(SegmentedPickerStyle())
+                .listRowBackground(AppColors.cardBackground)
 
-                if !viewModel.selectedParticipants.isEmpty {
-                    // Dynamic Inputs
-                    ForEach(Array(viewModel.selectedParticipants), id: \.self) { person in
-                        SplitInputView(viewModel: viewModel, person: person)
+                Section {
+                    if !viewModel.selectedParticipants.isEmpty {
+                        // Dynamic Inputs
+                        ForEach(Array(viewModel.selectedParticipants), id: \.self) { person in
+                            SplitInputView(viewModel: viewModel, person: person)
+                        }
+                    } else {
+                        Text("Select participants above to configure the split.")
+                            .font(AppTypography.subheadline())
+                            .foregroundColor(AppColors.textSecondary)
                     }
-                } else {
-                    Text("Select participants above to configure the split.")
-                        .font(AppTypography.subheadline())
-                        .foregroundColor(AppColors.textSecondary)
                 }
+                .listRowBackground(AppColors.cardBackground)
 
                 // Validation Feedback
                 if !viewModel.selectedParticipants.isEmpty {
@@ -99,15 +108,16 @@ struct AddTransactionView: View {
 
                             if viewModel.splitMethod == .percentage {
                                 Text(String(format: "%.1f%%", calculated))
-                                    .foregroundColor(abs(calculated - 100) < 0.1 ? .green : .red)
+                                    .foregroundColor(abs(calculated - 100) < 0.1 ? AppColors.positive : AppColors.negative)
                             } else {
                                 Text(CurrencyFormatter.format(calculated))
                                     .foregroundColor(
                                         abs(calculated - viewModel.totalAmountDouble) < 0.01
-                                            ? .green : .red)
+                                            ? AppColors.positive : AppColors.negative)
                             }
                         }
                     }
+                    .listRowBackground(AppColors.cardBackground)
                 }
 
                 // Validation Error Message
@@ -117,6 +127,7 @@ struct AddTransactionView: View {
                             .font(AppTypography.caption())
                             .foregroundColor(AppColors.negative)
                     }
+                    .listRowBackground(AppColors.cardBackground)
                 }
 
                 Section {
@@ -130,6 +141,7 @@ struct AddTransactionView: View {
                     .disabled(!viewModel.isValid)
                     .buttonStyle(PrimaryButtonStyle(isEnabled: viewModel.isValid))
                 }
+                .listRowBackground(AppColors.cardBackground)
             }
             .navigationTitle("Add Transaction")
             .toolbar {
