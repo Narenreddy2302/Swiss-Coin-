@@ -249,11 +249,10 @@ struct SummaryCard: View {
                 Text(CurrencyFormatter.format(amount))
                     .font(AppTypography.amountLarge())
                     .foregroundColor(AppColors.textPrimary)
-                if let subtitle = subtitle {
-                    Text(subtitle)
-                        .font(AppTypography.caption())
-                        .foregroundColor(AppColors.textTertiary)
-                }
+                Text(subtitle ?? " ")
+                    .font(AppTypography.caption())
+                    .foregroundColor(AppColors.textTertiary)
+                    .opacity(subtitle != nil ? 1 : 0)
             }
         }
         .frame(width: 160)
