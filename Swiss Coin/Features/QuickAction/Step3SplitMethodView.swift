@@ -2,7 +2,7 @@
 //  Step3SplitMethodView.swift
 //  Swiss Coin
 //
-//  Step 3: Precise split method configuration.
+//  Step 3: Precise split method configuration and breakdown.
 //
 
 import SwiftUI
@@ -12,305 +12,365 @@ struct Step3SplitMethodView: View {
 
     @ObservedObject var viewModel: QuickActionViewModel
 
+    private var sortedParticipantIds: [UUID] {
+        Array(viewModel.participantIds).sorted { id1, id2 in
+            if id1 == viewModel.currentUserUUID { return true }
+            if id2 == viewModel.currentUserUUID { return false }
+            return viewModel.getName(for: id1) < viewModel.getName(for: id2)
+        }
+    }
+
+    private var totalBalance: Double {
+        let splits = viewModel.calculateSplits()
+        let totalSplit = splits.values.reduce(0.0) { $0 + $1.amount }
+        return viewModel.amount - totalSplit
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: Spacing.xxl) {
+        VStack(alignment: .leading, spacing: 0) {
 
-            // MARK: Split Method Picker
-            VStack(alignment: .leading, spacing: Spacing.sm) {
-                Text("Split method")
-                    .font(AppTypography.subheadlineMedium())
-                    .foregroundColor(AppColors.textSecondary)
+            // MARK: - Title
+            Text("Split Details")
+                .font(AppTypography.title2())
+                .foregroundColor(AppColors.textPrimary)
+                .frame(maxWidth: .infinity)
 
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: Spacing.sm) {
-                        ForEach(SplitMethod.allCases) { method in
-                            SplitMethodChip(
-                                method: method,
-                                isSelected: viewModel.splitMethod == method
-                            ) {
-                                withAnimation {
-                                    viewModel.splitMethod = method
-                                    viewModel.splitDetails = [:]
-                                }
-                            }
-                        }
-                    }
+            // MARK: - Split Method
+            splitMethodSection
+                .padding(.top, Spacing.lg)
+
+            // MARK: - Total Amount Bar
+            totalAmountBar
+                .padding(.top, Spacing.lg)
+
+            // MARK: - Breakdown
+            breakdownSection
+                .padding(.top, Spacing.lg)
+
+            Spacer()
+
+            // MARK: - Save Button
+            saveButton
+        }
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("Done") {
+                    dismissKeyboard()
                 }
-            }
-
-            // MARK: Total Summary Bar
-            SplitSummaryBar(viewModel: viewModel)
-
-            // MARK: Per-Person Split Details
-            VStack(alignment: .leading, spacing: Spacing.sm) {
-                Text("Breakdown")
-                    .font(AppTypography.subheadlineMedium())
-                    .foregroundColor(AppColors.textSecondary)
-
-                VStack(spacing: 0) {
-                    let splits = viewModel.calculateSplits()
-                    let participantIds = Array(viewModel.participantIds).sorted { id1, id2 in
-                        if id1 == viewModel.currentUserUUID { return true }
-                        if id2 == viewModel.currentUserUUID { return false }
-                        return viewModel.getName(for: id1) < viewModel.getName(for: id2)
-                    }
-
-                    ForEach(Array(participantIds.enumerated()), id: \.element) { index, userId in
-                        let split = splits[userId] ?? SplitDetail()
-                        let payerId = viewModel.paidByPerson?.id ?? viewModel.currentUserUUID
-                        let isPayer = payerId == userId
-                        let name = viewModel.getName(for: userId)
-                        let initials = viewModel.getInitials(for: userId)
-                        let isMe = userId == viewModel.currentUserUUID
-
-                        if index > 0 {
-                            Divider()
-                                .padding(.leading, Spacing.xxl + Spacing.xl)
-                        }
-
-                        SplitPersonRow(
-                            name: name,
-                            initials: initials,
-                            isCurrentUser: isMe,
-                            split: split,
-                            isPayer: isPayer,
-                            splitMethod: viewModel.splitMethod,
-                            currentDetail: viewModel.splitDetails[userId] ?? SplitDetail(),
-                            onUpdate: { detail in
-                                viewModel.splitDetails[userId] = detail
-                            }
-                        )
-                    }
-                }
-            }
-
-            // MARK: Who Owes Whom Summary
-            OwesSummaryView(viewModel: viewModel)
-
-            // MARK: Navigation Buttons
-            HStack(spacing: Spacing.md) {
-                Button {
-                    HapticManager.tap()
-                    viewModel.previousStep()
-                } label: {
-                    Text("Back")
-                        .font(AppTypography.bodyBold())
-                        .foregroundColor(AppColors.textPrimary)
-                        .padding(.horizontal, Spacing.xl)
-                        .frame(height: ButtonHeight.lg)
-                        .background(
-                            RoundedRectangle(cornerRadius: CornerRadius.md)
-                                .fill(AppColors.backgroundTertiary)
-                        )
-                }
-
-                Button {
-                    HapticManager.tap()
-                    if viewModel.canSubmit {
-                        viewModel.saveTransaction()
-                    }
-                } label: {
-                    Text("Save Transaction")
-                        .font(AppTypography.bodyBold())
-                        .foregroundColor(AppColors.buttonForeground)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: ButtonHeight.lg)
-                        .background(
-                            RoundedRectangle(cornerRadius: CornerRadius.md)
-                                .fill(viewModel.canSubmit ? AppColors.buttonBackground : AppColors.disabled)
-                        )
-                }
-                .disabled(!viewModel.canSubmit)
+                .font(AppTypography.bodyBold())
             }
         }
     }
-}
 
-// MARK: - Subviews
+    // MARK: - Split Method Chips
 
-struct SplitSummaryBar: View {
-    @ObservedObject var viewModel: QuickActionViewModel
-
-    var body: some View {
-        HStack {
-            Text("Total")
-                .font(AppTypography.body())
-                .foregroundColor(AppColors.textSecondary)
-
-            Text("\(CurrencyFormatter.currencySymbol)\(viewModel.amount, specifier: "%.2f")")
+    private var splitMethodSection: some View {
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            Text("Split Method:")
                 .font(AppTypography.title3())
+                .foregroundColor(AppColors.textPrimary)
+
+            HStack(spacing: Spacing.sm) {
+                ForEach(SplitMethod.allCases) { method in
+                    methodChip(method: method)
+                }
+            }
+        }
+    }
+
+    private func methodChip(method: SplitMethod) -> some View {
+        let isSelected = viewModel.splitMethod == method
+
+        return Button {
+            HapticManager.selectionChanged()
+            dismissKeyboard()
+            withAnimation {
+                viewModel.splitMethod = method
+                viewModel.splitDetails = [:]
+            }
+        } label: {
+            VStack(spacing: Spacing.xs) {
+                Text(method.icon)
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundColor(
+                        isSelected ? AppColors.buttonForeground : AppColors.textPrimary
+                    )
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 36)
+                    .background(
+                        Capsule()
+                            .fill(isSelected ? AppColors.buttonBackground : Color.clear)
+                    )
+                    .overlay(
+                        Capsule()
+                            .stroke(
+                                isSelected ? Color.clear : AppColors.separator,
+                                lineWidth: 1
+                            )
+                    )
+
+                Text(method.displayName)
+                    .font(AppTypography.caption2())
+                    .foregroundColor(
+                        isSelected ? AppColors.textPrimary : AppColors.textSecondary
+                    )
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+            }
+        }
+        .buttonStyle(.plain)
+    }
+
+    // MARK: - Total Amount Bar
+
+    private var totalAmountBar: some View {
+        HStack {
+            Text("Total Amount")
+                .font(AppTypography.body())
                 .foregroundColor(AppColors.textPrimary)
 
             Spacer()
 
-            if viewModel.splitMethod == .percentage {
-                let isValid = abs(viewModel.totalPercentage - 100) < 0.1
-                Text("\(viewModel.totalPercentage, specifier: "%.0f")%")
-                    .font(AppTypography.bodyBold())
-                    .foregroundColor(isValid ? AppColors.positive : AppColors.negative)
-            } else if viewModel.splitMethod == .amount {
-                let isValid = abs(viewModel.totalSplitAmount - viewModel.amount) < 0.01
-                Text(
-                    "\(CurrencyFormatter.currencySymbol)\(viewModel.totalSplitAmount, specifier: "%.2f")"
-                )
-                .font(AppTypography.bodyBold())
-                .foregroundColor(isValid ? AppColors.positive : AppColors.negative)
-            }
+            Text(viewModel.selectedCurrency.symbol)
+                .font(AppTypography.body())
+                .foregroundColor(AppColors.textSecondary)
+                .padding(.horizontal, Spacing.md)
+                .padding(.vertical, Spacing.xs)
+                .background(AppColors.backgroundTertiary)
+                .cornerRadius(CornerRadius.xs)
+
+            Text(String(format: "%.2f", viewModel.amount))
+                .font(.system(size: 22, weight: .bold, design: .rounded))
+                .foregroundColor(AppColors.textPrimary)
         }
         .padding(.horizontal, Spacing.lg)
         .padding(.vertical, Spacing.md)
-        .background(AppColors.backgroundTertiary)
+        .background(AppColors.cardBackground)
         .cornerRadius(CornerRadius.sm)
+        .overlay(
+            RoundedRectangle(cornerRadius: CornerRadius.sm)
+                .stroke(AppColors.separator, lineWidth: 1)
+        )
+    }
+
+    // MARK: - Breakdown
+
+    private var breakdownSection: some View {
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            Text("Breakdown:")
+                .font(AppTypography.title3())
+                .foregroundColor(AppColors.textPrimary)
+
+            let splits = viewModel.calculateSplits()
+
+            VStack(spacing: Spacing.md) {
+                ForEach(sortedParticipantIds, id: \.self) { userId in
+                    BreakdownPersonRow(
+                        userId: userId,
+                        name: viewModel.getName(for: userId),
+                        calculatedSplit: splits[userId] ?? SplitDetail(),
+                        splitMethod: viewModel.splitMethod,
+                        currencySymbol: viewModel.selectedCurrency.symbol,
+                        currentDetail: viewModel.splitDetails[userId] ?? SplitDetail(),
+                        onUpdate: { viewModel.splitDetails[userId] = $0 }
+                    )
+                    .id("\(userId)-\(viewModel.splitMethod.rawValue)")
+                }
+            }
+
+            // Top divider
+            balanceDivider
+
+            // Total Balance
+            HStack {
+                Text("Total Balance")
+                    .font(AppTypography.bodyBold())
+                    .foregroundColor(AppColors.textPrimary)
+
+                Spacer()
+
+                Text(viewModel.selectedCurrency.symbol)
+                    .font(AppTypography.body())
+                    .foregroundColor(AppColors.textSecondary)
+
+                Text(String(format: "%.2f", abs(totalBalance)))
+                    .font(.system(size: 20, weight: .bold, design: .rounded))
+                    .foregroundColor(
+                        abs(totalBalance) < 0.01
+                            ? AppColors.textPrimary : AppColors.negative
+                    )
+                    .frame(minWidth: 60, alignment: .trailing)
+            }
+            .padding(.horizontal, Spacing.sm)
+
+            // Bottom divider
+            balanceDivider
+        }
+    }
+
+    private var balanceDivider: some View {
+        HStack {
+            Spacer()
+            Rectangle()
+                .fill(AppColors.separator)
+                .frame(width: 200, height: 1)
+        }
+    }
+
+    // MARK: - Save Button
+
+    private var saveButton: some View {
+        Button {
+            HapticManager.tap()
+            if viewModel.canSubmit {
+                viewModel.saveTransaction()
+            }
+        } label: {
+            Text("Save Transaction")
+                .font(AppTypography.bodyBold())
+                .foregroundColor(
+                    viewModel.canSubmit
+                        ? AppColors.textPrimary : AppColors.textSecondary
+                )
+                .frame(maxWidth: .infinity)
+                .frame(height: ButtonHeight.xl)
+                .background(AppColors.cardBackground)
+                .clipShape(Capsule())
+                .overlay(
+                    Capsule().stroke(
+                        viewModel.canSubmit
+                            ? AppColors.separator : AppColors.disabled,
+                        lineWidth: 1
+                    )
+                )
+        }
+        .disabled(!viewModel.canSubmit)
+    }
+
+    // MARK: - Helpers
+
+    private func dismissKeyboard() {
+        UIApplication.shared.sendAction(
+            #selector(UIResponder.resignFirstResponder),
+            to: nil, from: nil, for: nil
+        )
     }
 }
 
-struct SplitPersonRow: View {
+// MARK: - Breakdown Person Row
+
+/// Displays a single participant's split information with method-specific input.
+/// Uses `.id()` on the parent to force re-creation when split method changes,
+/// ensuring @State resets properly.
+struct BreakdownPersonRow: View {
+    let userId: UUID
     let name: String
-    let initials: String
-    let isCurrentUser: Bool
-    let split: SplitDetail
-    let isPayer: Bool
+    let calculatedSplit: SplitDetail
     let splitMethod: SplitMethod
+    let currencySymbol: String
     let currentDetail: SplitDetail
     let onUpdate: (SplitDetail) -> Void
 
-    @State private var amountText: String = ""
-    @State private var percentageText: String = ""
+    @State private var inputText: String = ""
     @State private var shares: Int = 1
-    @State private var adjustmentText: String = ""
 
     var body: some View {
-        HStack(spacing: Spacing.md) {
-            PersonAvatar(
-                initials: initials,
-                isCurrentUser: isCurrentUser,
-                isSelected: false,
-                size: 44
-            )
-
-            VStack(alignment: .leading, spacing: Spacing.xxs) {
-                HStack(spacing: Spacing.xs) {
-                    Text(name)
-                        .font(AppTypography.body())
-                        .foregroundColor(AppColors.textPrimary)
-
-                    if isPayer {
-                        Text("Paid")
-                            .font(AppTypography.caption())
-                            .foregroundColor(AppColors.buttonForeground)
-                            .padding(.horizontal, Spacing.sm)
-                            .padding(.vertical, 2)
-                            .background(AppColors.accent)
-                            .cornerRadius(10)
-                    }
-                }
-
-                Text("\(CurrencyFormatter.currencySymbol)\(split.amount, specifier: "%.2f")")
-                    .font(AppTypography.caption())
-                    .foregroundColor(AppColors.textSecondary)
-            }
+        HStack {
+            Text(name)
+                .font(AppTypography.body())
+                .foregroundColor(AppColors.textPrimary)
 
             Spacer()
 
-            splitInputView
+            splitInput
         }
-        .padding(.vertical, Spacing.sm)
-        .onAppear {
-            updateDerivedState()
-        }
-        .onChange(of: currentDetail.amount) { updateDerivedState() }
-        .onChange(of: currentDetail.percentage) { updateDerivedState() }
-        .onChange(of: currentDetail.shares) { updateDerivedState() }
-        .onChange(of: currentDetail.adjustment) { updateDerivedState() }
+        .padding(.horizontal, Spacing.sm)
+        .onAppear { initializeInput() }
     }
 
-    private func updateDerivedState() {
-        amountText = currentDetail.amount > 0 ? String(format: "%.2f", currentDetail.amount) : ""
-        percentageText =
-            currentDetail.percentage > 0 ? String(format: "%.0f", currentDetail.percentage) : ""
-        shares = currentDetail.shares > 0 ? currentDetail.shares : 1
-        adjustmentText =
-            currentDetail.adjustment != 0 ? String(format: "%.2f", currentDetail.adjustment) : ""
+    private func initializeInput() {
+        switch splitMethod {
+        case .amount:
+            inputText = currentDetail.amount > 0
+                ? String(format: "%.2f", currentDetail.amount) : ""
+        case .percentage:
+            inputText = currentDetail.percentage > 0
+                ? String(format: "%.0f", currentDetail.percentage) : ""
+        case .shares:
+            shares = max(currentDetail.shares, 1)
+        case .adjustment:
+            inputText = currentDetail.adjustment != 0
+                ? String(format: "%.2f", currentDetail.adjustment) : ""
+        default:
+            break
+        }
     }
 
     @ViewBuilder
-    private var splitInputView: some View {
+    private var splitInput: some View {
         switch splitMethod {
         case .equal:
-            Text("\(split.percentage, specifier: "%.0f")%")
-                .font(AppTypography.body())
-                .foregroundColor(AppColors.textSecondary)
+            currencyAmountDisplay(calculatedSplit.amount)
 
         case .amount:
-            HStack(spacing: Spacing.xxs) {
-                Text(CurrencyFormatter.currencySymbol)
+            HStack(spacing: Spacing.sm) {
+                Text(currencySymbol)
                     .font(AppTypography.body())
                     .foregroundColor(AppColors.textSecondary)
-                TextField(
-                    "0", text: $amountText,
-                    onEditingChanged: { _ in },
-                    onCommit: {
+                TextField("0.00", text: $inputText)
+                    .font(.system(size: 20, weight: .bold, design: .rounded))
+                    .keyboardType(.decimalPad)
+                    .multilineTextAlignment(.trailing)
+                    .foregroundColor(AppColors.textPrimary)
+                    .frame(width: 80)
+                    .onChange(of: inputText) {
                         var detail = currentDetail
-                        detail.amount = Double(amountText) ?? 0
+                        detail.amount = Double(inputText) ?? 0
                         onUpdate(detail)
                     }
-                )
-                .font(AppTypography.body())
-                .keyboardType(.decimalPad)
-                .frame(width: 60)
-                .multilineTextAlignment(.center)
-                .onChange(of: amountText) {
-                    var detail = currentDetail
-                    detail.amount = Double(amountText) ?? 0
-                    onUpdate(detail)
-                }
             }
-            .padding(.horizontal, Spacing.md)
-            .padding(.vertical, Spacing.sm)
-            .background(AppColors.backgroundTertiary)
-            .cornerRadius(CornerRadius.sm)
 
         case .percentage:
-            HStack(spacing: Spacing.xxs) {
-                TextField("0", text: $percentageText)
-                    .font(AppTypography.body())
+            HStack(spacing: Spacing.sm) {
+                TextField("0", text: $inputText)
+                    .font(.system(size: 20, weight: .bold, design: .rounded))
                     .keyboardType(.decimalPad)
+                    .multilineTextAlignment(.trailing)
+                    .foregroundColor(AppColors.textPrimary)
                     .frame(width: 50)
-                    .multilineTextAlignment(.center)
-                    .onChange(of: percentageText) {
+                    .onChange(of: inputText) {
                         var detail = currentDetail
-                        detail.percentage = Double(percentageText) ?? 0
+                        detail.percentage = Double(inputText) ?? 0
                         onUpdate(detail)
                     }
                 Text("%")
                     .font(AppTypography.body())
                     .foregroundColor(AppColors.textSecondary)
             }
-            .padding(.horizontal, Spacing.md)
-            .padding(.vertical, Spacing.sm)
-            .background(AppColors.backgroundTertiary)
-            .cornerRadius(CornerRadius.sm)
 
         case .shares:
-            HStack(spacing: Spacing.xxs) {
+            HStack(spacing: Spacing.sm) {
                 Button {
-                    if shares > 1 {
-                        shares -= 1
-                        var detail = currentDetail
-                        detail.shares = shares
-                        onUpdate(detail)
-                    }
+                    guard shares > 1 else { return }
+                    shares -= 1
+                    var detail = currentDetail
+                    detail.shares = shares
+                    onUpdate(detail)
+                    HapticManager.selectionChanged()
                 } label: {
                     Image(systemName: "minus")
                         .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(AppColors.accent)
-                        .frame(width: 32, height: 32)
+                        .foregroundColor(AppColors.textPrimary)
+                        .frame(width: 28, height: 28)
+                        .background(AppColors.backgroundTertiary)
+                        .clipShape(Circle())
                 }
 
                 Text("\(shares)")
-                    .font(AppTypography.bodyBold())
+                    .font(.system(size: 20, weight: .bold, design: .rounded))
                     .foregroundColor(AppColors.textPrimary)
-                    .frame(width: 32)
+                    .frame(width: 30)
                     .multilineTextAlignment(.center)
 
                 Button {
@@ -318,81 +378,46 @@ struct SplitPersonRow: View {
                     var detail = currentDetail
                     detail.shares = shares
                     onUpdate(detail)
+                    HapticManager.selectionChanged()
                 } label: {
                     Image(systemName: "plus")
                         .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(AppColors.accent)
-                        .frame(width: 32, height: 32)
+                        .foregroundColor(AppColors.textPrimary)
+                        .frame(width: 28, height: 28)
+                        .background(AppColors.backgroundTertiary)
+                        .clipShape(Circle())
                 }
             }
-            .background(AppColors.backgroundTertiary)
-            .cornerRadius(CornerRadius.sm)
 
         case .adjustment:
-            HStack(spacing: Spacing.xxs) {
-                Text("±\(CurrencyFormatter.currencySymbol)")
+            HStack(spacing: Spacing.sm) {
+                Text("±\(currencySymbol)")
                     .font(AppTypography.body())
                     .foregroundColor(AppColors.textSecondary)
-                TextField("0", text: $adjustmentText)
-                    .font(AppTypography.body())
+                TextField("0", text: $inputText)
+                    .font(.system(size: 20, weight: .bold, design: .rounded))
                     .keyboardType(.numbersAndPunctuation)
-                    .frame(width: 50)
-                    .multilineTextAlignment(.center)
-                    .onChange(of: adjustmentText) {
+                    .multilineTextAlignment(.trailing)
+                    .foregroundColor(AppColors.textPrimary)
+                    .frame(width: 60)
+                    .onChange(of: inputText) {
                         var detail = currentDetail
-                        detail.adjustment = Double(adjustmentText) ?? 0
+                        detail.adjustment = Double(inputText) ?? 0
                         onUpdate(detail)
                     }
             }
-            .padding(.horizontal, Spacing.md)
-            .padding(.vertical, Spacing.sm)
-            .background(AppColors.backgroundTertiary)
-            .cornerRadius(CornerRadius.sm)
         }
     }
-}
 
-struct OwesSummaryView: View {
-    @ObservedObject var viewModel: QuickActionViewModel
-
-    var body: some View {
-        let splits = viewModel.calculateSplits()
-        let payerId = viewModel.paidByPerson?.id ?? viewModel.currentUserUUID
-        let payerName = viewModel.getName(for: payerId)
-        let nonPayerParticipants = viewModel.participantIds.filter { $0 != payerId }
-
-        if !nonPayerParticipants.isEmpty {
-            VStack(alignment: .leading, spacing: Spacing.sm) {
-                Text("Settlement")
-                    .font(AppTypography.subheadlineMedium())
-                    .foregroundColor(AppColors.textSecondary)
-
-                VStack(spacing: 0) {
-                    ForEach(Array(nonPayerParticipants.enumerated()), id: \.element) { index, userId in
-                        let name = viewModel.getName(for: userId)
-                        let split = splits[userId] ?? SplitDetail()
-
-                        if index > 0 {
-                            Divider()
-                        }
-
-                        HStack {
-                            Text("\(name) owes \(payerName)")
-                                .font(AppTypography.subheadline())
-                                .foregroundColor(AppColors.textSecondary)
-
-                            Spacer()
-
-                            Text(
-                                "\(CurrencyFormatter.currencySymbol)\(split.amount, specifier: "%.2f")"
-                            )
-                            .font(AppTypography.bodyBold())
-                            .foregroundColor(AppColors.accent)
-                        }
-                        .padding(.vertical, Spacing.sm)
-                    }
-                }
-            }
+    private func currencyAmountDisplay(_ amount: Double) -> some View {
+        HStack(spacing: Spacing.sm) {
+            Text(currencySymbol)
+                .font(AppTypography.body())
+                .foregroundColor(AppColors.textSecondary)
+            Text(String(format: "%.2f", amount))
+                .font(.system(size: 20, weight: .bold, design: .rounded))
+                .foregroundColor(AppColors.textPrimary)
+                .frame(minWidth: 60, alignment: .trailing)
         }
     }
 }
