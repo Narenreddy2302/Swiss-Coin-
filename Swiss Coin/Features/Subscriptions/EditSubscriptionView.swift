@@ -66,13 +66,14 @@ struct EditSubscriptionView: View {
 
     var body: some View {
         NavigationStack {
-            Form {
+            List {
                 basicInfoSection
                 appearanceSection
                 sharingSection
                 remindersSection
                 notesSection
             }
+            .listStyle(.plain)
             .scrollContentBackground(.hidden)
             .background(AppColors.backgroundSecondary.ignoresSafeArea())
             .navigationTitle("Edit Subscription")
