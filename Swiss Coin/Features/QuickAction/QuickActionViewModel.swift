@@ -39,6 +39,7 @@ class QuickActionViewModel: ObservableObject {
     @Published var amountString: String = ""
     @Published var selectedCurrency: Currency = Currency.fromGlobalSetting()
     @Published var transactionName: String = ""
+    @Published var transactionDate: Date = Date()
     @Published var selectedCategory: Category? = nil
 
     @Published var showCurrencyPicker: Bool = false
@@ -282,6 +283,7 @@ class QuickActionViewModel: ObservableObject {
         amountString = ""
         selectedCurrency = Currency.fromGlobalSetting()
         transactionName = ""
+        transactionDate = Date()
         selectedCategory = nil
         showCurrencyPicker = false
         showCategoryPicker = false
@@ -490,7 +492,7 @@ class QuickActionViewModel: ObservableObject {
         transaction.id = UUID()
         transaction.title = transactionName.trimmingCharacters(in: .whitespacesAndNewlines)
         transaction.amount = amount
-        transaction.date = Date()
+        transaction.date = transactionDate
         // Payer: Use current user if paidByPerson is nil
         transaction.payer = paidByPerson ?? currentUser
         // Creator: Always the current user

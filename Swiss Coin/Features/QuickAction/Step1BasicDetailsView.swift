@@ -2,7 +2,7 @@
 //  Step1BasicDetailsView.swift
 //  Swiss Coin
 //
-//  Step 1: Basic transaction details.
+//  Step 1: Basic transaction details — name, date, currency, and amount.
 //
 
 import SwiftUI
@@ -10,101 +10,96 @@ import SwiftUI
 struct Step1BasicDetailsView: View {
 
     @ObservedObject var viewModel: QuickActionViewModel
+    @FocusState private var focusedField: Field?
+
+    private enum Field: Hashable {
+        case name
+        case amount
+    }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: Spacing.xxl) {
+        VStack(alignment: .leading, spacing: 0) {
 
-            // MARK: Amount Input Section
-            VStack(alignment: .leading, spacing: Spacing.sm) {
-                Text("Amount")
-                    .font(AppTypography.subheadlineMedium())
-                    .foregroundColor(AppColors.textSecondary)
+            // MARK: - Title
+            Text("New Transaction")
+                .font(AppTypography.title2())
+                .foregroundColor(AppColors.textPrimary)
 
-                HStack(spacing: Spacing.md) {
-                    Button {
-                        HapticManager.tap()
-                        viewModel.showCurrencyPicker = true
-                    } label: {
-                        HStack(spacing: Spacing.xs) {
-                            Text(viewModel.selectedCurrency.flag)
-                                .font(.system(size: 20))
-                            Text(viewModel.selectedCurrency.symbol)
-                                .font(AppTypography.title2())
-                                .foregroundColor(AppColors.textPrimary)
-                            Image(systemName: "chevron.up.chevron.down")
-                                .font(.system(size: 10, weight: .semibold))
-                                .foregroundColor(AppColors.textSecondary)
-                        }
-                        .padding(.horizontal, Spacing.md)
-                        .padding(.vertical, Spacing.sm)
-                        .background(AppColors.backgroundTertiary)
-                        .cornerRadius(CornerRadius.sm)
-                    }
-                    .buttonStyle(.plain)
+            // MARK: - Transaction Name
+            TextField("Transaction Name", text: $viewModel.transactionName)
+                .font(AppTypography.body())
+                .foregroundColor(AppColors.textPrimary)
+                .focused($focusedField, equals: .name)
+                .submitLabel(.next)
+                .onSubmit { focusedField = .amount }
+                .limitTextLength(
+                    to: ValidationLimits.maxTransactionTitleLength,
+                    text: $viewModel.transactionName
+                )
+                .padding(.horizontal, Spacing.lg)
+                .padding(.vertical, Spacing.lg)
+                .background(AppColors.cardBackground)
+                .cornerRadius(CornerRadius.sm)
+                .overlay(
+                    RoundedRectangle(cornerRadius: CornerRadius.sm)
+                        .stroke(AppColors.separator, lineWidth: 1)
+                )
+                .padding(.top, Spacing.md)
 
-                    TextField("0.00", text: $viewModel.amountString)
-                        .font(.system(size: 44, weight: .bold, design: .rounded))
-                        .keyboardType(.decimalPad)
-                        .multilineTextAlignment(.trailing)
-                        .foregroundColor(AppColors.textPrimary)
-                }
-            }
+            // MARK: - Date / Currency / Amount Row
+            HStack(spacing: Spacing.sm) {
 
-            // MARK: Description Field
-            VStack(alignment: .leading, spacing: Spacing.sm) {
-                Text("Description")
-                    .font(AppTypography.subheadlineMedium())
-                    .foregroundColor(AppColors.textSecondary)
+                // Date picker (compact inline)
+                DatePicker(
+                    "",
+                    selection: $viewModel.transactionDate,
+                    displayedComponents: .date
+                )
+                .labelsHidden()
+                .datePickerStyle(.compact)
+                .tint(AppColors.textPrimary)
+                .fixedSize()
 
-                TextField("What's this for?", text: $viewModel.transactionName)
-                    .font(AppTypography.body())
-                    .foregroundColor(AppColors.textPrimary)
-                    .padding(.horizontal, Spacing.lg)
-                    .padding(.vertical, Spacing.md)
-                    .background(AppColors.backgroundTertiary)
-                    .cornerRadius(CornerRadius.sm)
-            }
+                Spacer()
 
-            // MARK: Category Field
-            VStack(alignment: .leading, spacing: Spacing.sm) {
-                Text("Category")
-                    .font(AppTypography.subheadlineMedium())
-                    .foregroundColor(AppColors.textSecondary)
-
+                // Currency selector
                 Button {
                     HapticManager.tap()
-                    viewModel.showCategoryPicker = true
+                    focusedField = nil
+                    viewModel.showCurrencyPicker = true
                 } label: {
-                    HStack {
-                        if let category = viewModel.selectedCategory {
-                            HStack(spacing: Spacing.sm) {
-                                Text(category.icon)
-                                    .font(.system(size: 20))
-                                Text(category.name)
-                                    .font(AppTypography.body())
-                                    .foregroundColor(AppColors.textPrimary)
-                            }
-                        } else {
-                            Text("Select a category")
-                                .font(AppTypography.body())
-                                .foregroundColor(AppColors.textSecondary)
-                        }
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(AppColors.textTertiary)
-                    }
-                    .padding(.horizontal, Spacing.lg)
-                    .padding(.vertical, Spacing.md)
-                    .background(AppColors.backgroundTertiary)
-                    .cornerRadius(CornerRadius.sm)
+                    Text(viewModel.selectedCurrency.symbol)
+                        .font(AppTypography.body())
+                        .foregroundColor(AppColors.textSecondary)
+                        .padding(.horizontal, Spacing.md)
+                        .padding(.vertical, Spacing.xs)
+                        .background(AppColors.backgroundTertiary)
+                        .cornerRadius(CornerRadius.xs)
                 }
                 .buttonStyle(.plain)
+
+                // Amount input
+                TextField("0.00", text: $viewModel.amountString)
+                    .font(.system(size: 22, weight: .bold, design: .rounded))
+                    .keyboardType(.decimalPad)
+                    .multilineTextAlignment(.trailing)
+                    .foregroundColor(AppColors.textPrimary)
+                    .focused($focusedField, equals: .amount)
+                    .limitTextLength(to: 12, text: $viewModel.amountString)
             }
+            .padding(.horizontal, Spacing.lg)
+            .padding(.vertical, Spacing.md)
+            .background(AppColors.cardBackground)
+            .cornerRadius(CornerRadius.sm)
+            .overlay(
+                RoundedRectangle(cornerRadius: CornerRadius.sm)
+                    .stroke(AppColors.separator, lineWidth: 1)
+            )
+            .padding(.top, Spacing.xxs)
 
-            Spacer().frame(height: Spacing.sm)
+            Spacer()
 
-            // MARK: Continue Button
+            // MARK: - Continue Button
             Button {
                 HapticManager.tap()
                 if viewModel.canProceedStep1 {
@@ -118,10 +113,22 @@ struct Step1BasicDetailsView: View {
                     .frame(height: ButtonHeight.lg)
                     .background(
                         RoundedRectangle(cornerRadius: CornerRadius.md)
-                            .fill(viewModel.canProceedStep1 ? AppColors.buttonBackground : AppColors.disabled)
+                            .fill(
+                                viewModel.canProceedStep1
+                                    ? AppColors.buttonBackground : AppColors.disabled
+                            )
                     )
             }
             .disabled(!viewModel.canProceedStep1)
+        }
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("Done") {
+                    focusedField = nil
+                }
+                .font(AppTypography.bodyBold())
+            }
         }
         .sheet(isPresented: $viewModel.showCurrencyPicker) {
             CurrencyPickerSheet(
@@ -130,12 +137,10 @@ struct Step1BasicDetailsView: View {
             )
             .presentationDetents([.medium, .large])
         }
-        .sheet(isPresented: $viewModel.showCategoryPicker) {
-            CategoryPickerSheet(
-                selectedCategory: $viewModel.selectedCategory,
-                isPresented: $viewModel.showCategoryPicker
-            )
-            .presentationDetents([.medium, .large])
+        .onAppear {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                focusedField = .name
+            }
         }
     }
 }

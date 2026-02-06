@@ -71,9 +71,10 @@ struct QuickActionSheet: View {
     }
 
     // Dynamic navigation title based on current step
+    // Step 1 title is rendered in the step content itself
     private var navigationTitle: String {
         switch viewModel.currentStep {
-        case 1: return "New Transaction"
+        case 1: return ""
         case 2: return "Split Options"
         case 3: return "Split Details"
         default: return ""
