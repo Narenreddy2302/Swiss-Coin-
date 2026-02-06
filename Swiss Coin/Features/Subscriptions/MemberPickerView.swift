@@ -42,6 +42,7 @@ struct MemberPickerView: View {
                     TextField("Search people", text: $searchText)
                         .textFieldStyle(.plain)
                 }
+                .listRowBackground(AppColors.cardBackground)
 
                 // Selected Members
                 if !selectedMembers.isEmpty {
@@ -75,8 +76,8 @@ struct MemberPickerView: View {
                         }
                     } header: {
                         Text("Selected (\(selectedMembers.count))")
-                            .font(AppTypography.subheadlineMedium())
                     }
+                    .listRowBackground(AppColors.cardBackground)
                 }
 
                 // Available People
@@ -130,9 +131,11 @@ struct MemberPickerView: View {
                     }
                 } header: {
                     Text("Add Members")
-                        .font(AppTypography.subheadlineMedium())
                 }
+                .listRowBackground(AppColors.cardBackground)
             }
+            .scrollContentBackground(.hidden)
+            .background(AppColors.backgroundSecondary.ignoresSafeArea())
             .navigationTitle("Select Members")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
