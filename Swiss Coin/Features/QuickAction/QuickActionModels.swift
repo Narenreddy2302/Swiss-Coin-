@@ -26,7 +26,7 @@ enum SplitMethod: String, CaseIterable, Identifiable {
         switch self {
         case .equal: return "Equally"
         case .amount: return "By Amount"
-        case .percentage: return "By Percent"
+        case .percentage: return "By Percentage"
         case .shares: return "By Shares"
         case .adjustment: return "Adjustments"
         }
