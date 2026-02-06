@@ -86,7 +86,7 @@ struct ProfileView: View {
                     .ignoresSafeArea()
 
                 ScrollView {
-                    VStack(spacing: Spacing.xxl) {
+                    VStack(spacing: Spacing.lg) {
                         profileSection
                         generalSection
                         notificationsSection
@@ -94,7 +94,7 @@ struct ProfileView: View {
                         aboutSection
                         logOutSection
                     }
-                    .padding(.top, Spacing.lg)
+                    .padding(.top, Spacing.sm)
                     .padding(.bottom, Spacing.section)
                 }
             }
@@ -138,47 +138,43 @@ struct ProfileView: View {
     // MARK: - Sections
 
     private var profileSection: some View {
-        NavigationLink(destination: PersonalDetailsView()) {
-            HStack(spacing: Spacing.md) {
-                Circle()
-                    .fill(Color(hex: userColor).opacity(0.2))
-                    .frame(width: 56, height: 56)
-                    .overlay(
-                        Text(userInitials)
-                            .font(.system(size: 22, weight: .semibold))
-                            .foregroundColor(Color(hex: userColor))
-                    )
+        VStack(spacing: 0) {
+            NavigationLink(destination: PersonalDetailsView()) {
+                HStack(spacing: Spacing.md) {
+                    Circle()
+                        .fill(Color(hex: userColor).opacity(0.2))
+                        .frame(width: 56, height: 56)
+                        .overlay(
+                            Text(userInitials)
+                                .font(.system(size: 22, weight: .semibold))
+                                .foregroundColor(Color(hex: userColor))
+                        )
 
-                VStack(alignment: .leading, spacing: Spacing.xxs) {
-                    Text(userName)
-                        .font(AppTypography.headline())
-                        .foregroundColor(AppColors.textPrimary)
-                        .lineLimit(1)
+                    VStack(alignment: .leading, spacing: Spacing.xxs) {
+                        Text(userName)
+                            .font(AppTypography.headline())
+                            .foregroundColor(AppColors.textPrimary)
+                            .lineLimit(1)
 
-                    Text("Edit Profile")
-                        .font(AppTypography.subheadline())
-                        .foregroundColor(AppColors.textSecondary)
+                        Text("Edit Profile")
+                            .font(AppTypography.subheadline())
+                            .foregroundColor(AppColors.textSecondary)
+                    }
+
+                    Spacer()
+
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(AppColors.textTertiary)
                 }
-
-                Spacer()
-
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(AppColors.textTertiary)
+                .padding(.horizontal, Spacing.lg)
+                .padding(.vertical, Spacing.md)
             }
-            .padding(.horizontal, Spacing.lg)
-            .padding(.vertical, Spacing.md)
+            .buttonStyle(.plain)
+            .background(AppColors.cardBackground)
+
+            Divider()
         }
-        .buttonStyle(.plain)
-        .background(
-            RoundedRectangle(cornerRadius: CornerRadius.md)
-                .fill(AppColors.cardBackground)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: CornerRadius.md)
-                .strokeBorder(AppColors.separator.opacity(0.5), lineWidth: 0.5)
-        )
-        .padding(.horizontal)
     }
 
     private var generalSection: some View {
@@ -186,7 +182,7 @@ struct ProfileView: View {
             Text("General")
                 .font(AppTypography.headline())
                 .foregroundColor(AppColors.textPrimary)
-                .padding(.horizontal, Spacing.sm)
+                .padding(.horizontal, Spacing.lg)
 
             VStack(spacing: 0) {
                 HStack {
@@ -209,7 +205,6 @@ struct ProfileView: View {
                 .padding(.vertical, Spacing.md)
 
                 Divider()
-                    .padding(.leading, Spacing.lg)
 
                 HStack {
                     Text("Dark Mode")
@@ -228,15 +223,9 @@ struct ProfileView: View {
                 .padding(.horizontal, Spacing.lg)
                 .padding(.vertical, Spacing.md)
             }
-            .background(
-                RoundedRectangle(cornerRadius: CornerRadius.md)
-                    .fill(AppColors.cardBackground)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: CornerRadius.md)
-                    .strokeBorder(AppColors.separator.opacity(0.5), lineWidth: 0.5)
-            )
-            .padding(.horizontal)
+            .background(AppColors.cardBackground)
+
+            Divider()
         }
     }
 
@@ -245,7 +234,7 @@ struct ProfileView: View {
             Text("Notifications")
                 .font(AppTypography.headline())
                 .foregroundColor(AppColors.textPrimary)
-                .padding(.horizontal, Spacing.sm)
+                .padding(.horizontal, Spacing.lg)
 
             HStack {
                 Text("Notifications")
@@ -262,15 +251,9 @@ struct ProfileView: View {
             }
             .padding(.horizontal, Spacing.lg)
             .padding(.vertical, Spacing.md)
-            .background(
-                RoundedRectangle(cornerRadius: CornerRadius.md)
-                    .fill(AppColors.cardBackground)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: CornerRadius.md)
-                    .strokeBorder(AppColors.separator.opacity(0.5), lineWidth: 0.5)
-            )
-            .padding(.horizontal)
+            .background(AppColors.cardBackground)
+
+            Divider()
         }
     }
 
@@ -279,7 +262,7 @@ struct ProfileView: View {
             Text("Security")
                 .font(AppTypography.headline())
                 .foregroundColor(AppColors.textPrimary)
-                .padding(.horizontal, Spacing.sm)
+                .padding(.horizontal, Spacing.lg)
 
             VStack(spacing: 0) {
                 if biometricType != .none {
@@ -304,7 +287,6 @@ struct ProfileView: View {
                     .padding(.vertical, Spacing.md)
 
                     Divider()
-                        .padding(.leading, Spacing.lg)
                 }
 
                 HStack {
@@ -328,15 +310,9 @@ struct ProfileView: View {
                 .padding(.horizontal, Spacing.lg)
                 .padding(.vertical, Spacing.md)
             }
-            .background(
-                RoundedRectangle(cornerRadius: CornerRadius.md)
-                    .fill(AppColors.cardBackground)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: CornerRadius.md)
-                    .strokeBorder(AppColors.separator.opacity(0.5), lineWidth: 0.5)
-            )
-            .padding(.horizontal)
+            .background(AppColors.cardBackground)
+
+            Divider()
         }
     }
 
@@ -345,7 +321,7 @@ struct ProfileView: View {
             Text("About")
                 .font(AppTypography.headline())
                 .foregroundColor(AppColors.textPrimary)
-                .padding(.horizontal, Spacing.sm)
+                .padding(.horizontal, Spacing.lg)
 
             VStack(spacing: 0) {
                 HStack {
@@ -361,7 +337,6 @@ struct ProfileView: View {
                 .padding(.vertical, Spacing.md)
 
                 Divider()
-                    .padding(.leading, Spacing.lg)
 
                 Button {
                     HapticManager.tap()
@@ -383,7 +358,6 @@ struct ProfileView: View {
                 .buttonStyle(.plain)
 
                 Divider()
-                    .padding(.leading, Spacing.lg)
 
                 Button {
                     HapticManager.tap()
@@ -404,15 +378,9 @@ struct ProfileView: View {
                 }
                 .buttonStyle(.plain)
             }
-            .background(
-                RoundedRectangle(cornerRadius: CornerRadius.md)
-                    .fill(AppColors.cardBackground)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: CornerRadius.md)
-                    .strokeBorder(AppColors.separator.opacity(0.5), lineWidth: 0.5)
-            )
-            .padding(.horizontal)
+            .background(AppColors.cardBackground)
+
+            Divider()
         }
     }
 
@@ -432,15 +400,7 @@ struct ProfileView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .background(
-            RoundedRectangle(cornerRadius: CornerRadius.md)
-                .fill(AppColors.cardBackground)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: CornerRadius.md)
-                .strokeBorder(AppColors.separator.opacity(0.5), lineWidth: 0.5)
-        )
-        .padding(.horizontal)
+        .background(AppColors.negative.opacity(0.08))
     }
 
     // MARK: - Functions
