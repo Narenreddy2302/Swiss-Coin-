@@ -26,13 +26,13 @@ struct AddPersonView: View {
                     .ignoresSafeArea()
 
                 ScrollView {
-                    VStack(alignment: .leading, spacing: Spacing.xxl) {
+                    VStack(alignment: .leading, spacing: Spacing.lg) {
                         // Contact Details Section
                         VStack(alignment: .leading, spacing: Spacing.md) {
                             Text("Contact Details")
                                 .font(AppTypography.title2())
                                 .foregroundColor(AppColors.textPrimary)
-                                .padding(.horizontal)
+                                .padding(.horizontal, Spacing.lg)
 
                             VStack(spacing: 0) {
                                 // Name Input Row
@@ -54,7 +54,6 @@ struct AddPersonView: View {
                                 .padding(.vertical, Spacing.md)
 
                                 Divider()
-                                    .padding(.leading, Spacing.lg + 24 + Spacing.md)
 
                                 // Phone Input Row
                                 HStack(spacing: Spacing.md) {
@@ -82,11 +81,7 @@ struct AddPersonView: View {
                                 .padding(.horizontal, Spacing.lg)
                                 .padding(.vertical, Spacing.md)
                             }
-                            .background(
-                                RoundedRectangle(cornerRadius: CornerRadius.md)
-                                    .fill(AppColors.cardBackground)
-                            )
-                            .padding(.horizontal)
+                            .background(AppColors.cardBackground)
 
                             // Duplicate Warnings
                             if showingDuplicateWarning {
@@ -98,7 +93,7 @@ struct AddPersonView: View {
                                         .font(AppTypography.caption())
                                         .foregroundColor(AppColors.warning)
                                 }
-                                .padding(.horizontal)
+                                .padding(.horizontal, Spacing.lg)
                                 .padding(.top, Spacing.xs)
                             }
 
@@ -111,9 +106,11 @@ struct AddPersonView: View {
                                         .font(AppTypography.caption())
                                         .foregroundColor(AppColors.textSecondary)
                                 }
-                                .padding(.horizontal)
+                                .padding(.horizontal, Spacing.lg)
                                 .padding(.top, Spacing.xs)
                             }
+
+                            Divider()
                         }
 
                         // Import Section
@@ -121,37 +118,38 @@ struct AddPersonView: View {
                             Text("Import")
                                 .font(AppTypography.title2())
                                 .foregroundColor(AppColors.textPrimary)
-                                .padding(.horizontal)
-
-                            Button(action: {
-                                HapticManager.tap()
-                                showingContactPicker = true
-                            }) {
-                                HStack(spacing: Spacing.md) {
-                                    Image(systemName: "person.crop.circle.badge.plus")
-                                        .font(.system(size: IconSize.sm))
-                                        .foregroundColor(AppColors.accent)
-                                        .frame(width: 24)
-
-                                    Text("Import from Phone Contacts")
-                                        .font(AppTypography.headline())
-                                        .foregroundColor(AppColors.textPrimary)
-
-                                    Spacer()
-
-                                    Image(systemName: "chevron.right")
-                                        .font(.system(size: IconSize.xs, weight: .semibold))
-                                        .foregroundColor(AppColors.textTertiary)
-                                }
                                 .padding(.horizontal, Spacing.lg)
-                                .padding(.vertical, Spacing.md)
-                                .background(
-                                    RoundedRectangle(cornerRadius: CornerRadius.md)
-                                        .fill(AppColors.cardBackground)
-                                )
-                                .padding(.horizontal)
+
+                            VStack(spacing: 0) {
+                                Button(action: {
+                                    HapticManager.tap()
+                                    showingContactPicker = true
+                                }) {
+                                    HStack(spacing: Spacing.md) {
+                                        Image(systemName: "person.crop.circle.badge.plus")
+                                            .font(.system(size: IconSize.sm))
+                                            .foregroundColor(AppColors.accent)
+                                            .frame(width: 24)
+
+                                        Text("Import from Phone Contacts")
+                                            .font(AppTypography.headline())
+                                            .foregroundColor(AppColors.textPrimary)
+
+                                        Spacer()
+
+                                        Image(systemName: "chevron.right")
+                                            .font(.system(size: IconSize.xs, weight: .semibold))
+                                            .foregroundColor(AppColors.textTertiary)
+                                    }
+                                    .padding(.horizontal, Spacing.lg)
+                                    .padding(.vertical, Spacing.md)
+                                    .contentShape(Rectangle())
+                                }
+                                .buttonStyle(PlainButtonStyle())
+
+                                Divider()
                             }
-                            .buttonStyle(PlainButtonStyle())
+                            .background(AppColors.cardBackground)
                         }
 
                         // Save Button Section

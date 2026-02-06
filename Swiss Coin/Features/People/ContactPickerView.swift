@@ -125,43 +125,85 @@ struct ContactPickerView: View {
             } else if contactsManager.contacts.isEmpty {
                 emptyContactsView
             } else {
-                List {
-                    // Manual entry option at top
-                    Section {
-                        Button {
-                            HapticManager.tap()
-                            showingManualEntry()
-                        } label: {
-                            HStack(spacing: Spacing.md) {
-                                Image(systemName: "person.fill.badge.plus")
-                                    .font(.system(size: IconSize.md))
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: Spacing.xxl) {
+                        // Add Manually row
+                        VStack(spacing: 0) {
+                            Button {
+                                HapticManager.tap()
+                                showingManualEntry()
+                            } label: {
+                                HStack(spacing: Spacing.md) {
+                                    Image(systemName: "person.fill.badge.plus")
+                                        .font(.system(size: IconSize.md))
+                                        .foregroundColor(AppColors.accent)
+                                        .frame(width: AvatarSize.md, height: AvatarSize.md)
+
+                                    Text("Add Manually")
+                                        .font(AppTypography.headline())
+                                        .foregroundColor(AppColors.accent)
+
+                                    Spacer()
+
+                                    Image(systemName: "chevron.right")
+                                        .font(.system(size: IconSize.xs, weight: .semibold))
+                                        .foregroundColor(AppColors.textTertiary)
+                                }
+                                .padding(.vertical, Spacing.md)
+                                .padding(.horizontal, Spacing.lg)
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(PlainButtonStyle())
+
+                            Divider()
+                        }
+
+                        // Phone Contacts section
+                        VStack(alignment: .leading, spacing: Spacing.sm) {
+                            HStack(spacing: Spacing.sm) {
+                                Image(systemName: "phone.fill")
+                                    .font(.system(size: IconSize.sm, weight: .medium))
                                     .foregroundColor(AppColors.accent)
-                                    .frame(width: AvatarSize.md, height: AvatarSize.md)
-                                
-                                Text("Add Manually")
-                                    .font(AppTypography.body())
-                                    .foregroundColor(AppColors.accent)
-                                
+
+                                Text("Phone Contacts")
+                                    .font(AppTypography.headline())
+                                    .foregroundColor(AppColors.textPrimary)
+
                                 Spacer()
+
+                                Text("\(filteredContacts.count)")
+                                    .font(AppTypography.caption())
+                                    .foregroundColor(AppColors.textSecondary)
+                                    .padding(.horizontal, Spacing.sm)
+                                    .padding(.vertical, Spacing.xxs)
+                                    .background(
+                                        Capsule()
+                                            .fill(AppColors.surface.opacity(0.8))
+                                    )
+                            }
+                            .padding(.horizontal)
+
+                            LazyVStack(spacing: 0) {
+                                ForEach(filteredContacts) { contact in
+                                    ContactRowView(
+                                        contact: contact,
+                                        isExisting: contactAlreadyExists(contact)
+                                    )
+                                    .onTapGesture {
+                                        handleContactTap(contact)
+                                    }
+
+                                    if contact.id != filteredContacts.last?.id {
+                                        Divider()
+                                            .padding(.leading, AvatarSize.md + Spacing.md + Spacing.lg)
+                                    }
+                                }
                             }
                         }
                     }
-                    
-                    // Contacts list
-                    Section(header: Text("From Phone Contacts")) {
-                        ForEach(filteredContacts) { contact in
-                            ContactRowView(
-                                contact: contact,
-                                isExisting: contactAlreadyExists(contact)
-                            )
-                            .contentShape(Rectangle())
-                            .onTapGesture {
-                                handleContactTap(contact)
-                            }
-                        }
-                    }
+                    .padding(.top, Spacing.lg)
+                    .padding(.bottom, Spacing.section)
                 }
-                .listStyle(.insetGrouped)
             }
         }
     }
@@ -462,7 +504,7 @@ struct ContactPickerView: View {
 struct ContactRowView: View {
     let contact: ContactsManager.PhoneContact
     let isExisting: Bool
-    
+
     var body: some View {
         HStack(spacing: Spacing.md) {
             // Avatar
@@ -483,23 +525,23 @@ struct ContactRowView: View {
                             .foregroundColor(isExisting ? AppColors.textSecondary : AppColors.accent)
                     )
             }
-            
+
             // Info
             VStack(alignment: .leading, spacing: Spacing.xs) {
                 Text(contact.fullName)
                     .font(AppTypography.body())
                     .foregroundColor(isExisting ? AppColors.textSecondary : AppColors.textPrimary)
                     .lineLimit(1)
-                
+
                 if let phone = contact.phoneNumbers.first {
                     Text(phone)
                         .font(AppTypography.caption())
                         .foregroundColor(AppColors.textSecondary)
                 }
             }
-            
+
             Spacer()
-            
+
             // Status indicator
             if isExisting {
                 HStack(spacing: Spacing.xs) {
@@ -512,11 +554,13 @@ struct ContactRowView: View {
                 }
             } else {
                 Image(systemName: "chevron.right")
-                    .font(.system(size: IconSize.sm))
-                    .foregroundColor(AppColors.textSecondary)
+                    .font(.system(size: IconSize.xs, weight: .semibold))
+                    .foregroundColor(AppColors.textTertiary)
             }
         }
-        .padding(.vertical, Spacing.xs)
+        .padding(.vertical, Spacing.md)
+        .padding(.horizontal, Spacing.lg)
+        .contentShape(Rectangle())
         .opacity(isExisting ? 0.7 : 1.0)
     }
 }
