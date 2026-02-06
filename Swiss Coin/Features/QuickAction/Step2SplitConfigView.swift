@@ -62,12 +62,23 @@ struct Step2SplitConfigView: View {
                         SelectedPayerCard(viewModel: viewModel)
                     }
                 }
+                .transition(.opacity.combined(with: .move(edge: .top)))
 
                 // MARK: Split With Section
                 VStack(alignment: .leading, spacing: Spacing.sm) {
-                    Text("Split with (\(viewModel.participantIds.count))")
-                        .font(AppTypography.subheadlineMedium())
-                        .foregroundColor(AppColors.textSecondary)
+                    HStack {
+                        Text("Split with")
+                            .font(AppTypography.subheadlineMedium())
+                            .foregroundColor(AppColors.textSecondary)
+
+                        Text("\(viewModel.participantIds.count)")
+                            .font(AppTypography.caption())
+                            .foregroundColor(AppColors.buttonForeground)
+                            .padding(.horizontal, Spacing.xs)
+                            .padding(.vertical, Spacing.xxs)
+                            .background(AppColors.accent)
+                            .clipShape(Capsule())
+                    }
 
                     SearchBarView(
                         placeholder: "Search contacts or groups...",
@@ -84,6 +95,7 @@ struct Step2SplitConfigView: View {
                     } else {
                         if let group = viewModel.selectedGroup {
                             SelectedGroupBadge(group: group) {
+                                HapticManager.tap()
                                 viewModel.clearSelectedGroup()
                             }
                         }
@@ -91,6 +103,7 @@ struct Step2SplitConfigView: View {
                         ParticipantsListView(viewModel: viewModel)
                     }
                 }
+                .transition(.opacity.combined(with: .move(edge: .top)))
             }
 
             // MARK: Navigation Buttons
@@ -366,8 +379,7 @@ struct ParticipantsListView: View {
             .buttonStyle(.plain)
 
             // Other people
-            ForEach(Array(viewModel.allPeople.prefix(50).enumerated()), id: \.element.objectID) {
-                index, person in
+            ForEach(viewModel.allPeople, id: \.objectID) { person in
                 let personId = person.id ?? UUID()
                 let isSelected = viewModel.participantIds.contains(personId)
 
