@@ -10,22 +10,23 @@ struct PersonDetailView: View {
     @State private var showingConversation = false
     @State private var showingEditPerson = false
     @State private var showingDeleteConfirmation = false
-    
+    @State private var showingSettlement = false
+
     private var balance: Double {
         person.calculateBalance()
     }
-    
+
     private var balanceText: String {
         let formatted = CurrencyFormatter.formatAbsolute(balance)
         if balance > 0.01 {
-            return "\(person.name ?? "They") owe you \(formatted)"
+            return "\(person.firstName) owes you \(formatted)"
         } else if balance < -0.01 {
-            return "You owe \(formatted)"
+            return "You owe \(person.firstName) \(formatted)"
         } else {
             return "Settled up"
         }
     }
-    
+
     private var balanceColor: Color {
         if balance > 0.01 {
             return AppColors.positive
@@ -34,6 +35,10 @@ struct PersonDetailView: View {
         } else {
             return AppColors.neutral
         }
+    }
+
+    private var canSettle: Bool {
+        abs(balance) > 0.01
     }
 
     var body: some View {
@@ -60,7 +65,7 @@ struct PersonDetailView: View {
                                 .font(AppTypography.subheadline())
                                 .foregroundColor(AppColors.textSecondary)
                         }
-                        
+
                         Text(balanceText)
                             .font(AppTypography.headline())
                             .foregroundColor(balanceColor)
@@ -103,7 +108,28 @@ struct PersonDetailView: View {
                             .clipShape(RoundedRectangle(cornerRadius: CornerRadius.md))
                         }
                     }
-                    .padding(.bottom, Spacing.sm)
+
+                    // Settle Button (shown when there's an outstanding balance)
+                    if canSettle {
+                        Button(action: {
+                            HapticManager.tap()
+                            showingSettlement = true
+                        }) {
+                            HStack(spacing: Spacing.xs) {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .font(.system(size: IconSize.sm))
+                                Text("Settle Up")
+                                    .font(AppTypography.subheadlineMedium())
+                            }
+                            .foregroundColor(AppColors.positive)
+                            .frame(height: ButtonHeight.md)
+                            .frame(maxWidth: .infinity)
+                            .background(AppColors.positive.opacity(0.12))
+                            .clipShape(RoundedRectangle(cornerRadius: CornerRadius.md))
+                        }
+                    }
+
+                    Spacer().frame(height: Spacing.sm)
                 }
                 .frame(maxWidth: .infinity)
                 .listRowBackground(Color.clear)
@@ -124,6 +150,9 @@ struct PersonDetailView: View {
                             }
                         }
                 }
+            }
+            .sheet(isPresented: $showingSettlement) {
+                SettlementView(person: person, currentBalance: balance)
             }
 
             // Transactions List
@@ -219,15 +248,13 @@ struct PersonDetailView: View {
     // Helper to combine "Paid By" and "Owed In" transactions
     private var combinedTransactions: [FinancialTransaction] {
         let paid = person.toTransactions as? Set<FinancialTransaction> ?? []
-        // For splits, we want the transaction the split belongs to
         let owedSplits = person.owedSplits as? Set<TransactionSplit> ?? []
         let owedTransactions = owedSplits.compactMap { $0.transaction }
 
-        // Combine and dedup
         let all = paid.union(owedTransactions)
         return Array(all)
             .sorted { ($0.date ?? Date()) > ($1.date ?? Date()) }
-            .prefix(10) // Show only recent 10 transactions
+            .prefix(10)
             .map { $0 }
     }
 }
@@ -236,64 +263,94 @@ struct PersonDetailTransactionRow: View {
     let transaction: FinancialTransaction
     let person: Person
     @Environment(\.managedObjectContext) private var viewContext
-    
-    private var amountForPerson: Double {
-        if transaction.payer?.id == person.id {
-            // This person paid, show positive (they're owed)
-            return transaction.amount
-        } else {
-            // Find the split for this person
-            if let splits = transaction.splits as? Set<TransactionSplit>,
-               let personSplit = splits.first(where: { $0.owedBy?.id == person.id }) {
-                return personSplit.amount
+
+    private var isUserPayer: Bool {
+        CurrentUser.isCurrentUser(transaction.payer?.id)
+    }
+
+    private var isPersonPayer: Bool {
+        transaction.payer?.id == person.id
+    }
+
+    /// Calculate the display amount from the current user's perspective
+    private var userPerspectiveAmount: Double {
+        let splits = transaction.splits as? Set<TransactionSplit> ?? []
+
+        if isUserPayer {
+            // User paid - show what this person owes you
+            if let theirSplit = splits.first(where: { $0.owedBy?.id == person.id }) {
+                return theirSplit.amount
             }
+            return 0
+        } else if isPersonPayer {
+            // This person paid - show what you owe them
+            if let mySplit = splits.first(where: { CurrentUser.isCurrentUser($0.owedBy?.id) }) {
+                return mySplit.amount
+            }
+            return 0
+        } else {
+            // Third party paid - show your share
+            if let mySplit = splits.first(where: { CurrentUser.isCurrentUser($0.owedBy?.id) }) {
+                return mySplit.amount
+            }
+            return 0
         }
-        return 0.0
     }
-    
+
     private var amountColor: Color {
-        if transaction.payer?.id == person.id {
-            return AppColors.positive // They paid, so they're owed
-        } else {
-            return AppColors.negative // They owe for their split
+        if isUserPayer && userPerspectiveAmount > 0 {
+            return AppColors.positive // They owe you
+        } else if !isUserPayer && userPerspectiveAmount > 0 {
+            return AppColors.negative // You owe them
         }
+        return AppColors.textSecondary
     }
-    
+
     private var amountPrefix: String {
-        if transaction.payer?.id == person.id {
-            return "+" // They paid
+        if isUserPayer && userPerspectiveAmount > 0 {
+            return "+"
+        }
+        return ""
+    }
+
+    private var statusText: String {
+        if isUserPayer {
+            return "You paid"
+        } else if isPersonPayer {
+            return "\(person.firstName) paid"
         } else {
-            return "-" // They owe
+            return "Paid by \(transaction.payer?.firstName ?? "someone")"
         }
     }
-    
+
+    private var statusColor: Color {
+        if isUserPayer {
+            return AppColors.positive
+        }
+        return AppColors.negative
+    }
+
     var body: some View {
         HStack(spacing: Spacing.md) {
             VStack(alignment: .leading, spacing: Spacing.xs) {
                 Text(transaction.title ?? "Expense")
                     .font(AppTypography.headline())
                     .foregroundColor(AppColors.textPrimary)
-                
+
                 if let date = transaction.date {
                     Text(DateFormatter.shortDate.string(from: date))
                         .font(AppTypography.caption())
                         .foregroundColor(AppColors.textSecondary)
                 }
-                
-                if transaction.payer?.id == person.id {
-                    Text("They paid")
-                        .font(AppTypography.caption())
-                        .foregroundColor(AppColors.positive)
-                } else {
-                    Text("Their share")
-                        .font(AppTypography.caption())
-                        .foregroundColor(AppColors.negative)
-                }
+
+                Text(statusText)
+                    .font(AppTypography.caption())
+                    .foregroundColor(statusColor)
             }
-            
+
             Spacer()
-            
-            Text("\(amountPrefix)\(CurrencyFormatter.format(amountForPerson))")
+
+            Text("\(amountPrefix)\(CurrencyFormatter.format(userPerspectiveAmount))")
                 .font(AppTypography.amountSmall())
                 .foregroundColor(amountColor)
         }

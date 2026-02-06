@@ -11,6 +11,7 @@ struct GroupTransactionCardView: View {
     let transaction: FinancialTransaction
     let group: UserGroup
     var onEdit: (() -> Void)? = nil
+    var onViewDetails: (() -> Void)? = nil
     var onDelete: (() -> Void)? = nil
 
     @State private var isPressed = false
@@ -70,7 +71,6 @@ struct GroupTransactionCardView: View {
     private var splitCount: Int {
         let splits = transaction.splits as? Set<TransactionSplit> ?? []
 
-        // Count unique participants (payer + those who owe)
         var participants = Set<UUID>()
         if let payerId = transaction.payer?.id {
             participants.insert(payerId)
@@ -152,18 +152,13 @@ struct GroupTransactionCardView: View {
                 }
             }
 
-            Button {
-                HapticManager.tap()
-                // Share action
-            } label: {
-                Label("Share", systemImage: "square.and.arrow.up")
-            }
-
-            Button {
-                HapticManager.tap()
-                // View details action
-            } label: {
-                Label("View Details", systemImage: "info.circle")
+            if onViewDetails != nil {
+                Button {
+                    HapticManager.tap()
+                    onViewDetails?()
+                } label: {
+                    Label("View Details", systemImage: "info.circle")
+                }
             }
 
             if onDelete != nil {

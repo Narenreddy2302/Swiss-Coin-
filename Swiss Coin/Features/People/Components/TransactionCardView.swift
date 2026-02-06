@@ -9,6 +9,7 @@ struct TransactionCardView: View {
     let transaction: FinancialTransaction
     let person: Person
     var onEdit: (() -> Void)? = nil
+    var onViewDetails: (() -> Void)? = nil
     var onDelete: (() -> Void)? = nil
 
     @State private var isPressed = false
@@ -30,9 +31,8 @@ struct TransactionCardView: View {
             return transaction.payer?.firstName ?? "Someone"
         }
     }
-    
+
     private var creatorName: String {
-        // Use createdBy if available, otherwise fall back to payer for backward compatibility
         let creator = transaction.createdBy ?? transaction.payer
         if let creatorId = creator?.id {
             if CurrentUser.isCurrentUser(creatorId) {
@@ -76,21 +76,17 @@ struct TransactionCardView: View {
 
     private var amountColor: Color {
         if displayAmount < 0.01 {
-            // Zero or negligible - use neutral color
             return AppColors.textSecondary
         }
         if isUserPayer {
-            // You paid and are owed money - positive (green)
             return AppColors.positive
         }
-        // You owe money - negative (red)
         return AppColors.negative
     }
 
     private var splitCount: Int {
         let splits = transaction.splits as? Set<TransactionSplit> ?? []
 
-        // Count unique participants (payer + those who owe)
         var participants = Set<UUID>()
         if let payerId = transaction.payer?.id {
             participants.insert(payerId)
@@ -101,7 +97,6 @@ struct TransactionCardView: View {
             }
         }
 
-        // Ensure we return at least 1 if there are splits but no identifiable participants
         if participants.isEmpty && !splits.isEmpty {
             return splits.count
         }
@@ -123,7 +118,6 @@ struct TransactionCardView: View {
     }
 
     private var metaText: String {
-        // Show payer info (who paid the money)
         "\(dateText) | By \(payerName)"
     }
 
@@ -175,18 +169,13 @@ struct TransactionCardView: View {
                 }
             }
 
-            Button {
-                HapticManager.tap()
-                // Share action
-            } label: {
-                Label("Share", systemImage: "square.and.arrow.up")
-            }
-
-            Button {
-                HapticManager.tap()
-                // View details action
-            } label: {
-                Label("View Details", systemImage: "info.circle")
+            if onViewDetails != nil {
+                Button {
+                    HapticManager.tap()
+                    onViewDetails?()
+                } label: {
+                    Label("View Details", systemImage: "info.circle")
+                }
             }
 
             if onDelete != nil {

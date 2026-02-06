@@ -19,6 +19,11 @@ struct PersonConversationView: View {
     @State private var messageText = ""
     @State private var showingError = false
     @State private var errorMessage = ""
+    @State private var transactionToDelete: FinancialTransaction?
+    @State private var showingDeleteTransaction = false
+    @State private var showingTransactionDetail: FinancialTransaction?
+    @State private var messageToDelete: ChatMessage?
+    @State private var showingDeleteMessage = false
 
     // Retained haptic generator for reliable feedback
     private let hapticGenerator = UIImpactFeedbackGenerator(style: .light)
@@ -137,10 +142,41 @@ struct PersonConversationView: View {
                     }
             }
         }
+        .sheet(item: $showingTransactionDetail) { transaction in
+            NavigationStack {
+                TransactionDetailSheet(transaction: transaction, person: person)
+            }
+        }
         .alert("Error", isPresented: $showingError) {
             Button("OK", role: .cancel) {}
         } message: {
             Text(errorMessage)
+        }
+        .alert("Delete Transaction", isPresented: $showingDeleteTransaction) {
+            Button("Cancel", role: .cancel) {
+                transactionToDelete = nil
+            }
+            Button("Delete", role: .destructive) {
+                if let transaction = transactionToDelete {
+                    deleteTransaction(transaction)
+                }
+                transactionToDelete = nil
+            }
+        } message: {
+            Text("This will permanently delete this transaction and update all related balances. This cannot be undone.")
+        }
+        .alert("Delete Message", isPresented: $showingDeleteMessage) {
+            Button("Cancel", role: .cancel) {
+                messageToDelete = nil
+            }
+            Button("Delete", role: .destructive) {
+                if let message = messageToDelete {
+                    deleteMessage(message)
+                }
+                messageToDelete = nil
+            }
+        } message: {
+            Text("This message will be permanently deleted.")
         }
     }
 
@@ -239,7 +275,14 @@ struct PersonConversationView: View {
         case .transaction(let transaction):
             TransactionCardView(
                 transaction: transaction,
-                person: person
+                person: person,
+                onViewDetails: {
+                    showingTransactionDetail = transaction
+                },
+                onDelete: {
+                    transactionToDelete = transaction
+                    showingDeleteTransaction = true
+                }
             )
             .padding(.vertical, 4)
 
@@ -254,6 +297,17 @@ struct PersonConversationView: View {
         case .message(let chatMessage):
             MessageBubbleView(message: chatMessage)
                 .padding(.vertical, 2)
+                .contextMenu {
+                    if chatMessage.isFromUser {
+                        Button(role: .destructive) {
+                            HapticManager.tap()
+                            messageToDelete = chatMessage
+                            showingDeleteMessage = true
+                        } label: {
+                            Label("Delete Message", systemImage: "trash")
+                        }
+                    }
+                }
         }
     }
 
@@ -300,6 +354,34 @@ struct PersonConversationView: View {
             errorMessage = "Failed to send message. Please try again."
             showingError = true
             AppLogger.coreData.error("Failed to save message: \(error.localizedDescription)")
+        }
+    }
+
+    private func deleteTransaction(_ transaction: FinancialTransaction) {
+        viewContext.delete(transaction)
+        do {
+            try viewContext.save()
+            HapticManager.success()
+        } catch {
+            viewContext.rollback()
+            HapticManager.error()
+            errorMessage = "Failed to delete transaction."
+            showingError = true
+            AppLogger.coreData.error("Failed to delete transaction: \(error.localizedDescription)")
+        }
+    }
+
+    private func deleteMessage(_ message: ChatMessage) {
+        viewContext.delete(message)
+        do {
+            try viewContext.save()
+            HapticManager.success()
+        } catch {
+            viewContext.rollback()
+            HapticManager.error()
+            errorMessage = "Failed to delete message."
+            showingError = true
+            AppLogger.coreData.error("Failed to delete message: \(error.localizedDescription)")
         }
     }
 }
