@@ -107,17 +107,88 @@ struct Category: Identifiable, Hashable {
     let name: String  // Category name
     let icon: String  // Emoji icon
     let color: Color  // Theme color
+    let colorName: String  // Persistable color name
 
-    static let all: [Category] = [
-        Category(id: "food", name: "Food & Drinks", icon: "🍽️", color: .orange),
-        Category(id: "transport", name: "Transport", icon: "🚗", color: .blue),
-        Category(id: "shopping", name: "Shopping", icon: "🛍️", color: .pink),
-        Category(id: "entertainment", name: "Entertainment", icon: "🎬", color: .purple),
-        Category(id: "bills", name: "Bills", icon: "📄", color: .indigo),
-        Category(id: "health", name: "Health", icon: "💊", color: .red),
-        Category(id: "travel", name: "Travel", icon: "✈️", color: .cyan),
-        Category(id: "other", name: "Other", icon: "📦", color: .gray),
+    init(id: String, name: String, icon: String, color: Color, colorName: String? = nil) {
+        self.id = id
+        self.name = name
+        self.icon = icon
+        self.color = color
+        self.colorName = colorName ?? id
+    }
+
+    static let builtIn: [Category] = [
+        Category(id: "food", name: "Food & Drinks", icon: "🍽️", color: .orange, colorName: "orange"),
+        Category(id: "transport", name: "Transport", icon: "🚗", color: .blue, colorName: "blue"),
+        Category(id: "shopping", name: "Shopping", icon: "🛍️", color: .pink, colorName: "pink"),
+        Category(id: "entertainment", name: "Entertainment", icon: "🎬", color: .purple, colorName: "purple"),
+        Category(id: "bills", name: "Bills", icon: "📄", color: .indigo, colorName: "indigo"),
+        Category(id: "health", name: "Health", icon: "💊", color: .red, colorName: "red"),
+        Category(id: "travel", name: "Travel", icon: "✈️", color: .cyan, colorName: "cyan"),
+        Category(id: "other", name: "Other", icon: "📦", color: .gray, colorName: "gray"),
     ]
+
+    /// All categories including user-created custom ones
+    static var all: [Category] {
+        builtIn + loadCustomCategories()
+    }
+
+    // MARK: - Custom Category Persistence
+
+    private static let customCategoriesKey = "custom_categories"
+
+    static func loadCustomCategories() -> [Category] {
+        guard let data = UserDefaults.standard.data(forKey: customCategoriesKey),
+              let stored = try? JSONDecoder().decode([StoredCategory].self, from: data)
+        else { return [] }
+        return stored.map { $0.toCategory() }
+    }
+
+    static func saveCustomCategory(_ category: Category) {
+        var customs = loadStoredCustomCategories()
+        customs.append(StoredCategory(from: category))
+        if let data = try? JSONEncoder().encode(customs) {
+            UserDefaults.standard.set(data, forKey: customCategoriesKey)
+        }
+    }
+
+    private static func loadStoredCustomCategories() -> [StoredCategory] {
+        guard let data = UserDefaults.standard.data(forKey: customCategoriesKey),
+              let stored = try? JSONDecoder().decode([StoredCategory].self, from: data)
+        else { return [] }
+        return stored
+    }
+
+    /// Available color options for custom categories
+    static let colorOptions: [(name: String, color: Color)] = [
+        ("orange", .orange), ("blue", .blue), ("pink", .pink),
+        ("purple", .purple), ("indigo", .indigo), ("red", .red),
+        ("cyan", .cyan), ("gray", .gray), ("green", .green),
+        ("mint", .mint), ("teal", .teal), ("brown", .brown),
+    ]
+
+    static func color(forName name: String) -> Color {
+        colorOptions.first { $0.name == name }?.color ?? .gray
+    }
+}
+
+/// Codable wrapper for persisting custom categories
+private struct StoredCategory: Codable {
+    let id: String
+    let name: String
+    let icon: String
+    let colorName: String
+
+    init(from category: Category) {
+        self.id = category.id
+        self.name = category.name
+        self.icon = category.icon
+        self.colorName = category.colorName
+    }
+
+    func toCategory() -> Category {
+        Category(id: id, name: name, icon: icon, color: Category.color(forName: colorName), colorName: colorName)
+    }
 }
 
 /// Stores the calculated split details for each participant
