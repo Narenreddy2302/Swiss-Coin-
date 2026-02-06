@@ -81,13 +81,22 @@ struct ProfileView: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                profileSection
-                generalSection
-                notificationsSection
-                securitySection
-                aboutSection
-                logOutSection
+            ZStack {
+                AppColors.backgroundSecondary
+                    .ignoresSafeArea()
+
+                ScrollView {
+                    VStack(spacing: Spacing.xxl) {
+                        profileSection
+                        generalSection
+                        notificationsSection
+                        securitySection
+                        aboutSection
+                        logOutSection
+                    }
+                    .padding(.top, Spacing.lg)
+                    .padding(.bottom, Spacing.section)
+                }
             }
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
@@ -129,145 +138,309 @@ struct ProfileView: View {
     // MARK: - Sections
 
     private var profileSection: some View {
-        Section {
-            NavigationLink(destination: PersonalDetailsView()) {
-                HStack(spacing: Spacing.md) {
-                    Circle()
-                        .fill(Color(hex: userColor).opacity(0.2))
-                        .frame(width: 56, height: 56)
-                        .overlay(
-                            Text(userInitials)
-                                .font(.system(size: 22, weight: .semibold))
-                                .foregroundColor(Color(hex: userColor))
-                        )
+        NavigationLink(destination: PersonalDetailsView()) {
+            HStack(spacing: Spacing.md) {
+                Circle()
+                    .fill(Color(hex: userColor).opacity(0.2))
+                    .frame(width: 56, height: 56)
+                    .overlay(
+                        Text(userInitials)
+                            .font(.system(size: 22, weight: .semibold))
+                            .foregroundColor(Color(hex: userColor))
+                    )
 
-                    VStack(alignment: .leading, spacing: Spacing.xxs) {
-                        Text(userName)
-                            .font(AppTypography.headline())
-                            .foregroundColor(AppColors.textPrimary)
-                            .lineLimit(1)
+                VStack(alignment: .leading, spacing: Spacing.xxs) {
+                    Text(userName)
+                        .font(AppTypography.headline())
+                        .foregroundColor(AppColors.textPrimary)
+                        .lineLimit(1)
 
-                        Text("Edit Profile")
-                            .font(AppTypography.subheadline())
-                            .foregroundColor(AppColors.textSecondary)
-                    }
+                    Text("Edit Profile")
+                        .font(AppTypography.subheadline())
+                        .foregroundColor(AppColors.textSecondary)
                 }
-                .padding(.vertical, Spacing.xs)
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(AppColors.textTertiary)
             }
+            .padding(.horizontal, Spacing.lg)
+            .padding(.vertical, Spacing.md)
         }
+        .buttonStyle(.plain)
+        .background(
+            RoundedRectangle(cornerRadius: CornerRadius.md)
+                .fill(AppColors.cardBackground)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: CornerRadius.md)
+                .strokeBorder(AppColors.separator.opacity(0.5), lineWidth: 0.5)
+        )
+        .padding(.horizontal)
     }
 
     private var generalSection: some View {
-        Section {
-            Picker("Currency", selection: $defaultCurrency) {
-                ForEach(currencies) { currency in
-                    Text("\(currency.flag) \(currency.code) - \(currency.name)")
-                        .tag(currency.code)
-                }
-            }
-
-            Toggle("Dark Mode", isOn: $darkModeOn)
-                .onChange(of: darkModeOn) { _, newValue in
-                    HapticManager.toggle()
-                    themeMode = newValue ? "dark" : "light"
-                }
-        } header: {
+        VStack(alignment: .leading, spacing: Spacing.md) {
             Text("General")
+                .font(AppTypography.headline())
+                .foregroundColor(AppColors.textPrimary)
+                .padding(.horizontal, Spacing.sm)
+
+            VStack(spacing: 0) {
+                HStack {
+                    Text("Currency")
+                        .font(AppTypography.body())
+                        .foregroundColor(AppColors.textPrimary)
+
+                    Spacer()
+
+                    Picker("", selection: $defaultCurrency) {
+                        ForEach(currencies) { currency in
+                            Text("\(currency.flag) \(currency.code) - \(currency.name)")
+                                .tag(currency.code)
+                        }
+                    }
+                    .labelsHidden()
+                    .tint(AppColors.textSecondary)
+                }
+                .padding(.horizontal, Spacing.lg)
+                .padding(.vertical, Spacing.md)
+
+                Divider()
+                    .padding(.leading, Spacing.lg)
+
+                HStack {
+                    Text("Dark Mode")
+                        .font(AppTypography.body())
+                        .foregroundColor(AppColors.textPrimary)
+
+                    Spacer()
+
+                    Toggle("", isOn: $darkModeOn)
+                        .labelsHidden()
+                        .onChange(of: darkModeOn) { _, newValue in
+                            HapticManager.toggle()
+                            themeMode = newValue ? "dark" : "light"
+                        }
+                }
+                .padding(.horizontal, Spacing.lg)
+                .padding(.vertical, Spacing.md)
+            }
+            .background(
+                RoundedRectangle(cornerRadius: CornerRadius.md)
+                    .fill(AppColors.cardBackground)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: CornerRadius.md)
+                    .strokeBorder(AppColors.separator.opacity(0.5), lineWidth: 0.5)
+            )
+            .padding(.horizontal)
         }
     }
 
     private var notificationsSection: some View {
-        Section {
-            Toggle("Notifications", isOn: $notificationsEnabled)
-                .onChange(of: notificationsEnabled) { _, _ in
-                    HapticManager.toggle()
-                }
-        } header: {
+        VStack(alignment: .leading, spacing: Spacing.md) {
             Text("Notifications")
+                .font(AppTypography.headline())
+                .foregroundColor(AppColors.textPrimary)
+                .padding(.horizontal, Spacing.sm)
+
+            HStack {
+                Text("Notifications")
+                    .font(AppTypography.body())
+                    .foregroundColor(AppColors.textPrimary)
+
+                Spacer()
+
+                Toggle("", isOn: $notificationsEnabled)
+                    .labelsHidden()
+                    .onChange(of: notificationsEnabled) { _, _ in
+                        HapticManager.toggle()
+                    }
+            }
+            .padding(.horizontal, Spacing.lg)
+            .padding(.vertical, Spacing.md)
+            .background(
+                RoundedRectangle(cornerRadius: CornerRadius.md)
+                    .fill(AppColors.cardBackground)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: CornerRadius.md)
+                    .strokeBorder(AppColors.separator.opacity(0.5), lineWidth: 0.5)
+            )
+            .padding(.horizontal)
         }
     }
 
     private var securitySection: some View {
-        Section {
-            if biometricType != .none {
-                Toggle(biometricLabel, isOn: $biometricEnabled)
-                    .onChange(of: biometricEnabled) { _, newValue in
-                        if newValue {
-                            enableBiometric()
-                        } else {
-                            disableBiometric()
-                        }
-                    }
-            }
-
-            Toggle("PIN Lock", isOn: $pinEnabled)
-                .onChange(of: pinEnabled) { _, newValue in
-                    HapticManager.toggle()
-                    if newValue {
-                        showingPINSetup = true
-                    } else {
-                        disablePIN()
-                    }
-                }
-        } header: {
+        VStack(alignment: .leading, spacing: Spacing.md) {
             Text("Security")
+                .font(AppTypography.headline())
+                .foregroundColor(AppColors.textPrimary)
+                .padding(.horizontal, Spacing.sm)
+
+            VStack(spacing: 0) {
+                if biometricType != .none {
+                    HStack {
+                        Text(biometricLabel)
+                            .font(AppTypography.body())
+                            .foregroundColor(AppColors.textPrimary)
+
+                        Spacer()
+
+                        Toggle("", isOn: $biometricEnabled)
+                            .labelsHidden()
+                            .onChange(of: biometricEnabled) { _, newValue in
+                                if newValue {
+                                    enableBiometric()
+                                } else {
+                                    disableBiometric()
+                                }
+                            }
+                    }
+                    .padding(.horizontal, Spacing.lg)
+                    .padding(.vertical, Spacing.md)
+
+                    Divider()
+                        .padding(.leading, Spacing.lg)
+                }
+
+                HStack {
+                    Text("PIN Lock")
+                        .font(AppTypography.body())
+                        .foregroundColor(AppColors.textPrimary)
+
+                    Spacer()
+
+                    Toggle("", isOn: $pinEnabled)
+                        .labelsHidden()
+                        .onChange(of: pinEnabled) { _, newValue in
+                            HapticManager.toggle()
+                            if newValue {
+                                showingPINSetup = true
+                            } else {
+                                disablePIN()
+                            }
+                        }
+                }
+                .padding(.horizontal, Spacing.lg)
+                .padding(.vertical, Spacing.md)
+            }
+            .background(
+                RoundedRectangle(cornerRadius: CornerRadius.md)
+                    .fill(AppColors.cardBackground)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: CornerRadius.md)
+                    .strokeBorder(AppColors.separator.opacity(0.5), lineWidth: 0.5)
+            )
+            .padding(.horizontal)
         }
     }
 
     private var aboutSection: some View {
-        Section {
-            HStack {
-                Text("Version")
-                Spacer()
-                Text(appVersion)
-                    .foregroundColor(AppColors.textSecondary)
-            }
-
-            Button {
-                HapticManager.tap()
-                openURL("https://swisscoin.app/help")
-            } label: {
-                HStack {
-                    Text("Help Center")
-                        .foregroundColor(AppColors.textPrimary)
-                    Spacer()
-                    Image(systemName: "arrow.up.right")
-                        .font(.system(size: 14))
-                        .foregroundColor(AppColors.textSecondary)
-                }
-            }
-
-            Button {
-                HapticManager.tap()
-                shareApp()
-            } label: {
-                HStack {
-                    Text("Share Swiss Coin")
-                        .foregroundColor(AppColors.textPrimary)
-                    Spacer()
-                    Image(systemName: "arrow.up.right")
-                        .font(.system(size: 14))
-                        .foregroundColor(AppColors.textSecondary)
-                }
-            }
-        } header: {
+        VStack(alignment: .leading, spacing: Spacing.md) {
             Text("About")
+                .font(AppTypography.headline())
+                .foregroundColor(AppColors.textPrimary)
+                .padding(.horizontal, Spacing.sm)
+
+            VStack(spacing: 0) {
+                HStack {
+                    Text("Version")
+                        .font(AppTypography.body())
+                        .foregroundColor(AppColors.textPrimary)
+                    Spacer()
+                    Text(appVersion)
+                        .font(AppTypography.body())
+                        .foregroundColor(AppColors.textSecondary)
+                }
+                .padding(.horizontal, Spacing.lg)
+                .padding(.vertical, Spacing.md)
+
+                Divider()
+                    .padding(.leading, Spacing.lg)
+
+                Button {
+                    HapticManager.tap()
+                    openURL("https://swisscoin.app/help")
+                } label: {
+                    HStack {
+                        Text("Help Center")
+                            .font(AppTypography.body())
+                            .foregroundColor(AppColors.textPrimary)
+                        Spacer()
+                        Image(systemName: "arrow.up.right")
+                            .font(.system(size: 14))
+                            .foregroundColor(AppColors.textSecondary)
+                    }
+                    .padding(.horizontal, Spacing.lg)
+                    .padding(.vertical, Spacing.md)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+
+                Divider()
+                    .padding(.leading, Spacing.lg)
+
+                Button {
+                    HapticManager.tap()
+                    shareApp()
+                } label: {
+                    HStack {
+                        Text("Share Swiss Coin")
+                            .font(AppTypography.body())
+                            .foregroundColor(AppColors.textPrimary)
+                        Spacer()
+                        Image(systemName: "arrow.up.right")
+                            .font(.system(size: 14))
+                            .foregroundColor(AppColors.textSecondary)
+                    }
+                    .padding(.horizontal, Spacing.lg)
+                    .padding(.vertical, Spacing.md)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
+            .background(
+                RoundedRectangle(cornerRadius: CornerRadius.md)
+                    .fill(AppColors.cardBackground)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: CornerRadius.md)
+                    .strokeBorder(AppColors.separator.opacity(0.5), lineWidth: 0.5)
+            )
+            .padding(.horizontal)
         }
     }
 
     private var logOutSection: some View {
-        Section {
-            Button(role: .destructive) {
-                HapticManager.warning()
-                showingLogoutAlert = true
-            } label: {
-                HStack {
-                    Spacer()
-                    Text("Log Out")
-                    Spacer()
-                }
+        Button {
+            HapticManager.warning()
+            showingLogoutAlert = true
+        } label: {
+            HStack {
+                Spacer()
+                Text("Log Out")
+                    .font(AppTypography.bodyBold())
+                    .foregroundColor(AppColors.negative)
+                Spacer()
             }
+            .padding(.vertical, Spacing.md)
+            .contentShape(Rectangle())
         }
+        .buttonStyle(.plain)
+        .background(
+            RoundedRectangle(cornerRadius: CornerRadius.md)
+                .fill(AppColors.cardBackground)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: CornerRadius.md)
+                .strokeBorder(AppColors.separator.opacity(0.5), lineWidth: 0.5)
+        )
+        .padding(.horizontal)
     }
 
     // MARK: - Functions
