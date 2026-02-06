@@ -126,48 +126,45 @@ struct ContactPickerView: View {
                 emptyContactsView
             } else {
                 ScrollView {
-                    LazyVStack(alignment: .leading, spacing: Spacing.xxl) {
+                    VStack(alignment: .leading, spacing: Spacing.xl) {
                         // Add Manually row
-                        VStack(spacing: 0) {
-                            Button {
-                                HapticManager.tap()
-                                showingManualEntry()
-                            } label: {
-                                HStack(spacing: Spacing.md) {
-                                    Image(systemName: "person.fill.badge.plus")
-                                        .font(.system(size: IconSize.md))
-                                        .foregroundColor(AppColors.accent)
-                                        .frame(width: AvatarSize.md, height: AvatarSize.md)
+                        Button {
+                            HapticManager.tap()
+                            showingManualEntry()
+                        } label: {
+                            HStack(spacing: Spacing.md) {
+                                Image(systemName: "person.fill.badge.plus")
+                                    .font(.system(size: IconSize.md))
+                                    .foregroundColor(AppColors.accent)
+                                    .frame(width: AvatarSize.md, height: AvatarSize.md)
 
-                                    Text("Add Manually")
-                                        .font(AppTypography.headline())
-                                        .foregroundColor(AppColors.accent)
+                                Text("Add Manually")
+                                    .font(AppTypography.body())
+                                    .foregroundColor(AppColors.accent)
 
-                                    Spacer()
+                                Spacer()
 
-                                    Image(systemName: "chevron.right")
-                                        .font(.system(size: IconSize.xs, weight: .semibold))
-                                        .foregroundColor(AppColors.textTertiary)
-                                }
-                                .padding(.vertical, Spacing.md)
-                                .padding(.horizontal, Spacing.lg)
-                                .contentShape(Rectangle())
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: IconSize.xs, weight: .semibold))
+                                    .foregroundColor(AppColors.textTertiary)
                             }
-                            .buttonStyle(PlainButtonStyle())
-
-                            Divider()
+                            .padding(.vertical, Spacing.md)
+                            .padding(.horizontal, Spacing.lg)
+                            .contentShape(Rectangle())
                         }
+                        .buttonStyle(PlainButtonStyle())
+                        .background(
+                            RoundedRectangle(cornerRadius: CornerRadius.md)
+                                .fill(AppColors.cardBackground)
+                        )
+                        .padding(.horizontal)
 
                         // Phone Contacts section
                         VStack(alignment: .leading, spacing: Spacing.sm) {
                             HStack(spacing: Spacing.sm) {
-                                Image(systemName: "phone.fill")
-                                    .font(.system(size: IconSize.sm, weight: .medium))
-                                    .foregroundColor(AppColors.accent)
-
-                                Text("Phone Contacts")
-                                    .font(AppTypography.headline())
-                                    .foregroundColor(AppColors.textPrimary)
+                                Text("PHONE CONTACTS")
+                                    .font(AppTypography.footnote())
+                                    .foregroundColor(AppColors.textSecondary)
 
                                 Spacer()
 
@@ -181,7 +178,7 @@ struct ContactPickerView: View {
                                             .fill(AppColors.surface.opacity(0.8))
                                     )
                             }
-                            .padding(.horizontal)
+                            .padding(.horizontal, Spacing.lg + Spacing.xxs)
 
                             LazyVStack(spacing: 0) {
                                 ForEach(filteredContacts) { contact in
@@ -199,6 +196,11 @@ struct ContactPickerView: View {
                                     }
                                 }
                             }
+                            .background(
+                                RoundedRectangle(cornerRadius: CornerRadius.md)
+                                    .fill(AppColors.cardBackground)
+                            )
+                            .padding(.horizontal)
                         }
                     }
                     .padding(.top, Spacing.lg)
