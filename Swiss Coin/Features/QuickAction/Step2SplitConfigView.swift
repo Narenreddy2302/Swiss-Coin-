@@ -2,410 +2,246 @@
 //  Step2SplitConfigView.swift
 //  Swiss Coin
 //
-//  Step 2: Configure split options and participants.
+//  Step 2: Configure who paid and who to split with.
 //
 
 import SwiftUI
-import UIKit
 
 struct Step2SplitConfigView: View {
 
     @ObservedObject var viewModel: QuickActionViewModel
+    @FocusState private var focusedField: FocusField?
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: Spacing.xxl) {
-
-            // MARK: Personal or Split Toggle
-            VStack(alignment: .leading, spacing: Spacing.sm) {
-                Text("Who is this for?")
-                    .font(AppTypography.subheadlineMedium())
-                    .foregroundColor(AppColors.textSecondary)
-
-                VStack(spacing: 0) {
-                    SplitOptionRow(
-                        icon: "person.fill",
-                        title: "Personal",
-                        subtitle: "Just for you",
-                        isSelected: !viewModel.isSplit
-                    ) {
-                        HapticManager.selectionChanged()
-                        withAnimation { viewModel.isSplit = false }
-                    }
-
-                    Divider()
-                        .padding(.leading, Spacing.xxl + Spacing.xl)
-
-                    SplitOptionRow(
-                        icon: "person.2.fill",
-                        title: "Split",
-                        subtitle: "Share with friends or groups",
-                        isSelected: viewModel.isSplit
-                    ) {
-                        HapticManager.selectionChanged()
-                        withAnimation { viewModel.isSplit = true }
-                    }
-                }
-            }
-
-            // MARK: Split Configuration (only shown when splitting)
-            if viewModel.isSplit {
-
-                // MARK: Paid By Section
-                VStack(alignment: .leading, spacing: Spacing.sm) {
-                    Text("Paid by")
-                        .font(AppTypography.subheadlineMedium())
-                        .foregroundColor(AppColors.textSecondary)
-
-                    if viewModel.isPaidBySearchFocused {
-                        PaidBySearchView(viewModel: viewModel)
-                    } else {
-                        SelectedPayerCard(viewModel: viewModel)
-                    }
-                }
-                .transition(.opacity.combined(with: .move(edge: .top)))
-
-                // MARK: Split With Section
-                VStack(alignment: .leading, spacing: Spacing.sm) {
-                    HStack {
-                        Text("Split with")
-                            .font(AppTypography.subheadlineMedium())
-                            .foregroundColor(AppColors.textSecondary)
-
-                        Text("\(viewModel.participantIds.count)")
-                            .font(AppTypography.caption())
-                            .foregroundColor(AppColors.buttonForeground)
-                            .padding(.horizontal, Spacing.xs)
-                            .padding(.vertical, Spacing.xxs)
-                            .background(AppColors.accent)
-                            .clipShape(Capsule())
-                    }
-
-                    SearchBarView(
-                        placeholder: "Search contacts or groups...",
-                        text: $viewModel.splitWithSearchText,
-                        onFocus: {
-                            withAnimation {
-                                viewModel.isSplitWithSearchFocused = true
-                            }
-                        }
-                    )
-
-                    if viewModel.isSplitWithSearchFocused && !viewModel.splitWithSearchText.isEmpty {
-                        SplitWithSearchResultsView(viewModel: viewModel)
-                    } else {
-                        if let group = viewModel.selectedGroup {
-                            SelectedGroupBadge(group: group) {
-                                HapticManager.tap()
-                                viewModel.clearSelectedGroup()
-                            }
-                        }
-
-                        ParticipantsListView(viewModel: viewModel)
-                    }
-                }
-                .transition(.opacity.combined(with: .move(edge: .top)))
-            }
-
-            // MARK: Navigation Buttons
-            HStack(spacing: Spacing.md) {
-                Button {
-                    HapticManager.tap()
-                    viewModel.previousStep()
-                } label: {
-                    Text("Back")
-                        .font(AppTypography.bodyBold())
-                        .foregroundColor(AppColors.textPrimary)
-                        .padding(.horizontal, Spacing.xl)
-                        .frame(height: ButtonHeight.lg)
-                        .background(
-                            RoundedRectangle(cornerRadius: CornerRadius.md)
-                                .fill(AppColors.backgroundTertiary)
-                        )
-                }
-
-                Button {
-                    HapticManager.tap()
-                    if !viewModel.isSplit {
-                        viewModel.saveTransaction()
-                    } else if viewModel.canProceedStep2 {
-                        viewModel.nextStep()
-                    }
-                } label: {
-                    Text(viewModel.isSplit ? "Continue" : "Save")
-                        .font(AppTypography.bodyBold())
-                        .foregroundColor(AppColors.buttonForeground)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: ButtonHeight.lg)
-                        .background(
-                            RoundedRectangle(cornerRadius: CornerRadius.md)
-                                .fill(viewModel.canProceedStep2 ? AppColors.buttonBackground : AppColors.disabled)
-                        )
-                }
-                .disabled(!viewModel.canProceedStep2)
-            }
-        }
+    private enum FocusField: Hashable {
+        case paidBy
+        case splitWith
     }
-}
-
-// MARK: - Subviews
-
-struct SelectedPayerCard: View {
-    @ObservedObject var viewModel: QuickActionViewModel
-
-    var body: some View {
-        let isMe = viewModel.paidByPerson == nil
-        let initials = isMe ? "ME" : (viewModel.paidByPerson?.initials ?? "?")
-
-        HStack(spacing: Spacing.md) {
-            PersonAvatar(
-                initials: initials,
-                isCurrentUser: isMe,
-                isSelected: true,
-                size: 44
-            )
-
-            Text(viewModel.paidByName)
-                .font(AppTypography.body())
-                .foregroundColor(AppColors.textPrimary)
-                .lineLimit(1)
-
-            Spacer()
-
-            Button {
-                HapticManager.tap()
-                withAnimation {
-                    viewModel.isPaidBySearchFocused = true
-                }
-            } label: {
-                Text("Change")
-                    .font(AppTypography.subheadlineMedium())
-                    .foregroundColor(AppColors.accent)
-            }
-        }
-        .padding(.vertical, Spacing.sm)
-    }
-}
-
-struct PaidBySearchView: View {
-    @ObservedObject var viewModel: QuickActionViewModel
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: Spacing.md) {
-            SearchBarView(
-                placeholder: "Search contacts...",
-                text: $viewModel.paidBySearchText
-            )
-
-            VStack(spacing: 0) {
-                Button {
-                    HapticManager.selectionChanged()
-                    viewModel.selectPayer(nil)
-                } label: {
-                    HStack(spacing: Spacing.md) {
-                        PersonAvatar(
-                            initials: "ME", isCurrentUser: true,
-                            isSelected: viewModel.paidByPerson == nil, size: 44)
-                        Text("You")
-                            .font(AppTypography.body())
-                            .foregroundColor(AppColors.textPrimary)
-                        Spacer()
-                        if viewModel.paidByPerson == nil {
-                            Image(systemName: "checkmark")
-                                .font(.system(size: 17, weight: .semibold))
-                                .foregroundColor(AppColors.accent)
-                        }
-                    }
-                    .padding(.vertical, Spacing.sm)
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-
-                ForEach(viewModel.filteredPaidByContacts, id: \.objectID) { person in
-                    Divider()
-                        .padding(.leading, Spacing.xxl + Spacing.xl)
-
-                    Button {
-                        HapticManager.selectionChanged()
-                        viewModel.selectPayer(person)
-                    } label: {
-                        HStack(spacing: Spacing.md) {
-                            PersonAvatar(
-                                initials: person.initials,
-                                isCurrentUser: false,
-                                isSelected: viewModel.paidByPerson == person,
-                                size: 44
-                            )
-                            Text(person.displayName)
-                                .font(AppTypography.body())
-                                .foregroundColor(AppColors.textPrimary)
-                                .lineLimit(1)
-                            Spacer()
-                            if viewModel.paidByPerson == person {
-                                Image(systemName: "checkmark")
-                                    .font(.system(size: 17, weight: .semibold))
-                                    .foregroundColor(AppColors.accent)
-                            }
-                        }
-                        .padding(.vertical, Spacing.sm)
-                        .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-
-            Button {
-                HapticManager.tap()
-                withAnimation {
-                    viewModel.isPaidBySearchFocused = false
-                    viewModel.paidBySearchText = ""
-                }
-            } label: {
-                Text("Cancel")
-                    .font(AppTypography.body())
-                    .foregroundColor(AppColors.accent)
-                    .frame(maxWidth: .infinity)
-            }
-        }
-    }
-}
-
-struct SplitWithSearchResultsView: View {
-    @ObservedObject var viewModel: QuickActionViewModel
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            if !viewModel.filteredSplitWithGroups.isEmpty {
-                Text("Groups")
-                    .font(AppTypography.subheadlineMedium())
-                    .foregroundColor(AppColors.textSecondary)
-                    .padding(.vertical, Spacing.sm)
 
-                ForEach(viewModel.filteredSplitWithGroups, id: \.objectID) { group in
-                    Button {
-                        HapticManager.selectionChanged()
-                        viewModel.selectGroup(group)
-                    } label: {
-                        HStack(spacing: Spacing.md) {
-                            Text("👥")
-                                .font(.system(size: 20))
-                                .frame(width: 44, height: 44)
-                                .background(AppColors.backgroundTertiary)
-                                .cornerRadius(CornerRadius.sm)
-                            Text(group.name ?? "Unnamed Group")
-                                .font(AppTypography.body())
-                                .foregroundColor(AppColors.textPrimary)
-                                .lineLimit(1)
-                            Spacer()
-                            if viewModel.selectedGroup == group {
-                                Image(systemName: "checkmark")
-                                    .font(.system(size: 17, weight: .semibold))
-                                    .foregroundColor(AppColors.accent)
-                            }
-                        }
-                        .padding(.vertical, Spacing.sm)
-                        .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
+            // MARK: - Title
+            Text("Split Options")
+                .font(AppTypography.title2())
+                .foregroundColor(AppColors.textPrimary)
+                .frame(maxWidth: .infinity)
 
-            if !viewModel.filteredSplitWithContacts.isEmpty {
-                Text("Contacts")
-                    .font(AppTypography.subheadlineMedium())
-                    .foregroundColor(AppColors.textSecondary)
-                    .padding(.vertical, Spacing.sm)
+            // MARK: - Paid By Section
+            paidBySection
+                .padding(.top, Spacing.xl)
 
-                ForEach(viewModel.filteredSplitWithContacts.filter { $0.id != nil }, id: \.objectID) { person in
-                    let personId = person.id!
-                    Button {
-                        HapticManager.selectionChanged()
-                        viewModel.addParticipantFromSearch(person)
-                    } label: {
-                        HStack(spacing: Spacing.md) {
-                            PersonAvatar(
-                                initials: person.initials,
-                                isCurrentUser: false,
-                                isSelected: viewModel.participantIds.contains(personId),
-                                size: 44
-                            )
-                            Text(person.displayName)
-                                .font(AppTypography.body())
-                                .foregroundColor(AppColors.textPrimary)
-                                .lineLimit(1)
-                            Spacer()
-                            if viewModel.participantIds.contains(personId) {
-                                Image(systemName: "checkmark")
-                                    .font(.system(size: 17, weight: .semibold))
-                                    .foregroundColor(AppColors.accent)
-                            }
-                        }
-                        .padding(.vertical, Spacing.sm)
-                        .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
+            // MARK: - Split With Section
+            splitWithSection
+                .padding(.top, Spacing.xl)
 
-            if viewModel.filteredSplitWithGroups.isEmpty
-                && viewModel.filteredSplitWithContacts.isEmpty
-            {
-                Text("No results found")
-                    .font(AppTypography.subheadline())
-                    .foregroundColor(AppColors.textSecondary)
-                    .padding(.vertical, Spacing.xxl)
-                    .frame(maxWidth: .infinity)
+            Spacer()
+
+            // MARK: - Action Buttons
+            actionButtons
+        }
+    }
+
+    // MARK: - Paid By
+
+    private var paidBySection: some View {
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            Text("Paid By:")
+                .font(AppTypography.title3())
+                .foregroundColor(AppColors.textPrimary)
+
+            contactSearchField(
+                text: $viewModel.paidBySearchText,
+                focus: .paidBy
+            )
+
+            if !viewModel.paidBySearchText.isEmpty {
+                paidBySearchResults
+            } else {
+                payerChip
             }
         }
     }
-}
 
-struct ParticipantsListView: View {
-    @ObservedObject var viewModel: QuickActionViewModel
+    private var payerChip: some View {
+        HStack {
+            chipLabel(viewModel.paidByName)
+            Spacer()
+        }
+    }
 
-    var body: some View {
+    private var paidBySearchResults: some View {
         VStack(spacing: 0) {
-            // "You" row
-            let meSelected = viewModel.participantIds.contains(viewModel.currentUserUUID)
-
+            // "You" option
             Button {
                 HapticManager.selectionChanged()
-                viewModel.toggleParticipant(viewModel.currentUserUUID)
+                viewModel.selectPayer(nil)
+                focusedField = nil
             } label: {
-                participantRow(
-                    avatar: AnyView(PersonAvatar(initials: "ME", isCurrentUser: true, isSelected: meSelected, size: 44)),
+                searchResultRow(
                     name: "You",
-                    isSelected: meSelected
+                    isSelected: viewModel.paidByPerson == nil
                 )
             }
             .buttonStyle(.plain)
 
-            // Other people
-            ForEach(viewModel.allPeople.filter { $0.id != nil }, id: \.objectID) { person in
-                let personId = person.id!
-                let isSelected = viewModel.participantIds.contains(personId)
-
-                Divider()
-                    .padding(.leading, Spacing.xxl + Spacing.xl)
+            ForEach(viewModel.filteredPaidByContacts, id: \.objectID) { person in
+                Divider().padding(.horizontal, Spacing.lg)
 
                 Button {
                     HapticManager.selectionChanged()
-                    viewModel.toggleParticipant(personId)
+                    viewModel.selectPayer(person)
+                    focusedField = nil
                 } label: {
-                    participantRow(
-                        avatar: AnyView(PersonAvatar(initials: person.initials, isCurrentUser: false, isSelected: isSelected, size: 44)),
-                        name: person.name ?? "Unknown",
-                        isSelected: isSelected
+                    searchResultRow(
+                        name: person.displayName,
+                        isSelected: viewModel.paidByPerson == person
                     )
                 }
                 .buttonStyle(.plain)
             }
         }
+        .background(AppColors.cardBackground)
+        .cornerRadius(CornerRadius.sm)
+        .overlay(
+            RoundedRectangle(cornerRadius: CornerRadius.sm)
+                .stroke(AppColors.separator, lineWidth: 1)
+        )
     }
 
-    private func participantRow(avatar: AnyView, name: String, isSelected: Bool) -> some View {
-        HStack(spacing: Spacing.md) {
-            avatar
+    // MARK: - Split With
 
+    private var splitWithSection: some View {
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            Text("Split with:")
+                .font(AppTypography.title3())
+                .foregroundColor(AppColors.textPrimary)
+
+            contactSearchField(
+                text: $viewModel.splitWithSearchText,
+                focus: .splitWith
+            )
+
+            if !viewModel.splitWithSearchText.isEmpty {
+                splitWithSearchResults
+            } else {
+                participantChips
+            }
+        }
+    }
+
+    private var participantChips: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: Spacing.sm) {
+                // "You" chip first
+                if viewModel.participantIds.contains(viewModel.currentUserUUID) {
+                    chipButton(name: "You") {
+                        viewModel.toggleParticipant(viewModel.currentUserUUID)
+                    }
+                }
+
+                // Other participants sorted by name
+                let otherIds = Array(viewModel.participantIds)
+                    .filter { $0 != viewModel.currentUserUUID }
+                    .sorted { viewModel.getName(for: $0) < viewModel.getName(for: $1) }
+
+                ForEach(otherIds, id: \.self) { userId in
+                    chipButton(name: viewModel.getName(for: userId)) {
+                        viewModel.toggleParticipant(userId)
+                    }
+                }
+            }
+        }
+    }
+
+    private var splitWithSearchResults: some View {
+        VStack(spacing: 0) {
+            // Groups
+            ForEach(viewModel.filteredSplitWithGroups, id: \.objectID) { group in
+                Button {
+                    HapticManager.selectionChanged()
+                    viewModel.selectGroup(group)
+                    focusedField = nil
+                } label: {
+                    searchResultRow(
+                        name: group.name ?? "Unnamed Group",
+                        isSelected: viewModel.selectedGroup == group
+                    )
+                }
+                .buttonStyle(.plain)
+
+                Divider().padding(.horizontal, Spacing.lg)
+            }
+
+            // Contacts
+            let validContacts = viewModel.filteredSplitWithContacts.filter { $0.id != nil }
+
+            ForEach(Array(validContacts.enumerated()), id: \.element.objectID) { index, person in
+                let personId = person.id!
+
+                Button {
+                    HapticManager.selectionChanged()
+                    viewModel.toggleParticipant(personId)
+                    viewModel.splitWithSearchText = ""
+                    focusedField = nil
+                } label: {
+                    searchResultRow(
+                        name: person.displayName,
+                        isSelected: viewModel.participantIds.contains(personId)
+                    )
+                }
+                .buttonStyle(.plain)
+
+                if index < validContacts.count - 1 {
+                    Divider().padding(.horizontal, Spacing.lg)
+                }
+            }
+
+            if validContacts.isEmpty && viewModel.filteredSplitWithGroups.isEmpty {
+                Text("No results found")
+                    .font(AppTypography.subheadline())
+                    .foregroundColor(AppColors.textSecondary)
+                    .padding(.vertical, Spacing.md)
+                    .frame(maxWidth: .infinity)
+            }
+        }
+        .background(AppColors.cardBackground)
+        .cornerRadius(CornerRadius.sm)
+        .overlay(
+            RoundedRectangle(cornerRadius: CornerRadius.sm)
+                .stroke(AppColors.separator, lineWidth: 1)
+        )
+    }
+
+    // MARK: - Reusable Components
+
+    private func contactSearchField(
+        text: Binding<String>,
+        focus: FocusField
+    ) -> some View {
+        HStack {
+            TextField("Search Contact...", text: text)
+                .font(AppTypography.body())
+                .foregroundColor(AppColors.textPrimary)
+                .focused($focusedField, equals: focus)
+                .submitLabel(.done)
+                .onSubmit { focusedField = nil }
+
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 20, weight: .medium))
+                .foregroundColor(AppColors.textSecondary)
+        }
+        .padding(.horizontal, Spacing.lg)
+        .padding(.vertical, Spacing.lg)
+        .background(AppColors.cardBackground)
+        .cornerRadius(CornerRadius.sm)
+        .overlay(
+            RoundedRectangle(cornerRadius: CornerRadius.sm)
+                .stroke(AppColors.separator, lineWidth: 1)
+        )
+    }
+
+    private func searchResultRow(name: String, isSelected: Bool) -> some View {
+        HStack {
             Text(name)
                 .font(AppTypography.body())
                 .foregroundColor(AppColors.textPrimary)
@@ -413,23 +249,69 @@ struct ParticipantsListView: View {
 
             Spacer()
 
-            ZStack {
-                Circle()
-                    .strokeBorder(
-                        isSelected ? AppColors.accent : AppColors.textSecondary.opacity(0.4),
-                        lineWidth: 2
-                    )
-                Circle()
-                    .fill(isSelected ? AppColors.accent : Color.clear)
-                    .padding(2)
+            if isSelected {
                 Image(systemName: "checkmark")
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundColor(AppColors.buttonForeground)
-                    .opacity(isSelected ? 1 : 0)
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundColor(AppColors.accent)
             }
-            .frame(width: 24, height: 24)
         }
-        .padding(.vertical, Spacing.sm)
+        .padding(.horizontal, Spacing.lg)
+        .padding(.vertical, Spacing.md)
         .contentShape(Rectangle())
+    }
+
+    private func chipLabel(_ name: String) -> some View {
+        Text(name)
+            .font(AppTypography.subheadline())
+            .foregroundColor(AppColors.textPrimary)
+            .padding(.horizontal, Spacing.lg)
+            .padding(.vertical, Spacing.sm)
+            .background(AppColors.cardBackground)
+            .clipShape(Capsule())
+            .overlay(Capsule().stroke(AppColors.separator, lineWidth: 1))
+    }
+
+    private func chipButton(name: String, action: @escaping () -> Void) -> some View {
+        Button {
+            HapticManager.tap()
+            action()
+        } label: {
+            chipLabel(name)
+        }
+        .buttonStyle(.plain)
+    }
+
+    // MARK: - Action Buttons
+
+    private var actionButtons: some View {
+        HStack(spacing: Spacing.md) {
+            Button {
+                HapticManager.tap()
+                viewModel.goToMoreOptions()
+            } label: {
+                Text("More Options")
+                    .font(AppTypography.bodyBold())
+                    .foregroundColor(AppColors.textPrimary)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: ButtonHeight.xl)
+                    .background(AppColors.cardBackground)
+                    .clipShape(Capsule())
+                    .overlay(Capsule().stroke(AppColors.separator, lineWidth: 1))
+            }
+
+            Button {
+                HapticManager.tap()
+                viewModel.splitEqualAndSave()
+            } label: {
+                Text("Split Equal")
+                    .font(AppTypography.bodyBold())
+                    .foregroundColor(AppColors.textPrimary)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: ButtonHeight.xl)
+                    .background(AppColors.cardBackground)
+                    .clipShape(Capsule())
+                    .overlay(Capsule().stroke(AppColors.separator, lineWidth: 1))
+            }
+        }
     }
 }

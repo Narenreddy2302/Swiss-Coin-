@@ -314,6 +314,31 @@ class QuickActionViewModel: ObservableObject {
         }
     }
 
+    /// Quick action: split the transaction equally and save immediately.
+    /// If only the current user is a participant, saves as a personal transaction.
+    func splitEqualAndSave() {
+        if participantIds.count > 1 {
+            isSplit = true
+            splitMethod = .equal
+        } else {
+            isSplit = false
+        }
+        saveTransaction()
+    }
+
+    /// Navigate to Step 3 for advanced split configuration.
+    /// Requires at least 2 participants for a meaningful split.
+    func goToMoreOptions() {
+        guard participantIds.count >= 2 else {
+            errorMessage = "Add at least one other person to configure split options"
+            showingError = true
+            HapticManager.error()
+            return
+        }
+        isSplit = true  // Makes totalSteps = 3 so nextStep() can proceed
+        nextStep()
+    }
+
     func selectPayer(_ person: Person?) {
         paidByPerson = person
         paidBySearchText = ""
