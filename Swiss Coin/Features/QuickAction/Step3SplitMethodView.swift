@@ -223,6 +223,7 @@ struct Step3SplitMethodView: View {
     private var saveButton: some View {
         Button {
             HapticManager.tap()
+            dismissKeyboard()
             if viewModel.canSubmit {
                 viewModel.saveTransaction()
             }

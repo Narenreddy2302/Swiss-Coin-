@@ -47,6 +47,7 @@ struct QuickActionSheet: View {
                     .padding(.horizontal, Spacing.lg)
                     .padding(.bottom, Spacing.xxl)
                 }
+                .scrollDismissesKeyboard(.interactively)
             }
             .background(AppColors.backgroundSecondary)
             // MARK: Navigation Bar

@@ -72,6 +72,7 @@ struct QuickActionSheetPresenter: View {
                     .padding(.horizontal, Spacing.lg)
                     .padding(.bottom, Spacing.xxl)
                 }
+                .scrollDismissesKeyboard(.interactively)
             }
             .background(AppColors.backgroundSecondary)
             .navigationTitle(navigationTitle)

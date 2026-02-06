@@ -39,6 +39,15 @@ struct Step2SplitConfigView: View {
             // MARK: - Action Buttons
             actionButtons
         }
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("Done") {
+                    focusedField = nil
+                }
+                .font(AppTypography.bodyBold())
+            }
+        }
     }
 
     // MARK: - Paid By
@@ -313,6 +322,7 @@ struct Step2SplitConfigView: View {
         HStack(spacing: Spacing.md) {
             Button {
                 HapticManager.tap()
+                focusedField = nil
                 viewModel.goToMoreOptions()
             } label: {
                 Text("More Options")
@@ -327,6 +337,7 @@ struct Step2SplitConfigView: View {
 
             Button {
                 HapticManager.tap()
+                focusedField = nil
                 viewModel.splitEqualAndSave()
             } label: {
                 Text("Split Equal")
