@@ -46,7 +46,14 @@ class QuickActionViewModel: ObservableObject {
 
     // MARK: - Step 2: Split Configuration
 
-    @Published var isSplit: Bool = false
+    @Published var isSplit: Bool = false {
+        didSet {
+            if !isSplit {
+                splitDetails = [:]
+                splitMethod = .equal
+            }
+        }
+    }
 
     // Payer: nil represents "Me" (Current User)
     @Published var paidByPerson: Person? = nil
@@ -211,6 +218,11 @@ class QuickActionViewModel: ObservableObject {
             }
             return abs(total - amount) < 0.01
 
+        case .adjustment:
+            // Ensure no participant ends up with a negative amount
+            let splits = calculateSplits()
+            return splits.values.allSatisfy { $0.amount >= 0 }
+
         default:
             return true
         }
@@ -289,7 +301,7 @@ class QuickActionViewModel: ObservableObject {
     }
 
     func nextStep() {
-        if currentStep < 3 {
+        if currentStep < totalSteps {
             currentStep += 1
         }
     }
@@ -323,6 +335,11 @@ class QuickActionViewModel: ObservableObject {
             participantIds.remove(id)
             splitDetails.removeValue(forKey: id)
             selectedGroup = nil
+
+            // Reset payer if the removed participant was the current payer
+            if let payer = paidByPerson, payer.id == id {
+                paidByPerson = nil
+            }
         } else {
             participantIds.insert(id)
         }
@@ -353,6 +370,7 @@ class QuickActionViewModel: ObservableObject {
             participantIds.insert(id)
         }
         splitWithSearchText = ""
+        isSplitWithSearchFocused = false
     }
 
     func updateSplitDetail(

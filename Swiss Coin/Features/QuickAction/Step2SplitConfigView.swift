@@ -280,7 +280,7 @@ struct SplitWithSearchResultsView: View {
                     .foregroundColor(AppColors.textSecondary)
                     .padding(.vertical, Spacing.sm)
 
-                ForEach(viewModel.filteredSplitWithGroups, id: \.self) { group in
+                ForEach(viewModel.filteredSplitWithGroups, id: \.objectID) { group in
                     Button {
                         HapticManager.selectionChanged()
                         viewModel.selectGroup(group)
@@ -315,7 +315,8 @@ struct SplitWithSearchResultsView: View {
                     .foregroundColor(AppColors.textSecondary)
                     .padding(.vertical, Spacing.sm)
 
-                ForEach(viewModel.filteredSplitWithContacts, id: \.self) { person in
+                ForEach(viewModel.filteredSplitWithContacts.filter { $0.id != nil }, id: \.objectID) { person in
+                    let personId = person.id!
                     Button {
                         HapticManager.selectionChanged()
                         viewModel.addParticipantFromSearch(person)
@@ -324,7 +325,7 @@ struct SplitWithSearchResultsView: View {
                             PersonAvatar(
                                 initials: person.initials,
                                 isCurrentUser: false,
-                                isSelected: viewModel.participantIds.contains(person.id ?? UUID()),
+                                isSelected: viewModel.participantIds.contains(personId),
                                 size: 44
                             )
                             Text(person.displayName)
@@ -332,7 +333,7 @@ struct SplitWithSearchResultsView: View {
                                 .foregroundColor(AppColors.textPrimary)
                                 .lineLimit(1)
                             Spacer()
-                            if viewModel.participantIds.contains(person.id ?? UUID()) {
+                            if viewModel.participantIds.contains(personId) {
                                 Image(systemName: "checkmark")
                                     .font(.system(size: 17, weight: .semibold))
                                     .foregroundColor(AppColors.accent)
@@ -379,8 +380,8 @@ struct ParticipantsListView: View {
             .buttonStyle(.plain)
 
             // Other people
-            ForEach(viewModel.allPeople, id: \.objectID) { person in
-                let personId = person.id ?? UUID()
+            ForEach(viewModel.allPeople.filter { $0.id != nil }, id: \.objectID) { person in
+                let personId = person.id!
                 let isSelected = viewModel.participantIds.contains(personId)
 
                 Divider()
