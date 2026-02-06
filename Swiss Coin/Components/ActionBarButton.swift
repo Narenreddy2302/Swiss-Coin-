@@ -41,16 +41,9 @@ struct ActionBarButton: View {
             }
         }) {
             HStack(spacing: Spacing.sm) {
-                // Icon with background for all buttons
-                ZStack {
-                    Circle()
-                        .fill(iconBackgroundColor)
-                        .frame(width: 28, height: 28)
-                    
-                    Image(systemName: icon)
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(iconColor)
-                }
+                Image(systemName: icon)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(iconColor)
 
                 Text(title)
                     .font(.system(size: 15, weight: .semibold))
@@ -66,17 +59,8 @@ struct ActionBarButton: View {
         .disabled(!isEnabled && !isPrimary)
         .opacity(isEnabled || isPrimary ? 1.0 : 0.6)
     }
-    
-    // MARK: - Colors
 
-    private var iconBackgroundColor: Color {
-        if isPrimary {
-            return AppColors.buttonBackground
-        }
-        return isEnabled
-            ? AppColors.buttonBackground.opacity(0.12)
-            : AppColors.textSecondary.opacity(0.1)
-    }
+    // MARK: - Colors
 
     private var iconColor: Color {
         if isPrimary {
@@ -87,16 +71,16 @@ struct ActionBarButton: View {
 
     private var textColor: Color {
         if isPrimary {
-            return AppColors.textPrimary
+            return AppColors.buttonForeground
         }
         return isEnabled ? AppColors.textPrimary : AppColors.textSecondary
     }
 
     private var buttonBackground: Color {
         if isPrimary {
-            return AppColors.buttonBackground.opacity(0.12)
+            return AppColors.buttonBackground
         }
-        return AppColors.backgroundTertiary
+        return isEnabled ? AppColors.backgroundTertiary : AppColors.backgroundTertiary
     }
 }
 

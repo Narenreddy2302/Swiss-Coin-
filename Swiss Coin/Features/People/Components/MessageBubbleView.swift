@@ -173,12 +173,12 @@ struct MessageBubbleView: View {
                 } label: {
                     Text("Save")
                         .font(AppTypography.caption())
-                        .foregroundColor(.white)
+                        .foregroundColor(AppColors.buttonForeground)
                         .padding(.horizontal, Spacing.md)
                         .padding(.vertical, Spacing.xs)
                         .background(
                             Capsule()
-                                .fill(canSaveEdit ? AppColors.accent : AppColors.disabled)
+                                .fill(canSaveEdit ? AppColors.buttonBackground : AppColors.disabled)
                         )
                 }
                 .disabled(!canSaveEdit)
