@@ -11,6 +11,7 @@ struct MessageInputView: View {
     @Binding var messageText: String
     let onSend: () -> Void
 
+    @FocusState private var isTextFieldFocused: Bool
     @State private var sendButtonScale: CGFloat = 1.0
 
     private var canSend: Bool {
@@ -21,6 +22,7 @@ struct MessageInputView: View {
         HStack(spacing: Spacing.sm) {
             // Text Input Field
             TextField("Message", text: $messageText, axis: .vertical)
+                .focused($isTextFieldFocused)
                 .limitTextLength(to: ValidationLimits.maxMessageLength, text: $messageText)
                 .font(AppTypography.body())
                 .padding(.horizontal, Spacing.md)
@@ -37,6 +39,7 @@ struct MessageInputView: View {
             Button {
                 if canSend {
                     HapticManager.tap()
+                    isTextFieldFocused = false
                     // Spring bounce on send
                     withAnimation(.spring(response: 0.25, dampingFraction: 0.5)) {
                         sendButtonScale = 0.7

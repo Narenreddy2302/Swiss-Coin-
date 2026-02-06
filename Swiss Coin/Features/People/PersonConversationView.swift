@@ -107,6 +107,7 @@ struct PersonConversationView: View {
                     }
                     .padding(.vertical, Spacing.lg)
                 }
+                .scrollDismissesKeyboard(.interactively)
                 .background(AppColors.background)
                 .onTapGesture {
                     hideKeyboard()
