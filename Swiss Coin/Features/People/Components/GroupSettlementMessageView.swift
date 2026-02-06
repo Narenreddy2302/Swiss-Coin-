@@ -63,14 +63,14 @@ struct GroupSettlementMessageView: View {
         .contextMenu {
             Button {
                 UIPasteboard.general.string = messageText
-                HapticManager.tap()
+                HapticManager.lightTap()
             } label: {
                 Label("Copy", systemImage: "doc.on.doc")
             }
 
             Button {
                 UIPasteboard.general.string = CurrencyFormatter.format(settlement.amount)
-                HapticManager.tap()
+                HapticManager.lightTap()
             } label: {
                 Label("Copy Amount", systemImage: "dollarsign.circle")
             }

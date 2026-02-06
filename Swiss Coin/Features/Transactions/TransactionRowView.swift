@@ -62,7 +62,7 @@ struct TransactionRowView: View {
             }
 
             Button {
-                HapticManager.tap()
+                HapticManager.lightTap()
                 if let onEdit = onEdit {
                     onEdit()
                 } else {
@@ -75,7 +75,7 @@ struct TransactionRowView: View {
         }
         .contextMenu {
             Button {
-                HapticManager.tap()
+                HapticManager.lightTap()
                 if let onEdit = onEdit {
                     onEdit()
                 } else {
@@ -86,7 +86,7 @@ struct TransactionRowView: View {
             }
 
             Button {
-                HapticManager.tap()
+                HapticManager.lightTap()
                 shareTransaction()
             } label: {
                 Label("Share", systemImage: "square.and.arrow.up")

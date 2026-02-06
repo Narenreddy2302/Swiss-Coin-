@@ -56,7 +56,7 @@ struct PeopleView: View {
                     HStack {
                         if selectedSegment == 0 {
                             Button {
-                                HapticManager.tap()
+                                HapticManager.lightTap()
                                 showingContactPicker = true
                             } label: {
                                 Image(systemName: "plus")
@@ -68,7 +68,7 @@ struct PeopleView: View {
                                     .font(.system(size: 17, weight: .semibold))
                             }
                             .simultaneousGesture(TapGesture().onEnded {
-                                HapticManager.tap()
+                                HapticManager.lightTap()
                             })
                         }
                     }
@@ -271,21 +271,21 @@ struct PersonListRowView: View {
         .accessibilityLabel("\(person.name ?? "Unknown"), \(balanceText)")
         .contextMenu {
             Button {
-                HapticManager.tap()
+                HapticManager.lightTap()
                 showingProfile = true
             } label: {
                 Label("View Profile", systemImage: "person.circle")
             }
 
             Button {
-                HapticManager.tap()
+                HapticManager.lightTap()
                 showingEditPerson = true
             } label: {
                 Label("Edit", systemImage: "pencil")
             }
 
             Button {
-                HapticManager.tap()
+                HapticManager.lightTap()
                 showingAddExpense = true
             } label: {
                 Label("Add Expense", systemImage: "plus.circle")
@@ -293,7 +293,7 @@ struct PersonListRowView: View {
 
             if balance > 0.01 {
                 Button {
-                    HapticManager.tap()
+                    HapticManager.lightTap()
                     showingReminder = true
                 } label: {
                     Label("Send Reminder", systemImage: "bell")
@@ -303,7 +303,7 @@ struct PersonListRowView: View {
             Divider()
 
             Button(role: .destructive) {
-                HapticManager.tap()
+                HapticManager.delete()
                 showingDeleteConfirmation = true
             } label: {
                 Label("Delete", systemImage: "trash")
@@ -505,21 +505,21 @@ struct GroupListRowView: View {
         .accessibilityLabel("\(group.name ?? "Unknown Group"), \(memberCount) members, \(balanceText)")
         .contextMenu {
             Button {
-                HapticManager.tap()
+                HapticManager.lightTap()
                 showingGroupInfo = true
             } label: {
                 Label("View Group Info", systemImage: "info.circle")
             }
 
             Button {
-                HapticManager.tap()
+                HapticManager.lightTap()
                 showingEditGroup = true
             } label: {
                 Label("Edit", systemImage: "pencil")
             }
 
             Button {
-                HapticManager.tap()
+                HapticManager.lightTap()
                 showingAddExpense = true
             } label: {
                 Label("Add Expense", systemImage: "plus.circle")
@@ -527,7 +527,7 @@ struct GroupListRowView: View {
 
             if balance > 0.01 {
                 Button {
-                    HapticManager.tap()
+                    HapticManager.lightTap()
                     showingReminders = true
                 } label: {
                     Label("Send Reminders", systemImage: "bell")
@@ -537,7 +537,7 @@ struct GroupListRowView: View {
             Divider()
 
             Button(role: .destructive) {
-                HapticManager.tap()
+                HapticManager.delete()
                 showingDeleteConfirmation = true
             } label: {
                 Label("Delete", systemImage: "trash")

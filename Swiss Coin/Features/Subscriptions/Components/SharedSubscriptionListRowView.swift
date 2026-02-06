@@ -96,21 +96,21 @@ struct SharedSubscriptionListRowView: View {
         .contentShape(Rectangle())
         .contextMenu {
             Button {
-                HapticManager.tap()
+                HapticManager.lightTap()
                 showingDetail = true
             } label: {
                 Label("View Details", systemImage: "info.circle")
             }
 
             Button {
-                HapticManager.tap()
+                HapticManager.lightTap()
                 showingRecordPayment = true
             } label: {
                 Label("Record Payment", systemImage: "dollarsign.circle")
             }
 
             Button {
-                HapticManager.tap()
+                HapticManager.lightTap()
                 showingReminder = true
             } label: {
                 Label("Send Reminders", systemImage: "bell")

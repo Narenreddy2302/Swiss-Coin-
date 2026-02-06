@@ -71,7 +71,7 @@ struct MessageBubbleView: View {
                 // Copy — available for all messages
                 Button {
                     UIPasteboard.general.string = message.content ?? ""
-                    HapticManager.tap()
+                    HapticManager.lightTap()
                 } label: {
                     Label("Copy", systemImage: "doc.on.doc")
                 }
@@ -79,7 +79,7 @@ struct MessageBubbleView: View {
                 // Edit — own messages within 15-minute window
                 if canEdit {
                     Button {
-                        HapticManager.tap()
+                        HapticManager.lightTap()
                         editText = message.content ?? ""
                         withAnimation(AppAnimation.standard) {
                             isEditing = true
