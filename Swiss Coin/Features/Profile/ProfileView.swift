@@ -169,7 +169,7 @@ struct ProfileView: View {
             Toggle("Dark Mode", isOn: $darkModeOn)
                 .onChange(of: darkModeOn) { _, newValue in
                     HapticManager.toggle()
-                    themeMode = newValue ? "dark" : "system"
+                    themeMode = newValue ? "dark" : "light"
                 }
         } header: {
             Text("General")
