@@ -261,11 +261,11 @@ enum AppColors {
     /// User message bubble
     static let userBubble = Color.blue
 
-    /// Other person message bubble
+    /// Other person message bubble — iMessage-style gray
     static let otherBubble = Color(UIColor { tc in
         tc.userInterfaceStyle == .dark
-            ? UIColor(red: 0.07, green: 0.07, blue: 0.07, alpha: 1) // #121212
-            : UIColor(red: 0.92, green: 0.92, blue: 0.92, alpha: 1) // #EBEBEB
+            ? UIColor(red: 0.17, green: 0.17, blue: 0.18, alpha: 1) // #2C2C2E
+            : UIColor(red: 0.91, green: 0.91, blue: 0.92, alpha: 1) // #E9E9EB
     })
 
     /// Disabled state

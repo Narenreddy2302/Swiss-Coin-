@@ -27,11 +27,26 @@ struct PersonConversationView: View {
     @State private var showingDeleteTransaction = false
     @State private var showingTransactionDetail: FinancialTransaction?
 
-    // Undo toast state
+    // Undo toast state (messages)
     @State private var showUndoToast = false
     @State private var deletedMessageContent: String?
     @State private var deletedMessageTimestamp: Date?
     @State private var deletedMessageIsEdited: Bool = false
+
+    // Transaction edit state
+    @State private var transactionToEdit: FinancialTransaction?
+
+    // Transaction undo toast state
+    @State private var showUndoTransactionToast = false
+    @State private var cachedTxnTitle: String = ""
+    @State private var cachedTxnAmount: Double = 0
+    @State private var cachedTxnDate: Date = Date()
+    @State private var cachedTxnSplitMethod: String = "equal"
+    @State private var cachedTxnPayer: Person?
+    @State private var cachedTxnCreatedBy: Person?
+    @State private var cachedTxnSplitPersons: [Person?] = []
+    @State private var cachedTxnSplitAmounts: [Double] = []
+    @State private var cachedTxnSplitRawAmounts: [Double] = []
 
     // Retained haptic generator for reliable feedback
     private let hapticGenerator = UIImpactFeedbackGenerator(style: .light)
@@ -92,7 +107,7 @@ struct PersonConversationView: View {
                     }
                     .padding(.vertical, Spacing.lg)
                 }
-                .background(AppColors.backgroundSecondary)
+                .background(AppColors.background)
                 .onTapGesture {
                     hideKeyboard()
                 }
@@ -121,7 +136,7 @@ struct PersonConversationView: View {
                 onSend: sendMessage
             )
         }
-        .background(AppColors.backgroundSecondary)
+        .background(AppColors.background)
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(AppColors.backgroundTertiary, for: .navigationBar)
@@ -185,6 +200,14 @@ struct PersonConversationView: View {
             isShowing: $showUndoToast,
             message: "Message deleted",
             onUndo: undoDeleteMessage
+        )
+        .sheet(item: $transactionToEdit) { transaction in
+            TransactionEditView(transaction: transaction)
+        }
+        .undoToast(
+            isShowing: $showUndoTransactionToast,
+            message: "Transaction undone",
+            onUndo: restoreUndoneTransaction
         )
     }
 
@@ -284,8 +307,14 @@ struct PersonConversationView: View {
             TransactionCardView(
                 transaction: transaction,
                 person: person,
+                onEdit: {
+                    transactionToEdit = transaction
+                },
                 onViewDetails: {
                     showingTransactionDetail = transaction
+                },
+                onUndo: {
+                    undoTransactionWithToast(transaction)
                 },
                 onDelete: {
                     transactionToDelete = transaction
@@ -413,5 +442,73 @@ struct PersonConversationView: View {
         deletedMessageContent = nil
         deletedMessageTimestamp = nil
         deletedMessageIsEdited = false
+    }
+
+    // MARK: - Transaction Undo
+
+    private func undoTransactionWithToast(_ transaction: FinancialTransaction) {
+        // Cache transaction data before deletion
+        cachedTxnTitle = transaction.title ?? ""
+        cachedTxnAmount = transaction.amount
+        cachedTxnDate = transaction.date ?? Date()
+        cachedTxnSplitMethod = transaction.splitMethod ?? "equal"
+        cachedTxnPayer = transaction.payer
+        cachedTxnCreatedBy = transaction.createdBy
+
+        // Cache splits data
+        let splits = (transaction.splits as? Set<TransactionSplit>) ?? []
+        cachedTxnSplitPersons = splits.map { $0.owedBy }
+        cachedTxnSplitAmounts = splits.map { $0.amount }
+        cachedTxnSplitRawAmounts = splits.map { $0.rawAmount }
+
+        // Delete transaction (splits cascade-deleted)
+        viewContext.delete(transaction)
+        do {
+            try viewContext.save()
+            HapticManager.delete()
+            withAnimation(AppAnimation.standard) {
+                showUndoTransactionToast = true
+            }
+        } catch {
+            viewContext.rollback()
+            HapticManager.error()
+            errorMessage = "Failed to undo transaction."
+            showingError = true
+        }
+    }
+
+    private func restoreUndoneTransaction() {
+        let restored = FinancialTransaction(context: viewContext)
+        restored.id = UUID()
+        restored.title = cachedTxnTitle
+        restored.amount = cachedTxnAmount
+        restored.date = cachedTxnDate
+        restored.splitMethod = cachedTxnSplitMethod
+        restored.payer = cachedTxnPayer
+        restored.createdBy = cachedTxnCreatedBy
+
+        // Restore splits
+        for i in 0..<cachedTxnSplitPersons.count {
+            let split = TransactionSplit(context: viewContext)
+            split.owedBy = cachedTxnSplitPersons[i]
+            split.amount = cachedTxnSplitAmounts[i]
+            if i < cachedTxnSplitRawAmounts.count {
+                split.rawAmount = cachedTxnSplitRawAmounts[i]
+            }
+            split.transaction = restored
+        }
+
+        do {
+            try viewContext.save()
+            HapticManager.success()
+        } catch {
+            viewContext.rollback()
+            HapticManager.error()
+        }
+
+        // Clear cached data
+        cachedTxnSplitPersons = []
+        cachedTxnSplitAmounts = []
+        cachedTxnSplitRawAmounts = []
     }
 }
