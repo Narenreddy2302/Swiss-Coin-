@@ -86,7 +86,7 @@ struct ProfileView: View {
                     .ignoresSafeArea()
 
                 ScrollView {
-                    VStack(spacing: Spacing.lg) {
+                    VStack(spacing: Spacing.xl) {
                         profileSection
                         generalSection
                         notificationsSection
@@ -138,51 +138,51 @@ struct ProfileView: View {
     // MARK: - Sections
 
     private var profileSection: some View {
-        VStack(spacing: 0) {
-            NavigationLink(destination: PersonalDetailsView()) {
-                HStack(spacing: Spacing.md) {
-                    Circle()
-                        .fill(Color(hex: userColor).opacity(0.2))
-                        .frame(width: 56, height: 56)
-                        .overlay(
-                            Text(userInitials)
-                                .font(.system(size: 22, weight: .semibold))
-                                .foregroundColor(Color(hex: userColor))
-                        )
+        NavigationLink(destination: PersonalDetailsView()) {
+            HStack(spacing: Spacing.md) {
+                Circle()
+                    .fill(Color(hex: userColor).opacity(0.2))
+                    .frame(width: 56, height: 56)
+                    .overlay(
+                        Text(userInitials)
+                            .font(.system(size: 22, weight: .semibold))
+                            .foregroundColor(Color(hex: userColor))
+                    )
 
-                    VStack(alignment: .leading, spacing: Spacing.xxs) {
-                        Text(userName)
-                            .font(AppTypography.headline())
-                            .foregroundColor(AppColors.textPrimary)
-                            .lineLimit(1)
+                VStack(alignment: .leading, spacing: Spacing.xxs) {
+                    Text(userName)
+                        .font(AppTypography.headline())
+                        .foregroundColor(AppColors.textPrimary)
+                        .lineLimit(1)
 
-                        Text("Edit Profile")
-                            .font(AppTypography.subheadline())
-                            .foregroundColor(AppColors.textSecondary)
-                    }
-
-                    Spacer()
-
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(AppColors.textTertiary)
+                    Text("Edit Profile")
+                        .font(AppTypography.subheadline())
+                        .foregroundColor(AppColors.textSecondary)
                 }
-                .padding(.horizontal, Spacing.lg)
-                .padding(.vertical, Spacing.md)
-            }
-            .buttonStyle(.plain)
-            .background(AppColors.cardBackground)
 
-            Divider()
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(AppColors.textTertiary)
+            }
+            .padding(.horizontal, Spacing.lg)
+            .padding(.vertical, Spacing.md)
         }
+        .buttonStyle(.plain)
+        .background(
+            RoundedRectangle(cornerRadius: CornerRadius.md)
+                .fill(AppColors.cardBackground)
+        )
+        .padding(.horizontal)
     }
 
     private var generalSection: some View {
-        VStack(alignment: .leading, spacing: Spacing.md) {
-            Text("General")
-                .font(AppTypography.headline())
-                .foregroundColor(AppColors.textPrimary)
-                .padding(.horizontal, Spacing.lg)
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            Text("GENERAL")
+                .font(AppTypography.footnote())
+                .foregroundColor(AppColors.textSecondary)
+                .padding(.horizontal, Spacing.lg + Spacing.xxs)
 
             VStack(spacing: 0) {
                 HStack {
@@ -205,6 +205,7 @@ struct ProfileView: View {
                 .padding(.vertical, Spacing.md)
 
                 Divider()
+                    .padding(.leading, Spacing.lg)
 
                 HStack {
                     Text("Dark Mode")
@@ -223,18 +224,20 @@ struct ProfileView: View {
                 .padding(.horizontal, Spacing.lg)
                 .padding(.vertical, Spacing.md)
             }
-            .background(AppColors.cardBackground)
-
-            Divider()
+            .background(
+                RoundedRectangle(cornerRadius: CornerRadius.md)
+                    .fill(AppColors.cardBackground)
+            )
+            .padding(.horizontal)
         }
     }
 
     private var notificationsSection: some View {
-        VStack(alignment: .leading, spacing: Spacing.md) {
-            Text("Notifications")
-                .font(AppTypography.headline())
-                .foregroundColor(AppColors.textPrimary)
-                .padding(.horizontal, Spacing.lg)
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            Text("NOTIFICATIONS")
+                .font(AppTypography.footnote())
+                .foregroundColor(AppColors.textSecondary)
+                .padding(.horizontal, Spacing.lg + Spacing.xxs)
 
             HStack {
                 Text("Notifications")
@@ -251,18 +254,20 @@ struct ProfileView: View {
             }
             .padding(.horizontal, Spacing.lg)
             .padding(.vertical, Spacing.md)
-            .background(AppColors.cardBackground)
-
-            Divider()
+            .background(
+                RoundedRectangle(cornerRadius: CornerRadius.md)
+                    .fill(AppColors.cardBackground)
+            )
+            .padding(.horizontal)
         }
     }
 
     private var securitySection: some View {
-        VStack(alignment: .leading, spacing: Spacing.md) {
-            Text("Security")
-                .font(AppTypography.headline())
-                .foregroundColor(AppColors.textPrimary)
-                .padding(.horizontal, Spacing.lg)
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            Text("SECURITY")
+                .font(AppTypography.footnote())
+                .foregroundColor(AppColors.textSecondary)
+                .padding(.horizontal, Spacing.lg + Spacing.xxs)
 
             VStack(spacing: 0) {
                 if biometricType != .none {
@@ -287,6 +292,7 @@ struct ProfileView: View {
                     .padding(.vertical, Spacing.md)
 
                     Divider()
+                        .padding(.leading, Spacing.lg)
                 }
 
                 HStack {
@@ -310,18 +316,20 @@ struct ProfileView: View {
                 .padding(.horizontal, Spacing.lg)
                 .padding(.vertical, Spacing.md)
             }
-            .background(AppColors.cardBackground)
-
-            Divider()
+            .background(
+                RoundedRectangle(cornerRadius: CornerRadius.md)
+                    .fill(AppColors.cardBackground)
+            )
+            .padding(.horizontal)
         }
     }
 
     private var aboutSection: some View {
-        VStack(alignment: .leading, spacing: Spacing.md) {
-            Text("About")
-                .font(AppTypography.headline())
-                .foregroundColor(AppColors.textPrimary)
-                .padding(.horizontal, Spacing.lg)
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            Text("ABOUT")
+                .font(AppTypography.footnote())
+                .foregroundColor(AppColors.textSecondary)
+                .padding(.horizontal, Spacing.lg + Spacing.xxs)
 
             VStack(spacing: 0) {
                 HStack {
@@ -337,6 +345,7 @@ struct ProfileView: View {
                 .padding(.vertical, Spacing.md)
 
                 Divider()
+                    .padding(.leading, Spacing.lg)
 
                 Button {
                     HapticManager.tap()
@@ -358,6 +367,7 @@ struct ProfileView: View {
                 .buttonStyle(.plain)
 
                 Divider()
+                    .padding(.leading, Spacing.lg)
 
                 Button {
                     HapticManager.tap()
@@ -378,9 +388,11 @@ struct ProfileView: View {
                 }
                 .buttonStyle(.plain)
             }
-            .background(AppColors.cardBackground)
-
-            Divider()
+            .background(
+                RoundedRectangle(cornerRadius: CornerRadius.md)
+                    .fill(AppColors.cardBackground)
+            )
+            .padding(.horizontal)
         }
     }
 
@@ -400,7 +412,11 @@ struct ProfileView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .background(AppColors.negative.opacity(0.08))
+        .background(
+            RoundedRectangle(cornerRadius: CornerRadius.md)
+                .fill(AppColors.negative.opacity(0.08))
+        )
+        .padding(.horizontal)
     }
 
     // MARK: - Functions

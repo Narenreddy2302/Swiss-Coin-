@@ -63,6 +63,8 @@ struct AddSubscriptionView: View {
                 scheduleSection
                 notesSection
             }
+            .scrollContentBackground(.hidden)
+            .background(AppColors.backgroundSecondary.ignoresSafeArea())
             .navigationTitle("New Subscription")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -131,8 +133,8 @@ struct AddSubscriptionView: View {
             }
         } header: {
             Text("Details")
-                .font(AppTypography.subheadlineMedium())
         }
+        .listRowBackground(AppColors.cardBackground)
     }
 
     // MARK: - Sharing Section
@@ -179,8 +181,8 @@ struct AddSubscriptionView: View {
             }
         } header: {
             Text("Sharing")
-                .font(AppTypography.subheadlineMedium())
         }
+        .listRowBackground(AppColors.cardBackground)
     }
 
     private var memberChipsView: some View {
@@ -215,8 +217,8 @@ struct AddSubscriptionView: View {
             }
         } header: {
             Text("Schedule")
-                .font(AppTypography.subheadlineMedium())
         }
+        .listRowBackground(AppColors.cardBackground)
     }
 
     // MARK: - Notes Section
@@ -224,11 +226,13 @@ struct AddSubscriptionView: View {
         Section {
             TextEditor(text: $notes)
                 .frame(height: 80)
+                .scrollContentBackground(.hidden)
+                .background(Color.clear)
                 .limitTextLength(to: ValidationLimits.maxNoteLength, text: $notes)
         } header: {
             Text("Notes")
-                .font(AppTypography.subheadlineMedium())
         }
+        .listRowBackground(AppColors.cardBackground)
     }
 
     // MARK: - Helpers

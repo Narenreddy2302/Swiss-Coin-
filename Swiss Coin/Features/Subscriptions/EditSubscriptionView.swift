@@ -73,6 +73,8 @@ struct EditSubscriptionView: View {
                 remindersSection
                 notesSection
             }
+            .scrollContentBackground(.hidden)
+            .background(AppColors.backgroundSecondary.ignoresSafeArea())
             .navigationTitle("Edit Subscription")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -137,8 +139,8 @@ struct EditSubscriptionView: View {
             }
         } header: {
             Text("Subscription Details")
-                .font(AppTypography.subheadlineMedium())
         }
+        .listRowBackground(AppColors.cardBackground)
     }
 
     private var appearanceSection: some View {
@@ -147,8 +149,8 @@ struct EditSubscriptionView: View {
             ColorPickerRow(selectedColor: $selectedColor)
         } header: {
             Text("Appearance")
-                .font(AppTypography.subheadlineMedium())
         }
+        .listRowBackground(AppColors.cardBackground)
     }
 
     private var sharingSection: some View {
@@ -184,8 +186,8 @@ struct EditSubscriptionView: View {
             }
         } header: {
             Text("Sharing")
-                .font(AppTypography.subheadlineMedium())
         }
+        .listRowBackground(AppColors.cardBackground)
     }
 
     private var memberChipsView: some View {
@@ -219,19 +221,21 @@ struct EditSubscriptionView: View {
             }
         } header: {
             Text("Reminders")
-                .font(AppTypography.subheadlineMedium())
         }
+        .listRowBackground(AppColors.cardBackground)
     }
 
     private var notesSection: some View {
         Section {
             TextEditor(text: $notes)
                 .frame(height: 80)
+                .scrollContentBackground(.hidden)
+                .background(Color.clear)
                 .limitTextLength(to: ValidationLimits.maxNoteLength, text: $notes)
         } header: {
             Text("Notes")
-                .font(AppTypography.subheadlineMedium())
         }
+        .listRowBackground(AppColors.cardBackground)
     }
 
     private func saveSubscription() {

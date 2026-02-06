@@ -53,7 +53,7 @@ struct Step1BasicDetailsView: View {
                     .buttonStyle(.plain)
 
                     TextField("0.00", text: $viewModel.amountString)
-                        .font(.system(size: 44, weight: .light, design: .rounded))
+                        .font(.system(size: 44, weight: .bold, design: .rounded))
                         .keyboardType(.decimalPad)
                         .multilineTextAlignment(.trailing)
                         .foregroundColor(AppColors.textPrimary)

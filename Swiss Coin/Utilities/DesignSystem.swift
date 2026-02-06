@@ -258,10 +258,14 @@ enum AppColors {
 
     // MARK: - Interactive Colors
 
-    /// User message bubble
-    static let userBubble = Color.blue
+    /// User message bubble — same gray as incoming for consistent look
+    static let userBubble = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(red: 0.17, green: 0.17, blue: 0.18, alpha: 1) // #2C2C2E
+            : UIColor(red: 0.91, green: 0.91, blue: 0.92, alpha: 1) // #E9E9EB
+    })
 
-    /// Other person message bubble — iMessage-style gray
+    /// Other person message bubble — gray
     static let otherBubble = Color(UIColor { tc in
         tc.userInterfaceStyle == .dark
             ? UIColor(red: 0.17, green: 0.17, blue: 0.18, alpha: 1) // #2C2C2E

@@ -60,10 +60,12 @@ struct PeopleView: View {
                                 showingContactPicker = true
                             } label: {
                                 Image(systemName: "plus")
+                                    .font(.system(size: 17, weight: .semibold))
                             }
                         } else {
                             NavigationLink(destination: AddGroupView()) {
                                 Image(systemName: "plus")
+                                    .font(.system(size: 17, weight: .semibold))
                             }
                             .simultaneousGesture(TapGesture().onEnded {
                                 HapticManager.tap()
