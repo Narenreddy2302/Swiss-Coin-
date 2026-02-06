@@ -170,11 +170,7 @@ struct ProfileView: View {
             .padding(.vertical, Spacing.md)
         }
         .buttonStyle(.plain)
-        .background(
-            RoundedRectangle(cornerRadius: CornerRadius.md)
-                .fill(AppColors.cardBackground)
-        )
-        .padding(.horizontal)
+        .background(AppColors.cardBackground)
     }
 
     private var generalSection: some View {
@@ -182,7 +178,7 @@ struct ProfileView: View {
             Text("GENERAL")
                 .font(AppTypography.footnote())
                 .foregroundColor(AppColors.textSecondary)
-                .padding(.horizontal, Spacing.lg + Spacing.xxs)
+                .padding(.horizontal, Spacing.lg)
 
             VStack(spacing: 0) {
                 HStack {
@@ -224,11 +220,7 @@ struct ProfileView: View {
                 .padding(.horizontal, Spacing.lg)
                 .padding(.vertical, Spacing.md)
             }
-            .background(
-                RoundedRectangle(cornerRadius: CornerRadius.md)
-                    .fill(AppColors.cardBackground)
-            )
-            .padding(.horizontal)
+            .background(AppColors.cardBackground)
         }
     }
 
@@ -237,7 +229,7 @@ struct ProfileView: View {
             Text("NOTIFICATIONS")
                 .font(AppTypography.footnote())
                 .foregroundColor(AppColors.textSecondary)
-                .padding(.horizontal, Spacing.lg + Spacing.xxs)
+                .padding(.horizontal, Spacing.lg)
 
             HStack {
                 Text("Notifications")
@@ -254,11 +246,7 @@ struct ProfileView: View {
             }
             .padding(.horizontal, Spacing.lg)
             .padding(.vertical, Spacing.md)
-            .background(
-                RoundedRectangle(cornerRadius: CornerRadius.md)
-                    .fill(AppColors.cardBackground)
-            )
-            .padding(.horizontal)
+            .background(AppColors.cardBackground)
         }
     }
 
@@ -267,7 +255,7 @@ struct ProfileView: View {
             Text("SECURITY")
                 .font(AppTypography.footnote())
                 .foregroundColor(AppColors.textSecondary)
-                .padding(.horizontal, Spacing.lg + Spacing.xxs)
+                .padding(.horizontal, Spacing.lg)
 
             VStack(spacing: 0) {
                 if biometricType != .none {
@@ -316,11 +304,7 @@ struct ProfileView: View {
                 .padding(.horizontal, Spacing.lg)
                 .padding(.vertical, Spacing.md)
             }
-            .background(
-                RoundedRectangle(cornerRadius: CornerRadius.md)
-                    .fill(AppColors.cardBackground)
-            )
-            .padding(.horizontal)
+            .background(AppColors.cardBackground)
         }
     }
 
@@ -329,7 +313,7 @@ struct ProfileView: View {
             Text("ABOUT")
                 .font(AppTypography.footnote())
                 .foregroundColor(AppColors.textSecondary)
-                .padding(.horizontal, Spacing.lg + Spacing.xxs)
+                .padding(.horizontal, Spacing.lg)
 
             VStack(spacing: 0) {
                 HStack {
@@ -388,11 +372,7 @@ struct ProfileView: View {
                 }
                 .buttonStyle(.plain)
             }
-            .background(
-                RoundedRectangle(cornerRadius: CornerRadius.md)
-                    .fill(AppColors.cardBackground)
-            )
-            .padding(.horizontal)
+            .background(AppColors.cardBackground)
         }
     }
 
@@ -412,11 +392,7 @@ struct ProfileView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .background(
-            RoundedRectangle(cornerRadius: CornerRadius.md)
-                .fill(AppColors.negative.opacity(0.08))
-        )
-        .padding(.horizontal)
+        .background(AppColors.negative.opacity(0.08))
     }
 
     // MARK: - Functions
