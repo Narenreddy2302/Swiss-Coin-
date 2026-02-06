@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import CoreData
 
 struct MessageBubbleView: View {
     @ObservedObject var message: ChatMessage
@@ -123,10 +124,10 @@ struct MessageBubbleView: View {
 
     private var bubbleBackground: some View {
         UnevenRoundedRectangle(
-            topLeading: CornerRadius.lg,
-            bottomLeading: isFromUser ? CornerRadius.lg : Spacing.xs,
-            bottomTrailing: isFromUser ? Spacing.xs : CornerRadius.lg,
-            topTrailing: CornerRadius.lg
+            topLeadingRadius: CornerRadius.lg,
+            bottomLeadingRadius: isFromUser ? CornerRadius.lg : Spacing.xs,
+            bottomTrailingRadius: isFromUser ? Spacing.xs : CornerRadius.lg,
+            topTrailingRadius: CornerRadius.lg
         )
         .fill(isFromUser ? AppColors.userBubble : AppColors.otherBubble)
     }

@@ -193,7 +193,7 @@ struct AddSubscriptionView: View {
                 ForEach(sortedMembers) { member in
                     MemberChip(person: member) {
                         HapticManager.tap()
-                        withAnimation(AppAnimation.quick) {
+                        _ = withAnimation(AppAnimation.quick) {
                             selectedMembers.remove(member)
                         }
                     }
