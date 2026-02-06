@@ -4,6 +4,8 @@ import SwiftUI
 struct MainTabView: View {
     @Environment(\.managedObjectContext) private var viewContext
 
+    @State private var selectedTab = 0
+
     // Fetch unread reminders for People badge (limited for performance)
     @FetchRequest(fetchRequest: {
         let request: NSFetchRequest<Reminder> = Reminder.fetchRequest()
@@ -29,7 +31,7 @@ struct MainTabView: View {
         let request: NSFetchRequest<Subscription> = Subscription.fetchRequest()
         request.sortDescriptors = [NSSortDescriptor(keyPath: \Subscription.nextBillingDate, ascending: true)]
         let threeDaysFromNow: Date = Calendar.current.date(byAdding: .day, value: 3, to: Date()) ?? Date()
-        request.predicate = NSPredicate(format: "isActive == YES AND nextBillingDate <= %@", 
+        request.predicate = NSPredicate(format: "isActive == YES AND nextBillingDate <= %@",
             threeDaysFromNow as NSDate)
         request.fetchLimit = 99
         return request
@@ -48,28 +50,32 @@ struct MainTabView: View {
     }
 
     var body: some View {
-        TabView {
+        TabView(selection: $selectedTab) {
             HomeView()
                 .tabItem {
                     Label("Home", systemImage: "house.fill")
                 }
+                .tag(0)
 
             PeopleView()
                 .tabItem {
                     Label("People", systemImage: "person.2.fill")
                 }
                 .badge(peopleBadge > 0 ? peopleBadge : 0)
+                .tag(1)
 
             SubscriptionView()
                 .tabItem {
                     Label("Subscriptions", systemImage: "creditcard.fill")
                 }
                 .badge(subscriptionsBadge > 0 ? subscriptionsBadge : 0)
+                .tag(2)
 
             SearchView()
                 .tabItem {
                     Label("Search", systemImage: "magnifyingglass")
                 }
+                .tag(3)
         }
         .tint(AppColors.textPrimary)
     }

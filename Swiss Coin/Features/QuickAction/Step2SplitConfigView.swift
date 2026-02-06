@@ -62,12 +62,23 @@ struct Step2SplitConfigView: View {
                         SelectedPayerCard(viewModel: viewModel)
                     }
                 }
+                .transition(.opacity.combined(with: .move(edge: .top)))
 
                 // MARK: Split With Section
                 VStack(alignment: .leading, spacing: Spacing.sm) {
-                    Text("Split with (\(viewModel.participantIds.count))")
-                        .font(AppTypography.subheadlineMedium())
-                        .foregroundColor(AppColors.textSecondary)
+                    HStack {
+                        Text("Split with")
+                            .font(AppTypography.subheadlineMedium())
+                            .foregroundColor(AppColors.textSecondary)
+
+                        Text("\(viewModel.participantIds.count)")
+                            .font(AppTypography.caption())
+                            .foregroundColor(AppColors.buttonForeground)
+                            .padding(.horizontal, Spacing.xs)
+                            .padding(.vertical, Spacing.xxs)
+                            .background(AppColors.accent)
+                            .clipShape(Capsule())
+                    }
 
                     SearchBarView(
                         placeholder: "Search contacts or groups...",
@@ -84,6 +95,7 @@ struct Step2SplitConfigView: View {
                     } else {
                         if let group = viewModel.selectedGroup {
                             SelectedGroupBadge(group: group) {
+                                HapticManager.tap()
                                 viewModel.clearSelectedGroup()
                             }
                         }
@@ -91,6 +103,7 @@ struct Step2SplitConfigView: View {
                         ParticipantsListView(viewModel: viewModel)
                     }
                 }
+                .transition(.opacity.combined(with: .move(edge: .top)))
             }
 
             // MARK: Navigation Buttons
@@ -185,6 +198,7 @@ struct PaidBySearchView: View {
 
             VStack(spacing: 0) {
                 Button {
+                    HapticManager.selectionChanged()
                     viewModel.selectPayer(nil)
                 } label: {
                     HStack(spacing: Spacing.md) {
@@ -211,6 +225,7 @@ struct PaidBySearchView: View {
                         .padding(.leading, Spacing.xxl + Spacing.xl)
 
                     Button {
+                        HapticManager.selectionChanged()
                         viewModel.selectPayer(person)
                     } label: {
                         HStack(spacing: Spacing.md) {
@@ -239,6 +254,7 @@ struct PaidBySearchView: View {
             }
 
             Button {
+                HapticManager.tap()
                 withAnimation {
                     viewModel.isPaidBySearchFocused = false
                     viewModel.paidBySearchText = ""
@@ -264,8 +280,9 @@ struct SplitWithSearchResultsView: View {
                     .foregroundColor(AppColors.textSecondary)
                     .padding(.vertical, Spacing.sm)
 
-                ForEach(viewModel.filteredSplitWithGroups, id: \.self) { group in
+                ForEach(viewModel.filteredSplitWithGroups, id: \.objectID) { group in
                     Button {
+                        HapticManager.selectionChanged()
                         viewModel.selectGroup(group)
                     } label: {
                         HStack(spacing: Spacing.md) {
@@ -298,15 +315,17 @@ struct SplitWithSearchResultsView: View {
                     .foregroundColor(AppColors.textSecondary)
                     .padding(.vertical, Spacing.sm)
 
-                ForEach(viewModel.filteredSplitWithContacts, id: \.self) { person in
+                ForEach(viewModel.filteredSplitWithContacts.filter { $0.id != nil }, id: \.objectID) { person in
+                    let personId = person.id!
                     Button {
+                        HapticManager.selectionChanged()
                         viewModel.addParticipantFromSearch(person)
                     } label: {
                         HStack(spacing: Spacing.md) {
                             PersonAvatar(
                                 initials: person.initials,
                                 isCurrentUser: false,
-                                isSelected: viewModel.participantIds.contains(person.id ?? UUID()),
+                                isSelected: viewModel.participantIds.contains(personId),
                                 size: 44
                             )
                             Text(person.displayName)
@@ -314,7 +333,7 @@ struct SplitWithSearchResultsView: View {
                                 .foregroundColor(AppColors.textPrimary)
                                 .lineLimit(1)
                             Spacer()
-                            if viewModel.participantIds.contains(person.id ?? UUID()) {
+                            if viewModel.participantIds.contains(personId) {
                                 Image(systemName: "checkmark")
                                     .font(.system(size: 17, weight: .semibold))
                                     .foregroundColor(AppColors.accent)
@@ -349,6 +368,7 @@ struct ParticipantsListView: View {
             let meSelected = viewModel.participantIds.contains(viewModel.currentUserUUID)
 
             Button {
+                HapticManager.selectionChanged()
                 viewModel.toggleParticipant(viewModel.currentUserUUID)
             } label: {
                 participantRow(
@@ -360,15 +380,15 @@ struct ParticipantsListView: View {
             .buttonStyle(.plain)
 
             // Other people
-            ForEach(Array(viewModel.allPeople.prefix(50).enumerated()), id: \.element.objectID) {
-                index, person in
-                let personId = person.id ?? UUID()
+            ForEach(viewModel.allPeople.filter { $0.id != nil }, id: \.objectID) { person in
+                let personId = person.id!
                 let isSelected = viewModel.participantIds.contains(personId)
 
                 Divider()
                     .padding(.leading, Spacing.xxl + Spacing.xl)
 
                 Button {
+                    HapticManager.selectionChanged()
                     viewModel.toggleParticipant(personId)
                 } label: {
                     participantRow(

@@ -3,6 +3,7 @@ import SwiftUI
 
 struct HomeView: View {
     @Environment(\.managedObjectContext) private var viewContext
+    @Environment(\.scenePhase) private var scenePhase
 
     // Fetch last 5 transactions (limited at fetch level for efficiency)
     @FetchRequest(fetchRequest: {
@@ -33,6 +34,9 @@ struct HomeView: View {
 
     @State private var showingProfile = false
     @StateObject private var quickActionViewModel = QuickActionViewModel(context: PersistenceController.shared.container.viewContext)
+
+    /// Tracks the last time data was refreshed to debounce rapid refreshes
+    @State private var lastRefreshDate = Date.distantPast
 
     // MARK: - Computed Properties
 
@@ -160,8 +164,7 @@ struct HomeView: View {
             }
             .background(AppColors.backgroundSecondary)
             .refreshable {
-                // Force CoreData to re-fetch by touching the context
-                viewContext.refreshAllObjects()
+                refreshData()
                 HapticManager.lightTap()
             }
             .navigationTitle("Home")
@@ -182,8 +185,37 @@ struct HomeView: View {
             }
             .onAppear {
                 quickActionViewModel.setup(context: viewContext)
+                refreshIfStale()
+            }
+            .onChange(of: scenePhase) { _, newPhase in
+                if newPhase == .active {
+                    refreshIfStale()
+                }
+            }
+            .onReceive(
+                NotificationCenter.default.publisher(for: .NSManagedObjectContextDidSave)
+            ) { _ in
+                refreshIfStale()
             }
         }
+    }
+
+    // MARK: - Refresh Helpers
+
+    /// Refresh only if enough time has elapsed since the last refresh (debounce).
+    /// Prevents redundant refreshes when multiple triggers fire in quick succession
+    /// (e.g., tab switch + save notification arriving simultaneously).
+    private func refreshIfStale() {
+        guard Date().timeIntervalSince(lastRefreshDate) > 0.5 else { return }
+        refreshData()
+    }
+
+    /// Invalidate all faulted CoreData objects so @FetchRequest results and
+    /// relationship-dependent computed properties (balances) reflect the latest
+    /// persistent store state.
+    private func refreshData() {
+        viewContext.refreshAllObjects()
+        lastRefreshDate = Date()
     }
 }
 

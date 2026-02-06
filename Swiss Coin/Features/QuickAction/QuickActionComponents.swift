@@ -41,8 +41,8 @@ struct QuickActionSheetPresenter: View {
         NavigationStack {
             VStack(spacing: 0) {
                 // Step Indicator Dots
-                HStack(spacing: 6) {
-                    ForEach(1...3, id: \.self) { step in
+                HStack(spacing: Spacing.xs) {
+                    ForEach(1...viewModel.totalSteps, id: \.self) { step in
                         Circle()
                             .fill(
                                 step <= viewModel.currentStep
@@ -51,12 +51,13 @@ struct QuickActionSheetPresenter: View {
                             .frame(width: 8, height: 8)
                     }
                 }
-                .padding(.top, 8)
-                .padding(.bottom, 12)
+                .animation(AppAnimation.standard, value: viewModel.totalSteps)
+                .padding(.top, Spacing.sm)
+                .padding(.bottom, Spacing.md)
 
                 // Step Content
                 ScrollView {
-                    VStack(spacing: 20) {
+                    VStack(spacing: Spacing.lg) {
                         switch viewModel.currentStep {
                         case 1:
                             Step1BasicDetailsView(viewModel: viewModel)
@@ -68,38 +69,32 @@ struct QuickActionSheetPresenter: View {
                             EmptyView()
                         }
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 40)
+                    .padding(.horizontal, Spacing.lg)
+                    .padding(.bottom, Spacing.xxl)
                 }
             }
-            .background(AppColors.groupedBackground)
+            .background(AppColors.backgroundSecondary)
             .navigationTitle(navigationTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {
+                        HapticManager.tap()
                         dismiss()
-                    }
-                }
-
-                ToolbarItem(placement: .confirmationAction) {
-                    if viewModel.currentStep == 3
-                        || (viewModel.currentStep == 2 && !viewModel.isSplit)
-                    {
-                        Button("Done") {
-                            viewModel.saveTransaction()
-                            if !viewModel.showingError {
-                                dismiss()
-                            }
-                        }
-                        .fontWeight(.semibold)
                     }
                 }
             }
             .alert("Error", isPresented: $viewModel.showingError) {
-                Button("OK", role: .cancel) {}
+                Button("OK", role: .cancel) {
+                    HapticManager.tap()
+                }
             } message: {
                 Text(viewModel.errorMessage)
+            }
+            .onChange(of: viewModel.isSheetPresented) { _, isPresented in
+                if !isPresented {
+                    dismiss()
+                }
             }
         }
     }
@@ -163,10 +158,10 @@ struct SearchBarView: View {
     var onFocus: (() -> Void)? = nil
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: Spacing.sm) {
             Image(systemName: "magnifyingglass")
-                .font(.system(size: 16))
-                .foregroundColor(.secondary)
+                .font(.system(size: IconSize.sm))
+                .foregroundColor(AppColors.textSecondary)
 
             TextField(
                 placeholder, text: $text,
@@ -176,23 +171,23 @@ struct SearchBarView: View {
                     }
                 }
             )
-            .font(.system(size: 17))
+            .font(AppTypography.body())
 
             if !text.isEmpty {
                 Button {
                     text = ""
                 } label: {
                     Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 16))
-                        .foregroundColor(.secondary)
+                        .font(.system(size: IconSize.sm))
+                        .foregroundColor(AppColors.textSecondary)
                 }
                 .accessibilityLabel("Clear search")
             }
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
+        .padding(.horizontal, Spacing.md)
+        .padding(.vertical, Spacing.sm)
         .background(AppColors.surface)
-        .cornerRadius(10)
+        .cornerRadius(CornerRadius.sm)
     }
 }
 
