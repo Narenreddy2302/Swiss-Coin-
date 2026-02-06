@@ -185,6 +185,7 @@ struct PaidBySearchView: View {
 
             VStack(spacing: 0) {
                 Button {
+                    HapticManager.selectionChanged()
                     viewModel.selectPayer(nil)
                 } label: {
                     HStack(spacing: Spacing.md) {
@@ -211,6 +212,7 @@ struct PaidBySearchView: View {
                         .padding(.leading, Spacing.xxl + Spacing.xl)
 
                     Button {
+                        HapticManager.selectionChanged()
                         viewModel.selectPayer(person)
                     } label: {
                         HStack(spacing: Spacing.md) {
@@ -239,6 +241,7 @@ struct PaidBySearchView: View {
             }
 
             Button {
+                HapticManager.tap()
                 withAnimation {
                     viewModel.isPaidBySearchFocused = false
                     viewModel.paidBySearchText = ""
@@ -266,6 +269,7 @@ struct SplitWithSearchResultsView: View {
 
                 ForEach(viewModel.filteredSplitWithGroups, id: \.self) { group in
                     Button {
+                        HapticManager.selectionChanged()
                         viewModel.selectGroup(group)
                     } label: {
                         HStack(spacing: Spacing.md) {
@@ -300,6 +304,7 @@ struct SplitWithSearchResultsView: View {
 
                 ForEach(viewModel.filteredSplitWithContacts, id: \.self) { person in
                     Button {
+                        HapticManager.selectionChanged()
                         viewModel.addParticipantFromSearch(person)
                     } label: {
                         HStack(spacing: Spacing.md) {
@@ -349,6 +354,7 @@ struct ParticipantsListView: View {
             let meSelected = viewModel.participantIds.contains(viewModel.currentUserUUID)
 
             Button {
+                HapticManager.selectionChanged()
                 viewModel.toggleParticipant(viewModel.currentUserUUID)
             } label: {
                 participantRow(
@@ -369,6 +375,7 @@ struct ParticipantsListView: View {
                     .padding(.leading, Spacing.xxl + Spacing.xl)
 
                 Button {
+                    HapticManager.selectionChanged()
                     viewModel.toggleParticipant(personId)
                 } label: {
                     participantRow(

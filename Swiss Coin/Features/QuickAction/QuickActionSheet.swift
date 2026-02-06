@@ -17,7 +17,7 @@ struct QuickActionSheet: View {
 
                 // MARK: Step Indicator Dots
                 HStack(spacing: Spacing.xs) {
-                    ForEach(1...3, id: \.self) { step in
+                    ForEach(1...viewModel.totalSteps, id: \.self) { step in
                         Circle()
                             .fill(
                                 step <= viewModel.currentStep
@@ -26,6 +26,7 @@ struct QuickActionSheet: View {
                             .frame(width: 8, height: 8)
                     }
                 }
+                .animation(AppAnimation.standard, value: viewModel.totalSteps)
                 .padding(.top, Spacing.sm)
                 .padding(.bottom, Spacing.md)
 
@@ -52,25 +53,10 @@ struct QuickActionSheet: View {
             .navigationTitle(navigationTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                // Cancel button (left)
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {
                         HapticManager.tap()
                         viewModel.closeSheet()
-                    }
-                }
-
-                // Done button (right) - only shown on final step
-                ToolbarItem(placement: .confirmationAction) {
-                    if viewModel.currentStep == 3
-                        || (viewModel.currentStep == 2 && !viewModel.isSplit)
-                    {
-                        Button("Done") {
-                            HapticManager.tap()
-                            viewModel.saveTransaction()
-                        }
-                        .font(AppTypography.bodyBold())
-                        .foregroundColor(AppColors.accent)
                     }
                 }
             }

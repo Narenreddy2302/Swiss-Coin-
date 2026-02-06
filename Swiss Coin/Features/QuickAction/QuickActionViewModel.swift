@@ -29,6 +29,11 @@ class QuickActionViewModel: ObservableObject {
 
     @Published var currentStep: Int = 1
 
+    /// Number of steps in the flow: 2 for personal transactions, 3 for split
+    var totalSteps: Int {
+        isSplit ? 3 : 2
+    }
+
     // MARK: - Step 1: Basic Transaction Details
 
     @Published var amountString: String = ""
