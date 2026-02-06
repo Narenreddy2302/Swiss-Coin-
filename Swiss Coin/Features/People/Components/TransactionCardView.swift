@@ -12,6 +12,7 @@ struct TransactionCardView: View {
     let person: Person
     var onEdit: (() -> Void)? = nil
     var onViewDetails: (() -> Void)? = nil
+    var onUndo: (() -> Void)? = nil
     var onDelete: (() -> Void)? = nil
 
     @State private var isPressed = false
@@ -128,6 +129,14 @@ struct TransactionCardView: View {
             if pressing { HapticManager.tap() }
         }, perform: {})
         .contextMenu {
+            // Copy Amount — most common quick action
+            Button {
+                UIPasteboard.general.string = CurrencyFormatter.format(transaction.amount)
+                HapticManager.tap()
+            } label: {
+                Label("Copy Amount", systemImage: "doc.on.doc")
+            }
+
             if let onViewDetails {
                 Button {
                     HapticManager.tap()
@@ -137,20 +146,21 @@ struct TransactionCardView: View {
                 }
             }
 
-            // Copy Amount
-            Button {
-                UIPasteboard.general.string = CurrencyFormatter.format(transaction.amount)
-                HapticManager.tap()
-            } label: {
-                Label("Copy Amount", systemImage: "doc.on.doc")
-            }
-
             if let onEdit {
                 Button {
                     HapticManager.tap()
                     onEdit()
                 } label: {
                     Label("Edit", systemImage: "pencil")
+                }
+            }
+
+            if let onUndo {
+                Button {
+                    HapticManager.tap()
+                    onUndo()
+                } label: {
+                    Label("Undo", systemImage: "arrow.uturn.backward")
                 }
             }
 

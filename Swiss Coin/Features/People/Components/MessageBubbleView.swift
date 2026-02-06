@@ -127,7 +127,7 @@ struct MessageBubbleView: View {
             bottomTrailing: isFromUser ? Spacing.xs : CornerRadius.lg,
             topTrailing: CornerRadius.lg
         )
-        .fill(isFromUser ? AppColors.accent : AppColors.cardBackground)
+        .fill(isFromUser ? AppColors.userBubble : AppColors.otherBubble)
     }
 
     // MARK: - Edit Mode
