@@ -36,6 +36,11 @@ struct PersonConversationView: View {
         person.getGroupedConversationItems()
     }
 
+    /// Total count of all conversation items across all date groups (used for scroll trigger)
+    private var totalItemCount: Int {
+        groupedItems.reduce(0) { $0 + $1.items.count }
+    }
+
     // Balance display properties (for navigation bar)
     private var balanceLabel: String {
         if balance > 0.01 { return "owes you" }
@@ -84,7 +89,7 @@ struct PersonConversationView: View {
                     hapticGenerator.prepare()
                     scrollToBottom(proxy)
                 }
-                .onChange(of: groupedItems.count) { _, _ in
+                .onChange(of: totalItemCount) { _, _ in
                     withAnimation {
                         scrollToBottom(proxy)
                     }

@@ -245,17 +245,10 @@ struct PersonDetailView: View {
         }
     }
 
-    // Helper to combine "Paid By" and "Owed In" transactions
+    /// Get only mutual transactions (where both you and this person are involved)
+    /// sorted by most recent first, limited to 10 for detail view performance.
     private var combinedTransactions: [FinancialTransaction] {
-        let paid = person.toTransactions as? Set<FinancialTransaction> ?? []
-        let owedSplits = person.owedSplits as? Set<TransactionSplit> ?? []
-        let owedTransactions = owedSplits.compactMap { $0.transaction }
-
-        let all = paid.union(owedTransactions)
-        return Array(all)
-            .sorted { ($0.date ?? Date()) > ($1.date ?? Date()) }
-            .prefix(10)
-            .map { $0 }
+        return Array(person.getMutualTransactions().prefix(10))
     }
 }
 

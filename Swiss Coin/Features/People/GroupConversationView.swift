@@ -38,6 +38,11 @@ struct GroupConversationView: View {
         group.getGroupedConversationItems()
     }
 
+    /// Total count of all conversation items across all date groups (used for scroll trigger)
+    private var totalItemCount: Int {
+        groupedItems.reduce(0) { $0 + $1.items.count }
+    }
+
     // Balance display properties (for navigation bar)
     private var balanceLabel: String {
         if balance > 0.01 { return "you're owed" }
@@ -90,7 +95,7 @@ struct GroupConversationView: View {
                     hapticGenerator.prepare()
                     scrollToBottom(proxy)
                 }
-                .onChange(of: groupedItems.count) { _, _ in
+                .onChange(of: totalItemCount) { _, _ in
                     withAnimation {
                         scrollToBottom(proxy)
                     }
@@ -100,6 +105,7 @@ struct GroupConversationView: View {
             // Action Bar
             GroupConversationActionBar(
                 balance: balance,
+                memberBalances: group.getMemberBalances(),
                 membersWhoOweYou: group.getMembersWhoOweYou(),
                 onAdd: { showingAddTransaction = true },
                 onSettle: { showingSettlement = true },
@@ -402,13 +408,15 @@ struct GroupConversationView: View {
 
 struct GroupConversationActionBar: View {
     let balance: Double
+    let memberBalances: [(member: Person, balance: Double)]
     let membersWhoOweYou: [(member: Person, amount: Double)]
     let onAdd: () -> Void
     let onSettle: () -> Void
     let onRemind: () -> Void
 
+    /// Enable settle if ANY member has a non-zero balance (not just net group total)
     private var canSettle: Bool {
-        abs(balance) > 0.01
+        memberBalances.contains { abs($0.balance) > 0.01 }
     }
 
     private var canRemind: Bool {

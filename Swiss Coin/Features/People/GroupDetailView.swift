@@ -16,12 +16,13 @@ struct GroupDetailView: View {
         group.calculateBalance()
     }
 
-    private var canSettle: Bool {
-        abs(balance) > 0.01
-    }
-
     private var memberBalances: [(member: Person, balance: Double)] {
         group.getMemberBalances()
+    }
+
+    /// Enable settle if ANY member has a non-zero balance (not just net group total)
+    private var canSettle: Bool {
+        memberBalances.contains { abs($0.balance) > 0.01 }
     }
 
     var body: some View {
