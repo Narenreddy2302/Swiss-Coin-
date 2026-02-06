@@ -24,94 +24,152 @@ struct NewTransactionContactView: View {
 
     var body: some View {
         NavigationStack {
-            VStack {
+            ZStack {
+                AppColors.backgroundSecondary
+                    .ignoresSafeArea()
+
                 if contactsManager.authorizationStatus == .authorized {
-                    List {
-                        // WhatsApp Style Header Rows
-                        Section {
-                            NavigationLink(destination: AddGroupView()) {
-                                HStack {
-                                    Image(systemName: "person.2.fill")
-                                        .foregroundColor(AppColors.accent)
-                                        .frame(width: AvatarSize.md, height: AvatarSize.md)
-                                        .background(AppColors.accent.opacity(0.1))
-                                        .clipShape(Circle())
-                                    Text("New Group")
-                                        .font(AppTypography.headline())
-                                        .foregroundColor(AppColors.accent)
-                                }
-                            }
-
-                            NavigationLink(destination: AddPersonView()) {
-                                HStack {
-                                    Image(systemName: "person.fill.badge.plus")
-                                        .foregroundColor(AppColors.accent)
-                                        .frame(width: AvatarSize.md, height: AvatarSize.md)
-                                        .background(AppColors.accent.opacity(0.1))
-                                        .clipShape(Circle())
-                                    Text("New Contact")
-                                        .font(AppTypography.headline())
-                                        .foregroundColor(AppColors.accent)
-                                }
-                            }
-                        }
-
-                        // Contacts List - Clean, borderless style
-                        ForEach(Array(filteredContacts.enumerated()), id: \.element.id) { index, contact in
-                            Button(action: {
-                                selectContact(contact)
-                            }) {
-                                HStack(spacing: Spacing.md) {
-                                    if let data = contact.thumbnailImageData,
-                                        let uiImage = UIImage(data: data)
-                                    {
-                                        Image(uiImage: uiImage)
-                                            .resizable()
-                                            .scaledToFill()
+                    ScrollView {
+                        LazyVStack(alignment: .leading, spacing: Spacing.xxl) {
+                            // Action rows
+                            VStack(spacing: 0) {
+                                NavigationLink(destination: AddGroupView()) {
+                                    HStack(spacing: Spacing.md) {
+                                        Image(systemName: "person.2.fill")
+                                            .foregroundColor(AppColors.accent)
                                             .frame(width: AvatarSize.md, height: AvatarSize.md)
+                                            .background(AppColors.accent.opacity(0.1))
                                             .clipShape(Circle())
-                                    } else {
-                                        ZStack {
-                                            Circle()
-                                                .fill(AppColors.backgroundSecondary)
-                                            Text(contact.initials)
-                                                .font(AppTypography.caption())
-                                                .foregroundColor(AppColors.textSecondary)
-                                        }
-                                        .frame(width: AvatarSize.md, height: AvatarSize.md)
+                                        Text("New Group")
+                                            .font(AppTypography.headline())
+                                            .foregroundColor(AppColors.accent)
+                                        Spacer()
+                                        Image(systemName: "chevron.right")
+                                            .font(.system(size: IconSize.xs, weight: .semibold))
+                                            .foregroundColor(AppColors.textTertiary)
                                     }
-
-                                    VStack(alignment: .leading, spacing: Spacing.xxs) {
-                                        Text(contact.fullName)
-                                            .font(AppTypography.body())
-                                            .foregroundColor(AppColors.textPrimary)
-                                            .lineLimit(1)
-                                        if let phone = contact.phoneNumbers.first {
-                                            Text(phone)
-                                                .font(AppTypography.caption())
-                                                .foregroundColor(AppColors.textSecondary)
-                                        }
-                                    }
-
-                                    Spacer()
+                                    .padding(.vertical, Spacing.md)
+                                    .padding(.horizontal, Spacing.lg)
+                                    .contentShape(Rectangle())
                                 }
-                                .padding(.vertical, Spacing.xs)
-                            }
-                            .buttonStyle(PlainButtonStyle())
-                            .simultaneousGesture(TapGesture().onEnded {
-                                HapticManager.selectionChanged()
-                            })
-                            
-                            if index < filteredContacts.count - 1 {
+                                .buttonStyle(PlainButtonStyle())
+
                                 Divider()
-                                    .padding(.leading, AvatarSize.md + Spacing.md + Spacing.lg)
+
+                                NavigationLink(destination: AddPersonView()) {
+                                    HStack(spacing: Spacing.md) {
+                                        Image(systemName: "person.fill.badge.plus")
+                                            .foregroundColor(AppColors.accent)
+                                            .frame(width: AvatarSize.md, height: AvatarSize.md)
+                                            .background(AppColors.accent.opacity(0.1))
+                                            .clipShape(Circle())
+                                        Text("New Contact")
+                                            .font(AppTypography.headline())
+                                            .foregroundColor(AppColors.accent)
+                                        Spacer()
+                                        Image(systemName: "chevron.right")
+                                            .font(.system(size: IconSize.xs, weight: .semibold))
+                                            .foregroundColor(AppColors.textTertiary)
+                                    }
+                                    .padding(.vertical, Spacing.md)
+                                    .padding(.horizontal, Spacing.lg)
+                                    .contentShape(Rectangle())
+                                }
+                                .buttonStyle(PlainButtonStyle())
+
+                                Divider()
+                            }
+
+                            // Phone Contacts section
+                            if !filteredContacts.isEmpty {
+                                VStack(alignment: .leading, spacing: Spacing.sm) {
+                                    HStack(spacing: Spacing.sm) {
+                                        Image(systemName: "phone.fill")
+                                            .font(.system(size: IconSize.sm, weight: .medium))
+                                            .foregroundColor(AppColors.accent)
+
+                                        Text("Contacts")
+                                            .font(AppTypography.headline())
+                                            .foregroundColor(AppColors.textPrimary)
+
+                                        Spacer()
+
+                                        Text("\(filteredContacts.count)")
+                                            .font(AppTypography.caption())
+                                            .foregroundColor(AppColors.textSecondary)
+                                            .padding(.horizontal, Spacing.sm)
+                                            .padding(.vertical, Spacing.xxs)
+                                            .background(
+                                                Capsule()
+                                                    .fill(AppColors.surface.opacity(0.8))
+                                            )
+                                    }
+                                    .padding(.horizontal)
+
+                                    LazyVStack(spacing: 0) {
+                                        ForEach(Array(filteredContacts.enumerated()), id: \.element.id) { index, contact in
+                                            Button(action: {
+                                                selectContact(contact)
+                                            }) {
+                                                HStack(spacing: Spacing.md) {
+                                                    if let data = contact.thumbnailImageData,
+                                                        let uiImage = UIImage(data: data)
+                                                    {
+                                                        Image(uiImage: uiImage)
+                                                            .resizable()
+                                                            .scaledToFill()
+                                                            .frame(width: AvatarSize.md, height: AvatarSize.md)
+                                                            .clipShape(Circle())
+                                                    } else {
+                                                        Circle()
+                                                            .fill(AppColors.accent.opacity(0.15))
+                                                            .frame(width: AvatarSize.md, height: AvatarSize.md)
+                                                            .overlay(
+                                                                Text(contact.initials)
+                                                                    .font(AppTypography.headline())
+                                                                    .foregroundColor(AppColors.accent)
+                                                            )
+                                                    }
+
+                                                    VStack(alignment: .leading, spacing: Spacing.xs) {
+                                                        Text(contact.fullName)
+                                                            .font(AppTypography.body())
+                                                            .foregroundColor(AppColors.textPrimary)
+                                                            .lineLimit(1)
+                                                        if let phone = contact.phoneNumbers.first {
+                                                            Text(phone)
+                                                                .font(AppTypography.caption())
+                                                                .foregroundColor(AppColors.textSecondary)
+                                                        }
+                                                    }
+
+                                                    Spacer()
+
+                                                    Image(systemName: "chevron.right")
+                                                        .font(.system(size: IconSize.xs, weight: .semibold))
+                                                        .foregroundColor(AppColors.textTertiary)
+                                                }
+                                                .padding(.vertical, Spacing.md)
+                                                .padding(.horizontal, Spacing.lg)
+                                                .contentShape(Rectangle())
+                                            }
+                                            .buttonStyle(PlainButtonStyle())
+                                            .simultaneousGesture(TapGesture().onEnded {
+                                                HapticManager.selectionChanged()
+                                            })
+
+                                            if index < filteredContacts.count - 1 {
+                                                Divider()
+                                                    .padding(.leading, AvatarSize.md + Spacing.md + Spacing.lg)
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
+                        .padding(.top, Spacing.sm)
+                        .padding(.bottom, Spacing.section)
                     }
-                    .listStyle(.plain)
-                    .scrollContentBackground(.hidden)
-                    .searchable(
-                        text: $searchText, placement: .navigationBarDrawer(displayMode: .always))
                 } else if contactsManager.authorizationStatus == .denied {
                     VStack(spacing: Spacing.xl) {
                         Image(systemName: "person.crop.circle.badge.exclamationmark")
@@ -119,6 +177,7 @@ struct NewTransactionContactView: View {
                             .foregroundColor(AppColors.warning)
                         Text("Access Denied")
                             .font(AppTypography.title2())
+                            .foregroundColor(AppColors.textPrimary)
                         Text("Please enable contact access in Settings.")
                             .font(AppTypography.subheadline())
                             .multilineTextAlignment(.center)
@@ -128,8 +187,9 @@ struct NewTransactionContactView: View {
                                 UIApplication.shared.open(url)
                             }
                         }
+                        .buttonStyle(PrimaryButtonStyle())
                     }
-                    .padding()
+                    .padding(Spacing.xxl)
                 } else {
                     VStack(spacing: Spacing.xl) {
                         Image(systemName: "person.2.circle")
@@ -137,14 +197,15 @@ struct NewTransactionContactView: View {
                             .foregroundColor(AppColors.accent)
                         Text("Load Contacts")
                             .font(AppTypography.title2())
+                            .foregroundColor(AppColors.textPrimary)
                         Button("Continue") {
                             Task {
                                 await contactsManager.requestAccess()
                             }
                         }
-                        .buttonStyle(.borderedProminent)
+                        .buttonStyle(PrimaryButtonStyle())
                     }
-                    .padding()
+                    .padding(Spacing.xxl)
                 }
             }
             .navigationTitle("New Message")
@@ -155,15 +216,14 @@ struct NewTransactionContactView: View {
                     }
                 }
             }
-
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(AppColors.backgroundSecondary)
             .navigationDestination(isPresented: $navigateToAddTransaction) {
                 if let person = selectedPersonForTransaction {
                     PersonDetailView(person: person)
                 }
             }
         }
+        .searchable(
+            text: $searchText, placement: .navigationBarDrawer(displayMode: .always))
         .task {
             if contactsManager.authorizationStatus == .authorized {
                 await contactsManager.fetchContacts()
