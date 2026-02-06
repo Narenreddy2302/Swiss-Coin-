@@ -32,7 +32,7 @@ struct HomeView: View {
     private var activeSubscriptions: FetchedResults<Subscription>
 
     @State private var showingProfile = false
-    @State private var showingSettleSheet = false
+    @StateObject private var quickActionViewModel = QuickActionViewModel(context: PersistenceController.shared.container.viewContext)
 
     // MARK: - Computed Properties
 
@@ -72,104 +72,97 @@ struct HomeView: View {
 
     var body: some View {
         NavigationStack {
-            ZStack {
-                ScrollView {
-                    VStack(spacing: Spacing.xxl) {
-                        // Summary Section (Hero-like)
-                        VStack(alignment: .leading, spacing: Spacing.md) {
-                            Text("Summary")
-                                .font(AppTypography.title2())
-                                .foregroundColor(AppColors.textPrimary)
-                                .padding(.horizontal)
+            ScrollView {
+                VStack(spacing: Spacing.xxl) {
+                    // Summary Section (Hero-like)
+                    VStack(alignment: .leading, spacing: Spacing.md) {
+                        Text("Summary")
+                            .font(AppTypography.title2())
+                            .foregroundColor(AppColors.textPrimary)
+                            .padding(.horizontal)
 
-                            ScrollView(.horizontal, showsIndicators: false) {
-                                HStack(spacing: Spacing.lg) {
-                                    SummaryCard(
-                                        title: "You Owe",
-                                        amount: totalYouOwe,
-                                        color: AppColors.negative,
-                                        icon: "arrow.down.left.circle.fill")
-                                    SummaryCard(
-                                        title: "You are Owed",
-                                        amount: totalOwedToYou,
-                                        color: AppColors.positive,
-                                        icon: "arrow.up.right.circle.fill")
-                                    SummaryCard(
-                                        title: "Subscriptions",
-                                        amount: totalMonthlySubscriptions,
-                                        color: .purple,
-                                        icon: "repeat.circle.fill",
-                                        subtitle: "\(activeSubscriptions.count) active /mo")
-                                }
-                                .padding(.horizontal)
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: Spacing.lg) {
+                                SummaryCard(
+                                    title: "You Owe",
+                                    amount: totalYouOwe,
+                                    color: AppColors.negative,
+                                    icon: "arrow.down.left.circle.fill")
+                                SummaryCard(
+                                    title: "You are Owed",
+                                    amount: totalOwedToYou,
+                                    color: AppColors.positive,
+                                    icon: "arrow.up.right.circle.fill")
+                                SummaryCard(
+                                    title: "Subscriptions",
+                                    amount: totalMonthlySubscriptions,
+                                    color: .purple,
+                                    icon: "repeat.circle.fill",
+                                    subtitle: "\(activeSubscriptions.count) active /mo")
                             }
-
-                            // Quick Settle button
-                            if totalYouOwe > 0.01 {
-                                Button {
-                                    HapticManager.tap()
-                                    showingSettleSheet = true
-                                } label: {
-                                    HStack(spacing: Spacing.sm) {
-                                        Image(systemName: "checkmark.circle.fill")
-                                            .font(.system(size: IconSize.sm))
-                                            .accessibilityHidden(true)
-                                        Text("Settle Up")
-                                            .font(AppTypography.subheadlineMedium())
-                                    }
-                                    .foregroundColor(AppColors.buttonForeground)
-                                    .frame(maxWidth: .infinity)
-                                    .frame(height: ButtonHeight.md)
-                                    .background(AppColors.buttonBackground)
-                                    .cornerRadius(CornerRadius.md)
-                                }
-                                .buttonStyle(AppButtonStyle(haptic: .none))
-                                .padding(.horizontal)
-                            }
+                            .padding(.horizontal)
                         }
 
-                        Divider()
-                            .padding(.horizontal)
-
-                        // Recent Activity (Up Next style)
-                        VStack(alignment: .leading, spacing: Spacing.sm) {
-                            HStack {
-                                Text("Recent Activity")
-                                    .font(AppTypography.title2())
-                                    .foregroundColor(AppColors.textPrimary)
-                                Spacer()
-                                NavigationLink(destination: TransactionHistoryView()) {
-                                    Text("See All")
-                                        .font(AppTypography.body())
-                                        .foregroundColor(AppColors.accent)
-                                }
+                        // Add Transaction button
+                        Button {
+                            HapticManager.tap()
+                            quickActionViewModel.openSheet()
+                        } label: {
+                            HStack(spacing: Spacing.sm) {
+                                Image(systemName: "plus.circle.fill")
+                                    .font(.system(size: IconSize.sm))
+                                    .accessibilityHidden(true)
+                                Text("Add Transaction")
+                                    .font(AppTypography.subheadlineMedium())
                             }
-                            .padding(.horizontal)
+                            .foregroundColor(AppColors.buttonForeground)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: ButtonHeight.md)
+                            .background(AppColors.buttonBackground)
+                            .cornerRadius(CornerRadius.md)
+                        }
+                        .buttonStyle(AppButtonStyle(haptic: .none))
+                        .padding(.horizontal)
+                    }
 
-                            if recentTransactions.isEmpty {
-                                EmptyStateView()
-                            } else {
-                                LazyVStack(spacing: 0) {
-                                    ForEach(recentTransactions, id: \.id) { transaction in
-                                        TransactionRowView(transaction: transaction)
-                                        Divider()
-                                    }
+                    Divider()
+                        .padding(.horizontal)
+
+                    // Recent Activity (Up Next style)
+                    VStack(alignment: .leading, spacing: Spacing.sm) {
+                        HStack {
+                            Text("Recent Activity")
+                                .font(AppTypography.title2())
+                                .foregroundColor(AppColors.textPrimary)
+                            Spacer()
+                            NavigationLink(destination: TransactionHistoryView()) {
+                                Text("See All")
+                                    .font(AppTypography.body())
+                                    .foregroundColor(AppColors.accent)
+                            }
+                        }
+                        .padding(.horizontal)
+
+                        if recentTransactions.isEmpty {
+                            EmptyStateView()
+                        } else {
+                            LazyVStack(spacing: 0) {
+                                ForEach(recentTransactions, id: \.id) { transaction in
+                                    TransactionRowView(transaction: transaction)
+                                    Divider()
                                 }
                             }
                         }
                     }
-                    .padding(.top, Spacing.lg)
-                    .padding(.bottom, Spacing.section + Spacing.sm)
                 }
-                .background(AppColors.backgroundSecondary)
-                .refreshable {
-                    // Force CoreData to re-fetch by touching the context
-                    viewContext.refreshAllObjects()
-                    HapticManager.lightTap()
-                }
-
-                // Overlay the Quick Action FAB
-                FinanceQuickActionView()
+                .padding(.top, Spacing.lg)
+                .padding(.bottom, Spacing.section + Spacing.sm)
+            }
+            .background(AppColors.backgroundSecondary)
+            .refreshable {
+                // Force CoreData to re-fetch by touching the context
+                viewContext.refreshAllObjects()
+                HapticManager.lightTap()
             }
             .navigationTitle("Home")
             .navigationBarTitleDisplayMode(.large)
@@ -183,8 +176,12 @@ struct HomeView: View {
             .sheet(isPresented: $showingProfile) {
                 ProfileView()
             }
-            .sheet(isPresented: $showingSettleSheet) {
-                QuickSettleSheetView(people: Array(allPeople))
+            .sheet(isPresented: $quickActionViewModel.isSheetPresented) {
+                QuickActionSheet(viewModel: quickActionViewModel)
+                    .environment(\.managedObjectContext, viewContext)
+            }
+            .onAppear {
+                quickActionViewModel.setup(context: viewContext)
             }
         }
     }
@@ -211,7 +208,7 @@ struct EmptyStateView: View {
             HStack(spacing: Spacing.xs) {
                 Image(systemName: "plus.circle.fill")
                     .font(.system(size: IconSize.sm))
-                Text("Tap the + button to get started")
+                Text("Tap Add Transaction to get started")
                     .font(AppTypography.subheadline())
             }
             .foregroundColor(AppColors.accent)
