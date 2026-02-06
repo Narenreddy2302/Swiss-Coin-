@@ -607,31 +607,25 @@ struct SplitMethodChip: View {
 
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 6) {
-                // Icon
+            VStack(spacing: Spacing.xs) {
                 Text(method.icon)
                     .font(.system(size: 18, weight: .semibold))
-                    .foregroundColor(isSelected ? AppColors.buttonForeground : .secondary)
+                    .foregroundColor(isSelected ? AppColors.buttonForeground : AppColors.textSecondary)
                     .frame(width: 36, height: 36)
                     .background(
                         Circle()
-                            .fill(isSelected ? AppColors.accent : AppColors.backgroundSecondary)
+                            .fill(isSelected ? AppColors.accent : AppColors.backgroundTertiary)
                     )
 
-                // Label
                 Text(method.displayName)
-                    .font(.system(size: 13, weight: .medium))
+                    .font(AppTypography.caption())
                     .foregroundColor(isSelected ? AppColors.accent : AppColors.textPrimary)
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 14)
+            .padding(.horizontal, Spacing.md)
+            .padding(.vertical, Spacing.md)
             .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(AppColors.cardBackground)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: CornerRadius.md)
-                            .stroke(isSelected ? AppColors.accent : Color.clear, lineWidth: 2)
-                    )
+                RoundedRectangle(cornerRadius: CornerRadius.sm)
+                    .fill(isSelected ? AppColors.accent.opacity(0.08) : Color.clear)
             )
         }
     }
@@ -648,42 +642,44 @@ struct SplitOptionRow: View {
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 14) {
-                // Icon
-                Text(icon)
-                    .font(.system(size: 32))
+            HStack(spacing: Spacing.md) {
+                Image(systemName: icon)
+                    .font(.system(size: 20, weight: .medium))
+                    .foregroundColor(isSelected ? AppColors.accent : AppColors.textSecondary)
+                    .frame(width: 44, height: 44)
+                    .background(AppColors.backgroundTertiary)
+                    .cornerRadius(CornerRadius.sm)
 
-                // Text content
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: Spacing.xxs) {
                     Text(title)
-                        .font(.system(size: 17, weight: .medium))
-                        .foregroundColor(.primary)
+                        .font(AppTypography.body())
+                        .foregroundColor(AppColors.textPrimary)
                     Text(subtitle)
-                        .font(.system(size: 15))
-                        .foregroundColor(.secondary)
+                        .font(AppTypography.caption())
+                        .foregroundColor(AppColors.textSecondary)
                 }
 
                 Spacer()
 
-                // Radio button
-                Circle()
-                    .strokeBorder(
-                        isSelected ? AppColors.accent : AppColors.textSecondary.opacity(0.5), lineWidth: 2
-                    )
-                    .background(
-                        Circle()
-                            .fill(isSelected ? AppColors.accent : Color.clear)
-                    )
-                    .overlay(
-                        Circle()
-                            .fill(AppColors.buttonForeground)
-                            .frame(width: 8, height: 8)
-                            .opacity(isSelected ? 1 : 0)
-                    )
-                    .frame(width: 24, height: 24)
+                ZStack {
+                    Circle()
+                        .strokeBorder(
+                            isSelected ? AppColors.accent : AppColors.textSecondary.opacity(0.4),
+                            lineWidth: 2
+                        )
+                    Circle()
+                        .fill(isSelected ? AppColors.accent : Color.clear)
+                        .padding(2)
+                    Circle()
+                        .fill(AppColors.buttonForeground)
+                        .frame(width: 8, height: 8)
+                        .opacity(isSelected ? 1 : 0)
+                }
+                .frame(width: 24, height: 24)
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 14)
+            .padding(.vertical, Spacing.sm)
+            .contentShape(Rectangle())
         }
+        .buttonStyle(.plain)
     }
 }
