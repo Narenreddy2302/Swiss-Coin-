@@ -7,7 +7,6 @@ struct TransactionRowView: View {
     var onEdit: (() -> Void)? = nil
     var onDelete: (() -> Void)? = nil
 
-    @State private var isPressed = false
     @State private var showingEditSheet = false
     @State private var showingDeleteAlert = false
 
@@ -49,8 +48,6 @@ struct TransactionRowView: View {
         }
         .buttonStyle(.plain)
         .background(AppColors.backgroundSecondary)
-        .scaleEffect(isPressed ? 0.98 : 1.0)
-        .animation(AppAnimation.quick, value: isPressed)
         .contentShape(Rectangle())
         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
             Button(role: .destructive) {
@@ -108,14 +105,6 @@ struct TransactionRowView: View {
                 Label("Delete Transaction", systemImage: "trash")
             }
         }
-        .onLongPressGesture(minimumDuration: 0.5, pressing: { pressing in
-            withAnimation(AppAnimation.quick) {
-                isPressed = pressing
-            }
-            if pressing {
-                HapticManager.tap()
-            }
-        }, perform: {})
         .sheet(isPresented: $showingEditSheet) {
             TransactionEditView(transaction: transaction)
         }
