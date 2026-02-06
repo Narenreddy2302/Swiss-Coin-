@@ -153,11 +153,7 @@ struct ContactPickerView: View {
                             .contentShape(Rectangle())
                         }
                         .buttonStyle(PlainButtonStyle())
-                        .background(
-                            RoundedRectangle(cornerRadius: CornerRadius.md)
-                                .fill(AppColors.cardBackground)
-                        )
-                        .padding(.horizontal)
+                        .background(AppColors.cardBackground)
 
                         // Phone Contacts section
                         VStack(alignment: .leading, spacing: Spacing.sm) {
@@ -178,7 +174,7 @@ struct ContactPickerView: View {
                                             .fill(AppColors.surface.opacity(0.8))
                                     )
                             }
-                            .padding(.horizontal, Spacing.lg + Spacing.xxs)
+                            .padding(.horizontal, Spacing.lg)
 
                             LazyVStack(spacing: 0) {
                                 ForEach(filteredContacts) { contact in
@@ -196,11 +192,7 @@ struct ContactPickerView: View {
                                     }
                                 }
                             }
-                            .background(
-                                RoundedRectangle(cornerRadius: CornerRadius.md)
-                                    .fill(AppColors.cardBackground)
-                            )
-                            .padding(.horizontal)
+                            .background(AppColors.cardBackground)
                         }
                     }
                     .padding(.top, Spacing.lg)

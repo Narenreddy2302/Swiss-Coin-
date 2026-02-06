@@ -49,9 +49,6 @@ struct GroupConversationView: View {
     @State private var cachedTxnSplitAmounts: [Double] = []
     @State private var cachedTxnSplitRawAmounts: [Double] = []
 
-    // Retained haptic generator for reliable feedback
-    private let hapticGenerator = UIImpactFeedbackGenerator(style: .light)
-
     // MARK: - Computed Properties
 
     private var balance: Double {
@@ -112,12 +109,13 @@ struct GroupConversationView: View {
                     }
                     .padding(.vertical, Spacing.lg)
                 }
+                .scrollDismissesKeyboard(.interactively)
                 .background(AppColors.background)
                 .onTapGesture {
                     hideKeyboard()
                 }
                 .onAppear {
-                    hapticGenerator.prepare()
+                    HapticManager.prepare()
                     scrollToBottom(proxy)
                 }
                 .onChange(of: totalItemCount) { _, _ in
@@ -385,7 +383,7 @@ struct GroupConversationView: View {
         do {
             try viewContext.save()
             messageText = ""
-            hapticGenerator.impactOccurred()
+            HapticManager.lightTap()
         } catch {
             viewContext.rollback()
             errorMessage = "Failed to send message. Please try again."

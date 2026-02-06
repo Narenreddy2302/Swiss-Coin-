@@ -85,6 +85,7 @@ struct SharedSubscriptionConversationView: View {
                     }
                     .padding(.vertical, 16)
                 }
+                .scrollDismissesKeyboard(.interactively)
                 .background(AppColors.background)
                 .onTapGesture {
                     hideKeyboard()

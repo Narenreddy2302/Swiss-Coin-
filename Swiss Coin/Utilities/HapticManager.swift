@@ -100,7 +100,7 @@ final class HapticManager {
     /// Feedback for save operations
     static func save() {
         guard isEnabled else { return }
-        mediumImpact.impactOccurred()
+        lightImpact.impactOccurred()
     }
     
     /// Feedback for cancel operations
@@ -112,6 +112,6 @@ final class HapticManager {
     /// Feedback for delete operations
     static func delete() {
         guard isEnabled else { return }
-        heavyImpact.impactOccurred()
+        notificationFeedback.notificationOccurred(.warning)
     }
 }

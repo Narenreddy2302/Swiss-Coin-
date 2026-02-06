@@ -30,7 +30,7 @@ struct PersonalDetailsView: View {
                         Text("Your Name")
                             .font(AppTypography.headline())
                             .foregroundColor(AppColors.textPrimary)
-                            .padding(.horizontal, Spacing.sm)
+                            .padding(.horizontal, Spacing.lg)
 
                         VStack(spacing: 0) {
                             // Display Name
@@ -72,15 +72,7 @@ struct PersonalDetailsView: View {
                             .padding(.horizontal, Spacing.lg)
                             .padding(.vertical, Spacing.md)
                         }
-                        .background(
-                            RoundedRectangle(cornerRadius: CornerRadius.md)
-                                .fill(AppColors.cardBackground)
-                        )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: CornerRadius.md)
-                                .strokeBorder(AppColors.separator.opacity(0.5), lineWidth: 0.5)
-                        )
-                        .padding(.horizontal)
+                        .background(AppColors.cardBackground)
                     }
 
                     // Profile Color Section
@@ -91,7 +83,7 @@ struct PersonalDetailsView: View {
                         Text("Contact Information")
                             .font(AppTypography.headline())
                             .foregroundColor(AppColors.textPrimary)
-                            .padding(.horizontal, Spacing.sm)
+                            .padding(.horizontal, Spacing.lg)
 
                         VStack(spacing: 0) {
                             // Phone (Read-only)
@@ -146,15 +138,7 @@ struct PersonalDetailsView: View {
                             .padding(.horizontal, Spacing.lg)
                             .padding(.vertical, Spacing.md)
                         }
-                        .background(
-                            RoundedRectangle(cornerRadius: CornerRadius.md)
-                                .fill(AppColors.cardBackground)
-                        )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: CornerRadius.md)
-                                .strokeBorder(AppColors.separator.opacity(0.5), lineWidth: 0.5)
-                        )
-                        .padding(.horizontal)
+                        .background(AppColors.cardBackground)
                     }
 
                     // Save Button
@@ -173,12 +157,8 @@ struct PersonalDetailsView: View {
                     .foregroundColor(AppColors.buttonForeground)
                     .frame(maxWidth: .infinity)
                     .frame(height: ButtonHeight.md)
-                    .background(
-                        RoundedRectangle(cornerRadius: CornerRadius.md)
-                            .fill(viewModel.canSave ? AppColors.buttonBackground : AppColors.disabled)
-                    )
+                    .background(viewModel.canSave ? AppColors.buttonBackground : AppColors.disabled)
                     .disabled(!viewModel.canSave)
-                    .padding(.horizontal)
                     .padding(.top, Spacing.lg)
                 }
                 .padding(.top, Spacing.lg)
@@ -313,7 +293,7 @@ private struct ProfileColorSection: View {
             Text("Profile Color")
                 .font(AppTypography.headline())
                 .foregroundColor(AppColors.textPrimary)
-                .padding(.horizontal, Spacing.sm)
+                .padding(.horizontal, Spacing.lg)
 
             LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 6), spacing: Spacing.md) {
                 ForEach(colorOptions, id: \.self) { color in
@@ -343,15 +323,7 @@ private struct ProfileColorSection: View {
             }
             .padding(.horizontal, Spacing.lg)
             .padding(.vertical, Spacing.md)
-            .background(
-                RoundedRectangle(cornerRadius: CornerRadius.md)
-                    .fill(AppColors.cardBackground)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: CornerRadius.md)
-                    .strokeBorder(AppColors.separator.opacity(0.5), lineWidth: 0.5)
-            )
-            .padding(.horizontal)
+            .background(AppColors.cardBackground)
         }
     }
 }

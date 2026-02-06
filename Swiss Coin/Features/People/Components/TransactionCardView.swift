@@ -15,8 +15,6 @@ struct TransactionCardView: View {
     var onUndo: (() -> Void)? = nil
     var onDelete: (() -> Void)? = nil
 
-    @State private var isPressed = false
-
     // MARK: - Computed Properties
 
     private var isUserPayer: Bool {
@@ -122,24 +120,19 @@ struct TransactionCardView: View {
                 .fill(AppColors.cardBackground)
         )
         .padding(.horizontal, Spacing.lg)
-        .scaleEffect(isPressed ? 0.98 : 1.0)
-        .animation(AppAnimation.quick, value: isPressed)
-        .onLongPressGesture(minimumDuration: 0.5, pressing: { pressing in
-            isPressed = pressing
-            if pressing { HapticManager.tap() }
-        }, perform: {})
+        .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: CornerRadius.md))
         .contextMenu {
             // Copy Amount — most common quick action
             Button {
                 UIPasteboard.general.string = CurrencyFormatter.format(transaction.amount)
-                HapticManager.tap()
+                HapticManager.lightTap()
             } label: {
                 Label("Copy Amount", systemImage: "doc.on.doc")
             }
 
             if let onViewDetails {
                 Button {
-                    HapticManager.tap()
+                    HapticManager.lightTap()
                     onViewDetails()
                 } label: {
                     Label("View Details", systemImage: "doc.text.magnifyingglass")
@@ -148,7 +141,7 @@ struct TransactionCardView: View {
 
             if let onEdit {
                 Button {
-                    HapticManager.tap()
+                    HapticManager.lightTap()
                     onEdit()
                 } label: {
                     Label("Edit", systemImage: "pencil")
@@ -157,7 +150,7 @@ struct TransactionCardView: View {
 
             if let onUndo {
                 Button {
-                    HapticManager.tap()
+                    HapticManager.lightTap()
                     onUndo()
                 } label: {
                     Label("Undo", systemImage: "arrow.uturn.backward")

@@ -38,7 +38,8 @@ struct SubscriptionView: View {
                     }
                 }
                 .padding(.horizontal)
-                .padding(.top)
+                .padding(.top, Spacing.sm)
+                .padding(.bottom, Spacing.sm)
                 .background(AppColors.backgroundSecondary)
 
                 // Content with animation

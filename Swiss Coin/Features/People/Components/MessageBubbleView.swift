@@ -66,43 +66,44 @@ struct MessageBubbleView: View {
                 }
                 .padding(.horizontal, 4)
             }
+            .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: CornerRadius.lg))
+            .contextMenu {
+                // Copy — available for all messages
+                Button {
+                    UIPasteboard.general.string = message.content ?? ""
+                    HapticManager.lightTap()
+                } label: {
+                    Label("Copy", systemImage: "doc.on.doc")
+                }
+
+                // Edit — own messages within 15-minute window
+                if canEdit {
+                    Button {
+                        HapticManager.lightTap()
+                        editText = message.content ?? ""
+                        withAnimation(AppAnimation.standard) {
+                            isEditing = true
+                        }
+                    } label: {
+                        Label("Edit", systemImage: "pencil")
+                    }
+                }
+
+                // Delete — own messages only
+                if message.isFromUser, onDelete != nil {
+                    Divider()
+                    Button(role: .destructive) {
+                        HapticManager.delete()
+                        onDelete?(message)
+                    } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
+                }
+            }
 
             if !isFromUser { Spacer(minLength: 60) }
         }
         .padding(.horizontal, Spacing.lg)
-        .contextMenu {
-            // Copy — available for all messages
-            Button {
-                UIPasteboard.general.string = message.content ?? ""
-                HapticManager.tap()
-            } label: {
-                Label("Copy", systemImage: "doc.on.doc")
-            }
-
-            // Edit — own messages within 15-minute window
-            if canEdit {
-                Button {
-                    HapticManager.tap()
-                    editText = message.content ?? ""
-                    withAnimation(AppAnimation.standard) {
-                        isEditing = true
-                    }
-                } label: {
-                    Label("Edit", systemImage: "pencil")
-                }
-            }
-
-            // Delete — own messages only
-            if message.isFromUser, onDelete != nil {
-                Divider()
-                Button(role: .destructive) {
-                    HapticManager.delete()
-                    onDelete?(message)
-                } label: {
-                    Label("Delete", systemImage: "trash")
-                }
-            }
-        }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilityLabel)
         .accessibilityHint(message.isFromUser ? "Double tap and hold for options" : "")

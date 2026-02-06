@@ -99,21 +99,21 @@ struct SubscriptionListRowView: View {
         .contentShape(Rectangle())
         .contextMenu {
             Button {
-                HapticManager.tap()
+                HapticManager.lightTap()
                 showingEditSheet = true
             } label: {
                 Label("Edit", systemImage: "pencil")
             }
 
             Button {
-                HapticManager.tap()
+                HapticManager.lightTap()
                 markAsPaid()
             } label: {
                 Label("Mark as Paid", systemImage: "checkmark.circle")
             }
 
             Button {
-                HapticManager.tap()
+                HapticManager.lightTap()
                 togglePauseStatus()
             } label: {
                 Label(
@@ -125,7 +125,7 @@ struct SubscriptionListRowView: View {
             Divider()
 
             Button(role: .destructive) {
-                HapticManager.tap()
+                HapticManager.delete()
                 showingDeleteAlert = true
             } label: {
                 Label("Delete", systemImage: "trash")

@@ -57,12 +57,13 @@ struct AddSubscriptionView: View {
     // MARK: - Body
     var body: some View {
         NavigationStack {
-            Form {
+            List {
                 detailsSection
                 sharingSection
                 scheduleSection
                 notesSection
             }
+            .listStyle(.plain)
             .scrollContentBackground(.hidden)
             .background(AppColors.backgroundSecondary.ignoresSafeArea())
             .navigationTitle("New Subscription")
