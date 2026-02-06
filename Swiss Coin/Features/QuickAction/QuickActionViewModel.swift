@@ -31,7 +31,6 @@ class QuickActionViewModel: ObservableObject {
 
     // MARK: - Step 1: Basic Transaction Details
 
-    @Published var transactionType: TransactionType = .expense
     @Published var amountString: String = ""
     @Published var selectedCurrency: Currency = Currency.fromGlobalSetting()
     @Published var transactionName: String = ""
@@ -263,7 +262,6 @@ class QuickActionViewModel: ObservableObject {
 
     func resetForm() {
         currentStep = 1
-        transactionType = .expense
         amountString = ""
         selectedCurrency = Currency.fromGlobalSetting()
         transactionName = ""

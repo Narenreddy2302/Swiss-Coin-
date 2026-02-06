@@ -14,16 +14,6 @@ struct Step1BasicDetailsView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.xxl) {
 
-            // MARK: Transaction Type Segmented Control
-            Picker("Transaction Type", selection: $viewModel.transactionType) {
-                Text("Expense").tag(TransactionType.expense)
-                Text("Income").tag(TransactionType.income)
-            }
-            .pickerStyle(.segmented)
-            .onChange(of: viewModel.transactionType) { _, _ in
-                HapticManager.selectionChanged()
-            }
-
             // MARK: Amount Input Section
             VStack(alignment: .leading, spacing: Spacing.sm) {
                 Text("Amount")

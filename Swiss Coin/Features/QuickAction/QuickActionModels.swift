@@ -10,12 +10,6 @@ import SwiftUI
 
 // MARK: - Enums
 
-/// Type of transaction
-enum TransactionType: String, CaseIterable {
-    case expense = "expense"
-    case income = "income"
-}
-
 /// Available methods for splitting a transaction.
 /// Canonical enum used by both the Transaction and QuickAction flows.
 enum SplitMethod: String, CaseIterable, Identifiable {
