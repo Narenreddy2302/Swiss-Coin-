@@ -114,7 +114,7 @@ struct MessageBubbleView: View {
     private var bubbleView: some View {
         Text(message.content ?? "")
             .font(AppTypography.body())
-            .foregroundColor(isFromUser ? .white : AppColors.textPrimary)
+            .foregroundColor(AppColors.textPrimary)
             .padding(.horizontal, 14)
             .padding(.vertical, 10)
             .background(bubbleBackground)
