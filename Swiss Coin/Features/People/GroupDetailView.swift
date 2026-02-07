@@ -276,35 +276,30 @@ struct GroupDetailTransactionRow: View {
     let transaction: FinancialTransaction
     let group: UserGroup
 
-    private var isUserPayer: Bool {
-        CurrentUser.isCurrentUser(transaction.payer?.id)
+    /// User's net position: paid - owed. Positive = others owe you.
+    private var userNetAmount: Double {
+        let userPaid = transaction.effectivePayers
+            .filter { CurrentUser.isCurrentUser($0.personId) }
+            .reduce(0) { $0 + $1.amount }
+        let userSplit = (transaction.splits as? Set<TransactionSplit> ?? [])
+            .filter { CurrentUser.isCurrentUser($0.owedBy?.id) }
+            .reduce(0) { $0 + $1.amount }
+        return userPaid - userSplit
     }
 
     private var payerName: String {
-        if isUserPayer { return "You" }
-        return transaction.payer?.firstName ?? "Unknown"
-    }
+        let payers = transaction.effectivePayers
+        let isUserAPayer = payers.contains { CurrentUser.isCurrentUser($0.personId) }
 
-    /// Calculate the user's net impact from this transaction
-    private var userNetAmount: Double {
-        let splits = transaction.splits as? Set<TransactionSplit> ?? []
-
-        if isUserPayer {
-            // User paid - calculate how much others owe them
-            var othersOwe: Double = 0
-            for split in splits {
-                if !CurrentUser.isCurrentUser(split.owedBy?.id) {
-                    othersOwe += split.amount
-                }
-            }
-            return othersOwe
-        } else {
-            // Someone else paid - user owes their share
-            if let mySplit = splits.first(where: { CurrentUser.isCurrentUser($0.owedBy?.id) }) {
-                return -mySplit.amount
-            }
-            return 0
+        if payers.count <= 1 {
+            if isUserAPayer { return "You" }
+            return transaction.payer?.firstName ?? "Unknown"
         }
+
+        if isUserAPayer {
+            return "You +\(payers.count - 1)"
+        }
+        return "\(payers.count) payers"
     }
 
     private var amountColor: Color {
