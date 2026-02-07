@@ -86,13 +86,13 @@ struct SplitInputView: View {
     private var equalSplitDisplay: some View {
         HStack(spacing: Spacing.xs) {
             Text(CurrencyFormatter.currencySymbol)
-                .font(AppTypography.body())
+                .font(AppTypography.subheadline())
                 .foregroundColor(AppColors.textSecondary)
 
             Text(String(format: "%.2f", viewModel.calculateSplit(for: person)))
-                .font(.system(size: 20, weight: .bold, design: .rounded))
+                .font(.system(size: 16, weight: .bold, design: .rounded))
                 .foregroundColor(AppColors.textPrimary)
-                .frame(minWidth: 60, alignment: .trailing)
+                .frame(minWidth: 50, alignment: .trailing)
         }
     }
 
@@ -101,14 +101,14 @@ struct SplitInputView: View {
     private var percentageInput: some View {
         HStack(spacing: Spacing.sm) {
             TextField("0", text: inputBinding)
-                .font(.system(size: 20, weight: .bold, design: .rounded))
+                .font(.system(size: 16, weight: .bold, design: .rounded))
                 .keyboardType(.decimalPad)
                 .multilineTextAlignment(.trailing)
                 .foregroundColor(AppColors.textPrimary)
                 .frame(width: 50)
 
             Text("%")
-                .font(AppTypography.body())
+                .font(AppTypography.subheadline())
                 .foregroundColor(AppColors.textSecondary)
         }
     }
@@ -118,11 +118,11 @@ struct SplitInputView: View {
     private var amountInput: some View {
         HStack(spacing: Spacing.xs) {
             Text(CurrencyFormatter.currencySymbol)
-                .font(AppTypography.body())
+                .font(AppTypography.subheadline())
                 .foregroundColor(AppColors.textSecondary)
 
             TextField("0.00", text: inputBinding)
-                .font(.system(size: 20, weight: .bold, design: .rounded))
+                .font(.system(size: 16, weight: .bold, design: .rounded))
                 .keyboardType(.decimalPad)
                 .multilineTextAlignment(.trailing)
                 .foregroundColor(AppColors.textPrimary)
@@ -139,11 +139,11 @@ struct SplitInputView: View {
                 .foregroundColor(AppColors.textSecondary)
 
             Text(CurrencyFormatter.currencySymbol)
-                .font(AppTypography.body())
+                .font(AppTypography.subheadline())
                 .foregroundColor(AppColors.textSecondary)
 
             TextField("0", text: inputBinding)
-                .font(.system(size: 20, weight: .bold, design: .rounded))
+                .font(.system(size: 16, weight: .bold, design: .rounded))
                 .keyboardType(.numbersAndPunctuation)
                 .multilineTextAlignment(.trailing)
                 .foregroundColor(AppColors.textPrimary)
@@ -174,7 +174,7 @@ struct SplitInputView: View {
 
             // Shares count
             Text("\(currentShares)")
-                .font(.system(size: 20, weight: .bold, design: .rounded))
+                .font(.system(size: 16, weight: .bold, design: .rounded))
                 .foregroundColor(AppColors.textPrimary)
                 .frame(width: 30)
                 .multilineTextAlignment(.center)

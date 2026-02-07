@@ -10,6 +10,7 @@ struct AddTransactionView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @FocusState private var focusedField: FocusField?
 
+    @AppStorage("default_currency") private var selectedCurrency: String = "USD"
     @State private var currentStep: Int = 1
 
     var initialParticipant: Person?
@@ -22,7 +23,6 @@ struct AddTransactionView: View {
         case splitWithSearch
     }
 
-    private let stepLabels = ["Details", "Split", "Review"]
 
     init(viewContext: NSManagedObjectContext? = nil, initialParticipant: Person? = nil, initialGroup: UserGroup? = nil) {
         self.initialParticipant = initialParticipant
@@ -38,12 +38,6 @@ struct AddTransactionView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                // MARK: - Step Indicator
-                stepIndicator
-                    .padding(.horizontal, Spacing.lg)
-                    .padding(.top, Spacing.md)
-                    .padding(.bottom, Spacing.lg)
-
                 // MARK: - Step Content
                 ScrollView {
                     VStack(spacing: Spacing.xl) {
@@ -68,24 +62,13 @@ struct AddTransactionView: View {
                 bottomNavigationBar
             }
             .background(AppColors.backgroundSecondary)
-            .navigationTitle("New Transaction")
+            .navigationTitle(currentStep == 1 ? "New Transaction" : currentStep == 2 ? "Split Options" : "Split Details")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button {
-                        HapticManager.cancel()
-                        dismiss()
-                    } label: {
-                        Text("Cancel")
-                            .font(AppTypography.body())
-                            .foregroundColor(AppColors.textPrimary)
-                    }
-                }
-            }
             .toolbar {
                 ToolbarItemGroup(placement: .keyboard) {
                     Spacer()
                     Button("Done") {
+                        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
                         focusedField = nil
                     }
                     .font(AppTypography.bodyBold())
@@ -98,58 +81,7 @@ struct AddTransactionView: View {
                     focusedField = .title
                 }
             }
-        }
-    }
-
-    // MARK: - Step Indicator
-
-    private var stepIndicator: some View {
-        HStack(spacing: 0) {
-            ForEach(1...3, id: \.self) { step in
-                // Circle
-                stepCircle(step: step)
-
-                // Connecting line (not after last step)
-                if step < 3 {
-                    Rectangle()
-                        .fill(step < currentStep ? AppColors.buttonBackground : AppColors.backgroundTertiary)
-                        .frame(height: 2)
-                }
-            }
-        }
-        .overlay(
-            // Step labels
-            HStack(spacing: 0) {
-                ForEach(1...3, id: \.self) { step in
-                    Text(stepLabels[step - 1])
-                        .font(AppTypography.caption())
-                        .foregroundColor(step <= currentStep ? AppColors.textPrimary : AppColors.textSecondary)
-                        .frame(maxWidth: .infinity)
-                }
-            }
-            .offset(y: 28),
-            alignment: .top
-        )
-        .padding(.bottom, Spacing.xl)
-    }
-
-    private func stepCircle(step: Int) -> some View {
-        ZStack {
-            Circle()
-                .fill(step <= currentStep ? AppColors.buttonBackground : AppColors.backgroundTertiary)
-                .frame(width: 32, height: 32)
-
-            if step < currentStep {
-                // Completed: checkmark
-                Image(systemName: "checkmark")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundColor(AppColors.buttonForeground)
-            } else {
-                // Current or future: number
-                Text("\(step)")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundColor(step == currentStep ? AppColors.buttonForeground : AppColors.textSecondary)
-            }
+            .presentationDetents([.fraction(0.7), .large])
         }
     }
 
@@ -165,40 +97,20 @@ struct AddTransactionView: View {
     // MARK: - Step 2: Split
 
     private var step2Content: some View {
-        VStack(alignment: .leading, spacing: Spacing.lg) {
-            Text("Split Options")
-                .font(AppTypography.title3())
-                .foregroundColor(AppColors.textPrimary)
-                .frame(maxWidth: .infinity, alignment: .center)
-
+        VStack(alignment: .leading, spacing: Spacing.md) {
             paidBySection
             splitWithSection
-            actionButtons
         }
-        .padding(.horizontal, Spacing.lg)
-        .padding(.vertical, Spacing.lg)
-        .background(AppColors.cardBackground)
-        .cornerRadius(CornerRadius.md)
     }
 
     // MARK: - Step 3: Review
 
     private var step3Content: some View {
-        VStack(alignment: .leading, spacing: Spacing.lg) {
-            Text("Split Details")
-                .font(AppTypography.title3())
-                .foregroundColor(AppColors.textPrimary)
-                .frame(maxWidth: .infinity, alignment: .center)
-
+        VStack(alignment: .leading, spacing: Spacing.md) {
             splitMethodSection
-            totalAmountBar
             breakdownSection
             validationSection
         }
-        .padding(.horizontal, Spacing.lg)
-        .padding(.vertical, Spacing.lg)
-        .background(AppColors.cardBackground)
-        .cornerRadius(CornerRadius.md)
     }
 
     // MARK: - Bottom Navigation Bar
@@ -214,15 +126,8 @@ struct AddTransactionView: View {
                         goToPreviousStep()
                     } label: {
                         Text("Back")
-                            .font(AppTypography.bodyBold())
-                            .foregroundColor(AppColors.textPrimary)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: ButtonHeight.lg)
-                            .background(
-                                Capsule()
-                                    .stroke(AppColors.separator, lineWidth: 1.5)
-                            )
                     }
+                    .buttonStyle(SecondaryButtonStyle())
                 }
 
                 // Next / Save button
@@ -231,16 +136,9 @@ struct AddTransactionView: View {
                         goToNextStep()
                     } label: {
                         Text("Next")
-                            .font(AppTypography.bodyBold())
-                            .foregroundColor(isCurrentStepValid ? AppColors.buttonForeground : AppColors.textSecondary)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: ButtonHeight.lg)
-                            .background(
-                                Capsule()
-                                    .fill(isCurrentStepValid ? AppColors.buttonBackground : AppColors.disabled)
-                            )
                     }
                     .disabled(!isCurrentStepValid)
+                    .buttonStyle(PrimaryButtonStyle(isEnabled: isCurrentStepValid))
                 } else {
                     Button {
                         HapticManager.tap()
@@ -251,16 +149,9 @@ struct AddTransactionView: View {
                         }
                     } label: {
                         Text("Save Transaction")
-                            .font(AppTypography.bodyBold())
-                            .foregroundColor(viewModel.isValid ? AppColors.buttonForeground : AppColors.textSecondary)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: ButtonHeight.lg)
-                            .background(
-                                Capsule()
-                                    .fill(viewModel.isValid ? AppColors.buttonBackground : AppColors.disabled)
-                            )
                     }
                     .disabled(!viewModel.isValid)
+                    .buttonStyle(PrimaryButtonStyle(isEnabled: viewModel.isValid))
                 }
             }
             .padding(.horizontal, Spacing.lg)
@@ -314,10 +205,6 @@ struct AddTransactionView: View {
 
     private var transactionNameSection: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
-            Text("New Transaction")
-                .font(AppTypography.title2())
-                .foregroundColor(AppColors.textPrimary)
-
             TextField("Transaction Name", text: $viewModel.title)
                 .font(AppTypography.body())
                 .foregroundColor(AppColors.textPrimary)
@@ -326,13 +213,9 @@ struct AddTransactionView: View {
                 .onSubmit { focusedField = .amount }
                 .limitTextLength(to: ValidationLimits.maxTransactionTitleLength, text: $viewModel.title)
                 .padding(.horizontal, Spacing.lg)
-                .padding(.vertical, Spacing.lg)
-                .background(AppColors.cardBackground)
+                .padding(.vertical, Spacing.md)
+                .background(AppColors.cardBackgroundElevated)
                 .cornerRadius(CornerRadius.sm)
-                .overlay(
-                    RoundedRectangle(cornerRadius: CornerRadius.sm)
-                        .stroke(AppColors.separator, lineWidth: 1)
-                )
         }
     }
 
@@ -352,31 +235,49 @@ struct AddTransactionView: View {
 
             Spacer()
 
-            Text(CurrencyFormatter.currencySymbol)
-                .font(AppTypography.body())
-                .foregroundColor(AppColors.textSecondary)
+            Menu {
+                ForEach(Currency.all) { currency in
+                    Button {
+                        selectedCurrency = currency.code
+                        HapticManager.selectionChanged()
+                    } label: {
+                        HStack {
+                            Text("\(currency.flag) \(currency.symbol)")
+                            if currency.code == selectedCurrency {
+                                Image(systemName: "checkmark")
+                            }
+                        }
+                    }
+                }
+            } label: {
+                HStack(spacing: Spacing.xxs) {
+                    Text(Currency.fromCode(selectedCurrency).symbol)
+                        .font(AppTypography.body())
+                        .foregroundColor(AppColors.textSecondary)
+
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundColor(AppColors.textTertiary)
+                }
                 .padding(.horizontal, Spacing.md)
                 .padding(.vertical, Spacing.xs)
                 .background(AppColors.backgroundTertiary)
                 .cornerRadius(CornerRadius.xs)
+            }
 
             TextField("0.00", text: $viewModel.totalAmount)
-                .font(.system(size: 28, weight: .bold, design: .rounded))
+                .font(.system(size: 22, weight: .bold, design: .rounded))
                 .keyboardType(.decimalPad)
                 .multilineTextAlignment(.trailing)
                 .foregroundColor(AppColors.textPrimary)
                 .focused($focusedField, equals: .amount)
                 .limitTextLength(to: 12, text: $viewModel.totalAmount)
-                .frame(minWidth: 100)
+                .frame(minWidth: 80)
         }
         .padding(.horizontal, Spacing.lg)
         .padding(.vertical, Spacing.md)
-        .background(AppColors.cardBackground)
+        .background(AppColors.cardBackgroundElevated)
         .cornerRadius(CornerRadius.sm)
-        .overlay(
-            RoundedRectangle(cornerRadius: CornerRadius.sm)
-                .stroke(AppColors.separator, lineWidth: 1)
-        )
     }
 
     // MARK: - Paid By Section
@@ -384,7 +285,7 @@ struct AddTransactionView: View {
     private var paidBySection: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             Text("Paid By:")
-                .font(AppTypography.headline())
+                .font(AppTypography.subheadlineMedium())
                 .foregroundColor(AppColors.textPrimary)
 
             HStack {
@@ -394,17 +295,13 @@ struct AddTransactionView: View {
                     .focused($focusedField, equals: .paidBySearch)
 
                 Image(systemName: "magnifyingglass")
-                    .font(.system(size: 20, weight: .medium))
+                    .font(.system(size: 18, weight: .medium))
                     .foregroundColor(AppColors.textSecondary)
             }
             .padding(.horizontal, Spacing.lg)
             .padding(.vertical, Spacing.md)
-            .background(AppColors.backgroundSecondary)
+            .background(AppColors.cardBackgroundElevated)
             .cornerRadius(CornerRadius.sm)
-            .overlay(
-                RoundedRectangle(cornerRadius: CornerRadius.sm)
-                    .stroke(AppColors.separator, lineWidth: 1)
-            )
 
             if viewModel.paidBySearchText.isEmpty {
                 HStack {
@@ -420,35 +317,19 @@ struct AddTransactionView: View {
 
     private var payerChip: some View {
         let payerName = viewModel.selectedPayer?.firstName ?? "You"
-        let payerColor = viewModel.selectedPayer?.avatarBackgroundColor ?? AppColors.accent.opacity(0.15)
-        let payerTextColor = viewModel.selectedPayer?.avatarTextColor ?? AppColors.accent
-        let initials = viewModel.selectedPayer?.initials ?? CurrentUser.initials
 
-        return Button {
-            HapticManager.tap()
-        } label: {
-            HStack(spacing: Spacing.xs) {
-                Circle()
-                    .fill(payerColor)
-                    .frame(width: 24, height: 24)
-                    .overlay(
-                        Text(initials)
-                            .font(.system(size: 10, weight: .medium))
-                            .foregroundColor(payerTextColor)
-                    )
-
-                Text(payerName)
-                    .font(AppTypography.subheadline())
-                    .foregroundColor(AppColors.textPrimary)
-            }
-            .padding(.leading, Spacing.xs)
-            .padding(.trailing, Spacing.md)
-            .padding(.vertical, Spacing.xs)
-            .background(AppColors.backgroundSecondary)
-            .clipShape(Capsule())
-            .overlay(Capsule().stroke(AppColors.separator, lineWidth: 1))
-        }
-        .buttonStyle(.plain)
+        return Text(payerName)
+            .font(AppTypography.subheadline())
+            .foregroundColor(AppColors.textPrimary)
+            .lineLimit(1)
+            .padding(.horizontal, Spacing.md)
+            .padding(.vertical, Spacing.sm)
+            .background(AppColors.cardBackgroundElevated)
+            .cornerRadius(CornerRadius.full)
+            .overlay(
+                RoundedRectangle(cornerRadius: CornerRadius.full)
+                    .stroke(AppColors.buttonBackground.opacity(0.2), lineWidth: 1)
+            )
     }
 
     private var paidBySearchResults: some View {
@@ -484,12 +365,8 @@ struct AddTransactionView: View {
                 .buttonStyle(.plain)
             }
         }
-        .background(AppColors.backgroundSecondary)
+        .background(AppColors.cardBackgroundElevated)
         .cornerRadius(CornerRadius.sm)
-        .overlay(
-            RoundedRectangle(cornerRadius: CornerRadius.sm)
-                .stroke(AppColors.separator, lineWidth: 1)
-        )
         .padding(.top, Spacing.xs)
     }
 
@@ -498,7 +375,7 @@ struct AddTransactionView: View {
     private var splitWithSection: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             Text("Split with:")
-                .font(AppTypography.headline())
+                .font(AppTypography.subheadlineMedium())
                 .foregroundColor(AppColors.textPrimary)
 
             HStack {
@@ -508,17 +385,13 @@ struct AddTransactionView: View {
                     .focused($focusedField, equals: .splitWithSearch)
 
                 Image(systemName: "magnifyingglass")
-                    .font(.system(size: 20, weight: .medium))
+                    .font(.system(size: 18, weight: .medium))
                     .foregroundColor(AppColors.textSecondary)
             }
             .padding(.horizontal, Spacing.lg)
             .padding(.vertical, Spacing.md)
-            .background(AppColors.backgroundSecondary)
+            .background(AppColors.cardBackgroundElevated)
             .cornerRadius(CornerRadius.sm)
-            .overlay(
-                RoundedRectangle(cornerRadius: CornerRadius.sm)
-                    .stroke(AppColors.separator, lineWidth: 1)
-            )
 
             if viewModel.splitWithSearchText.isEmpty {
                 participantChipsScroll
@@ -548,39 +421,26 @@ struct AddTransactionView: View {
     }
 
     private func removableParticipantChip(_ person: Person) -> some View {
-        let name = CurrentUser.isCurrentUser(person.id) ? "You" : (person.firstName ?? person.name ?? "?")
-        let initials = CurrentUser.isCurrentUser(person.id) ? CurrentUser.initials : person.initials
+        let name = CurrentUser.isCurrentUser(person.id) ? "You" : person.firstName
 
         return Button {
             withAnimation(AppAnimation.quick) {
-                viewModel.selectedParticipants.remove(person)
+                _ = viewModel.selectedParticipants.remove(person)
             }
             HapticManager.tap()
         } label: {
-            HStack(spacing: Spacing.xs) {
-                Circle()
-                    .fill(person.avatarBackgroundColor)
-                    .frame(width: 24, height: 24)
-                    .overlay(
-                        Text(initials)
-                            .font(.system(size: 10, weight: .medium))
-                            .foregroundColor(person.avatarTextColor)
-                    )
-
-                Text(name)
-                    .font(AppTypography.subheadline())
-                    .foregroundColor(AppColors.textPrimary)
-
-                Image(systemName: "xmark")
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundColor(AppColors.textSecondary)
-            }
-            .padding(.leading, Spacing.xs)
-            .padding(.trailing, Spacing.md)
-            .padding(.vertical, Spacing.xs)
-            .background(AppColors.backgroundSecondary)
-            .clipShape(Capsule())
-            .overlay(Capsule().stroke(AppColors.separator, lineWidth: 1))
+            Text(name)
+                .font(AppTypography.subheadline())
+                .foregroundColor(AppColors.textPrimary)
+                .lineLimit(1)
+                .padding(.horizontal, Spacing.md)
+                .padding(.vertical, Spacing.sm)
+                .background(AppColors.cardBackgroundElevated)
+                .cornerRadius(CornerRadius.full)
+                .overlay(
+                    RoundedRectangle(cornerRadius: CornerRadius.full)
+                        .stroke(AppColors.buttonBackground.opacity(0.2), lineWidth: 1)
+                )
         }
         .buttonStyle(.plain)
     }
@@ -594,7 +454,6 @@ struct AddTransactionView: View {
                         viewModel.splitWithSearchText = ""
                     }
                     HapticManager.selectionChanged()
-                    focusedField = nil
                 } label: {
                     HStack {
                         Image(systemName: "person.2.fill")
@@ -626,10 +485,8 @@ struct AddTransactionView: View {
                 Button {
                     withAnimation(AppAnimation.quick) {
                         viewModel.toggleParticipant(person)
-                        viewModel.splitWithSearchText = ""
                     }
                     HapticManager.selectionChanged()
-                    focusedField = nil
                 } label: {
                     searchResultRow(
                         name: person.displayName,
@@ -651,12 +508,8 @@ struct AddTransactionView: View {
                     .frame(maxWidth: .infinity)
             }
         }
-        .background(AppColors.backgroundSecondary)
+        .background(AppColors.cardBackgroundElevated)
         .cornerRadius(CornerRadius.sm)
-        .overlay(
-            RoundedRectangle(cornerRadius: CornerRadius.sm)
-                .stroke(AppColors.separator, lineWidth: 1)
-        )
         .padding(.top, Spacing.xs)
     }
 
@@ -682,53 +535,12 @@ struct AddTransactionView: View {
         .contentShape(Rectangle())
     }
 
-    // MARK: - Action Buttons
-
-    private var actionButtons: some View {
-        HStack(spacing: Spacing.md) {
-            NavigationLink {
-                ParticipantSelectorView(selectedParticipants: $viewModel.selectedParticipants)
-            } label: {
-                Text("More Options")
-                    .font(AppTypography.subheadlineMedium())
-                    .foregroundColor(AppColors.textPrimary)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: ButtonHeight.md)
-                    .background(AppColors.backgroundSecondary)
-                    .clipShape(Capsule())
-                    .overlay(Capsule().stroke(AppColors.separator, lineWidth: 1))
-            }
-
-            Button {
-                withAnimation(AppAnimation.standard) {
-                    viewModel.splitMethod = .equal
-                    viewModel.rawInputs = [:]
-                }
-                HapticManager.success()
-                focusedField = nil
-                // Auto-advance to Step 3
-                withAnimation(AppAnimation.standard) {
-                    currentStep = 3
-                }
-            } label: {
-                Text("Split Equal")
-                    .font(AppTypography.subheadlineMedium())
-                    .foregroundColor(AppColors.textPrimary)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: ButtonHeight.md)
-                    .background(AppColors.backgroundSecondary)
-                    .clipShape(Capsule())
-                    .overlay(Capsule().stroke(AppColors.separator, lineWidth: 1))
-            }
-        }
-    }
-
     // MARK: - Split Method Section
 
     private var splitMethodSection: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             Text("Split Method:")
-                .font(AppTypography.headline())
+                .font(AppTypography.subheadlineMedium())
                 .foregroundColor(AppColors.textPrimary)
 
             HStack(spacing: Spacing.sm) {
@@ -751,21 +563,21 @@ struct AddTransactionView: View {
         } label: {
             VStack(spacing: Spacing.xxs) {
                 Text(method.icon)
-                    .font(.system(size: 18, weight: .bold))
+                    .font(.system(size: 20, weight: .bold))
                     .foregroundColor(isSelected ? AppColors.buttonForeground : AppColors.textPrimary)
                     .frame(maxWidth: .infinity)
-                    .frame(height: 36)
+                    .frame(height: 44)
                     .background(
-                        Capsule()
-                            .fill(isSelected ? AppColors.buttonBackground : Color.clear)
+                        RoundedRectangle(cornerRadius: CornerRadius.md)
+                            .fill(isSelected ? AppColors.buttonBackground : AppColors.cardBackground)
                     )
                     .overlay(
-                        Capsule()
-                            .stroke(isSelected ? Color.clear : AppColors.separator, lineWidth: 1)
+                        RoundedRectangle(cornerRadius: CornerRadius.md)
+                            .stroke(isSelected ? Color.clear : AppColors.buttonBackground.opacity(0.2), lineWidth: 1)
                     )
 
                 Text(method.displayName)
-                    .font(AppTypography.caption2())
+                    .font(AppTypography.caption())
                     .foregroundColor(isSelected ? AppColors.textPrimary : AppColors.textSecondary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
@@ -779,13 +591,13 @@ struct AddTransactionView: View {
     private var totalAmountBar: some View {
         HStack {
             Text("Total Amount")
-                .font(AppTypography.body())
+                .font(AppTypography.subheadline())
                 .foregroundColor(AppColors.textPrimary)
 
             Spacer()
 
             Text(CurrencyFormatter.currencySymbol)
-                .font(AppTypography.body())
+                .font(AppTypography.subheadline())
                 .foregroundColor(AppColors.textSecondary)
                 .padding(.horizontal, Spacing.md)
                 .padding(.vertical, Spacing.xs)
@@ -793,12 +605,12 @@ struct AddTransactionView: View {
                 .cornerRadius(CornerRadius.xs)
 
             Text(String(format: "%.2f", viewModel.totalAmountDouble))
-                .font(.system(size: 22, weight: .bold, design: .rounded))
+                .font(.system(size: 18, weight: .bold, design: .rounded))
                 .foregroundColor(AppColors.textPrimary)
         }
         .padding(.horizontal, Spacing.lg)
         .padding(.vertical, Spacing.md)
-        .background(AppColors.backgroundSecondary)
+        .background(AppColors.cardBackgroundElevated)
         .cornerRadius(CornerRadius.sm)
         .overlay(
             RoundedRectangle(cornerRadius: CornerRadius.sm)
@@ -811,7 +623,7 @@ struct AddTransactionView: View {
     private var breakdownSection: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
             Text("Breakdown:")
-                .font(AppTypography.headline())
+                .font(AppTypography.subheadlineMedium())
                 .foregroundColor(AppColors.textPrimary)
 
             if viewModel.selectedParticipants.isEmpty {
@@ -834,7 +646,7 @@ struct AddTransactionView: View {
     }
 
     private var participantBreakdownList: some View {
-        VStack(spacing: Spacing.md) {
+        VStack(spacing: Spacing.sm) {
             let sortedParticipants = Array(viewModel.selectedParticipants).sorted { p1, p2 in
                 let isCurrentUser1 = CurrentUser.isCurrentUser(p1.id)
                 let isCurrentUser2 = CurrentUser.isCurrentUser(p2.id)
@@ -857,20 +669,20 @@ struct AddTransactionView: View {
 
             HStack {
                 Text("Total Balance")
-                    .font(AppTypography.bodyBold())
+                    .font(AppTypography.subheadlineMedium())
                     .foregroundColor(AppColors.textPrimary)
 
                 Spacer()
 
                 Text(CurrencyFormatter.currencySymbol)
-                    .font(AppTypography.body())
+                    .font(AppTypography.subheadline())
                     .foregroundColor(AppColors.textSecondary)
 
                 let balance = viewModel.totalBalance
                 Text(String(format: "%.2f", abs(balance)))
-                    .font(.system(size: 20, weight: .bold, design: .rounded))
+                    .font(.system(size: 16, weight: .bold, design: .rounded))
                     .foregroundColor(abs(balance) < 0.01 ? AppColors.textPrimary : AppColors.negative)
-                    .frame(minWidth: 60, alignment: .trailing)
+                    .frame(minWidth: 50, alignment: .trailing)
             }
 
             HStack {
@@ -888,7 +700,7 @@ struct AddTransactionView: View {
 
         return HStack {
             Text(name)
-                .font(AppTypography.body())
+                .font(AppTypography.subheadline())
                 .foregroundColor(AppColors.textPrimary)
                 .lineLimit(1)
 
@@ -897,13 +709,13 @@ struct AddTransactionView: View {
             if viewModel.splitMethod == .equal {
                 HStack(spacing: Spacing.xs) {
                     Text(CurrencyFormatter.currencySymbol)
-                        .font(AppTypography.body())
+                        .font(AppTypography.subheadline())
                         .foregroundColor(AppColors.textSecondary)
 
                     Text(String(format: "%.2f", splitAmount))
-                        .font(.system(size: 20, weight: .bold, design: .rounded))
+                        .font(.system(size: 16, weight: .bold, design: .rounded))
                         .foregroundColor(AppColors.textPrimary)
-                        .frame(minWidth: 60, alignment: .trailing)
+                        .frame(minWidth: 50, alignment: .trailing)
                 }
             } else {
                 SplitInputView(viewModel: viewModel, person: person)
