@@ -12,6 +12,8 @@ struct AddTransactionView: View {
 
     @AppStorage("default_currency") private var selectedCurrency: String = "USD"
     @State private var currentStep: Int = 1
+    @State private var selectedDetent: PresentationDetent = .fraction(0.42)
+    @State private var keyboardVisible: Bool = false
 
     var initialParticipant: Person?
     var initialGroup: UserGroup?
@@ -81,7 +83,26 @@ struct AddTransactionView: View {
                     focusedField = .title
                 }
             }
-            .presentationDetents([.fraction(0.7), .large])
+            .presentationDetents(availableDetents, selection: $selectedDetent)
+            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
+                withAnimation(AppAnimation.standard) {
+                    keyboardVisible = true
+                    selectedDetent = detentForCurrentState()
+                }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+                withAnimation(AppAnimation.standard) {
+                    keyboardVisible = false
+                    selectedDetent = detentForCurrentState()
+                }
+            }
+            .onChange(of: currentStep) { _, _ in
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                    withAnimation(AppAnimation.standard) {
+                        selectedDetent = detentForCurrentState()
+                    }
+                }
+            }
         }
     }
 
@@ -106,6 +127,16 @@ struct AddTransactionView: View {
     // MARK: - Step 3: Review
 
     private var step3Content: some View {
+        Group {
+            if viewModel.isTwoPartySplit {
+                TwoPartySplitView(viewModel: viewModel)
+            } else {
+                multiPartySplitContent
+            }
+        }
+    }
+
+    private var multiPartySplitContent: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
             splitMethodSection
             breakdownSection
@@ -198,6 +229,27 @@ struct AddTransactionView: View {
             for member in members {
                 viewModel.selectedParticipants.insert(member)
             }
+        }
+    }
+
+    // MARK: - Dynamic Sheet Height
+
+    private var availableDetents: Set<PresentationDetent> {
+        [.fraction(0.42), .fraction(0.50), .fraction(0.58), .fraction(0.65), .fraction(0.72), .large]
+    }
+
+    private func detentForCurrentState() -> PresentationDetent {
+        if keyboardVisible {
+            switch currentStep {
+            case 1: return .fraction(0.72)
+            default: return .large
+            }
+        }
+        switch currentStep {
+        case 1: return .fraction(0.42)
+        case 2: return .fraction(0.58)
+        case 3: return viewModel.isTwoPartySplit ? .fraction(0.50) : .fraction(0.65)
+        default: return .fraction(0.50)
         }
     }
 
@@ -319,52 +371,55 @@ struct AddTransactionView: View {
         let payerName = viewModel.selectedPayer?.firstName ?? "You"
 
         return Text(payerName)
-            .font(AppTypography.subheadline())
-            .foregroundColor(AppColors.textPrimary)
+            .font(AppTypography.caption())
+            .foregroundColor(AppColors.buttonForeground)
             .lineLimit(1)
             .padding(.horizontal, Spacing.md)
             .padding(.vertical, Spacing.sm)
-            .background(AppColors.cardBackgroundElevated)
-            .cornerRadius(CornerRadius.full)
+            .background(AppColors.buttonBackground)
+            .cornerRadius(CornerRadius.md)
             .overlay(
-                RoundedRectangle(cornerRadius: CornerRadius.full)
-                    .stroke(AppColors.buttonBackground.opacity(0.2), lineWidth: 1)
+                RoundedRectangle(cornerRadius: CornerRadius.md)
+                    .stroke(Color.clear, lineWidth: 1)
             )
     }
 
     private var paidBySearchResults: some View {
-        VStack(spacing: 0) {
-            Button {
-                withAnimation(AppAnimation.quick) {
-                    viewModel.selectedPayer = nil
-                    viewModel.paidBySearchText = ""
-                }
-                HapticManager.selectionChanged()
-                focusedField = nil
-            } label: {
-                searchResultRow(name: "You", isSelected: viewModel.selectedPayer == nil)
-            }
-            .buttonStyle(.plain)
-
-            ForEach(viewModel.filteredPaidByContacts, id: \.objectID) { person in
-                Divider().padding(.leading, Spacing.lg)
-
+        ScrollView {
+            VStack(spacing: 0) {
                 Button {
                     withAnimation(AppAnimation.quick) {
-                        viewModel.selectedPayer = person
+                        viewModel.selectedPayer = nil
                         viewModel.paidBySearchText = ""
                     }
                     HapticManager.selectionChanged()
-                    focusedField = nil
+                    focusedField = .paidBySearch
                 } label: {
-                    searchResultRow(
-                        name: person.displayName,
-                        isSelected: viewModel.selectedPayer?.id == person.id
-                    )
+                    searchResultRow(name: "You", isSelected: viewModel.selectedPayer == nil)
                 }
                 .buttonStyle(.plain)
+
+                ForEach(viewModel.filteredPaidByContacts, id: \.objectID) { person in
+                    Divider().padding(.leading, Spacing.lg)
+
+                    Button {
+                        withAnimation(AppAnimation.quick) {
+                            viewModel.selectedPayer = person
+                            viewModel.paidBySearchText = ""
+                        }
+                        HapticManager.selectionChanged()
+                        focusedField = .paidBySearch
+                    } label: {
+                        searchResultRow(
+                            name: person.displayName,
+                            isSelected: viewModel.selectedPayer?.id == person.id
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
             }
         }
+        .frame(maxHeight: 200)
         .background(AppColors.cardBackgroundElevated)
         .cornerRadius(CornerRadius.sm)
         .padding(.top, Spacing.xs)
@@ -430,84 +485,90 @@ struct AddTransactionView: View {
             HapticManager.tap()
         } label: {
             Text(name)
-                .font(AppTypography.subheadline())
-                .foregroundColor(AppColors.textPrimary)
+                .font(AppTypography.caption())
+                .foregroundColor(AppColors.buttonForeground)
                 .lineLimit(1)
                 .padding(.horizontal, Spacing.md)
                 .padding(.vertical, Spacing.sm)
-                .background(AppColors.cardBackgroundElevated)
-                .cornerRadius(CornerRadius.full)
+                .background(AppColors.buttonBackground)
+                .cornerRadius(CornerRadius.md)
                 .overlay(
-                    RoundedRectangle(cornerRadius: CornerRadius.full)
-                        .stroke(AppColors.buttonBackground.opacity(0.2), lineWidth: 1)
+                    RoundedRectangle(cornerRadius: CornerRadius.md)
+                        .stroke(Color.clear, lineWidth: 1)
                 )
         }
         .buttonStyle(.plain)
     }
 
     private var splitWithSearchResults: some View {
-        VStack(spacing: 0) {
-            ForEach(viewModel.filteredSplitWithGroups, id: \.objectID) { group in
-                Button {
-                    withAnimation(AppAnimation.quick) {
-                        viewModel.selectGroup(group)
-                        viewModel.splitWithSearchText = ""
+        ScrollView {
+            VStack(spacing: 0) {
+                ForEach(viewModel.filteredSplitWithGroups, id: \.objectID) { group in
+                    Button {
+                        withAnimation(AppAnimation.quick) {
+                            viewModel.selectGroup(group)
+                            viewModel.splitWithSearchText = ""
+                        }
+                        HapticManager.selectionChanged()
+                        focusedField = .splitWithSearch
+                    } label: {
+                        HStack {
+                            Image(systemName: "person.2.fill")
+                                .font(.system(size: 16))
+                                .foregroundColor(AppColors.accent)
+
+                            Text(group.name ?? "Unnamed Group")
+                                .font(AppTypography.body())
+                                .foregroundColor(AppColors.textPrimary)
+
+                            Spacer()
+
+                            Text("Add All")
+                                .font(AppTypography.caption())
+                                .foregroundColor(AppColors.accent)
+                        }
+                        .padding(.horizontal, Spacing.lg)
+                        .padding(.vertical, Spacing.md)
+                        .contentShape(Rectangle())
                     }
-                    HapticManager.selectionChanged()
-                } label: {
-                    HStack {
-                        Image(systemName: "person.2.fill")
-                            .font(.system(size: 16))
-                            .foregroundColor(AppColors.accent)
+                    .buttonStyle(.plain)
 
-                        Text(group.name ?? "Unnamed Group")
-                            .font(AppTypography.body())
-                            .foregroundColor(AppColors.textPrimary)
-
-                        Spacer()
-
-                        Text("Add All")
-                            .font(AppTypography.caption())
-                            .foregroundColor(AppColors.accent)
-                    }
-                    .padding(.horizontal, Spacing.lg)
-                    .padding(.vertical, Spacing.md)
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-
-                Divider().padding(.leading, Spacing.lg)
-            }
-
-            let validContacts = viewModel.filteredSplitWithContacts.filter { $0.id != nil }
-
-            ForEach(Array(validContacts.enumerated()), id: \.element.objectID) { index, person in
-                Button {
-                    withAnimation(AppAnimation.quick) {
-                        viewModel.toggleParticipant(person)
-                    }
-                    HapticManager.selectionChanged()
-                } label: {
-                    searchResultRow(
-                        name: person.displayName,
-                        isSelected: viewModel.selectedParticipants.contains(person)
-                    )
-                }
-                .buttonStyle(.plain)
-
-                if index < validContacts.count - 1 {
                     Divider().padding(.leading, Spacing.lg)
                 }
-            }
 
-            if validContacts.isEmpty && viewModel.filteredSplitWithGroups.isEmpty {
-                Text("No results found")
-                    .font(AppTypography.subheadline())
-                    .foregroundColor(AppColors.textSecondary)
-                    .padding(.vertical, Spacing.md)
-                    .frame(maxWidth: .infinity)
+                let validContacts = viewModel.filteredSplitWithContacts.filter { $0.id != nil }
+
+                ForEach(Array(validContacts.enumerated()), id: \.element.objectID) { index, person in
+                    Button {
+                        withAnimation(AppAnimation.quick) {
+                            viewModel.toggleParticipant(person)
+                            viewModel.splitWithSearchText = ""
+                        }
+                        HapticManager.selectionChanged()
+                        focusedField = .splitWithSearch
+                    } label: {
+                        searchResultRow(
+                            name: person.displayName,
+                            isSelected: viewModel.selectedParticipants.contains(person)
+                        )
+                    }
+                    .buttonStyle(.plain)
+
+                    if index < validContacts.count - 1 {
+                        Divider().padding(.leading, Spacing.lg)
+                    }
+                }
+
+                if validContacts.isEmpty && viewModel.filteredSplitWithGroups.isEmpty {
+                    Text("No results found")
+                        .font(AppTypography.subheadline())
+                        .foregroundColor(AppColors.textSecondary)
+                        .padding(.vertical, Spacing.md)
+                        .frame(maxWidth: .infinity)
+                }
             }
         }
+        .frame(maxHeight: 200)
         .background(AppColors.cardBackgroundElevated)
         .cornerRadius(CornerRadius.sm)
         .padding(.top, Spacing.xs)
