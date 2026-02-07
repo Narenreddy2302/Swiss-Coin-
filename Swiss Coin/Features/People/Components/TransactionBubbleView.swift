@@ -10,26 +10,19 @@ struct TransactionBubbleView: View {
     let person: Person
     let showTimestamp: Bool
 
+    /// Net balance for this transaction: positive = person owes you
+    private var pairwiseResult: Double {
+        guard let currentUserId = CurrentUser.currentUserId,
+              let personId = person.id else { return 0 }
+        return transaction.pairwiseBalance(personA: currentUserId, personB: personId)
+    }
+
     private var isFromUser: Bool {
-        CurrentUser.isCurrentUser(transaction.payer?.id)
+        pairwiseResult >= 0
     }
 
     private var displayAmount: Double {
-        if isFromUser {
-            // User paid - show what they owe you
-            let splits = transaction.splits as? Set<TransactionSplit> ?? []
-            if let theirSplit = splits.first(where: { $0.owedBy?.id == person.id }) {
-                return theirSplit.amount
-            }
-            return 0
-        } else {
-            // They paid - show what you owe
-            let splits = transaction.splits as? Set<TransactionSplit> ?? []
-            if let mySplit = splits.first(where: { CurrentUser.isCurrentUser($0.owedBy?.id) }) {
-                return mySplit.amount
-            }
-            return 0
-        }
+        abs(pairwiseResult)
     }
 
     private var amountText: String {
