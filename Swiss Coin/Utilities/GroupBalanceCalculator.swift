@@ -11,30 +11,20 @@ extension UserGroup {
 
     /// Calculate net balance for the current user in this group based on group transactions only.
     /// Positive = members owe you, Negative = you owe members.
-    /// Note: Settlements are tracked at the person level (BalanceCalculator), not at the group level,
-    /// because the Settlement entity has no group relationship. Including all settlements between
-    /// group members here would incorrectly mix in non-group debts.
+    /// Uses net-position algorithm to support multi-payer transactions.
     func calculateBalance() -> Double {
         var balance: Double = 0
 
+        guard let currentUserId = CurrentUser.currentUserId else { return 0 }
+
         let groupTransactions = transactions as? Set<FinancialTransaction> ?? []
+        let membersSet = members as? Set<Person> ?? []
 
         for transaction in groupTransactions {
-            let splits = transaction.splits as? Set<TransactionSplit> ?? []
-            let payerId = transaction.payer?.id
-
-            if CurrentUser.isCurrentUser(payerId) {
-                // YOU paid - everyone else owes you their share
-                for split in splits {
-                    if !CurrentUser.isCurrentUser(split.owedBy?.id) {
-                        balance += split.amount
-                    }
-                }
-            } else {
-                // Someone else paid - you owe your share
-                if let mySplit = splits.first(where: { CurrentUser.isCurrentUser($0.owedBy?.id) }) {
-                    balance -= mySplit.amount
-                }
+            // Sum pairwise balance with each other member
+            for member in membersSet {
+                guard let memberId = member.id, !CurrentUser.isCurrentUser(memberId) else { continue }
+                balance += transaction.pairwiseBalance(personA: currentUserId, personB: memberId)
             }
         }
 
@@ -43,28 +33,18 @@ extension UserGroup {
 
     /// Calculate balance between current user and a specific group member based on group transactions only.
     /// Positive = they owe you, Negative = you owe them.
+    /// Uses net-position algorithm to support multi-payer transactions.
     func calculateBalanceWith(member: Person) -> Double {
-        guard !CurrentUser.isCurrentUser(member.id) else { return 0 }
+        guard let currentUserId = CurrentUser.currentUserId,
+              let memberId = member.id,
+              !CurrentUser.isCurrentUser(memberId) else { return 0 }
 
         var balance: Double = 0
 
         let groupTransactions = transactions as? Set<FinancialTransaction> ?? []
 
         for transaction in groupTransactions {
-            let splits = transaction.splits as? Set<TransactionSplit> ?? []
-            let payerId = transaction.payer?.id
-
-            if CurrentUser.isCurrentUser(payerId) {
-                // YOU paid - they owe you their share
-                if let theirSplit = splits.first(where: { $0.owedBy?.id == member.id }) {
-                    balance += theirSplit.amount
-                }
-            } else if payerId == member.id {
-                // THEY paid - you owe your share
-                if let mySplit = splits.first(where: { CurrentUser.isCurrentUser($0.owedBy?.id) }) {
-                    balance -= mySplit.amount
-                }
-            }
+            balance += transaction.pairwiseBalance(personA: currentUserId, personB: memberId)
         }
 
         return balance
