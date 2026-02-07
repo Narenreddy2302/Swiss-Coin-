@@ -11,103 +11,32 @@ import UIKit
 
 // MARK: - Quick Action Sheet Wrapper
 
-/// A wrapper view that presents QuickActionSheet with optional initial data.
+/// A wrapper view that presents the redesigned AddTransactionView with optional initial data.
 /// Use this when presenting from context menus or other entry points that need pre-selection.
 struct QuickActionSheetPresenter: View {
-    @StateObject private var viewModel: QuickActionViewModel
-    @Environment(\.dismiss) private var dismiss
     @Environment(\.managedObjectContext) private var viewContext
+
+    var initialPerson: Person?
+    var initialGroup: UserGroup?
 
     /// Initialize with a pre-selected person
     init(initialPerson: Person) {
-        // Use the person's own context which is available at init time
-        let ctx = initialPerson.managedObjectContext ?? PersistenceController.shared.container.viewContext
-        _viewModel = StateObject(wrappedValue: QuickActionViewModel(
-            context: ctx,
-            initialPerson: initialPerson
-        ))
+        self.initialPerson = initialPerson
+        self.initialGroup = nil
     }
 
     /// Initialize with a pre-selected group
     init(initialGroup: UserGroup) {
-        let ctx = initialGroup.managedObjectContext ?? PersistenceController.shared.container.viewContext
-        _viewModel = StateObject(wrappedValue: QuickActionViewModel(
-            context: ctx,
-            initialGroup: initialGroup
-        ))
+        self.initialPerson = nil
+        self.initialGroup = initialGroup
     }
 
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 0) {
-                // Step Indicator Dots
-                HStack(spacing: Spacing.xs) {
-                    ForEach(1...viewModel.totalSteps, id: \.self) { step in
-                        Circle()
-                            .fill(
-                                step <= viewModel.currentStep
-                                    ? AppColors.accent : AppColors.textSecondary.opacity(0.3)
-                            )
-                            .frame(width: 8, height: 8)
-                    }
-                }
-                .animation(AppAnimation.standard, value: viewModel.totalSteps)
-                .padding(.top, Spacing.sm)
-                .padding(.bottom, Spacing.md)
-
-                // Step Content
-                ScrollView {
-                    VStack(spacing: Spacing.lg) {
-                        switch viewModel.currentStep {
-                        case 1:
-                            Step1BasicDetailsView(viewModel: viewModel)
-                        case 2:
-                            Step2SplitConfigView(viewModel: viewModel)
-                        case 3:
-                            Step3SplitMethodView(viewModel: viewModel)
-                        default:
-                            EmptyView()
-                        }
-                    }
-                    .padding(.horizontal, Spacing.lg)
-                    .padding(.bottom, Spacing.xxl)
-                }
-                .scrollDismissesKeyboard(.interactively)
-            }
-            .background(AppColors.backgroundSecondary)
-            .navigationTitle(navigationTitle)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
-                        HapticManager.tap()
-                        dismiss()
-                    }
-                }
-            }
-            .alert("Error", isPresented: $viewModel.showingError) {
-                Button("OK", role: .cancel) {
-                    HapticManager.tap()
-                }
-            } message: {
-                Text(viewModel.errorMessage)
-            }
-            .onChange(of: viewModel.isSheetPresented) { _, isPresented in
-                if !isPresented {
-                    dismiss()
-                }
-            }
-        }
-    }
-
-    // Step 1 and 2 titles are rendered in the step content itself
-    private var navigationTitle: String {
-        switch viewModel.currentStep {
-        case 1: return ""
-        case 2: return ""
-        case 3: return ""
-        default: return ""
-        }
+        AddTransactionView(
+            viewContext: viewContext,
+            initialParticipant: initialPerson,
+            initialGroup: initialGroup
+        )
     }
 }
 

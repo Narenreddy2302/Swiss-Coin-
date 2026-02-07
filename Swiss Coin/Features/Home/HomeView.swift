@@ -33,7 +33,7 @@ struct HomeView: View {
     private var activeSubscriptions: FetchedResults<Subscription>
 
     @State private var showingProfile = false
-    @StateObject private var quickActionViewModel = QuickActionViewModel(context: PersistenceController.shared.container.viewContext)
+    @State private var showingAddTransaction = false
 
     /// Tracks the last time data was refreshed to debounce rapid refreshes
     @State private var lastRefreshDate = Date.distantPast
@@ -110,7 +110,7 @@ struct HomeView: View {
                         // Add Transaction button
                         Button {
                             HapticManager.tap()
-                            quickActionViewModel.openSheet()
+                            showingAddTransaction = true
                         } label: {
                             HStack(spacing: Spacing.sm) {
                                 Image(systemName: "plus.circle.fill")
@@ -179,12 +179,11 @@ struct HomeView: View {
             .sheet(isPresented: $showingProfile) {
                 ProfileView()
             }
-            .sheet(isPresented: $quickActionViewModel.isSheetPresented) {
-                QuickActionSheet(viewModel: quickActionViewModel)
+            .sheet(isPresented: $showingAddTransaction) {
+                AddTransactionView()
                     .environment(\.managedObjectContext, viewContext)
             }
             .onAppear {
-                quickActionViewModel.setup(context: viewContext)
                 refreshIfStale()
             }
             .onChange(of: scenePhase) { _, newPhase in
