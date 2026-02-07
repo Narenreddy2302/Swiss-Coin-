@@ -35,6 +35,7 @@ extension Person {
     @NSManaged public var receivedSubscriptionSettlements: NSSet?
     @NSManaged public var receivedSubscriptionReminders: NSSet?
     @NSManaged public var createdTransactions: NSSet?
+    @NSManaged public var payerSplits: NSSet?
 
 }
 
@@ -231,6 +232,21 @@ extension Person {
 
     @objc(removeCreatedTransactions:)
     @NSManaged public func removeFromCreatedTransactions(_ values: NSSet)
+}
+
+// MARK: Generated accessors for payerSplits
+extension Person {
+    @objc(addPayerSplitsObject:)
+    @NSManaged public func addToPayerSplits(_ value: TransactionPayer)
+
+    @objc(removePayerSplitsObject:)
+    @NSManaged public func removeFromPayerSplits(_ value: TransactionPayer)
+
+    @objc(addPayerSplits:)
+    @NSManaged public func addToPayerSplits(_ values: NSSet)
+
+    @objc(removePayerSplits:)
+    @NSManaged public func removeFromPayerSplits(_ values: NSSet)
 }
 
 extension Person: Identifiable {
