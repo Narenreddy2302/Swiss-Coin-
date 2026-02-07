@@ -43,18 +43,14 @@ struct SplitInputView: View {
                 let defaultPercent = 100.0 / Double(participantCount)
                 viewModel.rawInputs[personId] = String(format: "%.1f", defaultPercent)
 
-            case .amount:
-                let defaultAmount = viewModel.totalAmountDouble / Double(participantCount)
-                viewModel.rawInputs[personId] = String(format: "%.2f", defaultAmount)
-
             case .adjustment:
                 viewModel.rawInputs[personId] = "0"
 
             case .shares:
                 viewModel.rawInputs[personId] = "1"
 
-            case .equal:
-                break // No input needed for equal split
+            default:
+                break
             }
         }
     }
@@ -64,35 +60,17 @@ struct SplitInputView: View {
     @ViewBuilder
     private var splitInput: some View {
         switch viewModel.splitMethod {
-        case .equal:
-            equalSplitDisplay
-
         case .percentage:
             percentageInput
-
-        case .amount:
-            amountInput
 
         case .adjustment:
             adjustmentInput
 
         case .shares:
             sharesInput
-        }
-    }
 
-    // MARK: - Equal Split Display
-
-    private var equalSplitDisplay: some View {
-        HStack(spacing: Spacing.xs) {
-            Text(CurrencyFormatter.currencySymbol)
-                .font(AppTypography.subheadline())
-                .foregroundColor(AppColors.textSecondary)
-
-            Text(String(format: "%.2f", viewModel.calculateSplit(for: person)))
-                .font(.system(size: 16, weight: .bold, design: .rounded))
-                .foregroundColor(AppColors.textPrimary)
-                .frame(minWidth: 50, alignment: .trailing)
+        default:
+            EmptyView()
         }
     }
 
@@ -110,23 +88,6 @@ struct SplitInputView: View {
             Text("%")
                 .font(AppTypography.subheadline())
                 .foregroundColor(AppColors.textSecondary)
-        }
-    }
-
-    // MARK: - Amount Input
-
-    private var amountInput: some View {
-        HStack(spacing: Spacing.xs) {
-            Text(CurrencyFormatter.currencySymbol)
-                .font(AppTypography.subheadline())
-                .foregroundColor(AppColors.textSecondary)
-
-            TextField("0.00", text: inputBinding)
-                .font(.system(size: 16, weight: .bold, design: .rounded))
-                .keyboardType(.decimalPad)
-                .multilineTextAlignment(.trailing)
-                .foregroundColor(AppColors.textPrimary)
-                .frame(width: 80)
         }
     }
 
@@ -202,6 +163,7 @@ struct SplitInputView: View {
     let context = PersistenceController.preview.container.viewContext
     let viewModel = TransactionViewModel(context: context)
     viewModel.totalAmount = "100"
+    viewModel.splitMethod = .percentage
 
     // Create a mock person
     let person = Person(context: context)
