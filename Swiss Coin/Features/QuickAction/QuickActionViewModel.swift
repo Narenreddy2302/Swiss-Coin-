@@ -56,8 +56,16 @@ class QuickActionViewModel: ObservableObject {
         }
     }
 
-    // Payer: nil represents "Me" (Current User)
-    @Published var paidByPerson: Person? = nil
+    // MARK: - Multi-Payer Support
+    /// Selected payers (empty means "You" pays the full amount)
+    @Published var paidByPersons: Set<Person> = []
+    /// Amount each payer contributed, keyed by Person UUID
+    @Published var payerAmountInputs: [UUID: String] = [:]
+
+    /// Backward-compatible single payer alias
+    var paidByPerson: Person? {
+        paidByPersons.count == 1 ? paidByPersons.first : nil
+    }
 
     // Participants: Set of Persons involved. Does NOT include "Me" implicitly,
     // but we will manage "Me" separate or included?
@@ -189,10 +197,26 @@ class QuickActionViewModel: ObservableObject {
     }
 
     var paidByName: String {
-        if let person = paidByPerson {
-            return person.name ?? "Unknown"
+        if paidByPersons.isEmpty {
+            return "You"
+        } else if paidByPersons.count == 1, let person = paidByPersons.first {
+            return CurrentUser.isCurrentUser(person.id) ? "You" : (person.name ?? "Unknown")
+        } else {
+            return "\(paidByPersons.count) people"
         }
-        return "You"
+    }
+
+    /// Total amount paid by all selected payers
+    var totalPaidByPayers: Double {
+        paidByPersons.reduce(0.0) { sum, person in
+            sum + (Double(payerAmountInputs[person.id ?? UUID()] ?? "0") ?? 0)
+        }
+    }
+
+    /// Whether paid-by amounts balance with the total transaction amount
+    var isPaidByBalanced: Bool {
+        if paidByPersons.count <= 1 { return true }
+        return abs(totalPaidByPayers - amount) < 0.01
     }
 
     var canProceedStep1: Bool {
@@ -205,6 +229,11 @@ class QuickActionViewModel: ObservableObject {
 
     var canSubmit: Bool {
         guard isSplit else { return true }
+
+        // Multi-payer: paid amounts must sum to total
+        if paidByPersons.count > 1 && !isPaidByBalanced {
+            return false
+        }
 
         switch splitMethod {
         case .percentage:
@@ -289,7 +318,8 @@ class QuickActionViewModel: ObservableObject {
         showCategoryPicker = false
         isSplit = false
 
-        paidByPerson = nil  // Me
+        paidByPersons = []
+        payerAmountInputs = [:]
         participantIds = [currentUserUUID]
         selectedGroup = nil
 
@@ -339,8 +369,44 @@ class QuickActionViewModel: ObservableObject {
         nextStep()
     }
 
+    /// Toggle a person as a payer. Also ensures they are a participant.
+    func togglePayer(_ person: Person?) {
+        if let person = person, let personId = person.id {
+            if paidByPersons.contains(person) {
+                paidByPersons.remove(person)
+                payerAmountInputs.removeValue(forKey: personId)
+            } else {
+                paidByPersons.insert(person)
+                // Ensure payer is also a participant
+                if !participantIds.contains(personId) {
+                    participantIds.insert(personId)
+                }
+            }
+        } else {
+            // Toggle "You" (current user) as payer
+            let currentUser = CurrentUser.getOrCreate(in: viewContext)
+            if paidByPersons.contains(currentUser) {
+                paidByPersons.remove(currentUser)
+                payerAmountInputs.removeValue(forKey: currentUserUUID)
+            } else {
+                paidByPersons.insert(currentUser)
+                if !participantIds.contains(currentUserUUID) {
+                    participantIds.insert(currentUserUUID)
+                }
+            }
+        }
+        paidBySearchText = ""
+        isPaidBySearchFocused = false
+    }
+
+    /// Legacy single-select payer (backward compat for views still using this)
     func selectPayer(_ person: Person?) {
-        paidByPerson = person
+        // Clear existing payers and set single payer
+        paidByPersons.removeAll()
+        payerAmountInputs.removeAll()
+        if let person = person {
+            paidByPersons.insert(person)
+        }
         paidBySearchText = ""
         isPaidBySearchFocused = false
 
@@ -363,9 +429,10 @@ class QuickActionViewModel: ObservableObject {
             splitDetails.removeValue(forKey: id)
             selectedGroup = nil
 
-            // Reset payer if the removed participant was the current payer
-            if let payer = paidByPerson, payer.id == id {
-                paidByPerson = nil
+            // Remove from payers if the removed participant was a payer
+            if let payer = paidByPersons.first(where: { $0.id == id }) {
+                paidByPersons.remove(payer)
+                payerAmountInputs.removeValue(forKey: id)
             }
         } else {
             participantIds.insert(id)
@@ -518,8 +585,44 @@ class QuickActionViewModel: ObservableObject {
         transaction.title = transactionName.trimmingCharacters(in: .whitespacesAndNewlines)
         transaction.amount = amount
         transaction.date = transactionDate
-        // Payer: Use current user if paidByPerson is nil
-        transaction.payer = paidByPerson ?? currentUser
+        // Legacy payer field for backward compatibility
+        if paidByPersons.isEmpty {
+            transaction.payer = currentUser
+        } else if paidByPersons.count == 1 {
+            transaction.payer = paidByPersons.first
+        } else {
+            // Multi-payer: set legacy payer to current user if they're a payer, else first payer
+            if let currentUserPayer = paidByPersons.first(where: { CurrentUser.isCurrentUser($0.id) }) {
+                transaction.payer = currentUserPayer
+            } else {
+                transaction.payer = paidByPersons.sorted { ($0.name ?? "") < ($1.name ?? "") }.first
+            }
+        }
+
+        // Create TransactionPayer records
+        if paidByPersons.isEmpty {
+            // Default: "You" pays the full amount
+            let payerRecord = TransactionPayer(context: viewContext)
+            payerRecord.paidBy = currentUser
+            payerRecord.transaction = transaction
+            payerRecord.amount = amount
+        } else if paidByPersons.count == 1, let singlePayer = paidByPersons.first {
+            // Single payer: auto-fill to total
+            let payerRecord = TransactionPayer(context: viewContext)
+            payerRecord.paidBy = singlePayer
+            payerRecord.transaction = transaction
+            payerRecord.amount = amount
+        } else {
+            // Multi-payer: use entered amounts
+            for person in paidByPersons {
+                let payerRecord = TransactionPayer(context: viewContext)
+                payerRecord.paidBy = person
+                payerRecord.transaction = transaction
+                let amountStr = payerAmountInputs[person.id ?? UUID()] ?? "0"
+                payerRecord.amount = Double(amountStr) ?? 0
+            }
+        }
+
         // Creator: Always the current user
         transaction.createdBy = currentUser
         transaction.splitMethod = splitMethod.rawValue

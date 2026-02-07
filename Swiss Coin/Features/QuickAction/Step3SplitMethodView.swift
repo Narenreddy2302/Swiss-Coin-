@@ -43,6 +43,12 @@ struct Step3SplitMethodView: View {
             totalAmountBar
                 .padding(.top, Spacing.lg)
 
+            // MARK: - Paid By (only for multi-payer)
+            if viewModel.paidByPersons.count > 1 {
+                paidByBreakdownSection
+                    .padding(.top, Spacing.lg)
+            }
+
             // MARK: - Breakdown
             breakdownSection
                 .padding(.top, Spacing.lg)
@@ -151,6 +157,109 @@ struct Step3SplitMethodView: View {
         .overlay(
             RoundedRectangle(cornerRadius: CornerRadius.sm)
                 .stroke(AppColors.separator, lineWidth: 1)
+        )
+    }
+
+    // MARK: - Paid By Breakdown
+
+    private var paidByBreakdownSection: some View {
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            Text("Paid By:")
+                .font(AppTypography.title3())
+                .foregroundColor(AppColors.textPrimary)
+
+            let payers = sortedPayerEntries
+
+            VStack(spacing: 0) {
+                ForEach(Array(payers.enumerated()), id: \.element.id) { index, entry in
+                    payerAmountRow(
+                        name: entry.name,
+                        personId: entry.id,
+                        isSinglePayer: payers.count == 1
+                    )
+
+                    if index < payers.count - 1 {
+                        Divider().padding(.horizontal, Spacing.lg)
+                    }
+                }
+            }
+            .background(AppColors.cardBackground)
+            .cornerRadius(CornerRadius.sm)
+            .overlay(
+                RoundedRectangle(cornerRadius: CornerRadius.sm)
+                    .stroke(AppColors.separator, lineWidth: 1)
+            )
+        }
+    }
+
+    private struct PayerEntry: Identifiable {
+        let id: UUID
+        let name: String
+    }
+
+    private var sortedPayerEntries: [PayerEntry] {
+        if viewModel.paidByPersons.isEmpty {
+            // Default: "You" pays full amount
+            return [PayerEntry(id: viewModel.currentUserUUID, name: "You")]
+        }
+
+        var entries: [PayerEntry] = []
+
+        // "You" first if current user is a payer
+        if viewModel.paidByPersons.contains(where: { CurrentUser.isCurrentUser($0.id) }) {
+            entries.append(PayerEntry(id: viewModel.currentUserUUID, name: "You"))
+        }
+
+        // Other payers sorted by name
+        let others = viewModel.paidByPersons
+            .filter { !CurrentUser.isCurrentUser($0.id) }
+            .sorted { ($0.name ?? "") < ($1.name ?? "") }
+
+        for person in others {
+            if let personId = person.id {
+                entries.append(PayerEntry(id: personId, name: person.firstName))
+            }
+        }
+
+        return entries
+    }
+
+    private func payerAmountRow(name: String, personId: UUID, isSinglePayer: Bool) -> some View {
+        HStack {
+            Text(name)
+                .font(AppTypography.body())
+                .foregroundColor(AppColors.textPrimary)
+
+            Spacer()
+
+            Text(viewModel.selectedCurrency.symbol)
+                .font(AppTypography.body())
+                .foregroundColor(AppColors.textSecondary)
+
+            if isSinglePayer {
+                // Single payer: show read-only amount (auto-filled to total)
+                Text(String(format: "%.2f", viewModel.amount))
+                    .font(.system(size: 20, weight: .bold, design: .rounded))
+                    .foregroundColor(AppColors.textPrimary)
+                    .frame(minWidth: 60, alignment: .trailing)
+            } else {
+                // Multi-payer: editable amount field
+                TextField("0.00", text: payerAmountBinding(for: personId))
+                    .font(.system(size: 20, weight: .bold, design: .rounded))
+                    .keyboardType(.decimalPad)
+                    .multilineTextAlignment(.trailing)
+                    .foregroundColor(AppColors.textPrimary)
+                    .frame(width: 80)
+            }
+        }
+        .padding(.horizontal, Spacing.lg)
+        .padding(.vertical, Spacing.md)
+    }
+
+    private func payerAmountBinding(for personId: UUID) -> Binding<String> {
+        Binding<String>(
+            get: { viewModel.payerAmountInputs[personId] ?? "" },
+            set: { viewModel.payerAmountInputs[personId] = $0 }
         )
     }
 
@@ -281,6 +390,8 @@ struct BreakdownPersonRow: View {
             Text(name)
                 .font(AppTypography.body())
                 .foregroundColor(AppColors.textPrimary)
+                .lineLimit(1)
+                .layoutPriority(1)
 
             Spacer()
 

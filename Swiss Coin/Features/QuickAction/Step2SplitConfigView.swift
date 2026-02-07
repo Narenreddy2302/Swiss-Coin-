@@ -50,7 +50,7 @@ struct Step2SplitConfigView: View {
         }
     }
 
-    // MARK: - Paid By
+    // MARK: - Paid By (Multi-Select)
 
     private var paidBySection: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
@@ -66,15 +66,37 @@ struct Step2SplitConfigView: View {
             if !viewModel.paidBySearchText.isEmpty {
                 paidBySearchResults
             } else {
-                payerChip
+                payerChips
             }
         }
     }
 
-    private var payerChip: some View {
-        HStack {
-            chipLabel(viewModel.paidByName)
-            Spacer()
+    private var payerChips: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: Spacing.sm) {
+                if viewModel.paidByPersons.isEmpty {
+                    // Default: "You" chip
+                    chipLabel("You")
+                } else {
+                    // "You" chip if current user is a payer
+                    if viewModel.paidByPersons.contains(where: { CurrentUser.isCurrentUser($0.id) }) {
+                        removableChip(name: "You") {
+                            viewModel.togglePayer(nil)
+                        }
+                    }
+
+                    // Other payers sorted by name
+                    let otherPayers = Array(viewModel.paidByPersons)
+                        .filter { !CurrentUser.isCurrentUser($0.id) }
+                        .sorted { ($0.name ?? "") < ($1.name ?? "") }
+
+                    ForEach(otherPayers, id: \.self) { person in
+                        removableChip(name: person.firstName) {
+                            viewModel.togglePayer(person)
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -83,12 +105,12 @@ struct Step2SplitConfigView: View {
             // "You" option
             Button {
                 HapticManager.selectionChanged()
-                viewModel.selectPayer(nil)
+                viewModel.togglePayer(nil)
                 focusedField = nil
             } label: {
                 searchResultRow(
                     name: "You",
-                    isSelected: viewModel.paidByPerson == nil
+                    isSelected: viewModel.paidByPersons.contains { CurrentUser.isCurrentUser($0.id) }
                 )
             }
             .buttonStyle(.plain)
@@ -98,12 +120,12 @@ struct Step2SplitConfigView: View {
 
                 Button {
                     HapticManager.selectionChanged()
-                    viewModel.selectPayer(person)
+                    viewModel.togglePayer(person)
                     focusedField = nil
                 } label: {
                     searchResultRow(
                         name: person.displayName,
-                        isSelected: viewModel.paidByPerson == person
+                        isSelected: viewModel.paidByPersons.contains(person)
                     )
                 }
                 .buttonStyle(.plain)
