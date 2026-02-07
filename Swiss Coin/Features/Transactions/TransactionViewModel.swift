@@ -21,14 +21,100 @@ final class TransactionViewModel: ObservableObject {
     // Optional group for group transactions
     var selectedGroup: UserGroup?
 
+    // MARK: - Search Fields (for redesigned UI)
+    @Published var paidBySearchText: String = ""
+    @Published var splitWithSearchText: String = ""
+
     private var viewContext: NSManagedObjectContext
+    private var cancellables = Set<AnyCancellable>()
 
     init(context: NSManagedObjectContext) {
         self.viewContext = context
+        setupSearchListeners()
+    }
+
+    // MARK: - Search Functionality
+
+    private func setupSearchListeners() {
+        // Clear search when fields are not in focus
+        $paidBySearchText
+            .debounce(for: .milliseconds(100), scheduler: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.objectWillChange.send()
+            }
+            .store(in: &cancellables)
+    }
+
+    /// Filtered contacts for "Paid By" search
+    var filteredPaidByContacts: [Person] {
+        let fetchRequest: NSFetchRequest<Person> = Person.fetchRequest()
+        fetchRequest.sortDescriptors = [NSSortDescriptor(keyPath: \Person.name, ascending: true)]
+
+        if paidBySearchText.isEmpty {
+            return (try? viewContext.fetch(fetchRequest)) ?? []
+        } else {
+            fetchRequest.predicate = NSPredicate(
+                format: "name CONTAINS[cd] %@",
+                paidBySearchText
+            )
+            return (try? viewContext.fetch(fetchRequest)) ?? []
+        }
+    }
+
+    /// Filtered contacts for "Split With" search
+    var filteredSplitWithContacts: [Person] {
+        let fetchRequest: NSFetchRequest<Person> = Person.fetchRequest()
+        fetchRequest.sortDescriptors = [NSSortDescriptor(keyPath: \Person.name, ascending: true)]
+
+        if splitWithSearchText.isEmpty {
+            return (try? viewContext.fetch(fetchRequest)) ?? []
+        } else {
+            fetchRequest.predicate = NSPredicate(
+                format: "name CONTAINS[cd] %@",
+                splitWithSearchText
+            )
+            return (try? viewContext.fetch(fetchRequest)) ?? []
+        }
+    }
+
+    /// Filtered groups for "Split With" search
+    var filteredSplitWithGroups: [UserGroup] {
+        let fetchRequest: NSFetchRequest<UserGroup> = UserGroup.fetchRequest()
+        fetchRequest.sortDescriptors = [NSSortDescriptor(keyPath: \UserGroup.name, ascending: true)]
+
+        if splitWithSearchText.isEmpty {
+            return (try? viewContext.fetch(fetchRequest)) ?? []
+        } else {
+            fetchRequest.predicate = NSPredicate(
+                format: "name CONTAINS[cd] %@",
+                splitWithSearchText
+            )
+            return (try? viewContext.fetch(fetchRequest)) ?? []
+        }
+    }
+
+    // MARK: - Computed Properties
+
+    /// Step 1 validation: title non-empty AND amount > 0.001
+    var isStep1Valid: Bool {
+        let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        return !trimmedTitle.isEmpty && totalAmountDouble > 0.001
+    }
+
+    /// Step 2 validation: at least one participant selected
+    var isStep2Valid: Bool {
+        !selectedParticipants.isEmpty
     }
 
     var totalAmountDouble: Double {
         return Double(totalAmount) ?? 0.0
+    }
+
+    /// Total balance calculation for validation display
+    var totalBalance: Double {
+        let splits = selectedParticipants.map { calculateSplit(for: $0) }
+        let totalSplit = splits.reduce(0.0, +)
+        return totalAmountDouble - totalSplit
     }
 
     // Current total calculated based on inputs (for validation)
@@ -149,6 +235,28 @@ final class TransactionViewModel: ObservableObject {
         return nil
     }
 
+    // MARK: - Actions
+
+    /// Toggle a participant's selection
+    func toggleParticipant(_ person: Person) {
+        if selectedParticipants.contains(person) {
+            selectedParticipants.remove(person)
+        } else {
+            selectedParticipants.insert(person)
+        }
+    }
+
+    /// Select all members of a group
+    func selectGroup(_ group: UserGroup) {
+        guard let members = group.members as? Set<Person> else { return }
+        for member in members {
+            selectedParticipants.insert(member)
+        }
+        selectedGroup = group
+    }
+
+    // MARK: - Split Calculation
+
     func calculateSplit(for person: Person) -> Double {
         guard let targetId = person.id else { return 0 }
         let count = selectedParticipants.count
@@ -208,6 +316,8 @@ final class TransactionViewModel: ObservableObject {
         }
     }
 
+    // MARK: - Save Transaction
+
     func saveTransaction(completion: @escaping (Bool) -> Void = { _ in }) {
         // 1. Pre-flight validation
         guard isValid else {
@@ -234,7 +344,7 @@ final class TransactionViewModel: ObservableObject {
             } else {
                 transaction.payer = CurrentUser.getOrCreate(in: viewContext)
             }
-            
+
             // 5. Set creator (always the current user)
             transaction.createdBy = CurrentUser.getOrCreate(in: viewContext)
 
@@ -275,7 +385,7 @@ final class TransactionViewModel: ObservableObject {
             completion(false)
         }
     }
-    
+
     /// Reset the form to default values
     func resetForm() {
         title = ""
@@ -286,5 +396,7 @@ final class TransactionViewModel: ObservableObject {
         splitMethod = .equal
         rawInputs = [:]
         selectedGroup = nil
+        paidBySearchText = ""
+        splitWithSearchText = ""
     }
 }
