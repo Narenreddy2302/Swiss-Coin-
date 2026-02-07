@@ -12,64 +12,42 @@ struct TransactionRowView: View {
 
     var body: some View {
         NavigationLink(destination: TransactionDetailView(transaction: transaction)) {
-            HStack(spacing: Spacing.md) {
-                // Payer avatar
-                payerAvatar
-
-                // Main content
-                VStack(alignment: .leading, spacing: Spacing.xxs) {
+            HStack(alignment: .center, spacing: Spacing.md) {
+                // Main Content
+                VStack(alignment: .leading, spacing: Spacing.xs) {
                     Text(transaction.title ?? "Unknown")
                         .font(AppTypography.headline())
                         .foregroundColor(AppColors.textPrimary)
                         .lineLimit(2)
 
                     HStack(spacing: Spacing.xxs) {
-                        // Payer indicator
-                        Text(payerLabel)
-                            .font(AppTypography.caption())
-                            .foregroundColor(AppColors.textTertiary)
-
-                        Text("\u{00B7}")
-                            .font(AppTypography.caption())
-                            .foregroundColor(AppColors.textTertiary)
-
                         Text(dateString)
-                            .font(AppTypography.caption())
-                            .foregroundColor(AppColors.textTertiary)
-
-                        if splitCount > 1 {
-                            Text("\u{00B7}")
-                                .font(AppTypography.caption())
-                                .foregroundColor(AppColors.textTertiary)
-
-                            HStack(spacing: 2) {
-                                Image(systemName: "person.2")
-                                    .font(.system(size: 9))
-                                Text("\(splitCount)")
-                                    .font(AppTypography.caption2())
-                            }
-                            .foregroundColor(AppColors.textTertiary)
-                        }
+                        Text("|")
+                        Text("By \(creatorName)")
+                            .lineLimit(1)
                     }
+                    .font(AppTypography.footnote())
+                    .foregroundColor(AppColors.textSecondary)
                 }
 
-                Spacer(minLength: Spacing.sm)
+                Spacer()
 
-                // Amount column
+                // Amount and Details
                 VStack(alignment: .trailing, spacing: Spacing.xxs) {
                     Text(CurrencyFormatter.format(amountToShow))
                         .font(AppTypography.amount())
                         .foregroundColor(amountColor)
 
-                    Text(balanceLabel)
-                        .font(AppTypography.caption2())
-                        .foregroundColor(amountColor.opacity(0.7))
+                    Text(splitDetails)
+                        .font(AppTypography.caption())
+                        .foregroundColor(AppColors.textSecondary)
                 }
             }
-            .padding(.vertical, Spacing.md)
+            .padding(.vertical, Spacing.lg)
             .padding(.horizontal, Spacing.lg)
         }
         .buttonStyle(.plain)
+        .background(AppColors.backgroundSecondary)
         .contentShape(Rectangle())
         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
             Button(role: .destructive) {
@@ -140,83 +118,15 @@ struct TransactionRowView: View {
         }
     }
 
-    // MARK: - Payer Avatar
-
-    private var payerAvatar: some View {
-        ZStack {
-            if let payer = transaction.payer {
-                Circle()
-                    .fill(payer.avatarBackgroundColor)
-                    .frame(width: AvatarSize.md, height: AvatarSize.md)
-                    .overlay(
-                        Text(CurrentUser.isCurrentUser(payer.id) ? CurrentUser.initials : payer.initials)
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(payer.avatarTextColor)
-                    )
-            } else {
-                Circle()
-                    .fill(AppColors.surface)
-                    .frame(width: AvatarSize.md, height: AvatarSize.md)
-                    .overlay(
-                        Image(systemName: "person.fill")
-                            .font(.system(size: 16))
-                            .foregroundColor(AppColors.textTertiary)
-                    )
-            }
-
-            // Direction indicator
-            Circle()
-                .fill(isPayer ? AppColors.positive : AppColors.negative)
-                .frame(width: 14, height: 14)
-                .overlay(
-                    Image(systemName: isPayer ? "arrow.up.right" : "arrow.down.left")
-                        .font(.system(size: 7, weight: .bold))
-                        .foregroundColor(.white)
-                )
-                .offset(x: 14, y: 14)
-        }
-    }
-
     // MARK: - Helpers
 
     private var dateString: String {
         guard let date = transaction.date else { return "" }
-        let calendar = Calendar.current
-        if calendar.isDateInToday(date) {
-            return "Today"
-        } else if calendar.isDateInYesterday(date) {
-            return "Yesterday"
-        } else {
-            return DateFormatter.mediumDate.string(from: date)
-        }
-    }
-
-    private var payerLabel: String {
-        if isPayer {
-            return "You paid"
-        } else {
-            let name = transaction.payer?.firstName ?? "Someone"
-            return "\(name) paid"
-        }
-    }
-
-    private var balanceLabel: String {
-        if isPayer {
-            let amount = amountToShow
-            if amount < 0.01 {
-                return "settled"
-            }
-            return "lent"
-        } else {
-            let amount = amountToShow
-            if amount < 0.01 {
-                return "settled"
-            }
-            return "you owe"
-        }
+        return DateFormatter.mediumDate.string(from: date)
     }
 
     private var creatorName: String {
+        // Use createdBy if available, otherwise fall back to payer for backward compatibility
         let creator = transaction.createdBy ?? transaction.payer
         if let creatorId = creator?.id {
             if CurrentUser.isCurrentUser(creatorId) {
@@ -245,9 +155,11 @@ struct TransactionRowView: View {
     /// Amount others owe you (if you paid) or you owe (if someone else paid)
     private var amountToShow: Double {
         if isPayer {
+            // You paid - show what others owe you (total minus your share)
             let lentToOthers = transaction.amount - myShare
             return max(lentToOthers, 0)
         } else {
+            // Someone else paid - show what you owe them
             return myShare
         }
     }
@@ -256,12 +168,15 @@ struct TransactionRowView: View {
         let amount = amountToShow
 
         if amount < 0.01 {
+            // Zero or negligible - use neutral color
             return AppColors.textSecondary
         }
 
         if isPayer {
+            // You paid and are owed money - positive (green)
             return AppColors.positive
         } else {
+            // You owe money - negative (red)
             return AppColors.negative
         }
     }
@@ -269,6 +184,7 @@ struct TransactionRowView: View {
     private var splitCount: Int {
         let splits = transaction.splits as? Set<TransactionSplit> ?? []
 
+        // Count unique participants (payer + those who owe)
         var participants = Set<UUID>()
         if let payerId = transaction.payer?.id {
             participants.insert(payerId)
@@ -280,6 +196,13 @@ struct TransactionRowView: View {
         }
 
         return max(participants.count, 1)
+    }
+
+    private var splitDetails: String {
+        let formattedTotal = CurrencyFormatter.format(transaction.amount)
+        let count = splitCount
+        let peopleText = count == 1 ? "1 Person" : "\(count) People"
+        return "\(formattedTotal) / \(peopleText)"
     }
 
     // MARK: - Actions
