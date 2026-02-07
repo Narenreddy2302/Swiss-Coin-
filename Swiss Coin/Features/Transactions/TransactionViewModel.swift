@@ -106,6 +106,37 @@ final class TransactionViewModel: ObservableObject {
         !selectedParticipants.isEmpty
     }
 
+    // MARK: - Two-Party Split Detection
+
+    /// Whether this is a 2-party split (current user + exactly 1 other person)
+    var isTwoPartySplit: Bool {
+        let otherParticipants = selectedParticipants.filter { !CurrentUser.isCurrentUser($0.id) }
+        return otherParticipants.count == 1 && selectedParticipants.count == 2
+    }
+
+    /// The other person in a 2-party split
+    var twoPartyOtherPerson: Person? {
+        guard isTwoPartySplit else { return nil }
+        return selectedParticipants.first { !CurrentUser.isCurrentUser($0.id) }
+    }
+
+    /// Amount the other person owes You (when You paid)
+    var twoPartyTheyOweYou: Double {
+        guard isTwoPartySplit, let other = twoPartyOtherPerson else { return 0 }
+        guard selectedPayer == nil else { return 0 }
+        return calculateSplit(for: other)
+    }
+
+    /// Amount You owe the other person (when they paid)
+    var twoPartyYouOweThem: Double {
+        guard isTwoPartySplit, let other = twoPartyOtherPerson else { return 0 }
+        guard let payer = selectedPayer, payer.id == other.id else { return 0 }
+        if let currentUserPerson = selectedParticipants.first(where: { CurrentUser.isCurrentUser($0.id) }) {
+            return calculateSplit(for: currentUserPerson)
+        }
+        return 0
+    }
+
     var totalAmountDouble: Double {
         return Double(totalAmount) ?? 0.0
     }
