@@ -71,137 +71,51 @@ struct TransactionEditView: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                // Transaction Info Section
-                Section {
-                    VStack(alignment: .leading, spacing: Spacing.xs) {
-                        Text("Title")
-                            .font(AppTypography.caption())
-                            .foregroundColor(AppColors.textSecondary)
-                        TextField("Transaction title", text: $title)
-                            .font(AppTypography.body())
-                            .limitTextLength(to: ValidationLimits.maxTransactionTitleLength, text: $title)
-                    }
+            ZStack(alignment: .bottom) {
+                ScrollView {
+                    VStack(spacing: Spacing.xl) {
+                        // MARK: - Hero Amount Section
+                        amountSection
 
-                    VStack(alignment: .leading, spacing: Spacing.xs) {
-                        Text("Amount")
-                            .font(AppTypography.caption())
-                            .foregroundColor(AppColors.textSecondary)
-                        HStack {
-                            Text(CurrencyFormatter.currencySymbol)
-                                .font(AppTypography.body())
-                                .foregroundColor(AppColors.textSecondary)
-                            TextField("0.00", text: $amount)
-                                .font(AppTypography.body())
-                                .keyboardType(.decimalPad)
-                                .limitTextLength(to: 12, text: $amount)
-                        }
-                    }
+                        // MARK: - Transaction Info Card
+                        transactionInfoCard
 
-                    DatePicker("Date", selection: $date, displayedComponents: .date)
-                        .font(AppTypography.body())
-                } header: {
-                    Text("Transaction Info")
-                        .font(AppTypography.subheadlineMedium())
+                        // MARK: - Payer Card
+                        payerCard
+
+                        // MARK: - Current Splits Card (read-only)
+                        currentSplitsCard
+
+                        // MARK: - Validation
+                        validationSection
+
+                        // Bottom padding for save button
+                        Spacer()
+                            .frame(height: ButtonHeight.xl + Spacing.section)
+                    }
+                    .padding(.horizontal, Spacing.lg)
+                    .padding(.top, Spacing.lg)
                 }
+                .scrollDismissesKeyboard(.interactively)
 
-                // Payer Section
-                Section {
-                    Picker("Who Paid?", selection: $selectedPayer) {
-                        Text("Me").tag(nil as Person?)
-                        ForEach(otherPeople) { person in
-                            Text(person.displayName).tag(person as Person?)
-                        }
-                    }
-                } header: {
-                    Text("Payer")
-                        .font(AppTypography.subheadlineMedium())
-                }
-
-                // Split Method (read-only display)
-                Section {
-                    let method = SplitMethod(rawValue: transaction.splitMethod ?? "equal")
-                    LabeledContent("Split Method") {
-                        Text(method?.displayName ?? "Equal")
-                            .foregroundColor(AppColors.textSecondary)
-                    }
-
-                    // Show current splits as read-only info
-                    let splits = (transaction.splits as? Set<TransactionSplit> ?? [])
-                        .sorted { ($0.owedBy?.displayName ?? "") < ($1.owedBy?.displayName ?? "") }
-
-                    if !splits.isEmpty {
-                        ForEach(splits, id: \.objectID) { split in
-                            HStack {
-                                if let person = split.owedBy {
-                                    Text(CurrentUser.isCurrentUser(person.id) ? "You" : person.displayName)
-                                        .font(AppTypography.body())
-                                        .foregroundColor(AppColors.textPrimary)
-                                } else {
-                                    Text("Unknown")
-                                        .font(AppTypography.body())
-                                        .foregroundColor(AppColors.textSecondary)
-                                }
-                                Spacer()
-                                Text(CurrencyFormatter.format(split.amount))
-                                    .font(AppTypography.amountSmall())
-                                    .foregroundColor(AppColors.textSecondary)
-                            }
-                        }
-                    }
-                } header: {
-                    Text("Current Splits")
-                        .font(AppTypography.subheadlineMedium())
-                } footer: {
-                    if amountDouble != transaction.amount && amountDouble > 0 {
-                        Text("Note: Changing the total amount will proportionally recalculate all splits.")
-                            .font(AppTypography.caption())
-                            .foregroundColor(AppColors.warning)
-                    }
-                }
-
-                // Validation Message
-                if let message = validationMessage {
-                    Section {
-                        Text(message)
-                            .font(AppTypography.caption())
-                            .foregroundColor(AppColors.negative)
-                    }
-                }
-
-                // Save Button
-                Section {
-                    Button {
-                        saveChanges()
-                    } label: {
-                        HStack {
-                            Spacer()
-                            if isSaving {
-                                ProgressView()
-                                    .tint(.white)
-                            } else {
-                                Text("Save Changes")
-                            }
-                            Spacer()
-                        }
-                    }
-                    .disabled(!isValid || isSaving)
-                    .buttonStyle(PrimaryButtonStyle(isEnabled: isValid && !isSaving))
-                    .listRowInsets(EdgeInsets(top: Spacing.sm, leading: Spacing.lg, bottom: Spacing.sm, trailing: Spacing.lg))
-                }
+                // MARK: - Floating Save Button
+                saveButton
             }
+            .background(AppColors.backgroundSecondary)
             .navigationTitle("Edit Transaction")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
+                    Button {
                         HapticManager.cancel()
                         dismiss()
+                    } label: {
+                        Text("Cancel")
+                            .font(AppTypography.body())
+                            .foregroundColor(AppColors.textPrimary)
                     }
                 }
             }
-            .scrollContentBackground(.hidden)
-            .background(AppColors.backgroundSecondary)
             .alert("Error", isPresented: $showingError) {
                 Button("OK", role: .cancel) {
                     HapticManager.tap()
@@ -209,6 +123,269 @@ struct TransactionEditView: View {
             } message: {
                 Text(errorMessage)
             }
+        }
+    }
+
+    // MARK: - Amount Section
+
+    private var amountSection: some View {
+        VStack(spacing: Spacing.md) {
+            Text("Total Amount")
+                .font(AppTypography.subheadline())
+                .foregroundColor(AppColors.textSecondary)
+
+            HStack(alignment: .firstTextBaseline, spacing: Spacing.xxs) {
+                Text(CurrencyFormatter.currencySymbol)
+                    .font(.system(size: 36, weight: .bold, design: .rounded))
+                    .foregroundColor(amount.isEmpty ? AppColors.textTertiary : AppColors.textPrimary)
+
+                TextField("0.00", text: $amount)
+                    .font(.system(size: 48, weight: .bold, design: .rounded))
+                    .foregroundColor(AppColors.textPrimary)
+                    .keyboardType(.decimalPad)
+                    .multilineTextAlignment(.center)
+                    .limitTextLength(to: 12, text: $amount)
+                    .minimumScaleFactor(0.5)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, Spacing.xxl)
+            .padding(.horizontal, Spacing.lg)
+            .background(
+                RoundedRectangle(cornerRadius: CornerRadius.lg)
+                    .fill(AppColors.cardBackground)
+            )
+        }
+    }
+
+    // MARK: - Transaction Info Card
+
+    private var transactionInfoCard: some View {
+        VStack(spacing: 0) {
+            // Title Field
+            VStack(alignment: .leading, spacing: Spacing.xs) {
+                Text("Title")
+                    .font(AppTypography.caption())
+                    .foregroundColor(AppColors.textSecondary)
+
+                TextField("Transaction title", text: $title)
+                    .font(AppTypography.body())
+                    .foregroundColor(AppColors.textPrimary)
+                    .limitTextLength(to: ValidationLimits.maxTransactionTitleLength, text: $title)
+            }
+            .padding(.horizontal, Spacing.lg)
+            .padding(.vertical, Spacing.md)
+
+            Divider()
+                .padding(.leading, Spacing.lg)
+
+            // Date Picker
+            HStack {
+                Text("Date")
+                    .font(AppTypography.body())
+                    .foregroundColor(AppColors.textPrimary)
+                Spacer()
+                DatePicker("", selection: $date, displayedComponents: .date)
+                    .labelsHidden()
+                    .tint(AppColors.accent)
+            }
+            .padding(.horizontal, Spacing.lg)
+            .padding(.vertical, Spacing.md)
+        }
+        .background(
+            RoundedRectangle(cornerRadius: CornerRadius.md)
+                .fill(AppColors.cardBackground)
+        )
+    }
+
+    // MARK: - Payer Card
+
+    private var payerCard: some View {
+        VStack(spacing: 0) {
+            Picker("Who Paid?", selection: $selectedPayer) {
+                Text("Me").tag(nil as Person?)
+                ForEach(otherPeople) { person in
+                    Text(person.displayName).tag(person as Person?)
+                }
+            }
+            .padding(.horizontal, Spacing.lg)
+            .padding(.vertical, Spacing.md)
+        }
+        .background(
+            RoundedRectangle(cornerRadius: CornerRadius.md)
+                .fill(AppColors.cardBackground)
+        )
+    }
+
+    // MARK: - Current Splits Card
+
+    private var currentSplitsCard: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            // Header
+            HStack {
+                Text("Current Splits")
+                    .font(AppTypography.headline())
+                    .foregroundColor(AppColors.textPrimary)
+
+                Spacer()
+
+                let method = SplitMethod(rawValue: transaction.splitMethod ?? "equal")
+                if let method = method {
+                    HStack(spacing: Spacing.xs) {
+                        Image(systemName: method.systemImage)
+                            .font(.system(size: IconSize.sm))
+                        Text(method.displayName)
+                            .font(AppTypography.caption())
+                    }
+                    .foregroundColor(AppColors.textSecondary)
+                    .padding(.horizontal, Spacing.sm)
+                    .padding(.vertical, Spacing.xxs)
+                    .background(
+                        Capsule()
+                            .fill(AppColors.backgroundTertiary)
+                    )
+                }
+            }
+            .padding(.horizontal, Spacing.lg)
+            .padding(.vertical, Spacing.lg)
+
+            Divider()
+                .padding(.leading, Spacing.lg)
+
+            // Splits
+            let splits = (transaction.splits as? Set<TransactionSplit> ?? [])
+                .sorted { ($0.owedBy?.displayName ?? "") < ($1.owedBy?.displayName ?? "") }
+
+            if !splits.isEmpty {
+                ForEach(splits, id: \.objectID) { split in
+                    HStack(spacing: Spacing.md) {
+                        // Avatar
+                        if let person = split.owedBy {
+                            Circle()
+                                .fill(person.avatarBackgroundColor)
+                                .frame(width: AvatarSize.sm, height: AvatarSize.sm)
+                                .overlay(
+                                    Text(CurrentUser.isCurrentUser(person.id) ? CurrentUser.initials : person.initials)
+                                        .font(.system(size: 12, weight: .medium))
+                                        .foregroundColor(person.avatarTextColor)
+                                )
+                        } else {
+                            Circle()
+                                .fill(AppColors.backgroundTertiary)
+                                .frame(width: AvatarSize.sm, height: AvatarSize.sm)
+                                .overlay(
+                                    Text("?")
+                                        .font(.system(size: 12, weight: .medium))
+                                        .foregroundColor(AppColors.textSecondary)
+                                )
+                        }
+
+                        // Name
+                        if let person = split.owedBy {
+                            Text(CurrentUser.isCurrentUser(person.id) ? "You" : person.displayName)
+                                .font(AppTypography.body())
+                                .foregroundColor(AppColors.textPrimary)
+                        } else {
+                            Text("Unknown")
+                                .font(AppTypography.body())
+                                .foregroundColor(AppColors.textSecondary)
+                        }
+
+                        Spacer()
+
+                        // Amount
+                        Text(CurrencyFormatter.format(split.amount))
+                            .font(AppTypography.amountSmall())
+                            .foregroundColor(AppColors.textSecondary)
+                    }
+                    .padding(.horizontal, Spacing.lg)
+                    .padding(.vertical, Spacing.md)
+
+                    if split != splits.last {
+                        Divider()
+                            .padding(.leading, Spacing.lg + AvatarSize.sm + Spacing.md)
+                    }
+                }
+            } else {
+                Text("No splits configured")
+                    .font(AppTypography.subheadline())
+                    .foregroundColor(AppColors.textSecondary)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, Spacing.xxl)
+            }
+
+            // Recalculation notice
+            if amountDouble != transaction.amount && amountDouble > 0 {
+                Divider()
+
+                HStack(spacing: Spacing.sm) {
+                    Image(systemName: "info.circle.fill")
+                        .font(.system(size: IconSize.sm))
+                        .foregroundColor(AppColors.warning)
+
+                    Text("Changing the total will proportionally recalculate all splits.")
+                        .font(AppTypography.footnote())
+                        .foregroundColor(AppColors.textSecondary)
+                }
+                .padding(.horizontal, Spacing.lg)
+                .padding(.vertical, Spacing.md)
+            }
+        }
+        .background(
+            RoundedRectangle(cornerRadius: CornerRadius.md)
+                .fill(AppColors.cardBackground)
+        )
+    }
+
+    // MARK: - Validation Section
+
+    @ViewBuilder
+    private var validationSection: some View {
+        if let message = validationMessage {
+            HStack(spacing: Spacing.sm) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.system(size: IconSize.sm))
+                    .foregroundColor(AppColors.warning)
+
+                Text(message)
+                    .font(AppTypography.footnote())
+                    .foregroundColor(AppColors.textSecondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, Spacing.lg)
+            .padding(.vertical, Spacing.md)
+            .background(
+                RoundedRectangle(cornerRadius: CornerRadius.sm)
+                    .fill(AppColors.warning.opacity(0.08))
+            )
+        }
+    }
+
+    // MARK: - Save Button
+
+    private var saveButton: some View {
+        VStack(spacing: 0) {
+            LinearGradient(
+                colors: [AppColors.backgroundSecondary.opacity(0), AppColors.backgroundSecondary],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .frame(height: Spacing.xxl)
+
+            Button {
+                saveChanges()
+            } label: {
+                if isSaving {
+                    ProgressView()
+                        .tint(AppColors.buttonForeground)
+                } else {
+                    Text("Save Changes")
+                }
+            }
+            .disabled(!isValid || isSaving)
+            .buttonStyle(PrimaryButtonStyle(isEnabled: isValid && !isSaving))
+            .padding(.horizontal, Spacing.lg)
+            .padding(.bottom, Spacing.lg)
+            .background(AppColors.backgroundSecondary)
         }
     }
 

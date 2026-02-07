@@ -12,42 +12,51 @@ struct TransactionRowView: View {
 
     var body: some View {
         NavigationLink(destination: TransactionDetailView(transaction: transaction)) {
-            HStack(alignment: .center, spacing: Spacing.md) {
+            HStack(spacing: Spacing.md) {
+                // Category Icon
+                RoundedRectangle(cornerRadius: CornerRadius.sm)
+                    .fill(amountColor.opacity(0.1))
+                    .frame(width: AvatarSize.md, height: AvatarSize.md)
+                    .overlay(
+                        Image(systemName: isPayer ? "arrow.up.right" : "arrow.down.left")
+                            .font(.system(size: IconSize.md, weight: .medium))
+                            .foregroundColor(amountColor)
+                    )
+
                 // Main Content
-                VStack(alignment: .leading, spacing: Spacing.xs) {
+                VStack(alignment: .leading, spacing: Spacing.xxs) {
                     Text(transaction.title ?? "Unknown")
                         .font(AppTypography.headline())
                         .foregroundColor(AppColors.textPrimary)
-                        .lineLimit(2)
+                        .lineLimit(1)
 
                     HStack(spacing: Spacing.xxs) {
                         Text(dateString)
-                        Text("|")
+                        Text("·")
                         Text("By \(creatorName)")
                             .lineLimit(1)
                     }
-                    .font(AppTypography.footnote())
+                    .font(AppTypography.caption())
                     .foregroundColor(AppColors.textSecondary)
                 }
 
-                Spacer()
+                Spacer(minLength: Spacing.sm)
 
                 // Amount and Details
                 VStack(alignment: .trailing, spacing: Spacing.xxs) {
-                    Text(CurrencyFormatter.format(amountToShow))
+                    Text(amountPrefix + CurrencyFormatter.format(amountToShow))
                         .font(AppTypography.amount())
                         .foregroundColor(amountColor)
 
                     Text(splitDetails)
                         .font(AppTypography.caption())
-                        .foregroundColor(AppColors.textSecondary)
+                        .foregroundColor(AppColors.textTertiary)
                 }
             }
-            .padding(.vertical, Spacing.lg)
+            .padding(.vertical, Spacing.md)
             .padding(.horizontal, Spacing.lg)
         }
         .buttonStyle(.plain)
-        .background(AppColors.backgroundSecondary)
         .contentShape(Rectangle())
         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
             Button(role: .destructive) {
@@ -164,6 +173,14 @@ struct TransactionRowView: View {
         }
     }
 
+    private var amountPrefix: String {
+        let amount = amountToShow
+        if amount < 0.01 {
+            return ""
+        }
+        return isPayer ? "+" : "-"
+    }
+
     private var amountColor: Color {
         let amount = amountToShow
 
@@ -201,8 +218,8 @@ struct TransactionRowView: View {
     private var splitDetails: String {
         let formattedTotal = CurrencyFormatter.format(transaction.amount)
         let count = splitCount
-        let peopleText = count == 1 ? "1 Person" : "\(count) People"
-        return "\(formattedTotal) / \(peopleText)"
+        let peopleText = count == 1 ? "1 person" : "\(count) people"
+        return "\(formattedTotal) · \(peopleText)"
     }
 
     // MARK: - Actions

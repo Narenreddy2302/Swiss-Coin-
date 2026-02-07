@@ -16,6 +16,58 @@ struct TransactionHistoryView: View {
     @State private var showingDeleteAlert = false
     @State private var transactionToDelete: FinancialTransaction?
 
+    // MARK: - Grouped Transactions
+
+    private var groupedTransactions: [(key: String, transactions: [FinancialTransaction])] {
+        let calendar = Calendar.current
+        let now = Date()
+
+        let grouped = Dictionary(grouping: Array(transactions)) { (transaction: FinancialTransaction) -> String in
+            guard let date = transaction.date else { return "Unknown" }
+
+            if calendar.isDateInToday(date) {
+                return "Today"
+            } else if calendar.isDateInYesterday(date) {
+                return "Yesterday"
+            } else if let daysAgo = calendar.dateComponents([.day], from: date, to: now).day, daysAgo < 7 {
+                return "This Week"
+            } else if let daysAgo = calendar.dateComponents([.day], from: date, to: now).day, daysAgo < 30 {
+                return "This Month"
+            } else {
+                let formatter = DateFormatter()
+                formatter.dateFormat = "MMMM yyyy"
+                return formatter.string(from: date)
+            }
+        }
+
+        // Define sort order for group keys
+        let order = ["Today", "Yesterday", "This Week", "This Month"]
+
+        return grouped
+            .sorted { first, second in
+                let idx1 = order.firstIndex(of: first.key) ?? Int.max
+                let idx2 = order.firstIndex(of: second.key) ?? Int.max
+                if idx1 != Int.max || idx2 != Int.max {
+                    return idx1 < idx2
+                }
+                // For month-year strings, sort descending by the first transaction date
+                let date1 = first.value.first?.date ?? Date.distantPast
+                let date2 = second.value.first?.date ?? Date.distantPast
+                return date1 > date2
+            }
+            .map { (key: $0.key, transactions: $0.value.sorted { ($0.date ?? .distantPast) > ($1.date ?? .distantPast) }) }
+    }
+
+    // MARK: - Summary
+
+    private var totalAmount: Double {
+        transactions.reduce(0) { $0 + $1.amount }
+    }
+
+    private var transactionCount: Int {
+        transactions.count
+    }
+
     var body: some View {
         NavigationStack {
             ZStack {
@@ -53,10 +105,14 @@ struct TransactionHistoryView: View {
         VStack(spacing: Spacing.lg) {
             Spacer()
 
-            Image(systemName: "arrow.left.arrow.right.circle")
-                .font(.system(size: IconSize.xxl))
-                .foregroundColor(AppColors.textSecondary)
-                .accessibilityHidden(true)
+            RoundedRectangle(cornerRadius: CornerRadius.lg)
+                .fill(AppColors.backgroundTertiary)
+                .frame(width: AvatarSize.xl, height: AvatarSize.xl)
+                .overlay(
+                    Image(systemName: "arrow.left.arrow.right.circle")
+                        .font(.system(size: 32, weight: .medium))
+                        .foregroundColor(AppColors.textSecondary)
+                )
 
             Text("No Transactions Yet")
                 .font(AppTypography.title2())
@@ -72,10 +128,10 @@ struct TransactionHistoryView: View {
                 Image(systemName: "plus.circle.fill")
                     .font(.system(size: IconSize.sm))
                 Text("Tap + to create your first transaction")
-                    .font(AppTypography.subheadline())
+                    .font(AppTypography.subheadlineMedium())
             }
             .foregroundColor(AppColors.accent)
-            .padding(.top, Spacing.md)
+            .padding(.top, Spacing.sm)
 
             Spacer()
         }
@@ -86,35 +142,111 @@ struct TransactionHistoryView: View {
     // MARK: - Transaction List
 
     private var transactionList: some View {
-        List {
-            ForEach(transactions) { transaction in
-                TransactionRowView(
-                    transaction: transaction,
-                    onEdit: nil,
-                    onDelete: {
-                        transactionToDelete = transaction
-                        showingDeleteAlert = true
+        ScrollView {
+            VStack(spacing: Spacing.xxl) {
+                // Summary Header
+                summaryHeader
+
+                // Grouped Transactions
+                LazyVStack(spacing: Spacing.xl) {
+                    ForEach(groupedTransactions, id: \.key) { group in
+                        transactionSection(title: group.key, transactions: group.transactions)
                     }
-                )
-                .listRowInsets(EdgeInsets())
-                .listRowBackground(AppColors.backgroundSecondary)
-                .alignmentGuide(.listRowSeparatorLeading) { _ in 0 }
+                }
+
+                Spacer()
+                    .frame(height: Spacing.section + Spacing.sm)
             }
-            .onDelete(perform: deleteItems)
+            .padding(.horizontal, Spacing.lg)
+            .padding(.top, Spacing.lg)
         }
-        .listStyle(.plain)
-        .scrollContentBackground(.hidden)
+    }
+
+    // MARK: - Summary Header
+
+    private var summaryHeader: some View {
+        HStack(spacing: Spacing.lg) {
+            // Total Amount
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
+                Text("Total")
+                    .font(AppTypography.caption())
+                    .foregroundColor(AppColors.textSecondary)
+                Text(CurrencyFormatter.format(totalAmount))
+                    .font(AppTypography.amountLarge())
+                    .foregroundColor(AppColors.textPrimary)
+            }
+
+            Spacer()
+
+            // Transaction Count
+            VStack(alignment: .trailing, spacing: Spacing.xxs) {
+                Text("Transactions")
+                    .font(AppTypography.caption())
+                    .foregroundColor(AppColors.textSecondary)
+                Text("\(transactionCount)")
+                    .font(AppTypography.amountLarge())
+                    .foregroundColor(AppColors.textPrimary)
+            }
+        }
+        .padding(.horizontal, Spacing.lg)
+        .padding(.vertical, Spacing.lg)
+        .background(
+            RoundedRectangle(cornerRadius: CornerRadius.md)
+                .fill(AppColors.cardBackground)
+        )
+    }
+
+    // MARK: - Transaction Section
+
+    private func transactionSection(title: String, transactions: [FinancialTransaction]) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            // Section header
+            HStack {
+                Text(title)
+                    .font(AppTypography.subheadlineMedium())
+                    .foregroundColor(AppColors.textSecondary)
+
+                Spacer()
+
+                Text("\(transactions.count)")
+                    .font(AppTypography.caption())
+                    .foregroundColor(AppColors.textTertiary)
+                    .padding(.horizontal, Spacing.sm)
+                    .padding(.vertical, Spacing.xxs)
+                    .background(
+                        Capsule()
+                            .fill(AppColors.backgroundTertiary)
+                    )
+            }
+            .padding(.horizontal, Spacing.lg)
+            .padding(.bottom, Spacing.sm)
+
+            // Transaction rows
+            VStack(spacing: 0) {
+                ForEach(transactions) { transaction in
+                    TransactionRowView(
+                        transaction: transaction,
+                        onEdit: nil,
+                        onDelete: {
+                            transactionToDelete = transaction
+                            showingDeleteAlert = true
+                        }
+                    )
+
+                    if transaction.id != transactions.last?.id {
+                        Divider()
+                            .padding(.leading, Spacing.lg)
+                    }
+                }
+            }
+            .background(
+                RoundedRectangle(cornerRadius: CornerRadius.md)
+                    .fill(AppColors.cardBackground)
+            )
+        }
     }
 
     // MARK: - Delete Logic
-
-    private func deleteItems(offsets: IndexSet) {
-        withAnimation {
-            offsets.map { transactions[$0] }.forEach { transaction in
-                deleteTransaction(transaction)
-            }
-        }
-    }
 
     private func deleteTransaction(_ transaction: FinancialTransaction) {
         // Delete associated splits first
