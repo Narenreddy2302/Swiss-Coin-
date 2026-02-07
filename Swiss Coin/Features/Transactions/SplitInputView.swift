@@ -1,5 +1,8 @@
+import CoreData
 import SwiftUI
 
+/// A compact split input view for the redesigned transaction form
+/// Displays and allows editing of split amounts based on the selected split method
 struct SplitInputView: View {
     @ObservedObject var viewModel: TransactionViewModel
     let person: Person
@@ -20,127 +23,193 @@ struct SplitInputView: View {
     }
 
     var body: some View {
-        HStack(spacing: Spacing.md) {
-            // Avatar
-            Circle()
-                .fill(person.avatarBackgroundColor)
-                .frame(width: AvatarSize.xs, height: AvatarSize.xs)
-                .overlay(
-                    Text(CurrentUser.isCurrentUser(person.id) ? CurrentUser.initials : person.initials)
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundColor(person.avatarTextColor)
-                )
-
-            // Name
-            Text(CurrentUser.isCurrentUser(person.id) ? "Me" : (person.name ?? "Unknown"))
-                .font(AppTypography.body())
-                .foregroundColor(AppColors.textPrimary)
-                .lineLimit(1)
-
-            Spacer(minLength: Spacing.sm)
-
-            // Input based on split method
+        HStack(spacing: Spacing.sm) {
             splitInput
         }
         .onAppear {
-            // Initialize with default values if empty
-            if currentInput.isEmpty {
-                switch viewModel.splitMethod {
-                case .percentage:
-                    let defaultPercent = viewModel.selectedParticipants.isEmpty ? 100.0 : (100.0 / Double(viewModel.selectedParticipants.count))
-                    viewModel.rawInputs[personId] = String(format: "%.1f", defaultPercent)
-                case .amount:
-                    let defaultAmount = viewModel.totalAmountDouble / max(1, Double(viewModel.selectedParticipants.count))
-                    viewModel.rawInputs[personId] = String(format: "%.2f", defaultAmount)
-                case .adjustment:
-                    viewModel.rawInputs[personId] = "0"
-                case .shares:
-                    viewModel.rawInputs[personId] = "1"
-                case .equal:
-                    break // No input needed for equal split
-                }
+            initializeDefaultValues()
+        }
+    }
+
+    // MARK: - Initialization
+
+    private func initializeDefaultValues() {
+        // Initialize with default values if empty
+        if currentInput.isEmpty {
+            let participantCount = max(1, viewModel.selectedParticipants.count)
+
+            switch viewModel.splitMethod {
+            case .percentage:
+                let defaultPercent = 100.0 / Double(participantCount)
+                viewModel.rawInputs[personId] = String(format: "%.1f", defaultPercent)
+
+            case .amount:
+                let defaultAmount = viewModel.totalAmountDouble / Double(participantCount)
+                viewModel.rawInputs[personId] = String(format: "%.2f", defaultAmount)
+
+            case .adjustment:
+                viewModel.rawInputs[personId] = "0"
+
+            case .shares:
+                viewModel.rawInputs[personId] = "1"
+
+            case .equal:
+                break // No input needed for equal split
             }
         }
     }
+
+    // MARK: - Split Input
 
     @ViewBuilder
     private var splitInput: some View {
         switch viewModel.splitMethod {
         case .equal:
-            Text(CurrencyFormatter.format(viewModel.calculateSplit(for: person)))
-                .font(AppTypography.amount())
-                .foregroundColor(AppColors.textPrimary)
+            equalSplitDisplay
 
         case .percentage:
-            HStack(spacing: Spacing.xxs) {
-                TextField("0", text: inputBinding)
-                    .keyboardType(.decimalPad)
-                    .multilineTextAlignment(.trailing)
-                    .font(AppTypography.bodyBold())
-                    .foregroundColor(AppColors.textPrimary)
-                    .frame(width: 56)
-                    .padding(.horizontal, Spacing.sm)
-                    .padding(.vertical, Spacing.xs)
-                    .background(
-                        RoundedRectangle(cornerRadius: CornerRadius.xs)
-                            .fill(AppColors.backgroundTertiary)
-                    )
-                Text("%")
-                    .font(AppTypography.body())
-                    .foregroundColor(AppColors.textSecondary)
-            }
+            percentageInput
 
         case .amount:
-            HStack(spacing: Spacing.xxs) {
-                Text(CurrencyFormatter.currencySymbol)
-                    .font(AppTypography.body())
-                    .foregroundColor(AppColors.textSecondary)
-                TextField("0.00", text: inputBinding)
-                    .keyboardType(.decimalPad)
-                    .multilineTextAlignment(.trailing)
-                    .font(AppTypography.bodyBold())
-                    .foregroundColor(AppColors.textPrimary)
-                    .frame(width: 72)
-                    .padding(.horizontal, Spacing.sm)
-                    .padding(.vertical, Spacing.xs)
-                    .background(
-                        RoundedRectangle(cornerRadius: CornerRadius.xs)
-                            .fill(AppColors.backgroundTertiary)
-                    )
-            }
+            amountInput
 
         case .adjustment:
-            HStack(spacing: Spacing.xxs) {
-                Text("+/-")
-                    .font(AppTypography.caption())
-                    .foregroundColor(AppColors.textSecondary)
-                TextField("0", text: inputBinding)
-                    .keyboardType(.numbersAndPunctuation)
-                    .multilineTextAlignment(.trailing)
-                    .font(AppTypography.bodyBold())
-                    .foregroundColor(AppColors.textPrimary)
-                    .frame(width: 56)
-                    .padding(.horizontal, Spacing.sm)
-                    .padding(.vertical, Spacing.xs)
-                    .background(
-                        RoundedRectangle(cornerRadius: CornerRadius.xs)
-                            .fill(AppColors.backgroundTertiary)
-                    )
-            }
+            adjustmentInput
 
         case .shares:
-            Stepper(
-                value: Binding(
-                    get: { max(1, Int(currentInput) ?? 1) },
-                    set: { viewModel.rawInputs[personId] = String($0) }
-                ),
-                in: 1...100
-            ) {
-                let shares = max(1, Int(currentInput) ?? 1)
-                Text("\(shares) Share\(shares == 1 ? "" : "s")")
-                    .font(AppTypography.bodyBold())
-                    .foregroundColor(AppColors.textPrimary)
-            }
+            sharesInput
         }
     }
+
+    // MARK: - Equal Split Display
+
+    private var equalSplitDisplay: some View {
+        HStack(spacing: Spacing.xs) {
+            Text(CurrencyFormatter.currencySymbol)
+                .font(AppTypography.body())
+                .foregroundColor(AppColors.textSecondary)
+
+            Text(String(format: "%.2f", viewModel.calculateSplit(for: person)))
+                .font(.system(size: 20, weight: .bold, design: .rounded))
+                .foregroundColor(AppColors.textPrimary)
+                .frame(minWidth: 60, alignment: .trailing)
+        }
+    }
+
+    // MARK: - Percentage Input
+
+    private var percentageInput: some View {
+        HStack(spacing: Spacing.sm) {
+            TextField("0", text: inputBinding)
+                .font(.system(size: 20, weight: .bold, design: .rounded))
+                .keyboardType(.decimalPad)
+                .multilineTextAlignment(.trailing)
+                .foregroundColor(AppColors.textPrimary)
+                .frame(width: 50)
+
+            Text("%")
+                .font(AppTypography.body())
+                .foregroundColor(AppColors.textSecondary)
+        }
+    }
+
+    // MARK: - Amount Input
+
+    private var amountInput: some View {
+        HStack(spacing: Spacing.xs) {
+            Text(CurrencyFormatter.currencySymbol)
+                .font(AppTypography.body())
+                .foregroundColor(AppColors.textSecondary)
+
+            TextField("0.00", text: inputBinding)
+                .font(.system(size: 20, weight: .bold, design: .rounded))
+                .keyboardType(.decimalPad)
+                .multilineTextAlignment(.trailing)
+                .foregroundColor(AppColors.textPrimary)
+                .frame(width: 80)
+        }
+    }
+
+    // MARK: - Adjustment Input
+
+    private var adjustmentInput: some View {
+        HStack(spacing: Spacing.xs) {
+            Text("±")
+                .font(AppTypography.caption())
+                .foregroundColor(AppColors.textSecondary)
+
+            Text(CurrencyFormatter.currencySymbol)
+                .font(AppTypography.body())
+                .foregroundColor(AppColors.textSecondary)
+
+            TextField("0", text: inputBinding)
+                .font(.system(size: 20, weight: .bold, design: .rounded))
+                .keyboardType(.numbersAndPunctuation)
+                .multilineTextAlignment(.trailing)
+                .foregroundColor(AppColors.textPrimary)
+                .frame(width: 60)
+        }
+    }
+
+    // MARK: - Shares Input
+
+    private var sharesInput: some View {
+        let currentShares = max(1, Int(currentInput) ?? 1)
+
+        return HStack(spacing: Spacing.sm) {
+            // Decrement button
+            Button {
+                guard currentShares > 1 else { return }
+                viewModel.rawInputs[personId] = String(currentShares - 1)
+                HapticManager.selectionChanged()
+            } label: {
+                Image(systemName: "minus")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(AppColors.textPrimary)
+                    .frame(width: 28, height: 28)
+                    .background(AppColors.backgroundTertiary)
+                    .clipShape(Circle())
+            }
+            .buttonStyle(.plain)
+
+            // Shares count
+            Text("\(currentShares)")
+                .font(.system(size: 20, weight: .bold, design: .rounded))
+                .foregroundColor(AppColors.textPrimary)
+                .frame(width: 30)
+                .multilineTextAlignment(.center)
+
+            // Increment button
+            Button {
+                viewModel.rawInputs[personId] = String(currentShares + 1)
+                HapticManager.selectionChanged()
+            } label: {
+                Image(systemName: "plus")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(AppColors.textPrimary)
+                    .frame(width: 28, height: 28)
+                    .background(AppColors.backgroundTertiary)
+                    .clipShape(Circle())
+            }
+            .buttonStyle(.plain)
+        }
+    }
+}
+
+// MARK: - Preview
+
+#Preview {
+    let context = PersistenceController.preview.container.viewContext
+    let viewModel = TransactionViewModel(context: context)
+    viewModel.totalAmount = "100"
+
+    // Create a mock person
+    let person = Person(context: context)
+    person.id = UUID()
+    person.name = "John Doe"
+    person.colorHex = "#007AFF"
+
+    return SplitInputView(viewModel: viewModel, person: person)
+        .padding()
+        .background(AppColors.backgroundSecondary)
 }
