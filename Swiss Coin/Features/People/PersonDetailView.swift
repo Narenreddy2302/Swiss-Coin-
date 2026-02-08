@@ -383,7 +383,7 @@ struct PersonDetailTransactionRow: View {
                 .fill(amountColor.opacity(0.1))
                 .frame(width: AvatarSize.md, height: AvatarSize.md)
                 .overlay(
-                    Image(systemName: isUserPayer ? "arrow.up.right" : "arrow.down.left")
+                    Image(systemName: isUserNetCreditor ? "arrow.up.right" : "arrow.down.left")
                         .font(.system(size: IconSize.sm, weight: .medium))
                         .foregroundColor(amountColor)
                 )
