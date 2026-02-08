@@ -85,8 +85,9 @@ struct TransactionHistoryView: View {
                 // Overlay the Quick Action FAB
                 FinanceQuickActionView()
                     .opacity(selectedTransaction == nil ? 1 : 0)
+                    .animation(.easeOut(duration: 0.2), value: selectedTransaction == nil)
 
-                // Card modal overlay with carousel/stack animation
+                // Morphing detail overlay — uses matchedGeometryEffect for fluid card-to-detail transition
                 if let selected = selectedTransaction {
                     TransactionExpandedView(
                         transaction: selected,
@@ -94,7 +95,10 @@ struct TransactionHistoryView: View {
                         selectedTransaction: $selectedTransaction
                     )
                     .zIndex(2)
-                    .transition(.opacity)
+                    .transition(.asymmetric(
+                        insertion: .identity,
+                        removal: .identity
+                    ))
                 }
             }
             .background(AppColors.backgroundSecondary)

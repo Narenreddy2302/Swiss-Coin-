@@ -39,16 +39,22 @@ struct TransactionRowView: View {
         }
     }
 
+    /// Whether this row's transaction is currently selected (expanded).
+    private var isSelected: Bool {
+        selectedTransaction?.id == transaction.id && selectedTransaction != nil
+    }
+
     // MARK: - Hero Animation Content (TransactionHistoryView)
 
     private var heroContent: some View {
         Button {
             HapticManager.lightTap()
-            withAnimation(AppAnimation.spring) {
+            withAnimation(.spring(response: 0.45, dampingFraction: 0.88)) {
                 selectedTransaction = transaction
             }
         } label: {
             rowContent
+                .opacity(isSelected ? 0 : 1)
         }
         .buttonStyle(.plain)
         .contentShape(Rectangle())
@@ -252,7 +258,7 @@ struct TransactionRowView: View {
                     .font(.system(size: IconSize.md, weight: .medium))
                     .foregroundColor(amountColor)
             )
-            .applyMatchedGeometry(id: "icon-\(stableId)", namespace: animationNamespace)
+            .applyMatchedGeometry(id: "icon-\(stableId)", namespace: animationNamespace, isSource: !isSelected)
     }
 
     var titleView: some View {
@@ -260,14 +266,14 @@ struct TransactionRowView: View {
             .font(AppTypography.body())
             .foregroundColor(AppColors.textPrimary)
             .lineLimit(1)
-            .applyMatchedGeometry(id: "title-\(stableId)", namespace: animationNamespace)
+            .applyMatchedGeometry(id: "title-\(stableId)", namespace: animationNamespace, isSource: !isSelected)
     }
 
     var amountView: some View {
         Text(amountPrefix + CurrencyFormatter.format(amountToShow))
             .font(AppTypography.amount())
             .foregroundColor(amountColor)
-            .applyMatchedGeometry(id: "amount-\(stableId)", namespace: animationNamespace)
+            .applyMatchedGeometry(id: "amount-\(stableId)", namespace: animationNamespace, isSource: !isSelected)
     }
 
     // MARK: - Helpers
@@ -412,9 +418,9 @@ struct TransactionRowView: View {
 
 extension View {
     @ViewBuilder
-    func applyMatchedGeometry(id: String, namespace: Namespace.ID?) -> some View {
+    func applyMatchedGeometry(id: String, namespace: Namespace.ID?, isSource: Bool = true) -> some View {
         if let namespace = namespace {
-            self.matchedGeometryEffect(id: id, in: namespace)
+            self.matchedGeometryEffect(id: id, in: namespace, isSource: isSource)
         } else {
             self
         }
