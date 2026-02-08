@@ -20,6 +20,10 @@ struct TransactionDetailView: View {
 
     // MARK: - Computed Properties
 
+    private var isPayer: Bool {
+        CurrentUser.isCurrentUser(transaction.payer?.id)
+    }
+
     private var splits: [TransactionSplit] {
         let splitSet = transaction.splits as? Set<TransactionSplit> ?? []
         return splitSet.sorted { ($0.owedBy?.displayName ?? "") < ($1.owedBy?.displayName ?? "") }
@@ -55,26 +59,60 @@ struct TransactionDetailView: View {
         return max(participants.count, 1)
     }
 
+    /// The user's net impact: positive = others owe you, negative = you owe.
+    private var userNetAmount: Double {
+        if isPayer {
+            let myShare = splits.first(where: { CurrentUser.isCurrentUser($0.owedBy?.id) })?.amount ?? 0
+            return transaction.amount - myShare
+        } else {
+            let myShare = splits.first(where: { CurrentUser.isCurrentUser($0.owedBy?.id) })?.amount ?? 0
+            return myShare > 0 ? -myShare : 0
+        }
+    }
+
+    private var netAmountColor: Color {
+        if userNetAmount > 0.01 {
+            return AppColors.positive
+        } else if userNetAmount < -0.01 {
+            return AppColors.negative
+        }
+        return AppColors.neutral
+    }
+
+    private var netAmountText: String {
+        let formatted = CurrencyFormatter.formatAbsolute(userNetAmount)
+        if userNetAmount > 0.01 {
+            return "You lent \(formatted)"
+        } else if userNetAmount < -0.01 {
+            return "You owe \(formatted)"
+        }
+        return "You paid your share"
+    }
+
+    private var netAmountBackgroundColor: Color {
+        if userNetAmount > 0.01 {
+            return AppColors.positive.opacity(0.1)
+        } else if userNetAmount < -0.01 {
+            return AppColors.negative.opacity(0.1)
+        }
+        return AppColors.backgroundTertiary
+    }
+
     // MARK: - Body
 
     var body: some View {
         ScrollView {
             VStack(spacing: Spacing.xl) {
-                // Header Section
                 headerSection
 
-                // Transaction Info Card
                 infoCard
 
-                // Splits Card
                 splitsCard
 
-                // Group Card
                 if transaction.group != nil {
                     groupCard
                 }
 
-                // Actions Card
                 actionsCard
             }
             .padding(.horizontal, Spacing.lg)
@@ -133,24 +171,24 @@ struct TransactionDetailView: View {
     // MARK: - Header Section
 
     private var headerSection: some View {
-        VStack(spacing: Spacing.lg) {
-            // Icon
+        VStack(spacing: Spacing.md) {
+            // Direction-aware icon
             RoundedRectangle(cornerRadius: CornerRadius.lg)
-                .fill(AppColors.backgroundTertiary)
+                .fill(netAmountColor.opacity(0.1))
                 .frame(width: AvatarSize.xl, height: AvatarSize.xl)
                 .overlay(
-                    Image(systemName: "arrow.left.arrow.right")
-                        .font(.system(size: 32, weight: .medium))
-                        .foregroundColor(AppColors.textPrimary)
+                    Image(systemName: isPayer ? "arrow.up.right" : "arrow.down.left")
+                        .font(.system(size: 28, weight: .semibold))
+                        .foregroundColor(netAmountColor)
                 )
 
             // Title
             Text(transaction.title ?? "Unknown")
-                .font(AppTypography.title2())
+                .font(AppTypography.title3())
                 .foregroundColor(AppColors.textPrimary)
                 .multilineTextAlignment(.center)
 
-            // Amount
+            // Total amount
             Text(CurrencyFormatter.format(transaction.amount))
                 .font(.system(size: 34, weight: .bold, design: .rounded))
                 .foregroundColor(AppColors.textPrimary)
@@ -164,6 +202,17 @@ struct TransactionDetailView: View {
                 .background(
                     Capsule()
                         .fill(AppColors.backgroundTertiary)
+                )
+
+            // Net impact pill
+            Text(netAmountText)
+                .font(AppTypography.subheadlineMedium())
+                .foregroundColor(netAmountColor)
+                .padding(.horizontal, Spacing.lg)
+                .padding(.vertical, Spacing.sm)
+                .background(
+                    Capsule()
+                        .fill(netAmountBackgroundColor)
                 )
         }
         .frame(maxWidth: .infinity)
@@ -180,41 +229,29 @@ struct TransactionDetailView: View {
     private var infoCard: some View {
         VStack(spacing: 0) {
             // Paid by
-            HStack(spacing: Spacing.md) {
-                Text("Paid by")
-                    .font(AppTypography.body())
-                    .foregroundColor(AppColors.textSecondary)
-
-                Spacer()
-
+            infoRow(label: "Paid by") {
                 HStack(spacing: Spacing.sm) {
                     if let payer = transaction.payer {
                         Circle()
-                            .fill(payer.avatarBackgroundColor)
+                            .fill(Color(hex: payer.safeColorHex))
                             .frame(width: AvatarSize.xs, height: AvatarSize.xs)
                             .overlay(
                                 Text(CurrentUser.isCurrentUser(payer.id) ? CurrentUser.initials : payer.initials)
-                                    .font(.system(size: 10, weight: .medium))
-                                    .foregroundColor(payer.avatarTextColor)
+                                    .font(.system(size: 10, weight: .semibold))
+                                    .foregroundColor(.white)
                             )
                     }
                     Text(payerName)
-                        .font(AppTypography.bodyBold())
+                        .font(AppTypography.body().weight(.bold))
                         .foregroundColor(AppColors.textPrimary)
                 }
             }
-            .padding(.horizontal, Spacing.lg)
-            .padding(.vertical, Spacing.md)
 
             Divider()
                 .padding(.leading, Spacing.lg)
 
             // Split Method
-            HStack {
-                Text("Split Method")
-                    .font(AppTypography.body())
-                    .foregroundColor(AppColors.textSecondary)
-                Spacer()
+            infoRow(label: "Split Method") {
                 HStack(spacing: Spacing.xs) {
                     if let method = splitMethod {
                         Image(systemName: method.systemImage)
@@ -222,86 +259,87 @@ struct TransactionDetailView: View {
                             .foregroundColor(AppColors.textPrimary)
                     }
                     Text(splitMethod?.displayName ?? "Equal")
-                        .font(AppTypography.bodyBold())
+                        .font(AppTypography.body().weight(.bold))
                         .foregroundColor(AppColors.textPrimary)
                 }
             }
-            .padding(.horizontal, Spacing.lg)
-            .padding(.vertical, Spacing.md)
 
             Divider()
                 .padding(.leading, Spacing.lg)
 
             // Participants
-            HStack {
-                Text("Participants")
-                    .font(AppTypography.body())
-                    .foregroundColor(AppColors.textSecondary)
-                Spacer()
+            infoRow(label: "Participants") {
                 Text("\(participantCount) people")
-                    .font(AppTypography.bodyBold())
+                    .font(AppTypography.body().weight(.bold))
                     .foregroundColor(AppColors.textPrimary)
             }
-            .padding(.horizontal, Spacing.lg)
-            .padding(.vertical, Spacing.md)
         }
         .background(
             RoundedRectangle(cornerRadius: CornerRadius.md)
                 .fill(AppColors.cardBackground)
         )
+    }
+
+    private func infoRow<Content: View>(label: String, @ViewBuilder value: () -> Content) -> some View {
+        HStack {
+            Text(label)
+                .font(AppTypography.body())
+                .foregroundColor(AppColors.textSecondary)
+            Spacer()
+            value()
+        }
+        .padding(.horizontal, Spacing.lg)
+        .padding(.vertical, Spacing.md)
     }
 
     // MARK: - Splits Card
 
     private var splitsCard: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            // Section header
-            Text("Split Breakdown")
-                .font(AppTypography.headline())
-                .foregroundColor(AppColors.textPrimary)
-                .padding(.horizontal, Spacing.lg)
-                .padding(.vertical, Spacing.lg)
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            Text("SPLIT BREAKDOWN")
+                .font(AppTypography.footnote())
+                .foregroundColor(AppColors.textSecondary)
 
-            Divider()
-                .padding(.leading, Spacing.lg)
+            VStack(spacing: 0) {
+                if splits.isEmpty {
+                    HStack {
+                        Spacer()
+                        Text("No split details available")
+                            .font(AppTypography.subheadline())
+                            .foregroundColor(AppColors.textSecondary)
+                        Spacer()
+                    }
+                    .padding(.vertical, Spacing.xxl)
+                } else {
+                    ForEach(splits, id: \.objectID) { split in
+                        splitRow(split)
 
-            if splits.isEmpty {
-                HStack {
-                    Spacer()
-                    Text("No split details available")
-                        .font(AppTypography.subheadline())
-                        .foregroundColor(AppColors.textSecondary)
-                    Spacer()
-                }
-                .padding(.vertical, Spacing.xxl)
-            } else {
-                ForEach(splits, id: \.objectID) { split in
-                    splitRow(split)
-
-                    if split != splits.last {
-                        Divider()
-                            .padding(.leading, Spacing.lg + AvatarSize.sm + Spacing.md)
+                        if split.objectID != splits.last?.objectID {
+                            Divider()
+                                .padding(.leading, Spacing.lg + AvatarSize.sm + Spacing.md)
+                        }
                     }
                 }
             }
+            .background(
+                RoundedRectangle(cornerRadius: CornerRadius.md)
+                    .fill(AppColors.cardBackground)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: CornerRadius.md))
         }
-        .background(
-            RoundedRectangle(cornerRadius: CornerRadius.md)
-                .fill(AppColors.cardBackground)
-        )
     }
 
     private func splitRow(_ split: TransactionSplit) -> some View {
         HStack(spacing: Spacing.md) {
-            // Person avatar
+            // Person avatar — solid fill with white initials
             if let person = split.owedBy {
                 Circle()
-                    .fill(person.avatarBackgroundColor)
+                    .fill(Color(hex: person.safeColorHex))
                     .frame(width: AvatarSize.sm, height: AvatarSize.sm)
                     .overlay(
                         Text(CurrentUser.isCurrentUser(person.id) ? CurrentUser.initials : person.initials)
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(person.avatarTextColor)
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundColor(.white)
                     )
             } else {
                 Circle()
@@ -309,7 +347,7 @@ struct TransactionDetailView: View {
                     .frame(width: AvatarSize.sm, height: AvatarSize.sm)
                     .overlay(
                         Text("?")
-                            .font(.system(size: 12, weight: .medium))
+                            .font(.system(size: 12, weight: .semibold))
                             .foregroundColor(AppColors.textSecondary)
                     )
             }
@@ -332,7 +370,7 @@ struct TransactionDetailView: View {
 
             // Amount owed
             Text(CurrencyFormatter.format(split.amount))
-                .font(AppTypography.amount())
+                .font(AppTypography.amountSmall())
                 .foregroundColor(splitAmountColor(for: split))
         }
         .padding(.horizontal, Spacing.lg)
@@ -347,31 +385,31 @@ struct TransactionDetailView: View {
         return person.displayName
     }
 
+    /// Color logic for split amounts:
+    /// - If I paid: others' shares are green (they owe me), my own share is neutral
+    /// - If someone else paid: my share is red (I owe them), others' shares are neutral
     private func splitAmountColor(for split: TransactionSplit) -> Color {
         guard let person = split.owedBy else { return AppColors.textPrimary }
-        if CurrentUser.isCurrentUser(person.id) {
-            return CurrentUser.isCurrentUser(transaction.payer?.id) ? AppColors.textSecondary : AppColors.negative
+        let isMe = CurrentUser.isCurrentUser(person.id)
+
+        if isPayer {
+            return isMe ? AppColors.textSecondary : AppColors.positive
         } else {
-            return CurrentUser.isCurrentUser(transaction.payer?.id) ? AppColors.positive : AppColors.textSecondary
+            return isMe ? AppColors.negative : AppColors.textSecondary
         }
     }
 
     // MARK: - Group Card
 
     private var groupCard: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text("Group")
-                .font(AppTypography.headline())
-                .foregroundColor(AppColors.textPrimary)
-                .padding(.horizontal, Spacing.lg)
-                .padding(.vertical, Spacing.lg)
-
-            Divider()
-                .padding(.leading, Spacing.lg)
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            Text("GROUP")
+                .font(AppTypography.footnote())
+                .foregroundColor(AppColors.textSecondary)
 
             if let group = transaction.group {
                 HStack(spacing: Spacing.md) {
-                    Circle()
+                    RoundedRectangle(cornerRadius: CornerRadius.sm)
                         .fill(Color(hex: group.colorHex ?? "#808080").opacity(0.2))
                         .frame(width: AvatarSize.sm, height: AvatarSize.sm)
                         .overlay(
@@ -393,73 +431,56 @@ struct TransactionDetailView: View {
                 }
                 .padding(.horizontal, Spacing.lg)
                 .padding(.vertical, Spacing.md)
+                .background(
+                    RoundedRectangle(cornerRadius: CornerRadius.md)
+                        .fill(AppColors.cardBackground)
+                )
             }
         }
-        .background(
-            RoundedRectangle(cornerRadius: CornerRadius.md)
-                .fill(AppColors.cardBackground)
-        )
     }
 
     // MARK: - Actions Card
 
     private var actionsCard: some View {
-        VStack(spacing: 0) {
+        VStack(spacing: Spacing.md) {
             Button {
                 HapticManager.tap()
                 showingEditSheet = true
             } label: {
-                HStack(spacing: Spacing.md) {
+                HStack(spacing: Spacing.xs) {
                     Image(systemName: "pencil")
-                        .font(.system(size: IconSize.md, weight: .medium))
-                        .foregroundColor(AppColors.accent)
-                        .frame(width: IconSize.lg)
-
+                        .font(.system(size: IconSize.sm))
                     Text("Edit Transaction")
-                        .font(AppTypography.body())
-                        .foregroundColor(AppColors.textPrimary)
-
-                    Spacer()
-
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: IconSize.xs, weight: .semibold))
-                        .foregroundColor(AppColors.textTertiary)
+                        .font(AppTypography.subheadlineMedium())
                 }
-                .padding(.horizontal, Spacing.lg)
-                .padding(.vertical, Spacing.md)
-                .contentShape(Rectangle())
+                .foregroundColor(AppColors.textPrimary)
+                .frame(height: ButtonHeight.md)
+                .frame(maxWidth: .infinity)
+                .background(AppColors.cardBackground)
+                .clipShape(RoundedRectangle(cornerRadius: CornerRadius.md))
+                .overlay(
+                    RoundedRectangle(cornerRadius: CornerRadius.md)
+                        .stroke(AppColors.separator, lineWidth: 1)
+                )
             }
-            .buttonStyle(.plain)
-
-            Divider()
-                .padding(.leading, Spacing.lg + IconSize.lg + Spacing.md)
 
             Button {
                 HapticManager.tap()
                 showingDeleteAlert = true
             } label: {
-                HStack(spacing: Spacing.md) {
+                HStack(spacing: Spacing.xs) {
                     Image(systemName: "trash")
-                        .font(.system(size: IconSize.md, weight: .medium))
-                        .foregroundColor(AppColors.negative)
-                        .frame(width: IconSize.lg)
-
+                        .font(.system(size: IconSize.sm))
                     Text("Delete Transaction")
-                        .font(AppTypography.body())
-                        .foregroundColor(AppColors.negative)
-
-                    Spacer()
+                        .font(AppTypography.subheadlineMedium())
                 }
-                .padding(.horizontal, Spacing.lg)
-                .padding(.vertical, Spacing.md)
-                .contentShape(Rectangle())
+                .foregroundColor(AppColors.negative)
+                .frame(height: ButtonHeight.md)
+                .frame(maxWidth: .infinity)
+                .background(AppColors.negative.opacity(0.1))
+                .clipShape(RoundedRectangle(cornerRadius: CornerRadius.md))
             }
-            .buttonStyle(.plain)
         }
-        .background(
-            RoundedRectangle(cornerRadius: CornerRadius.md)
-                .fill(AppColors.cardBackground)
-        )
     }
 
     // MARK: - Actions
