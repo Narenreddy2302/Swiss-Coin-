@@ -323,7 +323,7 @@ struct GroupDetailTransactionRow: View {
                 .fill(amountColor.opacity(0.1))
                 .frame(width: AvatarSize.md, height: AvatarSize.md)
                 .overlay(
-                    Image(systemName: isUserPayer ? "arrow.up.right" : "arrow.down.left")
+                    Image(systemName: userNetAmount > 0 ? "arrow.up.right" : "arrow.down.left")
                         .font(.system(size: IconSize.sm, weight: .medium))
                         .foregroundColor(amountColor)
                 )
