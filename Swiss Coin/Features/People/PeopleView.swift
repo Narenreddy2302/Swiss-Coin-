@@ -177,11 +177,11 @@ struct PersonListView: View {
                         summaryHeader
 
                         // Section
-                        VStack(alignment: .leading, spacing: 0) {
+                        VStack(alignment: .leading, spacing: Spacing.sm) {
                             // Section header
                             HStack {
                                 Text("All People")
-                                    .font(AppTypography.subheadlineMedium())
+                                    .font(AppTypography.footnote())
                                     .foregroundColor(AppColors.textSecondary)
 
                                 Spacer()
@@ -197,7 +197,6 @@ struct PersonListView: View {
                                     )
                             }
                             .padding(.horizontal, Spacing.lg)
-                            .padding(.bottom, Spacing.sm)
 
                             // People rows
                             LazyVStack(spacing: 0) {
@@ -213,6 +212,12 @@ struct PersonListView: View {
                                     }
                                 }
                             }
+                            .background(
+                                RoundedRectangle(cornerRadius: CornerRadius.card)
+                                    .fill(AppColors.cardBackground)
+                            )
+                            .clipShape(RoundedRectangle(cornerRadius: CornerRadius.card))
+                            .padding(.horizontal, Spacing.lg)
                         }
 
                         Spacer()
@@ -487,11 +492,11 @@ struct GroupListView: View {
                         summaryHeader
 
                         // Section
-                        VStack(alignment: .leading, spacing: 0) {
+                        VStack(alignment: .leading, spacing: Spacing.sm) {
                             // Section header
                             HStack {
                                 Text("All Groups")
-                                    .font(AppTypography.subheadlineMedium())
+                                    .font(AppTypography.footnote())
                                     .foregroundColor(AppColors.textSecondary)
 
                                 Spacer()
@@ -507,7 +512,6 @@ struct GroupListView: View {
                                     )
                             }
                             .padding(.horizontal, Spacing.lg)
-                            .padding(.bottom, Spacing.sm)
 
                             // Group rows
                             LazyVStack(spacing: 0) {
@@ -523,6 +527,12 @@ struct GroupListView: View {
                                     }
                                 }
                             }
+                            .background(
+                                RoundedRectangle(cornerRadius: CornerRadius.card)
+                                    .fill(AppColors.cardBackground)
+                            )
+                            .clipShape(RoundedRectangle(cornerRadius: CornerRadius.card))
+                            .padding(.horizontal, Spacing.lg)
                         }
 
                         Spacer()

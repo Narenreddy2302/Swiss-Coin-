@@ -213,12 +213,8 @@ struct PersonDetailView: View {
                     .foregroundColor(AppColors.textPrimary)
                     .frame(height: ButtonHeight.md)
                     .frame(maxWidth: .infinity)
-                    .background(AppColors.cardBackground)
+                    .background(AppColors.backgroundTertiary)
                     .clipShape(RoundedRectangle(cornerRadius: CornerRadius.md))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: CornerRadius.md)
-                            .stroke(AppColors.separator, lineWidth: 1)
-                    )
                 }
             }
 
@@ -265,10 +261,10 @@ struct PersonDetailView: View {
                     }
                 }
                 .background(
-                    RoundedRectangle(cornerRadius: CornerRadius.md)
+                    RoundedRectangle(cornerRadius: CornerRadius.card)
                         .fill(AppColors.cardBackground)
                 )
-                .clipShape(RoundedRectangle(cornerRadius: CornerRadius.md))
+                .clipShape(RoundedRectangle(cornerRadius: CornerRadius.card))
                 .padding(.horizontal, Spacing.lg)
             } else {
                 VStack(spacing: Spacing.md) {

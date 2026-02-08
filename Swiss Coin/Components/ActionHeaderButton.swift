@@ -39,11 +39,7 @@ struct ActionHeaderButton: View {
             .frame(maxWidth: .infinity)
             .background(
                 RoundedRectangle(cornerRadius: CornerRadius.md)
-                    .fill(color == AppColors.accent ? AppColors.buttonBackground : Color.clear)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: CornerRadius.md)
-                            .stroke(color == AppColors.accent ? Color.clear : color.opacity(0.3), lineWidth: 1)
-                    )
+                    .fill(color == AppColors.accent ? AppColors.buttonBackground : AppColors.backgroundTertiary.opacity(0.6))
             )
             .scaleEffect(isPressed ? 0.96 : 1.0)
             .animation(AppAnimation.buttonPress, value: isPressed)

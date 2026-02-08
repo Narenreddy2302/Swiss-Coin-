@@ -26,197 +26,48 @@ struct GroupDetailView: View {
     }
 
     var body: some View {
-        List {
-            // Group Header
-            Section {
-                VStack(alignment: .center, spacing: Spacing.lg) {
-                    Circle()
-                        .fill(Color(hex: group.colorHex ?? CurrentUser.defaultColorHex).opacity(0.2))
-                        .frame(width: AvatarSize.xxl, height: AvatarSize.xxl)
-                        .overlay(
-                            Image(systemName: "person.3.fill")
-                                .font(.system(size: IconSize.xl))
-                                .foregroundColor(Color(hex: group.colorHex ?? CurrentUser.defaultColorHex))
-                        )
+        ScrollView {
+            VStack(spacing: 0) {
+                // Group Header
+                groupHeader
+                    .padding(.top, Spacing.lg)
 
-                    VStack(spacing: Spacing.xs) {
-                        Text(group.name ?? "Unnamed Group")
-                            .font(AppTypography.title2())
-                            .foregroundColor(AppColors.textPrimary)
+                // Action Buttons
+                actionButtons
+                    .padding(.top, Spacing.lg)
+                    .padding(.horizontal, Spacing.lg)
 
-                        Text("\(group.members?.count ?? 0) Members")
-                            .font(AppTypography.subheadline())
-                            .foregroundColor(AppColors.textSecondary)
+                // Members Section
+                membersSection
+                    .padding(.top, Spacing.xl)
 
-                        // Balance summary
-                        if abs(balance) > 0.01 {
-                            HStack(spacing: Spacing.xs) {
-                                if balance > 0 {
-                                    Text("You're owed")
-                                        .foregroundColor(AppColors.textSecondary)
-                                    Text(CurrencyFormatter.format(balance))
-                                        .fontWeight(.semibold)
-                                        .foregroundColor(AppColors.positive)
-                                } else {
-                                    Text("You owe")
-                                        .foregroundColor(AppColors.textSecondary)
-                                    Text(CurrencyFormatter.format(abs(balance)))
-                                        .fontWeight(.semibold)
-                                        .foregroundColor(AppColors.negative)
-                                }
-                            }
-                            .font(AppTypography.subheadline())
-                        }
-                    }
-
-                    // Action Buttons
-                    HStack(spacing: Spacing.lg) {
-                        Button(action: {
-                            HapticManager.tap()
-                            showingAddTransaction = true
-                        }) {
-                            HStack(spacing: Spacing.sm) {
-                                Image(systemName: "plus.circle.fill")
-                                Text("Add Expense")
-                            }
-                            .font(AppTypography.subheadlineMedium())
-                            .frame(minWidth: 120)
-                            .padding(.vertical, Spacing.sm)
-                            .background(AppColors.backgroundTertiary)
-                            .cornerRadius(CornerRadius.lg)
-                        }
-                        .buttonStyle(.plain)
-
-                        Button(action: {
-                            HapticManager.tap()
-                            showingConversation = true
-                        }) {
-                            HStack(spacing: Spacing.sm) {
-                                Image(systemName: "message.fill")
-                                Text("Chat")
-                            }
-                            .font(AppTypography.subheadlineMedium())
-                            .frame(minWidth: 120)
-                            .padding(.vertical, Spacing.sm)
-                            .background(AppColors.backgroundTertiary)
-                            .cornerRadius(CornerRadius.lg)
-                        }
-                        .buttonStyle(.plain)
-                    }
-
-                    // Settle Up Button
-                    if canSettle {
-                        Button(action: {
-                            HapticManager.tap()
-                            showingSettlement = true
-                        }) {
-                            HStack(spacing: Spacing.sm) {
-                                Image(systemName: "checkmark.circle.fill")
-                                Text("Settle Up")
-                            }
-                            .font(AppTypography.subheadlineMedium())
-                            .foregroundColor(AppColors.positive)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, Spacing.sm)
-                            .background(AppColors.positive.opacity(0.12))
-                            .cornerRadius(CornerRadius.lg)
-                        }
-                        .buttonStyle(.plain)
-                        .padding(.horizontal, Spacing.xxl)
-                    }
-
-                    Spacer().frame(height: Spacing.sm)
-                }
-                .frame(maxWidth: .infinity)
-                .listRowBackground(Color.clear)
-                .listRowInsets(EdgeInsets())
-                .padding(.top, Spacing.xl)
+                // Expenses Section
+                expensesSection
+                    .padding(.top, Spacing.xl)
             }
-            .sheet(isPresented: $showingAddTransaction) {
-                QuickActionSheetPresenter(initialGroup: group)
-            }
-            .sheet(isPresented: $showingSettlement) {
-                GroupSettlementView(group: group)
-            }
-            .sheet(isPresented: $showingConversation) {
-                NavigationStack {
-                    GroupConversationView(group: group)
-                        .toolbar {
-                            ToolbarItem(placement: .navigationBarTrailing) {
-                                Button("Done") {
-                                    showingConversation = false
-                                }
-                            }
-                        }
-                }
-            }
-
-            Section(header: Text("Members").font(AppTypography.subheadlineMedium())) {
-                ForEach(memberBalances, id: \.member.id) { item in
-                    HStack(spacing: Spacing.md) {
-                        Circle()
-                            .fill(Color(hex: item.member.colorHex ?? CurrentUser.defaultColorHex).opacity(0.2))
-                            .frame(width: AvatarSize.sm, height: AvatarSize.sm)
-                            .overlay(
-                                Text(item.member.initials)
-                                    .font(AppTypography.caption())
-                                    .foregroundColor(Color(hex: item.member.colorHex ?? CurrentUser.defaultColorHex))
-                            )
-
-                        Text(item.member.name ?? "Unknown")
-                            .font(AppTypography.body())
-                            .foregroundColor(AppColors.textPrimary)
-
-                        Spacer()
-
-                        if abs(item.balance) > 0.01 {
-                            if item.balance > 0 {
-                                Text("owes \(CurrencyFormatter.format(item.balance))")
-                                    .font(AppTypography.caption())
-                                    .foregroundColor(AppColors.positive)
-                            } else {
-                                Text("owed \(CurrencyFormatter.format(abs(item.balance)))")
-                                    .font(AppTypography.caption())
-                                    .foregroundColor(AppColors.negative)
-                            }
-                        } else {
-                            Text("settled")
-                                .font(AppTypography.caption())
-                                .foregroundColor(AppColors.textSecondary)
-                        }
-                    }
-                }
-            }
-
-            Section(header: Text("Expenses").font(AppTypography.subheadlineMedium())) {
-                if group.transactionsArray.isEmpty {
-                    HStack {
-                        Spacer()
-                        VStack(spacing: Spacing.sm) {
-                            Image(systemName: "receipt")
-                                .font(.system(size: IconSize.lg))
-                                .foregroundColor(AppColors.textSecondary)
-                            Text("No expenses yet")
-                                .font(AppTypography.subheadline())
-                                .foregroundColor(AppColors.textSecondary)
-                        }
-                        .padding(.vertical, Spacing.xl)
-                        Spacer()
-                    }
-                    .listRowBackground(Color.clear)
-                } else {
-                    ForEach(group.transactionsArray, id: \.self) { transaction in
-                        GroupDetailTransactionRow(transaction: transaction, group: group)
-                            .listRowInsets(EdgeInsets())
-                            .listRowBackground(AppColors.backgroundSecondary)
-                    }
-                }
-            }
+            .padding(.bottom, Spacing.section)
         }
-        .listStyle(.insetGrouped)
-        .scrollContentBackground(.hidden)
         .background(AppColors.backgroundSecondary)
         .navigationBarTitleDisplayMode(.inline)
+        .navigationTitle(group.name ?? "Group")
+        .sheet(isPresented: $showingAddTransaction) {
+            QuickActionSheetPresenter(initialGroup: group)
+        }
+        .sheet(isPresented: $showingSettlement) {
+            GroupSettlementView(group: group)
+        }
+        .sheet(isPresented: $showingConversation) {
+            NavigationStack {
+                GroupConversationView(group: group)
+                    .toolbar {
+                        ToolbarItem(placement: .navigationBarTrailing) {
+                            Button("Done") {
+                                showingConversation = false
+                            }
+                        }
+                    }
+            }
+        }
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Menu {
@@ -255,6 +106,226 @@ struct GroupDetailView: View {
         }
         .onAppear {
             HapticManager.prepare()
+        }
+    }
+
+    // MARK: - Group Header
+
+    private var groupHeader: some View {
+        VStack(spacing: Spacing.md) {
+            Circle()
+                .fill(Color(hex: group.colorHex ?? CurrentUser.defaultColorHex))
+                .frame(width: AvatarSize.xxl, height: AvatarSize.xxl)
+                .overlay(
+                    Image(systemName: "person.3.fill")
+                        .font(.system(size: IconSize.xl))
+                        .foregroundColor(.white)
+                )
+
+            Text(group.name ?? "Unnamed Group")
+                .font(AppTypography.title2())
+                .foregroundColor(AppColors.textPrimary)
+
+            Text("\(group.members?.count ?? 0) Members")
+                .font(AppTypography.footnote())
+                .foregroundColor(AppColors.textSecondary)
+
+            // Balance pill
+            if abs(balance) > 0.01 {
+                HStack(spacing: Spacing.xs) {
+                    if balance > 0 {
+                        Text("You're owed")
+                            .foregroundColor(AppColors.textSecondary)
+                        Text(CurrencyFormatter.format(balance))
+                            .fontWeight(.semibold)
+                            .foregroundColor(AppColors.positive)
+                    } else {
+                        Text("You owe")
+                            .foregroundColor(AppColors.textSecondary)
+                        Text(CurrencyFormatter.format(abs(balance)))
+                            .fontWeight(.semibold)
+                            .foregroundColor(AppColors.negative)
+                    }
+                }
+                .font(AppTypography.subheadlineMedium())
+                .padding(.horizontal, Spacing.lg)
+                .padding(.vertical, Spacing.sm)
+                .background(
+                    Capsule()
+                        .fill(balance > 0 ? AppColors.positive.opacity(0.1) : AppColors.negative.opacity(0.1))
+                )
+                .padding(.top, Spacing.xs)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, Spacing.xxl)
+        .padding(.horizontal, Spacing.lg)
+    }
+
+    // MARK: - Action Buttons
+
+    private var actionButtons: some View {
+        VStack(spacing: Spacing.md) {
+            HStack(spacing: Spacing.md) {
+                Button {
+                    HapticManager.tap()
+                    showingAddTransaction = true
+                } label: {
+                    HStack(spacing: Spacing.xs) {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.system(size: IconSize.sm))
+                        Text("Add Expense")
+                            .font(AppTypography.subheadlineMedium())
+                    }
+                    .foregroundColor(AppColors.buttonForeground)
+                    .frame(height: ButtonHeight.md)
+                    .frame(maxWidth: .infinity)
+                    .background(AppColors.buttonBackground)
+                    .clipShape(RoundedRectangle(cornerRadius: CornerRadius.md))
+                }
+
+                Button {
+                    HapticManager.tap()
+                    showingConversation = true
+                } label: {
+                    HStack(spacing: Spacing.xs) {
+                        Image(systemName: "message.fill")
+                            .font(.system(size: IconSize.sm))
+                        Text("Chat")
+                            .font(AppTypography.subheadlineMedium())
+                    }
+                    .foregroundColor(AppColors.textPrimary)
+                    .frame(height: ButtonHeight.md)
+                    .frame(maxWidth: .infinity)
+                    .background(AppColors.backgroundTertiary)
+                    .clipShape(RoundedRectangle(cornerRadius: CornerRadius.md))
+                }
+            }
+
+            if canSettle {
+                Button {
+                    HapticManager.tap()
+                    showingSettlement = true
+                } label: {
+                    HStack(spacing: Spacing.xs) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: IconSize.sm))
+                        Text("Settle Up")
+                            .font(AppTypography.subheadlineMedium())
+                    }
+                    .foregroundColor(AppColors.positive)
+                    .frame(height: ButtonHeight.md)
+                    .frame(maxWidth: .infinity)
+                    .background(AppColors.positive.opacity(0.12))
+                    .clipShape(RoundedRectangle(cornerRadius: CornerRadius.md))
+                }
+            }
+        }
+    }
+
+    // MARK: - Members Section
+
+    private var membersSection: some View {
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            Text("MEMBERS")
+                .font(AppTypography.footnote())
+                .foregroundColor(AppColors.textSecondary)
+                .padding(.horizontal, Spacing.lg)
+
+            VStack(spacing: 0) {
+                ForEach(Array(memberBalances.enumerated()), id: \.element.member.id) { index, item in
+                    HStack(spacing: Spacing.md) {
+                        Circle()
+                            .fill(Color(hex: item.member.colorHex ?? CurrentUser.defaultColorHex).opacity(0.2))
+                            .frame(width: AvatarSize.md, height: AvatarSize.md)
+                            .overlay(
+                                Text(item.member.initials)
+                                    .font(AppTypography.headline())
+                                    .foregroundColor(Color(hex: item.member.colorHex ?? CurrentUser.defaultColorHex))
+                            )
+
+                        Text(item.member.name ?? "Unknown")
+                            .font(AppTypography.body())
+                            .foregroundColor(AppColors.textPrimary)
+
+                        Spacer()
+
+                        if abs(item.balance) > 0.01 {
+                            if item.balance > 0 {
+                                Text("owes \(CurrencyFormatter.format(item.balance))")
+                                    .font(AppTypography.footnote())
+                                    .foregroundColor(AppColors.positive)
+                            } else {
+                                Text("owed \(CurrencyFormatter.format(abs(item.balance)))")
+                                    .font(AppTypography.footnote())
+                                    .foregroundColor(AppColors.negative)
+                            }
+                        } else {
+                            Text("settled")
+                                .font(AppTypography.footnote())
+                                .foregroundColor(AppColors.textSecondary)
+                        }
+                    }
+                    .padding(.vertical, Spacing.md)
+                    .padding(.horizontal, Spacing.lg)
+
+                    if index < memberBalances.count - 1 {
+                        Divider()
+                            .padding(.leading, Spacing.lg + AvatarSize.md + Spacing.md)
+                    }
+                }
+            }
+            .background(
+                RoundedRectangle(cornerRadius: CornerRadius.card)
+                    .fill(AppColors.cardBackground)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: CornerRadius.card))
+            .padding(.horizontal, Spacing.lg)
+        }
+    }
+
+    // MARK: - Expenses Section
+
+    private var expensesSection: some View {
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            Text("EXPENSES")
+                .font(AppTypography.footnote())
+                .foregroundColor(AppColors.textSecondary)
+                .padding(.horizontal, Spacing.lg)
+
+            if group.transactionsArray.isEmpty {
+                VStack(spacing: Spacing.md) {
+                    Image(systemName: "doc.text")
+                        .font(.system(size: IconSize.xl))
+                        .foregroundColor(AppColors.textSecondary)
+                    Text("No expenses yet")
+                        .font(AppTypography.subheadline())
+                        .foregroundColor(AppColors.textSecondary)
+                    Text("Add an expense to start tracking")
+                        .font(AppTypography.caption())
+                        .foregroundColor(AppColors.textTertiary)
+                        .multilineTextAlignment(.center)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, Spacing.xxl)
+            } else {
+                VStack(spacing: 0) {
+                    ForEach(Array(group.transactionsArray.enumerated()), id: \.element) { index, transaction in
+                        GroupDetailTransactionRow(transaction: transaction, group: group)
+
+                        if index < group.transactionsArray.count - 1 {
+                            Divider()
+                                .padding(.leading, Spacing.lg + AvatarSize.md + Spacing.md)
+                        }
+                    }
+                }
+                .background(
+                    RoundedRectangle(cornerRadius: CornerRadius.card)
+                        .fill(AppColors.cardBackground)
+                )
+                .clipShape(RoundedRectangle(cornerRadius: CornerRadius.card))
+                .padding(.horizontal, Spacing.lg)
+            }
         }
     }
 
