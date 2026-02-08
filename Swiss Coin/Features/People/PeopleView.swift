@@ -7,7 +7,7 @@ struct PeopleView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @State private var showingContactPicker = false
     @State private var showingManualEntry = false
-    
+
     // Navigation state for conversation view after adding contact
     @State private var selectedPersonForConversation: Person?
 
@@ -38,11 +38,14 @@ struct PeopleView: View {
                 .padding(.bottom, Spacing.sm)
                 .background(AppColors.backgroundSecondary)
 
-                if selectedSegment == 0 {
-                    PersonListView()
-                } else {
-                    GroupListView()
+                Group {
+                    if selectedSegment == 0 {
+                        PersonListView()
+                    } else {
+                        GroupListView()
+                    }
                 }
+                .animation(AppAnimation.standard, value: selectedSegment)
             }
             .background(AppColors.backgroundSecondary)
             .navigationTitle("Contacts")
@@ -101,7 +104,7 @@ struct PeopleView: View {
             }
         }
     }
-    
+
     private func setupNotifications() {
         NotificationCenter.default.addObserver(
             forName: .showManualContactEntry,
@@ -110,7 +113,7 @@ struct PeopleView: View {
         ) { _ in
             showingManualEntry = true
         }
-        
+
         NotificationCenter.default.addObserver(
             forName: .contactAddedSuccessfully,
             object: nil,
@@ -119,12 +122,14 @@ struct PeopleView: View {
             showingContactPicker = false
         }
     }
-    
+
     private func removeNotifications() {
         NotificationCenter.default.removeObserver(self, name: .showManualContactEntry, object: nil)
         NotificationCenter.default.removeObserver(self, name: .contactAddedSuccessfully, object: nil)
     }
 }
+
+// MARK: - Person List
 
 struct PersonListView: View {
     @FetchRequest(fetchRequest: {
@@ -145,27 +150,115 @@ struct PersonListView: View {
     }(), animation: .default)
     private var people: FetchedResults<Person>
 
+    // MARK: - Balance Summary
+
+    private var totalOwedToYou: Double {
+        people.reduce(0) { total, person in
+            let balance = person.calculateBalance()
+            return total + (balance > 0.01 ? balance : 0)
+        }
+    }
+
+    private var totalYouOwe: Double {
+        people.reduce(0) { total, person in
+            let balance = person.calculateBalance()
+            return total + (balance < -0.01 ? abs(balance) : 0)
+        }
+    }
+
     var body: some View {
         Group {
             if people.isEmpty {
                 PersonEmptyStateView()
             } else {
-                List {
-                    ForEach(people) { person in
-                        NavigationLink(destination: PersonConversationView(person: person)) {
-                            PersonListRowView(person: person)
+                ScrollView {
+                    VStack(spacing: Spacing.xl) {
+                        // Summary header
+                        summaryHeader
+
+                        // Section
+                        VStack(alignment: .leading, spacing: 0) {
+                            // Section header
+                            HStack {
+                                Text("All People")
+                                    .font(AppTypography.subheadlineMedium())
+                                    .foregroundColor(AppColors.textSecondary)
+
+                                Spacer()
+
+                                Text("\(people.count)")
+                                    .font(AppTypography.caption())
+                                    .foregroundColor(AppColors.textTertiary)
+                                    .padding(.horizontal, Spacing.sm)
+                                    .padding(.vertical, Spacing.xxs)
+                                    .background(
+                                        Capsule()
+                                            .fill(AppColors.backgroundTertiary)
+                                    )
+                            }
+                            .padding(.horizontal, Spacing.lg)
+                            .padding(.bottom, Spacing.sm)
+
+                            // People rows
+                            LazyVStack(spacing: 0) {
+                                ForEach(people) { person in
+                                    NavigationLink(destination: PersonConversationView(person: person)) {
+                                        PersonListRowView(person: person)
+                                    }
+                                    .buttonStyle(.plain)
+
+                                    if person.objectID != people.last?.objectID {
+                                        Divider()
+                                            .padding(.leading, Spacing.lg + AvatarSize.lg + Spacing.md)
+                                    }
+                                }
+                            }
                         }
-                        .listRowInsets(EdgeInsets())
-                        .listRowBackground(AppColors.backgroundSecondary)
+
+                        Spacer()
+                            .frame(height: Spacing.section + Spacing.sm)
                     }
+                    .padding(.top, Spacing.lg)
                 }
-                .listStyle(.plain)
-                .scrollContentBackground(.hidden)
-                .background(AppColors.backgroundSecondary)
             }
         }
     }
+
+    // MARK: - Summary Header
+
+    private var summaryHeader: some View {
+        HStack(spacing: Spacing.lg) {
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
+                Text("Owed to You")
+                    .font(AppTypography.caption())
+                    .foregroundColor(AppColors.textSecondary)
+                Text(CurrencyFormatter.format(totalOwedToYou))
+                    .font(AppTypography.amountLarge())
+                    .foregroundColor(totalOwedToYou > 0 ? AppColors.positive : AppColors.textPrimary)
+            }
+
+            Spacer()
+
+            VStack(alignment: .trailing, spacing: Spacing.xxs) {
+                Text("You Owe")
+                    .font(AppTypography.caption())
+                    .foregroundColor(AppColors.textSecondary)
+                Text(CurrencyFormatter.format(totalYouOwe))
+                    .font(AppTypography.amountLarge())
+                    .foregroundColor(totalYouOwe > 0 ? AppColors.negative : AppColors.textPrimary)
+            }
+        }
+        .padding(.horizontal, Spacing.lg)
+        .padding(.vertical, Spacing.lg)
+        .background(
+            RoundedRectangle(cornerRadius: CornerRadius.md)
+                .fill(AppColors.cardBackground)
+        )
+        .padding(.horizontal, Spacing.lg)
+    }
 }
+
+// MARK: - Person Empty State
 
 struct PersonEmptyStateView: View {
     var body: some View {
@@ -194,10 +287,11 @@ struct PersonEmptyStateView: View {
     }
 }
 
+// MARK: - Person List Row
+
 struct PersonListRowView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @ObservedObject var person: Person
-    @State private var isPressed = false
     @State private var showingProfile = false
     @State private var showingAddExpense = false
     @State private var showingReminder = false
@@ -262,10 +356,8 @@ struct PersonListRowView: View {
                     .foregroundColor(balanceColor)
             }
         }
-        .padding(.vertical, Spacing.lg)
+        .padding(.vertical, Spacing.md)
         .padding(.horizontal, Spacing.lg)
-        .scaleEffect(isPressed ? 0.98 : 1.0)
-        .animation(AppAnimation.quick, value: isPressed)
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(person.name ?? "Unknown"), \(balanceText)")
@@ -356,6 +448,8 @@ struct PersonListRowView: View {
     }
 }
 
+// MARK: - Group List
+
 struct GroupListView: View {
     @FetchRequest(fetchRequest: {
         let request: NSFetchRequest<UserGroup> = UserGroup.fetchRequest()
@@ -365,27 +459,115 @@ struct GroupListView: View {
     }(), animation: .default)
     private var groups: FetchedResults<UserGroup>
 
+    // MARK: - Balance Summary
+
+    private var totalOwedToYou: Double {
+        groups.reduce(0) { total, group in
+            let balance = group.calculateBalance()
+            return total + (balance > 0.01 ? balance : 0)
+        }
+    }
+
+    private var totalYouOwe: Double {
+        groups.reduce(0) { total, group in
+            let balance = group.calculateBalance()
+            return total + (balance < -0.01 ? abs(balance) : 0)
+        }
+    }
+
     var body: some View {
         Group {
             if groups.isEmpty {
                 GroupEmptyStateView()
             } else {
-                List {
-                    ForEach(groups) { group in
-                        NavigationLink(destination: GroupConversationView(group: group)) {
-                            GroupListRowView(group: group)
+                ScrollView {
+                    VStack(spacing: Spacing.xl) {
+                        // Summary header
+                        summaryHeader
+
+                        // Section
+                        VStack(alignment: .leading, spacing: 0) {
+                            // Section header
+                            HStack {
+                                Text("All Groups")
+                                    .font(AppTypography.subheadlineMedium())
+                                    .foregroundColor(AppColors.textSecondary)
+
+                                Spacer()
+
+                                Text("\(groups.count)")
+                                    .font(AppTypography.caption())
+                                    .foregroundColor(AppColors.textTertiary)
+                                    .padding(.horizontal, Spacing.sm)
+                                    .padding(.vertical, Spacing.xxs)
+                                    .background(
+                                        Capsule()
+                                            .fill(AppColors.backgroundTertiary)
+                                    )
+                            }
+                            .padding(.horizontal, Spacing.lg)
+                            .padding(.bottom, Spacing.sm)
+
+                            // Group rows
+                            LazyVStack(spacing: 0) {
+                                ForEach(groups) { group in
+                                    NavigationLink(destination: GroupConversationView(group: group)) {
+                                        GroupListRowView(group: group)
+                                    }
+                                    .buttonStyle(.plain)
+
+                                    if group.objectID != groups.last?.objectID {
+                                        Divider()
+                                            .padding(.leading, Spacing.lg + AvatarSize.lg + Spacing.md)
+                                    }
+                                }
+                            }
                         }
-                        .listRowInsets(EdgeInsets())
-                        .listRowBackground(AppColors.backgroundSecondary)
+
+                        Spacer()
+                            .frame(height: Spacing.section + Spacing.sm)
                     }
+                    .padding(.top, Spacing.lg)
                 }
-                .listStyle(.plain)
-                .scrollContentBackground(.hidden)
-                .background(AppColors.backgroundSecondary)
             }
         }
     }
+
+    // MARK: - Summary Header
+
+    private var summaryHeader: some View {
+        HStack(spacing: Spacing.lg) {
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
+                Text("Owed to You")
+                    .font(AppTypography.caption())
+                    .foregroundColor(AppColors.textSecondary)
+                Text(CurrencyFormatter.format(totalOwedToYou))
+                    .font(AppTypography.amountLarge())
+                    .foregroundColor(totalOwedToYou > 0 ? AppColors.positive : AppColors.textPrimary)
+            }
+
+            Spacer()
+
+            VStack(alignment: .trailing, spacing: Spacing.xxs) {
+                Text("You Owe")
+                    .font(AppTypography.caption())
+                    .foregroundColor(AppColors.textSecondary)
+                Text(CurrencyFormatter.format(totalYouOwe))
+                    .font(AppTypography.amountLarge())
+                    .foregroundColor(totalYouOwe > 0 ? AppColors.negative : AppColors.textPrimary)
+            }
+        }
+        .padding(.horizontal, Spacing.lg)
+        .padding(.vertical, Spacing.lg)
+        .background(
+            RoundedRectangle(cornerRadius: CornerRadius.md)
+                .fill(AppColors.cardBackground)
+        )
+        .padding(.horizontal, Spacing.lg)
+    }
 }
+
+// MARK: - Group Empty State
 
 struct GroupEmptyStateView: View {
     var body: some View {
@@ -414,10 +596,11 @@ struct GroupEmptyStateView: View {
     }
 }
 
+// MARK: - Group List Row
+
 struct GroupListRowView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @ObservedObject var group: UserGroup
-    @State private var isPressed = false
     @State private var showingGroupInfo = false
     @State private var showingAddExpense = false
     @State private var showingReminders = false
@@ -496,10 +679,8 @@ struct GroupListRowView: View {
                     .foregroundColor(balanceColor)
             }
         }
-        .padding(.vertical, Spacing.lg)
+        .padding(.vertical, Spacing.md)
         .padding(.horizontal, Spacing.lg)
-        .scaleEffect(isPressed ? 0.98 : 1.0)
-        .animation(AppAnimation.quick, value: isPressed)
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(group.name ?? "Unknown Group"), \(memberCount) members, \(balanceText)")

@@ -18,20 +18,23 @@ struct SharedSubscriptionListView: View {
     private var subscriptions: FetchedResults<Subscription>
 
     var body: some View {
-        List {
-            // Subscriptions with balance indicators
-            Section {
+        ScrollView {
+            LazyVStack(spacing: 0) {
                 ForEach(subscriptions) { subscription in
                     NavigationLink(destination: SharedSubscriptionConversationView(subscription: subscription)) {
                         SharedSubscriptionListRowView(subscription: subscription)
                     }
-                    .listRowInsets(EdgeInsets())
-                    .listRowBackground(AppColors.backgroundSecondary)
+                    .buttonStyle(.plain)
+
+                    if subscription.objectID != subscriptions.last?.objectID {
+                        Divider()
+                            .padding(.leading, Spacing.lg + AvatarSize.lg + Spacing.md)
+                    }
                 }
             }
+            .padding(.top, Spacing.lg)
+            .padding(.bottom, Spacing.section + Spacing.sm)
         }
-        .listStyle(.plain)
-        .scrollContentBackground(.hidden)
         .background(AppColors.backgroundSecondary)
         .overlay {
             if subscriptions.isEmpty {
