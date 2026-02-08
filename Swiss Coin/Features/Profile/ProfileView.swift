@@ -381,18 +381,20 @@ struct ProfileView: View {
             HapticManager.warning()
             showingLogoutAlert = true
         } label: {
-            HStack {
-                Spacer()
+            HStack(spacing: Spacing.xs) {
+                Image(systemName: "rectangle.portrait.and.arrow.right")
+                    .font(.system(size: IconSize.sm))
                 Text("Log Out")
-                    .font(AppTypography.bodyBold())
-                    .foregroundColor(AppColors.negative)
-                Spacer()
+                    .font(AppTypography.subheadlineMedium())
             }
-            .padding(.vertical, Spacing.md)
-            .contentShape(Rectangle())
+            .foregroundColor(AppColors.negative)
+            .frame(height: ButtonHeight.md)
+            .frame(maxWidth: .infinity)
+            .background(AppColors.negative.opacity(0.1))
+            .clipShape(RoundedRectangle(cornerRadius: CornerRadius.md))
         }
-        .buttonStyle(.plain)
-        .background(AppColors.negative.opacity(0.08))
+        .padding(.horizontal, Spacing.lg)
+        .padding(.top, Spacing.md)
     }
 
     // MARK: - Functions

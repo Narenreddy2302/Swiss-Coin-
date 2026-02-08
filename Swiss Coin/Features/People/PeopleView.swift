@@ -244,12 +244,12 @@ struct PersonListRowView: View {
 
             VStack(alignment: .leading, spacing: Spacing.xs) {
                 Text(person.name ?? "Unknown")
-                    .font(AppTypography.headline())
+                    .font(AppTypography.body().weight(.bold))
                     .foregroundColor(AppColors.textPrimary)
                     .lineLimit(1)
 
                 Text(balanceText)
-                    .font(AppTypography.subheadline())
+                    .font(AppTypography.footnote())
                     .foregroundColor(balanceColor)
                     .lineLimit(1)
             }
@@ -468,21 +468,21 @@ struct GroupListRowView: View {
 
             VStack(alignment: .leading, spacing: Spacing.xs) {
                 Text(group.name ?? "Unknown Group")
-                    .font(AppTypography.headline())
+                    .font(AppTypography.body().weight(.bold))
                     .foregroundColor(AppColors.textPrimary)
                     .lineLimit(1)
 
                 HStack(spacing: Spacing.xs) {
                     Text("\(memberCount) members")
-                        .font(AppTypography.subheadline())
+                        .font(AppTypography.footnote())
                         .foregroundColor(AppColors.textSecondary)
 
                     Text("•")
-                        .font(AppTypography.subheadline())
+                        .font(AppTypography.footnote())
                         .foregroundColor(AppColors.textSecondary)
 
                     Text(balanceText)
-                        .font(AppTypography.subheadline())
+                        .font(AppTypography.footnote())
                         .foregroundColor(balanceColor)
                 }
                 .lineLimit(1)
