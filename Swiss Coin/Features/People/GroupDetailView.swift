@@ -317,26 +317,37 @@ struct GroupDetailTransactionRow: View {
     }
 
     private var amountPrefix: String {
-        if userNetAmount > 0.01 { return "+" }
-        return ""
+        guard abs(userNetAmount) > 0.01 else { return "" }
+        return userNetAmount > 0 ? "+" : "-"
     }
 
     var body: some View {
         HStack(spacing: Spacing.md) {
-            VStack(alignment: .leading, spacing: Spacing.xs) {
+            // Direction icon
+            RoundedRectangle(cornerRadius: CornerRadius.sm)
+                .fill(amountColor.opacity(0.1))
+                .frame(width: AvatarSize.md, height: AvatarSize.md)
+                .overlay(
+                    Image(systemName: isUserPayer ? "arrow.up.right" : "arrow.down.left")
+                        .font(.system(size: IconSize.sm, weight: .medium))
+                        .foregroundColor(amountColor)
+                )
+
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text(transaction.title ?? "Expense")
-                    .font(AppTypography.headline())
+                    .font(AppTypography.body())
                     .foregroundColor(AppColors.textPrimary)
+                    .lineLimit(1)
 
-                if let date = transaction.date {
-                    Text(DateFormatter.shortDate.string(from: date))
-                        .font(AppTypography.caption())
-                        .foregroundColor(AppColors.textSecondary)
+                HStack(spacing: Spacing.xxs) {
+                    if let date = transaction.date {
+                        Text(DateFormatter.shortDate.string(from: date))
+                        Text("·")
+                    }
+                    Text("Paid by \(payerName)")
                 }
-
-                Text("Paid by \(payerName)")
-                    .font(AppTypography.caption())
-                    .foregroundColor(AppColors.textSecondary)
+                .font(AppTypography.caption())
+                .foregroundColor(AppColors.textSecondary)
             }
 
             Spacer()
@@ -351,8 +362,8 @@ struct GroupDetailTransactionRow: View {
                     .foregroundColor(AppColors.textSecondary)
             }
         }
-        .padding(.vertical, Spacing.sm)
-        .padding(.horizontal, Spacing.md)
+        .padding(.vertical, Spacing.md)
+        .padding(.horizontal, Spacing.lg)
         .contentShape(Rectangle())
     }
 }
