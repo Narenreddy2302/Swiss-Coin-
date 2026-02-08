@@ -13,6 +13,10 @@ struct SearchView: View {
 
     @State private var searchText = ""
 
+    // Card overlay animation state
+    @Namespace private var searchCardAnimation
+    @State private var selectedTransaction: FinancialTransaction?
+
     // MARK: - Fetch Requests
 
     @FetchRequest(fetchRequest: {
@@ -109,10 +113,24 @@ struct SearchView: View {
                 AppColors.backgroundSecondary
                     .ignoresSafeArea()
 
-                if isSearching {
-                    searchResultsView
-                } else {
-                    suggestionsView
+                Group {
+                    if isSearching {
+                        searchResultsView
+                    } else {
+                        suggestionsView
+                    }
+                }
+                .allowsHitTesting(selectedTransaction == nil)
+
+                // Card modal overlay for transaction detail
+                if let selected = selectedTransaction {
+                    TransactionExpandedView(
+                        transaction: selected,
+                        animationNamespace: searchCardAnimation,
+                        selectedTransaction: $selectedTransaction
+                    )
+                    .zIndex(2)
+                    .transition(.opacity)
                 }
             }
             .navigationTitle("Search")
@@ -143,7 +161,11 @@ struct SearchView: View {
 
                         LazyVStack(spacing: 0) {
                             ForEach(recentTransactions, id: \.id) { transaction in
-                                TransactionRowView(transaction: transaction)
+                                TransactionRowView(
+                                    transaction: transaction,
+                                    animationNamespace: searchCardAnimation,
+                                    selectedTransaction: $selectedTransaction
+                                )
                                 Divider()
                             }
                         }
@@ -175,7 +197,11 @@ struct SearchView: View {
                                 count: filteredTransactions.count
                             ) {
                                 ForEach(filteredTransactions, id: \.id) { transaction in
-                                    TransactionRowView(transaction: transaction)
+                                    TransactionRowView(
+                                        transaction: transaction,
+                                        animationNamespace: searchCardAnimation,
+                                        selectedTransaction: $selectedTransaction
+                                    )
                                     if transaction.id != filteredTransactions.last?.id {
                                         Divider()
                                     }

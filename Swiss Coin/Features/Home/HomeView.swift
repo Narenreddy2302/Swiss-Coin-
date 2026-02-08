@@ -35,6 +35,10 @@ struct HomeView: View {
     @State private var showingProfile = false
     @State private var showingAddTransaction = false
 
+    // Card overlay animation state for recent transactions
+    @Namespace private var homeCardAnimation
+    @State private var selectedTransaction: FinancialTransaction?
+
     /// Tracks the last time data was refreshed to debounce rapid refreshes
     @State private var lastRefreshDate = Date.distantPast
 
@@ -76,90 +80,108 @@ struct HomeView: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: Spacing.xxl) {
-                    // Summary Section (Hero-like)
-                    VStack(alignment: .leading, spacing: Spacing.md) {
-                        Text("Summary")
-                            .font(AppTypography.title2())
-                            .foregroundColor(AppColors.textPrimary)
-                            .padding(.horizontal)
-
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: Spacing.lg) {
-                                SummaryCard(
-                                    title: "You Owe",
-                                    amount: totalYouOwe,
-                                    color: AppColors.negative,
-                                    icon: "arrow.down.left.circle.fill")
-                                SummaryCard(
-                                    title: "You are Owed",
-                                    amount: totalOwedToYou,
-                                    color: AppColors.positive,
-                                    icon: "arrow.up.right.circle.fill")
-                                SummaryCard(
-                                    title: "Subscriptions",
-                                    amount: totalMonthlySubscriptions,
-                                    color: .purple,
-                                    icon: "repeat.circle.fill")
-                            }
-                            .padding(.horizontal)
-                        }
-
-                        // Add Transaction button
-                        Button {
-                            HapticManager.tap()
-                            showingAddTransaction = true
-                        } label: {
-                            HStack(spacing: Spacing.sm) {
-                                Image(systemName: "plus.circle.fill")
-                                    .font(.system(size: IconSize.sm))
-                                    .accessibilityHidden(true)
-                                Text("Add Transaction")
-                                    .font(AppTypography.subheadlineMedium())
-                            }
-                            .foregroundColor(AppColors.buttonForeground)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: ButtonHeight.md)
-                            .background(AppColors.buttonBackground)
-                            .cornerRadius(CornerRadius.md)
-                        }
-                        .buttonStyle(AppButtonStyle(haptic: .none))
-                        .padding(.horizontal)
-                    }
-
-                    Divider()
-                        .padding(.horizontal)
-
-                    // Recent Activity (Up Next style)
-                    VStack(alignment: .leading, spacing: Spacing.sm) {
-                        HStack {
-                            Text("Recent Activity")
+            ZStack {
+                ScrollView {
+                    VStack(spacing: Spacing.xxl) {
+                        // Summary Section (Hero-like)
+                        VStack(alignment: .leading, spacing: Spacing.md) {
+                            Text("Summary")
                                 .font(AppTypography.title2())
                                 .foregroundColor(AppColors.textPrimary)
-                            Spacer()
-                            NavigationLink(destination: TransactionHistoryView()) {
-                                Text("See All")
-                                    .font(AppTypography.body())
-                                    .foregroundColor(AppColors.accent)
-                            }
-                        }
-                        .padding(.horizontal)
+                                .padding(.horizontal)
 
-                        if recentTransactions.isEmpty {
-                            EmptyStateView()
-                        } else {
-                            LazyVStack(spacing: 0) {
-                                ForEach(recentTransactions, id: \.id) { transaction in
-                                    TransactionRowView(transaction: transaction)
-                                    Divider()
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: Spacing.lg) {
+                                    SummaryCard(
+                                        title: "You Owe",
+                                        amount: totalYouOwe,
+                                        color: AppColors.negative,
+                                        icon: "arrow.down.left.circle.fill")
+                                    SummaryCard(
+                                        title: "You are Owed",
+                                        amount: totalOwedToYou,
+                                        color: AppColors.positive,
+                                        icon: "arrow.up.right.circle.fill")
+                                    SummaryCard(
+                                        title: "Subscriptions",
+                                        amount: totalMonthlySubscriptions,
+                                        color: .purple,
+                                        icon: "repeat.circle.fill")
+                                }
+                                .padding(.horizontal)
+                            }
+
+                            // Add Transaction button
+                            Button {
+                                HapticManager.tap()
+                                showingAddTransaction = true
+                            } label: {
+                                HStack(spacing: Spacing.sm) {
+                                    Image(systemName: "plus.circle.fill")
+                                        .font(.system(size: IconSize.sm))
+                                        .accessibilityHidden(true)
+                                    Text("Add Transaction")
+                                        .font(AppTypography.subheadlineMedium())
+                                }
+                                .foregroundColor(AppColors.buttonForeground)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: ButtonHeight.md)
+                                .background(AppColors.buttonBackground)
+                                .cornerRadius(CornerRadius.md)
+                            }
+                            .buttonStyle(AppButtonStyle(haptic: .none))
+                            .padding(.horizontal)
+                        }
+
+                        Divider()
+                            .padding(.horizontal)
+
+                        // Recent Activity (Up Next style)
+                        VStack(alignment: .leading, spacing: Spacing.sm) {
+                            HStack {
+                                Text("Recent Activity")
+                                    .font(AppTypography.title2())
+                                    .foregroundColor(AppColors.textPrimary)
+                                Spacer()
+                                NavigationLink(destination: TransactionHistoryView()) {
+                                    Text("See All")
+                                        .font(AppTypography.body())
+                                        .foregroundColor(AppColors.accent)
+                                }
+                            }
+                            .padding(.horizontal)
+
+                            if recentTransactions.isEmpty {
+                                EmptyStateView()
+                            } else {
+                                LazyVStack(spacing: 0) {
+                                    ForEach(recentTransactions, id: \.id) { transaction in
+                                        TransactionRowView(
+                                            transaction: transaction,
+                                            animationNamespace: homeCardAnimation,
+                                            selectedTransaction: $selectedTransaction
+                                        )
+                                        Divider()
+                                    }
                                 }
                             }
                         }
                     }
+                    .padding(.top, Spacing.lg)
+                    .padding(.bottom, Spacing.section + Spacing.sm)
                 }
-                .padding(.top, Spacing.lg)
-                .padding(.bottom, Spacing.section + Spacing.sm)
+                .allowsHitTesting(selectedTransaction == nil)
+
+                // Card modal overlay for transaction detail
+                if let selected = selectedTransaction {
+                    TransactionExpandedView(
+                        transaction: selected,
+                        animationNamespace: homeCardAnimation,
+                        selectedTransaction: $selectedTransaction
+                    )
+                    .zIndex(2)
+                    .transition(.opacity)
+                }
             }
             .background(AppColors.backgroundSecondary)
             .refreshable {
