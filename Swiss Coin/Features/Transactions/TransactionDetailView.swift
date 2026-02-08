@@ -28,15 +28,21 @@ struct TransactionDetailView: View {
     @State private var breakdownVisible = false
     @State private var groupVisible = false
 
-    // MARK: - Computed Properties
+    // MARK: - Computed Properties (Cached)
+
+    /// Cached effectivePayers to avoid repeated NSSet→Array conversions during animation render passes
+    private var cachedEffectivePayers: [(personId: UUID?, amount: Double)] {
+        transaction.effectivePayers
+    }
+
+    /// Cached and sorted splits to avoid re-sorting on every render pass
+    private var cachedSplits: [TransactionSplit] {
+        let splitSet = transaction.splits as? Set<TransactionSplit> ?? []
+        return splitSet.sorted { ($0.owedBy?.displayName ?? "") < ($1.owedBy?.displayName ?? "") }
+    }
 
     private var isPayer: Bool {
         CurrentUser.isCurrentUser(transaction.payer?.id)
-    }
-
-    private var splits: [TransactionSplit] {
-        let splitSet = transaction.splits as? Set<TransactionSplit> ?? []
-        return splitSet.sorted { ($0.owedBy?.displayName ?? "") < ($1.owedBy?.displayName ?? "") }
     }
 
     private var splitMethod: SplitMethod? {
@@ -45,22 +51,11 @@ struct TransactionDetailView: View {
     }
 
     private var isCurrentUserAPayer: Bool {
-        transaction.effectivePayers.contains { CurrentUser.isCurrentUser($0.personId) }
+        cachedEffectivePayers.contains { CurrentUser.isCurrentUser($0.personId) }
     }
 
     private var payerName: String {
-        let payers = transaction.effectivePayers
-        if payers.count <= 1 {
-            if let payer = transaction.payer, CurrentUser.isCurrentUser(payer.id) {
-                return "You"
-            }
-            return transaction.payer?.displayName ?? "Unknown"
-        }
-        let isUserAPayer = payers.contains { CurrentUser.isCurrentUser($0.personId) }
-        if isUserAPayer {
-            return "You +\(payers.count - 1) others"
-        }
-        return "\(payers.count) people"
+        TransactionDetailHelpers.payerName(effectivePayers: cachedEffectivePayers, payer: transaction.payer)
     }
 
     private var shortTransactionId: String {
@@ -80,56 +75,23 @@ struct TransactionDetailView: View {
     }
 
     private var participantCount: Int {
-        var participants = Set<UUID>()
-        for payer in transaction.effectivePayers {
-            if let id = payer.personId {
-                participants.insert(id)
-            }
-        }
-        for split in splits {
-            if let owedById = split.owedBy?.id {
-                participants.insert(owedById)
-            }
-        }
-        return max(participants.count, 1)
+        TransactionDetailHelpers.participantCount(effectivePayers: cachedEffectivePayers, splits: cachedSplits)
     }
 
     private var userNetAmount: Double {
-        let userPaid = transaction.effectivePayers
-            .filter { CurrentUser.isCurrentUser($0.personId) }
-            .reduce(0) { $0 + $1.amount }
-        let userSplit = (transaction.splits as? Set<TransactionSplit> ?? [])
-            .filter { CurrentUser.isCurrentUser($0.owedBy?.id) }
-            .reduce(0) { $0 + $1.amount }
-        return userPaid - userSplit
+        TransactionDetailHelpers.userNetAmount(effectivePayers: cachedEffectivePayers, splits: cachedSplits)
     }
 
     private var netAmountColor: Color {
-        if userNetAmount > 0.01 {
-            return AppColors.positive
-        } else if userNetAmount < -0.01 {
-            return AppColors.negative
-        }
-        return AppColors.neutral
+        TransactionDetailHelpers.netAmountColor(for: userNetAmount)
     }
 
     private var netAmountText: String {
-        let formatted = CurrencyFormatter.formatAbsolute(userNetAmount)
-        if userNetAmount > 0.01 {
-            return "You lent \(formatted)"
-        } else if userNetAmount < -0.01 {
-            return "You owe \(formatted)"
-        }
-        return "You paid your share"
+        TransactionDetailHelpers.netAmountText(for: userNetAmount)
     }
 
     private var netAmountBackgroundColor: Color {
-        if userNetAmount > 0.01 {
-            return AppColors.positive.opacity(0.12)
-        } else if userNetAmount < -0.01 {
-            return AppColors.negative.opacity(0.12)
-        }
-        return AppColors.backgroundTertiary
+        TransactionDetailHelpers.netAmountBackgroundColor(for: userNetAmount)
     }
 
     private var directionIcon: String {
@@ -146,57 +108,71 @@ struct TransactionDetailView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
+                let base = AppAnimation.staggerBaseDelay
+                let stagger = AppAnimation.staggerInterval
+
                 // Header: Icon + Name + Amount + Type
                 detailHeaderSection
                     .padding(.bottom, Spacing.lg)
                     .opacity(headerVisible ? 1 : 0)
                     .offset(y: headerVisible ? 0 : 10)
+                    .animation(AppAnimation.contentReveal.delay(base), value: headerVisible)
 
                 detailDottedSeparator
                     .opacity(infoVisible ? 1 : 0)
+                    .animation(AppAnimation.contentReveal.delay(base + stagger), value: infoVisible)
 
                 // Transaction details: ID, Date, Time
                 detailInfoSection
                     .padding(.vertical, Spacing.lg)
                     .opacity(infoVisible ? 1 : 0)
                     .offset(y: infoVisible ? 0 : 10)
+                    .animation(AppAnimation.contentReveal.delay(base + stagger), value: infoVisible)
 
                 detailDottedSeparator
                     .opacity(paymentVisible ? 1 : 0)
+                    .animation(AppAnimation.contentReveal.delay(base + stagger * 2), value: paymentVisible)
 
                 // Payment & Split info
                 detailPaymentSection
                     .padding(.vertical, Spacing.lg)
                     .opacity(paymentVisible ? 1 : 0)
                     .offset(y: paymentVisible ? 0 : 10)
+                    .animation(AppAnimation.contentReveal.delay(base + stagger * 2), value: paymentVisible)
 
                 detailDottedSeparator
                     .opacity(impactVisible ? 1 : 0)
+                    .animation(AppAnimation.contentReveal.delay(base + stagger * 3), value: impactVisible)
 
                 // Net impact + Note
                 detailNetImpactSection
                     .padding(.vertical, Spacing.lg)
                     .opacity(impactVisible ? 1 : 0)
                     .offset(y: impactVisible ? 0 : 10)
+                    .animation(AppAnimation.contentReveal.delay(base + stagger * 3), value: impactVisible)
 
                 // Split breakdown
-                if !splits.isEmpty {
+                if !cachedSplits.isEmpty {
                     detailDottedSeparator
                         .opacity(breakdownVisible ? 1 : 0)
+                        .animation(AppAnimation.contentReveal.delay(base + stagger * 4), value: breakdownVisible)
                     detailSplitBreakdown
                         .padding(.vertical, Spacing.lg)
                         .opacity(breakdownVisible ? 1 : 0)
                         .offset(y: breakdownVisible ? 0 : 10)
+                        .animation(AppAnimation.contentReveal.delay(base + stagger * 4), value: breakdownVisible)
                 }
 
                 // Group info
                 if transaction.group != nil {
                     detailDottedSeparator
                         .opacity(groupVisible ? 1 : 0)
+                        .animation(AppAnimation.contentReveal.delay(base + stagger * 5), value: groupVisible)
                     detailGroupSection
                         .padding(.vertical, Spacing.lg)
                         .opacity(groupVisible ? 1 : 0)
                         .offset(y: groupVisible ? 0 : 10)
+                        .animation(AppAnimation.contentReveal.delay(base + stagger * 5), value: groupVisible)
                 }
             }
             .padding(.horizontal, Spacing.xl)
@@ -205,6 +181,7 @@ struct TransactionDetailView: View {
                 RoundedRectangle(cornerRadius: CornerRadius.lg)
                     .fill(AppColors.cardBackground)
             )
+            .compositingGroup()
             .padding(.horizontal, Spacing.lg)
             .padding(.top, Spacing.sm)
             .padding(.bottom, Spacing.section)
@@ -212,6 +189,7 @@ struct TransactionDetailView: View {
         .background(AppColors.backgroundSecondary)
         .navigationTitle("Transaction")
         .onAppear { animateSectionsIn() }
+        .onDisappear { resetAnimationState() }
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
@@ -413,11 +391,11 @@ struct TransactionDetailView: View {
                 .font(AppTypography.caption())
                 .foregroundColor(AppColors.textTertiary)
 
-            ForEach(splits, id: \.objectID) { split in
+            ForEach(cachedSplits, id: \.objectID) { split in
                 HStack(spacing: Spacing.sm) {
                     if let person = split.owedBy {
                         Circle()
-                            .fill(Color(hex: person.safeColorHex))
+                            .fill(person.displayColor)
                             .frame(width: AvatarSize.xs, height: AvatarSize.xs)
                             .overlay(
                                 Text(CurrentUser.isCurrentUser(person.id) ? CurrentUser.initials : person.initials)
@@ -474,20 +452,11 @@ struct TransactionDetailView: View {
     // MARK: - Helpers
 
     private func personDisplayName(for split: TransactionSplit) -> String {
-        guard let person = split.owedBy else { return "Unknown" }
-        if CurrentUser.isCurrentUser(person.id) {
-            return "You"
-        }
-        return person.displayName
+        TransactionDetailHelpers.personDisplayName(for: split)
     }
 
     private func splitAmountColor(for split: TransactionSplit) -> Color {
-        guard let person = split.owedBy else { return AppColors.textPrimary }
-        if CurrentUser.isCurrentUser(person.id) {
-            return isCurrentUserAPayer ? AppColors.textSecondary : AppColors.negative
-        } else {
-            return isCurrentUserAPayer ? AppColors.positive : AppColors.textSecondary
-        }
+        TransactionDetailHelpers.splitAmountColor(for: split, isCurrentUserAPayer: isCurrentUserAPayer)
     }
 
     // MARK: - Entrance Animation
@@ -496,16 +465,26 @@ struct TransactionDetailView: View {
         guard !hasAnimated else { return }
         hasAnimated = true
 
-        let reveal = AppAnimation.contentReveal
-        let base: Double = 0.05
-        let stagger = AppAnimation.staggerInterval
+        // Batch all visibility changes into a single withAnimation transaction.
+        // Per-section stagger delays are applied via .animation() modifiers in body.
+        withAnimation(AppAnimation.contentReveal) {
+            headerVisible = true
+            infoVisible = true
+            paymentVisible = true
+            impactVisible = true
+            breakdownVisible = true
+            groupVisible = true
+        }
+    }
 
-        withAnimation(reveal.delay(base)) { headerVisible = true }
-        withAnimation(reveal.delay(base + stagger)) { infoVisible = true }
-        withAnimation(reveal.delay(base + stagger * 2)) { paymentVisible = true }
-        withAnimation(reveal.delay(base + stagger * 3)) { impactVisible = true }
-        withAnimation(reveal.delay(base + stagger * 4)) { breakdownVisible = true }
-        withAnimation(reveal.delay(base + stagger * 5)) { groupVisible = true }
+    private func resetAnimationState() {
+        hasAnimated = false
+        headerVisible = false
+        infoVisible = false
+        paymentVisible = false
+        impactVisible = false
+        breakdownVisible = false
+        groupVisible = false
     }
 
     // MARK: - Delete Action
@@ -565,15 +544,21 @@ struct TransactionExpandedView: View {
     @State private var dragOffset: CGFloat = 0
     @GestureState private var isDragging = false
 
-    // MARK: - Computed Properties
+    // MARK: - Computed Properties (Cached)
+
+    /// Cached effectivePayers to avoid repeated NSSet→Array conversions during animation render passes
+    private var cachedEffectivePayers: [(personId: UUID?, amount: Double)] {
+        transaction.effectivePayers
+    }
+
+    /// Cached and sorted splits to avoid re-sorting on every render pass
+    private var cachedSplits: [TransactionSplit] {
+        let splitSet = transaction.splits as? Set<TransactionSplit> ?? []
+        return splitSet.sorted { ($0.owedBy?.displayName ?? "") < ($1.owedBy?.displayName ?? "") }
+    }
 
     private var stableId: String {
         transaction.id?.uuidString ?? transaction.objectID.uriRepresentation().absoluteString
-    }
-
-    private var splits: [TransactionSplit] {
-        let splitSet = transaction.splits as? Set<TransactionSplit> ?? []
-        return splitSet.sorted { ($0.owedBy?.displayName ?? "") < ($1.owedBy?.displayName ?? "") }
     }
 
     private var splitMethod: SplitMethod? {
@@ -582,22 +567,11 @@ struct TransactionExpandedView: View {
     }
 
     private var isCurrentUserAPayer: Bool {
-        transaction.effectivePayers.contains { CurrentUser.isCurrentUser($0.personId) }
+        cachedEffectivePayers.contains { CurrentUser.isCurrentUser($0.personId) }
     }
 
     private var payerName: String {
-        let payers = transaction.effectivePayers
-        if payers.count <= 1 {
-            if let payer = transaction.payer, CurrentUser.isCurrentUser(payer.id) {
-                return "You"
-            }
-            return transaction.payer?.displayName ?? "Unknown"
-        }
-        let isUserAPayer = payers.contains { CurrentUser.isCurrentUser($0.personId) }
-        if isUserAPayer {
-            return "You +\(payers.count - 1) others"
-        }
-        return "\(payers.count) people"
+        TransactionDetailHelpers.payerName(effectivePayers: cachedEffectivePayers, payer: transaction.payer)
     }
 
     private var shortTransactionId: String {
@@ -608,9 +582,7 @@ struct TransactionExpandedView: View {
 
     private var formattedDate: String {
         guard let date = transaction.date else { return "Unknown date" }
-        let formatter = DateFormatter()
-        formatter.dateStyle = .long
-        return formatter.string(from: date)
+        return DateFormatter.longDate.string(from: date)
     }
 
     private var formattedTime: String {
@@ -627,43 +599,23 @@ struct TransactionExpandedView: View {
     }
 
     private var participantCount: Int {
-        var participants = Set<UUID>()
-        for payer in transaction.effectivePayers {
-            if let id = payer.personId { participants.insert(id) }
-        }
-        for split in splits {
-            if let owedById = split.owedBy?.id { participants.insert(owedById) }
-        }
-        return max(participants.count, 1)
+        TransactionDetailHelpers.participantCount(effectivePayers: cachedEffectivePayers, splits: cachedSplits)
     }
 
     private var userNetAmount: Double {
-        let userPaid = transaction.effectivePayers
-            .filter { CurrentUser.isCurrentUser($0.personId) }
-            .reduce(0) { $0 + $1.amount }
-        let userSplit = (transaction.splits as? Set<TransactionSplit> ?? [])
-            .filter { CurrentUser.isCurrentUser($0.owedBy?.id) }
-            .reduce(0) { $0 + $1.amount }
-        return userPaid - userSplit
+        TransactionDetailHelpers.userNetAmount(effectivePayers: cachedEffectivePayers, splits: cachedSplits)
     }
 
     private var netAmountColor: Color {
-        if userNetAmount > 0.01 { return AppColors.positive }
-        if userNetAmount < -0.01 { return AppColors.negative }
-        return AppColors.neutral
+        TransactionDetailHelpers.netAmountColor(for: userNetAmount)
     }
 
     private var netAmountText: String {
-        let formatted = CurrencyFormatter.formatAbsolute(userNetAmount)
-        if userNetAmount > 0.01 { return "You lent \(formatted)" }
-        if userNetAmount < -0.01 { return "You owe \(formatted)" }
-        return "You paid your share"
+        TransactionDetailHelpers.netAmountText(for: userNetAmount)
     }
 
     private var netAmountBackgroundColor: Color {
-        if userNetAmount > 0.01 { return AppColors.positive.opacity(0.12) }
-        if userNetAmount < -0.01 { return AppColors.negative.opacity(0.12) }
-        return AppColors.backgroundTertiary
+        TransactionDetailHelpers.netAmountBackgroundColor(for: userNetAmount)
     }
 
     private var directionIcon: String {
@@ -681,17 +633,19 @@ struct TransactionExpandedView: View {
     }
 
     // Drag progress for interactive dismiss (0 = no drag, 1 = fully dragged)
+    // Uses 35% of screen height for consistent feel across device sizes
     private var dragProgress: CGFloat {
-        min(max(dragOffset / 300, 0), 1)
+        let threshold = UIScreen.main.bounds.height * 0.35
+        return min(max(dragOffset / threshold, 0), 1)
     }
 
     // MARK: - Body
 
     var body: some View {
         ZStack {
-            // Dimmed scrim — fades in, interactive with drag
+            // Dimmed scrim — fades in, interactive with drag (matched to card scale curve)
             Color.black
-                .opacity((scrimVisible ? 0.5 : 0) * (1 - dragProgress * 0.5))
+                .opacity(Double((scrimVisible ? 0.5 : 0) * (1 - dragProgress)))
                 .ignoresSafeArea()
                 .onTapGesture {
                     guard !isDismissing else { return }
@@ -758,10 +712,14 @@ struct TransactionExpandedView: View {
     private var morphingDetailCard: some View {
         ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: 0) {
+                let base = AppAnimation.staggerBaseDelay
+                let stagger = AppAnimation.staggerInterval
+
                 // Drag indicator pill
                 dragIndicator
                     .opacity(dragIndicatorVisible ? 1 : 0)
                     .scaleEffect(x: dragIndicatorVisible ? 1 : 0.5, y: 1)
+                    .animation(AppAnimation.cardMorph.delay(0.12), value: dragIndicatorVisible)
 
                 // SECTION: Hero header (icon + title + amount — these morph from the row)
                 heroHeaderSection
@@ -770,42 +728,51 @@ struct TransactionExpandedView: View {
                 netImpactBadge
                     .opacity(section1Visible ? 1 : 0)
                     .offset(y: section1Visible ? 0 : 12)
+                    .animation(AppAnimation.contentReveal.delay(base), value: section1Visible)
 
                 expandedDottedSeparator
                     .opacity(section2Visible ? 1 : 0)
                     .padding(.top, Spacing.lg)
+                    .animation(AppAnimation.contentReveal.delay(base + stagger), value: section2Visible)
 
                 // SECTION: Transaction details (date, time, ID, created by)
                 detailsInfoSection
                     .opacity(section2Visible ? 1 : 0)
                     .offset(y: section2Visible ? 0 : 12)
+                    .animation(AppAnimation.contentReveal.delay(base + stagger), value: section2Visible)
 
                 expandedDottedSeparator
                     .opacity(section3Visible ? 1 : 0)
+                    .animation(AppAnimation.contentReveal.delay(base + stagger * 2), value: section3Visible)
 
                 // SECTION: Payment info (paid by, participants, split method, group)
                 paymentInfoSection
                     .opacity(section3Visible ? 1 : 0)
                     .offset(y: section3Visible ? 0 : 12)
+                    .animation(AppAnimation.contentReveal.delay(base + stagger * 2), value: section3Visible)
 
                 // SECTION: Split breakdown
-                if !splits.isEmpty {
+                if !cachedSplits.isEmpty {
                     expandedDottedSeparator
                         .opacity(section4Visible ? 1 : 0)
+                        .animation(AppAnimation.contentReveal.delay(base + stagger * 3), value: section4Visible)
 
                     splitBreakdownSection
                         .opacity(section4Visible ? 1 : 0)
                         .offset(y: section4Visible ? 0 : 12)
+                        .animation(AppAnimation.contentReveal.delay(base + stagger * 3), value: section4Visible)
                 }
 
                 // SECTION: Note
                 if let note = transaction.note, !note.isEmpty {
                     expandedDottedSeparator
                         .opacity(section4Visible ? 1 : 0)
+                        .animation(AppAnimation.contentReveal.delay(base + stagger * 3), value: section4Visible)
 
                     noteSection(note: note)
                         .opacity(section4Visible ? 1 : 0)
                         .offset(y: section4Visible ? 0 : 12)
+                        .animation(AppAnimation.contentReveal.delay(base + stagger * 3), value: section4Visible)
                 }
 
                 // SECTION: Action buttons
@@ -813,6 +780,7 @@ struct TransactionExpandedView: View {
                     .opacity(section5Visible ? 1 : 0)
                     .offset(y: section5Visible ? 0 : 12)
                     .padding(.top, Spacing.xl)
+                    .animation(AppAnimation.contentReveal.delay(base + stagger * 4), value: section5Visible)
             }
             .padding(.horizontal, Spacing.xl)
             .padding(.top, Spacing.md)
@@ -824,11 +792,13 @@ struct TransactionExpandedView: View {
                 .matchedGeometryEffect(id: "bg-\(stableId)", in: animationNamespace)
                 .shadow(
                     color: Color.black.opacity(scrimVisible ? 0.18 * (1 - dragProgress * 0.4) : 0),
-                    radius: scrimVisible ? 24 : 6,
-                    y: scrimVisible ? 8 : 2
+                    radius: contentRevealed ? 6 + 18 * (1 - dragProgress * 0.4) : 6,
+                    y: contentRevealed ? 2 + 6 * (1 - dragProgress * 0.4) : 2
                 )
         )
         .clipShape(RoundedRectangle(cornerRadius: contentRevealed ? CornerRadius.xl : CornerRadius.md))
+        .compositingGroup()
+        .scrollDisabled(!contentRevealed)
         .padding(.horizontal, Spacing.sm)
         .padding(.top, Spacing.section + Spacing.xl)
         .frame(maxHeight: UIScreen.main.bounds.height * 0.88)
@@ -881,6 +851,7 @@ struct TransactionExpandedView: View {
                 }
                 .opacity(closeButtonVisible ? 1 : 0)
                 .scaleEffect(closeButtonVisible ? 1 : 0.5)
+                .animation(AppAnimation.cardMorph.delay(0.18), value: closeButtonVisible)
             }
 
             // Title — morphs from row position to detail position
@@ -1068,11 +1039,11 @@ struct TransactionExpandedView: View {
                 .foregroundColor(AppColors.textTertiary)
                 .padding(.top, Spacing.md)
 
-            ForEach(splits, id: \.objectID) { split in
+            ForEach(cachedSplits, id: \.objectID) { split in
                 HStack(spacing: Spacing.sm) {
                     if let person = split.owedBy {
                         Circle()
-                            .fill(Color(hex: person.safeColorHex))
+                            .fill(person.displayColor)
                             .frame(width: AvatarSize.xs, height: AvatarSize.xs)
                             .overlay(
                                 Text(CurrentUser.isCurrentUser(person.id) ? CurrentUser.initials : person.initials)
@@ -1171,26 +1142,21 @@ struct TransactionExpandedView: View {
             contentRevealed = true
         }
 
-        // Phase 2: Drag indicator scales in from center
-        withAnimation(AppAnimation.cardMorph.delay(0.12)) {
+        // Phase 2: Drag indicator + close button — batched into single transaction
+        // Per-element stagger applied via .animation() modifiers in the view hierarchy
+        withAnimation(AppAnimation.cardMorph) {
             dragIndicatorVisible = true
-        }
-
-        // Phase 3: Close button springs in with slight bounce
-        withAnimation(.spring(response: 0.45, dampingFraction: 0.72).delay(0.18)) {
             closeButtonVisible = true
         }
 
-        // Phase 4: Staggered content sections — spring physics for natural, lively feel
-        let reveal = AppAnimation.contentReveal
-        let base = AppAnimation.staggerBaseDelay
-        let stagger = AppAnimation.staggerInterval
-
-        withAnimation(reveal.delay(base)) { section1Visible = true }
-        withAnimation(reveal.delay(base + stagger)) { section2Visible = true }
-        withAnimation(reveal.delay(base + stagger * 2)) { section3Visible = true }
-        withAnimation(reveal.delay(base + stagger * 3)) { section4Visible = true }
-        withAnimation(reveal.delay(base + stagger * 4)) { section5Visible = true }
+        // Phase 3: All staggered content sections — single transaction, per-section delays via .animation() modifiers
+        withAnimation(AppAnimation.contentReveal) {
+            section1Visible = true
+            section2Visible = true
+            section3Visible = true
+            section4Visible = true
+            section5Visible = true
+        }
     }
 
     private func dismissCard() {
@@ -1216,8 +1182,8 @@ struct TransactionExpandedView: View {
             dragOffset = 0
         }
 
-        // Phase 3: Remove from view hierarchy after morph settles
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+        // Phase 3: Remove from view hierarchy after morph settles (0.6s provides safe margin over 480ms morph)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
             selectedTransaction = nil
         }
     }
@@ -1225,18 +1191,11 @@ struct TransactionExpandedView: View {
     // MARK: - Helpers
 
     private func personDisplayName(for split: TransactionSplit) -> String {
-        guard let person = split.owedBy else { return "Unknown" }
-        if CurrentUser.isCurrentUser(person.id) { return "You" }
-        return person.displayName
+        TransactionDetailHelpers.personDisplayName(for: split)
     }
 
     private func splitAmountColor(for split: TransactionSplit) -> Color {
-        guard let person = split.owedBy else { return AppColors.textPrimary }
-        if CurrentUser.isCurrentUser(person.id) {
-            return isCurrentUserAPayer ? AppColors.textSecondary : AppColors.negative
-        } else {
-            return isCurrentUserAPayer ? AppColors.positive : AppColors.textSecondary
-        }
+        TransactionDetailHelpers.splitAmountColor(for: split, isCurrentUserAPayer: isCurrentUserAPayer)
     }
 
     // MARK: - Delete Action
@@ -1270,5 +1229,80 @@ struct Line: Shape {
         path.move(to: CGPoint(x: 0, y: rect.midY))
         path.addLine(to: CGPoint(x: rect.width, y: rect.midY))
         return path
+    }
+}
+
+// MARK: - Shared Transaction Detail Helpers
+
+/// Shared helper functions used by both TransactionDetailView and TransactionExpandedView
+/// to eliminate duplicated logic across the two views.
+enum TransactionDetailHelpers {
+    static func personDisplayName(for split: TransactionSplit) -> String {
+        guard let person = split.owedBy else { return "Unknown" }
+        if CurrentUser.isCurrentUser(person.id) { return "You" }
+        return person.displayName
+    }
+
+    static func splitAmountColor(for split: TransactionSplit, isCurrentUserAPayer: Bool) -> Color {
+        guard let person = split.owedBy else { return AppColors.textPrimary }
+        if CurrentUser.isCurrentUser(person.id) {
+            return isCurrentUserAPayer ? AppColors.textSecondary : AppColors.negative
+        } else {
+            return isCurrentUserAPayer ? AppColors.positive : AppColors.textSecondary
+        }
+    }
+
+    static func payerName(effectivePayers: [(personId: UUID?, amount: Double)], payer: Person?) -> String {
+        if effectivePayers.count <= 1 {
+            if let payer = payer, CurrentUser.isCurrentUser(payer.id) {
+                return "You"
+            }
+            return payer?.displayName ?? "Unknown"
+        }
+        let isUserAPayer = effectivePayers.contains { CurrentUser.isCurrentUser($0.personId) }
+        if isUserAPayer {
+            return "You +\(effectivePayers.count - 1) others"
+        }
+        return "\(effectivePayers.count) people"
+    }
+
+    static func participantCount(effectivePayers: [(personId: UUID?, amount: Double)], splits: [TransactionSplit]) -> Int {
+        var participants = Set<UUID>()
+        for payer in effectivePayers {
+            if let id = payer.personId { participants.insert(id) }
+        }
+        for split in splits {
+            if let owedById = split.owedBy?.id { participants.insert(owedById) }
+        }
+        return max(participants.count, 1)
+    }
+
+    static func userNetAmount(effectivePayers: [(personId: UUID?, amount: Double)], splits: [TransactionSplit]) -> Double {
+        let userPaid = effectivePayers
+            .filter { CurrentUser.isCurrentUser($0.personId) }
+            .reduce(0) { $0 + $1.amount }
+        let userSplit = splits
+            .filter { CurrentUser.isCurrentUser($0.owedBy?.id) }
+            .reduce(0) { $0 + $1.amount }
+        return userPaid - userSplit
+    }
+
+    static func netAmountColor(for netAmount: Double) -> Color {
+        if netAmount > 0.01 { return AppColors.positive }
+        if netAmount < -0.01 { return AppColors.negative }
+        return AppColors.neutral
+    }
+
+    static func netAmountText(for netAmount: Double) -> String {
+        let formatted = CurrencyFormatter.formatAbsolute(netAmount)
+        if netAmount > 0.01 { return "You lent \(formatted)" }
+        if netAmount < -0.01 { return "You owe \(formatted)" }
+        return "You paid your share"
+    }
+
+    static func netAmountBackgroundColor(for netAmount: Double) -> Color {
+        if netAmount > 0.01 { return AppColors.positive.opacity(0.12) }
+        if netAmount < -0.01 { return AppColors.negative.opacity(0.12) }
+        return AppColors.backgroundTertiary
     }
 }
