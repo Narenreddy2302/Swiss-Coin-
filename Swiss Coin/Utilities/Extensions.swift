@@ -41,4 +41,20 @@ extension DateFormatter {
         formatter.dateFormat = "EEEE"
         return formatter
     }()
+
+    /// Month and day format (e.g. "September 16") — used in transaction detail card
+    static let monthDay: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMMM d"
+        return formatter
+    }()
+
+    /// Time-only format (e.g. "02:11 pm") — used in transaction detail card
+    static let timeOnly: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "hh:mm a"
+        formatter.amSymbol = "am"
+        formatter.pmSymbol = "pm"
+        return formatter
+    }()
 }

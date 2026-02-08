@@ -16,8 +16,8 @@ struct TransactionHistoryView: View {
     @State private var showingDeleteAlert = false
     @State private var transactionToDelete: FinancialTransaction?
 
-    // Hero animation state
-    @Namespace private var heroAnimation
+    // Card overlay animation state
+    @Namespace private var cardAnimation
     @State private var selectedTransaction: FinancialTransaction?
 
     // MARK: - Grouped Transactions
@@ -86,15 +86,15 @@ struct TransactionHistoryView: View {
                 FinanceQuickActionView()
                     .opacity(selectedTransaction == nil ? 1 : 0)
 
-                // Hero animation expanded overlay
+                // Card modal overlay with carousel/stack animation
                 if let selected = selectedTransaction {
                     TransactionExpandedView(
                         transaction: selected,
-                        animationNamespace: heroAnimation,
+                        animationNamespace: cardAnimation,
                         selectedTransaction: $selectedTransaction
                     )
                     .zIndex(2)
-                    .transition(.identity)
+                    .transition(.opacity)
                 }
             }
             .background(AppColors.backgroundSecondary)
@@ -248,10 +248,9 @@ struct TransactionHistoryView: View {
                             transactionToDelete = transaction
                             showingDeleteAlert = true
                         },
-                        animationNamespace: heroAnimation,
+                        animationNamespace: cardAnimation,
                         selectedTransaction: $selectedTransaction
                     )
-                    .zIndex(selectedTransaction == transaction ? 1 : 0)
 
                     if transaction.id != transactions.last?.id {
                         Divider()
