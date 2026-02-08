@@ -174,7 +174,24 @@ struct SubscriptionReminderSheetView: View {
     private func sendReminders() {
         HapticManager.save()
 
+        // Validate that subscription still exists in context before creating reminders
+        guard subscription.managedObjectContext != nil,
+              !subscription.isDeleted,
+              !subscription.isFault else {
+            HapticManager.error()
+            errorMessage = "Subscription is no longer available. Please try again."
+            showingError = true
+            return
+        }
+
         for member in selectedMembers {
+            // Skip if member is no longer valid
+            guard member.managedObjectContext != nil,
+                  !member.isDeleted,
+                  !member.isFault else {
+                continue
+            }
+
             if let item = membersWhoOwe.first(where: { $0.member.id == member.id }) {
                 let reminder = SubscriptionReminder(context: viewContext)
                 reminder.id = UUID()

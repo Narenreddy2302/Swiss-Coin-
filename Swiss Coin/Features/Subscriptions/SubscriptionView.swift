@@ -13,6 +13,7 @@ struct SubscriptionView: View {
     @State private var selectedSegment = 0  // 0 = Personal, 1 = Shared
     @Environment(\.managedObjectContext) private var viewContext
     @State private var showingAddSubscription = false
+    @State private var showingArchivedSubscriptions = false
 
     var body: some View {
         NavigationStack {
@@ -56,6 +57,17 @@ struct SubscriptionView: View {
             .navigationTitle("Subscriptions")
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button {
+                        HapticManager.tap()
+                        showingArchivedSubscriptions = true
+                    } label: {
+                        Image(systemName: "archivebox")
+                            .font(.system(size: 15, weight: .medium))
+                    }
+                    .accessibilityLabel("View archived subscriptions")
+                }
+
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
                         HapticManager.tap()
@@ -68,6 +80,10 @@ struct SubscriptionView: View {
             }
             .sheet(isPresented: $showingAddSubscription) {
                 AddSubscriptionView(isSharedDefault: selectedSegment == 1)
+                    .environment(\.managedObjectContext, viewContext)
+            }
+            .sheet(isPresented: $showingArchivedSubscriptions) {
+                ArchivedSubscriptionsView()
                     .environment(\.managedObjectContext, viewContext)
             }
             .onAppear {

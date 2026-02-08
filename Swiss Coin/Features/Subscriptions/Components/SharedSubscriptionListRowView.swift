@@ -5,7 +5,34 @@
 //  List row for shared subscriptions with balance indicators, matching GroupListRowView pattern.
 //
 
+import CoreData
 import SwiftUI
+
+// MARK: - Balance Display Info
+
+/// Pre-computed balance display information to avoid repeated calculations
+private struct BalanceDisplayInfo {
+    let amount: Double
+    let text: String
+    let color: Color
+
+    init(balance: Double) {
+        self.amount = balance
+        let formatted = CurrencyFormatter.formatAbsolute(balance)
+        if balance > 0.01 {
+            self.text = "you're owed \(formatted)"
+            self.color = AppColors.positive
+        } else if balance < -0.01 {
+            self.text = "you owe \(formatted)"
+            self.color = AppColors.negative
+        } else {
+            self.text = "settled up"
+            self.color = AppColors.neutral
+        }
+    }
+}
+
+// MARK: - SharedSubscriptionListRowView
 
 struct SharedSubscriptionListRowView: View {
     @ObservedObject var subscription: Subscription
@@ -19,33 +46,13 @@ struct SharedSubscriptionListRowView: View {
         subscription.memberCount
     }
 
-    // Calculate if members owe you or you owe them
-    private var balance: Double {
-        subscription.calculateUserBalance()
-    }
-
-    private var balanceText: String {
-        let formatted = CurrencyFormatter.formatAbsolute(balance)
-        if balance > 0.01 {
-            return "you're owed \(formatted)"
-        } else if balance < -0.01 {
-            return "you owe \(formatted)"
-        } else {
-            return "settled up"
-        }
-    }
-
-    private var balanceColor: Color {
-        if balance > 0.01 {
-            return AppColors.positive
-        } else if balance < -0.01 {
-            return AppColors.negative
-        } else {
-            return AppColors.neutral
-        }
+    /// Computed once per render pass: calculates balance and derives text/color
+    private var balanceInfo: BalanceDisplayInfo {
+        BalanceDisplayInfo(balance: subscription.calculateUserBalance())
     }
 
     var body: some View {
+        let displayInfo = balanceInfo
         HStack(spacing: Spacing.md) {
             // Subscription Icon
             RoundedRectangle(cornerRadius: CornerRadius.sm)
@@ -73,9 +80,9 @@ struct SharedSubscriptionListRowView: View {
                         .font(AppTypography.subheadline())
                         .foregroundColor(AppColors.textSecondary)
 
-                    Text(balanceText)
+                    Text(displayInfo.text)
                         .font(AppTypography.subheadline())
-                        .foregroundColor(balanceColor)
+                        .foregroundColor(displayInfo.color)
                 }
                 .lineLimit(1)
             }
@@ -83,10 +90,10 @@ struct SharedSubscriptionListRowView: View {
             Spacer()
 
             // Balance amount
-            if abs(balance) > 0.01 {
-                Text(CurrencyFormatter.formatAbsolute(balance))
+            if abs(displayInfo.amount) > 0.01 {
+                Text(CurrencyFormatter.formatAbsolute(displayInfo.amount))
                     .font(AppTypography.amountSmall())
-                    .foregroundColor(balanceColor)
+                    .foregroundColor(displayInfo.color)
             }
         }
         .padding(.vertical, Spacing.lg)

@@ -32,6 +32,7 @@ extension Subscription {
     @NSManaged public var notes: String?
     @NSManaged public var notificationEnabled: Bool
     @NSManaged public var notificationDaysBefore: Int16
+    @NSManaged public var isArchived: Bool
     @NSManaged public var subscribers: NSSet?
     @NSManaged public var payments: NSSet?
     @NSManaged public var chatMessages: NSSet?
