@@ -36,62 +36,121 @@ struct EditPersonView: View {
     }
 
     var body: some View {
-        Form {
-            Section(header: Text("Profile").font(AppTypography.subheadlineMedium())) {
-                // Avatar Preview
-                HStack {
-                    Spacer()
-                    Circle()
-                        .fill(Color(hex: colorHex).opacity(0.2))
-                        .frame(width: AvatarSize.xl, height: AvatarSize.xl)
-                        .overlay(
-                            Text(editingInitials)
-                                .font(AppTypography.title2())
-                                .foregroundColor(Color(hex: colorHex))
+        ZStack {
+            AppColors.backgroundSecondary
+                .ignoresSafeArea()
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: Spacing.xl) {
+                    // Avatar Preview
+                    HStack {
+                        Spacer()
+                        Circle()
+                            .fill(Color(hex: colorHex).opacity(0.2))
+                            .frame(width: AvatarSize.xl, height: AvatarSize.xl)
+                            .overlay(
+                                Text(editingInitials)
+                                    .font(AppTypography.title2())
+                                    .foregroundColor(Color(hex: colorHex))
+                            )
+                        Spacer()
+                    }
+                    .padding(.vertical, Spacing.sm)
+
+                    // Details Section
+                    VStack(alignment: .leading, spacing: Spacing.sm) {
+                        Text("DETAILS")
+                            .font(AppTypography.footnote())
+                            .foregroundColor(AppColors.textSecondary)
+                            .padding(.horizontal, Spacing.lg + Spacing.xxs)
+
+                        VStack(spacing: 0) {
+                            // Name Input Row
+                            HStack(spacing: Spacing.md) {
+                                Image(systemName: "person.fill")
+                                    .font(.system(size: IconSize.sm))
+                                    .foregroundColor(AppColors.accent)
+                                    .frame(width: 24)
+
+                                TextField("Name", text: $name)
+                                    .font(AppTypography.body())
+                                    .foregroundColor(AppColors.textPrimary)
+                                    .limitTextLength(to: ValidationLimits.maxNameLength, text: $name)
+                            }
+                            .padding(.horizontal, Spacing.lg)
+                            .padding(.vertical, Spacing.md)
+
+                            Divider()
+                                .padding(.leading, Spacing.lg)
+
+                            // Phone Input Row
+                            HStack(spacing: Spacing.md) {
+                                Image(systemName: "phone.fill")
+                                    .font(.system(size: IconSize.sm))
+                                    .foregroundColor(AppColors.accent)
+                                    .frame(width: 24)
+
+                                TextField("Phone Number", text: $phoneNumber)
+                                    .font(AppTypography.body())
+                                    .foregroundColor(AppColors.textPrimary)
+                                    .keyboardType(.phonePad)
+                                    .limitTextLength(to: ValidationLimits.maxPhoneLength, text: $phoneNumber)
+                                    .onChange(of: phoneNumber) { _, newValue in
+                                        let filtered = newValue.filter { char in
+                                            char.isNumber || char == "+" || char == " " || char == "-" || char == "(" || char == ")"
+                                        }
+                                        if filtered != newValue {
+                                            phoneNumber = filtered
+                                        }
+                                        checkDuplicatePhone(filtered)
+                                    }
+                            }
+                            .padding(.horizontal, Spacing.lg)
+                            .padding(.vertical, Spacing.md)
+                        }
+                        .background(
+                            RoundedRectangle(cornerRadius: CornerRadius.md)
+                                .fill(AppColors.cardBackground)
                         )
-                    Spacer()
-                }
-                .listRowBackground(Color.clear)
-                .padding(.vertical, Spacing.sm)
-            }
+                        .padding(.horizontal)
 
-            Section(header: Text("Details").font(AppTypography.subheadlineMedium())) {
-                TextField("Name", text: $name)
-                    .font(AppTypography.body())
-                    .limitTextLength(to: ValidationLimits.maxNameLength, text: $name)
-
-                TextField("Phone Number", text: $phoneNumber)
-                    .font(AppTypography.body())
-                    .keyboardType(.phonePad)
-                    .limitTextLength(to: ValidationLimits.maxPhoneLength, text: $phoneNumber)
-                    .onChange(of: phoneNumber) { _, newValue in
-                        // Filter to only allow valid phone number characters
-                        let filtered = newValue.filter { char in
-                            char.isNumber || char == "+" || char == " " || char == "-" || char == "(" || char == ")"
+                        // Duplicate Warning
+                        if showingDuplicateWarning {
+                            HStack(spacing: Spacing.xs) {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .font(.system(size: IconSize.sm))
+                                    .foregroundColor(AppColors.warning)
+                                Text("Phone number already used by \(duplicatePersonName)")
+                                    .font(AppTypography.caption())
+                                    .foregroundColor(AppColors.warning)
+                            }
+                            .padding(.horizontal, Spacing.lg + Spacing.xxs)
+                            .padding(.top, Spacing.xxs)
                         }
-                        if filtered != newValue {
-                            phoneNumber = filtered
-                        }
-                        checkDuplicatePhone(filtered)
                     }
 
-                if showingDuplicateWarning {
-                    HStack(spacing: Spacing.xs) {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .font(.system(size: IconSize.sm))
-                            .foregroundColor(AppColors.warning)
-                        Text("Phone number already used by \(duplicatePersonName)")
-                            .font(AppTypography.caption())
-                            .foregroundColor(AppColors.warning)
+                    // Color Section
+                    VStack(alignment: .leading, spacing: Spacing.sm) {
+                        Text("COLOR")
+                            .font(AppTypography.footnote())
+                            .foregroundColor(AppColors.textSecondary)
+                            .padding(.horizontal, Spacing.lg + Spacing.xxs)
+
+                        ColorPickerRow(selectedColor: $colorHex)
+                            .padding(.horizontal, Spacing.lg)
+                            .padding(.vertical, Spacing.md)
+                            .background(
+                                RoundedRectangle(cornerRadius: CornerRadius.md)
+                                    .fill(AppColors.cardBackground)
+                            )
+                            .padding(.horizontal)
                     }
                 }
-            }
-
-            Section(header: Text("Color").font(AppTypography.subheadlineMedium())) {
-                ColorPickerRow(selectedColor: $colorHex)
+                .padding(.top, Spacing.lg)
+                .padding(.bottom, Spacing.section)
             }
         }
-        .navigationTitle("Edit Person")
+        .navigationTitle("Edit Contact")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {

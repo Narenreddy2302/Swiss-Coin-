@@ -148,29 +148,24 @@ struct TransactionRowView: View {
 
     // MARK: - Amount Logic
 
+    /// User's net position: paid - owed. Positive = others owe you.
+    private var userNetPosition: Double {
+        let userPaid = transaction.effectivePayers
+            .filter { CurrentUser.isCurrentUser($0.personId) }
+            .reduce(0) { $0 + $1.amount }
+        let userSplit = (transaction.splits as? Set<TransactionSplit> ?? [])
+            .filter { CurrentUser.isCurrentUser($0.owedBy?.id) }
+            .reduce(0) { $0 + $1.amount }
+        return userPaid - userSplit
+    }
+
     private var isPayer: Bool {
-        CurrentUser.isCurrentUser(transaction.payer?.id)
+        userNetPosition > 0
     }
 
-    private var myShare: Double {
-        if let splits = transaction.splits?.allObjects as? [TransactionSplit] {
-            if let mySplit = splits.first(where: { CurrentUser.isCurrentUser($0.owedBy?.id) }) {
-                return mySplit.amount
-            }
-        }
-        return 0.0
-    }
-
-    /// Amount others owe you (if you paid) or you owe (if someone else paid)
+    /// Amount others owe you (if positive net) or you owe (if negative net)
     private var amountToShow: Double {
-        if isPayer {
-            // You paid - show what others owe you (total minus your share)
-            let lentToOthers = transaction.amount - myShare
-            return max(lentToOthers, 0)
-        } else {
-            // Someone else paid - show what you owe them
-            return myShare
-        }
+        abs(userNetPosition)
     }
 
     private var amountPrefix: String {
@@ -185,15 +180,12 @@ struct TransactionRowView: View {
         let amount = amountToShow
 
         if amount < 0.01 {
-            // Zero or negligible - use neutral color
             return AppColors.textSecondary
         }
 
         if isPayer {
-            // You paid and are owed money - positive (green)
             return AppColors.positive
         } else {
-            // You owe money - negative (red)
             return AppColors.negative
         }
     }
@@ -201,10 +193,12 @@ struct TransactionRowView: View {
     private var splitCount: Int {
         let splits = transaction.splits as? Set<TransactionSplit> ?? []
 
-        // Count unique participants (payer + those who owe)
+        // Count unique participants (payers + those who owe)
         var participants = Set<UUID>()
-        if let payerId = transaction.payer?.id {
-            participants.insert(payerId)
+        for payer in transaction.effectivePayers {
+            if let id = payer.personId {
+                participants.insert(id)
+            }
         }
         for split in splits {
             if let owedById = split.owedBy?.id {

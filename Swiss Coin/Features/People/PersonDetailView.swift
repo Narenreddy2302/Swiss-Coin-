@@ -313,63 +313,68 @@ struct PersonDetailTransactionRow: View {
 
     // MARK: - Computed Properties
 
-    private var isUserPayer: Bool {
-        CurrentUser.isCurrentUser(transaction.payer?.id)
+    /// Net balance for this transaction: positive = person owes you
+    private var pairwiseResult: Double {
+        guard let currentUserId = CurrentUser.currentUserId,
+              let personId = person.id else { return 0 }
+        return transaction.pairwiseBalance(personA: currentUserId, personB: personId)
     }
 
-    private var isPersonPayer: Bool {
-        transaction.payer?.id == person.id
+    private var isUserNetCreditor: Bool {
+        pairwiseResult > 0
     }
 
     /// The split amount relevant to this transaction (always positive).
     /// Direction is determined by who paid.
     private var userPerspectiveAmount: Double {
-        let splits = transaction.splits as? Set<TransactionSplit> ?? []
-
-        if isUserPayer {
-            // User paid — show what this person owes you
-            if let theirSplit = splits.first(where: { $0.owedBy?.id == person.id }) {
-                return theirSplit.amount
-            }
-            return 0
-        } else if isPersonPayer {
-            // This person paid — show what you owe them
-            if let mySplit = splits.first(where: { CurrentUser.isCurrentUser($0.owedBy?.id) }) {
-                return mySplit.amount
-            }
-            return 0
-        } else {
-            // Third party paid — show your share
-            if let mySplit = splits.first(where: { CurrentUser.isCurrentUser($0.owedBy?.id) }) {
-                return mySplit.amount
-            }
-            return 0
-        }
+        abs(pairwiseResult)
     }
 
     private var amountColor: Color {
-        if userPerspectiveAmount < 0.01 {
-            return AppColors.textSecondary
+        if isUserNetCreditor && userPerspectiveAmount > 0 {
+            return AppColors.positive
+        } else if !isUserNetCreditor && userPerspectiveAmount > 0 {
+            return AppColors.negative
         }
-        return isUserPayer ? AppColors.positive : AppColors.negative
+        return AppColors.textSecondary
     }
 
     private var amountPrefix: String {
-        guard userPerspectiveAmount > 0 else { return "" }
-        return isUserPayer ? "+" : "-"
+        if isUserNetCreditor && userPerspectiveAmount > 0 {
+            return "+"
+        }
+        return ""
     }
 
     private var statusText: String {
-        if isUserPayer {
+        let payers = transaction.effectivePayers
+        let isUserAPayer = payers.contains { CurrentUser.isCurrentUser($0.personId) }
+        let isPersonAPayer = payers.contains { $0.personId == person.id }
+
+        if payers.count > 1 {
+            if isUserAPayer && isPersonAPayer {
+                return "You & \(person.firstName) paid"
+            } else if isUserAPayer {
+                return "You +\(payers.count - 1) paid"
+            }
+            return "\(payers.count) payers"
+        }
+
+        if isUserAPayer {
             return "You paid"
-        } else if isPersonPayer {
+        } else if isPersonAPayer {
             return "\(person.firstName) paid"
         } else {
             return "Paid by \(transaction.payer?.firstName ?? "someone")"
         }
     }
 
-    // MARK: - Body
+    private var statusColor: Color {
+        if isUserNetCreditor {
+            return AppColors.positive
+        }
+        return AppColors.negative
+    }
 
     var body: some View {
         HStack(spacing: Spacing.md) {

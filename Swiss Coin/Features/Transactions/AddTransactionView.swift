@@ -21,6 +21,7 @@ struct AddTransactionView: View {
     private enum FocusField: Hashable {
         case title
         case amount
+        case note
         case paidBySearch
         case splitWithSearch
     }
@@ -112,6 +113,7 @@ struct AddTransactionView: View {
         VStack(spacing: Spacing.xl) {
             transactionNameSection
             dateAndAmountSection
+            noteSection
         }
     }
 
@@ -139,9 +141,87 @@ struct AddTransactionView: View {
     private var multiPartySplitContent: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
             splitMethodSection
+            if viewModel.selectedPayerPersons.count > 1 {
+                paidByBreakdownSection
+            }
             breakdownSection
             validationSection
         }
+    }
+
+    // MARK: - Paid By Breakdown Section (Step 3)
+
+    private var paidByBreakdownSection: some View {
+        VStack(alignment: .leading, spacing: Spacing.md) {
+            Text("Paid By:")
+                .font(AppTypography.subheadlineMedium())
+                .foregroundColor(AppColors.textPrimary)
+
+            let sortedPayers: [Person] = {
+                if viewModel.selectedPayerPersons.isEmpty {
+                    // Default: "You" — show current user
+                    if let currentUser = try? viewContext.fetch(Person.fetchRequest()).first(where: { CurrentUser.isCurrentUser($0.id) }) {
+                        return [currentUser]
+                    }
+                    return []
+                }
+                return Array(viewModel.selectedPayerPersons).sorted { p1, p2 in
+                    let isCurrentUser1 = CurrentUser.isCurrentUser(p1.id)
+                    let isCurrentUser2 = CurrentUser.isCurrentUser(p2.id)
+                    if isCurrentUser1 && !isCurrentUser2 { return true }
+                    if !isCurrentUser1 && isCurrentUser2 { return false }
+                    return (p1.name ?? "") < (p2.name ?? "")
+                }
+            }()
+
+            ForEach(sortedPayers, id: \.self) { person in
+                payerAmountRow(person: person)
+            }
+        }
+    }
+
+    private func payerAmountRow(person: Person) -> some View {
+        let name = CurrentUser.isCurrentUser(person.id) ? "You" : (person.name ?? "Unknown")
+        let isSinglePayer = viewModel.selectedPayerPersons.count <= 1
+
+        return HStack {
+            Text(name)
+                .font(AppTypography.subheadline())
+                .foregroundColor(AppColors.textPrimary)
+                .lineLimit(1)
+
+            Spacer()
+
+            HStack(spacing: Spacing.xs) {
+                Text(CurrencyFormatter.currencySymbol)
+                    .font(AppTypography.subheadline())
+                    .foregroundColor(AppColors.textSecondary)
+
+                if isSinglePayer {
+                    // Single payer: auto-fill, read-only
+                    Text(String(format: "%.2f", viewModel.totalAmountDouble))
+                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                        .foregroundColor(AppColors.textPrimary)
+                        .frame(minWidth: 50, alignment: .trailing)
+                } else {
+                    // Multi-payer: editable
+                    TextField("0.00", text: payerAmountBinding(for: person))
+                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                        .keyboardType(.decimalPad)
+                        .multilineTextAlignment(.trailing)
+                        .foregroundColor(AppColors.textPrimary)
+                        .frame(minWidth: 50, alignment: .trailing)
+                }
+            }
+        }
+    }
+
+    private func payerAmountBinding(for person: Person) -> Binding<String> {
+        let personId = person.id ?? UUID()
+        return Binding(
+            get: { viewModel.payerAmounts[personId] ?? "" },
+            set: { viewModel.payerAmounts[personId] = $0 }
+        )
     }
 
     // MARK: - Bottom Navigation Bar
@@ -241,14 +321,21 @@ struct AddTransactionView: View {
     private func detentForCurrentState() -> PresentationDetent {
         if keyboardVisible {
             switch currentStep {
-            case 1: return .fraction(0.72)
+            case 1: return .large
             default: return .large
             }
         }
         switch currentStep {
-        case 1: return .fraction(0.42)
+        case 1: return .fraction(0.50)
         case 2: return .fraction(0.58)
-        case 3: return viewModel.isTwoPartySplit ? .fraction(0.50) : .fraction(0.65)
+        case 3:
+            if viewModel.isTwoPartySplit {
+                return .fraction(0.50)
+            } else if viewModel.selectedPayerPersons.count > 1 {
+                return .large
+            } else {
+                return .fraction(0.72)
+            }
         default: return .fraction(0.50)
         }
     }
@@ -332,7 +419,22 @@ struct AddTransactionView: View {
         .cornerRadius(CornerRadius.sm)
     }
 
-    // MARK: - Paid By Section
+    // MARK: - Note Section
+
+    private var noteSection: some View {
+        TextField("Add a note...", text: $viewModel.note, axis: .vertical)
+            .font(AppTypography.body())
+            .foregroundColor(AppColors.textPrimary)
+            .focused($focusedField, equals: .note)
+            .lineLimit(3...5)
+            .limitTextLength(to: ValidationLimits.maxNoteLength, text: $viewModel.note)
+            .padding(.horizontal, Spacing.lg)
+            .padding(.vertical, Spacing.md)
+            .background(AppColors.cardBackgroundElevated)
+            .cornerRadius(CornerRadius.sm)
+    }
+
+    // MARK: - Paid By Section (Multi-Select)
 
     private var paidBySection: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
@@ -356,46 +458,78 @@ struct AddTransactionView: View {
             .cornerRadius(CornerRadius.sm)
 
             if viewModel.paidBySearchText.isEmpty {
-                HStack {
-                    payerChip
-                    Spacer()
-                }
-                .padding(.top, Spacing.xs)
+                payerChipsScroll
             } else {
                 paidBySearchResults
             }
         }
     }
 
-    private var payerChip: some View {
-        let payerName = viewModel.selectedPayer?.firstName ?? "You"
+    private var payerChipsScroll: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: Spacing.sm) {
+                if viewModel.selectedPayerPersons.isEmpty {
+                    // Default: "You" chip (non-removable indicator)
+                    Text("You")
+                        .font(AppTypography.caption())
+                        .foregroundColor(AppColors.buttonForeground)
+                        .lineLimit(1)
+                        .padding(.horizontal, Spacing.md)
+                        .padding(.vertical, Spacing.sm)
+                        .background(AppColors.buttonBackground)
+                        .cornerRadius(CornerRadius.md)
+                } else {
+                    let sortedPayers = Array(viewModel.selectedPayerPersons).sorted { p1, p2 in
+                        let isCurrentUser1 = CurrentUser.isCurrentUser(p1.id)
+                        let isCurrentUser2 = CurrentUser.isCurrentUser(p2.id)
+                        if isCurrentUser1 && !isCurrentUser2 { return true }
+                        if !isCurrentUser1 && isCurrentUser2 { return false }
+                        return (p1.name ?? "") < (p2.name ?? "")
+                    }
 
-        return Text(payerName)
-            .font(AppTypography.caption())
-            .foregroundColor(AppColors.buttonForeground)
-            .lineLimit(1)
-            .padding(.horizontal, Spacing.md)
-            .padding(.vertical, Spacing.sm)
-            .background(AppColors.buttonBackground)
-            .cornerRadius(CornerRadius.md)
-            .overlay(
-                RoundedRectangle(cornerRadius: CornerRadius.md)
-                    .stroke(Color.clear, lineWidth: 1)
-            )
+                    ForEach(sortedPayers, id: \.self) { person in
+                        removablePayerChip(person)
+                    }
+                }
+            }
+            .padding(.vertical, Spacing.xs)
+        }
+    }
+
+    private func removablePayerChip(_ person: Person) -> some View {
+        let name = CurrentUser.isCurrentUser(person.id) ? "You" : person.firstName
+
+        return Button {
+            withAnimation(AppAnimation.quick) {
+                viewModel.togglePayer(person)
+            }
+            HapticManager.tap()
+        } label: {
+            Text(name)
+                .font(AppTypography.caption())
+                .foregroundColor(AppColors.buttonForeground)
+                .lineLimit(1)
+                .padding(.horizontal, Spacing.md)
+                .padding(.vertical, Spacing.sm)
+                .background(AppColors.buttonBackground)
+                .cornerRadius(CornerRadius.md)
+        }
+        .buttonStyle(.plain)
     }
 
     private var paidBySearchResults: some View {
         ScrollView {
             VStack(spacing: 0) {
+                // "You" option
                 Button {
                     withAnimation(AppAnimation.quick) {
-                        viewModel.selectedPayer = nil
+                        viewModel.toggleCurrentUserAsPayer(in: viewContext)
                         viewModel.paidBySearchText = ""
                     }
                     HapticManager.selectionChanged()
                     focusedField = .paidBySearch
                 } label: {
-                    searchResultRow(name: "You", isSelected: viewModel.selectedPayer == nil)
+                    searchResultRow(name: "You", isSelected: viewModel.isCurrentUserPayer && !viewModel.selectedPayerPersons.isEmpty)
                 }
                 .buttonStyle(.plain)
 
@@ -404,7 +538,7 @@ struct AddTransactionView: View {
 
                     Button {
                         withAnimation(AppAnimation.quick) {
-                            viewModel.selectedPayer = person
+                            viewModel.togglePayer(person)
                             viewModel.paidBySearchText = ""
                         }
                         HapticManager.selectionChanged()
@@ -412,7 +546,7 @@ struct AddTransactionView: View {
                     } label: {
                         searchResultRow(
                             name: person.displayName,
-                            isSelected: viewModel.selectedPayer?.id == person.id
+                            isSelected: viewModel.selectedPayerPersons.contains(person)
                         )
                     }
                     .buttonStyle(.plain)
@@ -718,13 +852,14 @@ struct AddTransactionView: View {
 
             ForEach(sortedParticipants, id: \.self) { person in
                 breakdownRow(person: person)
+                    .id("\(person.id?.uuidString ?? "unknown")-\(viewModel.splitMethod.rawValue)")
             }
 
             HStack {
                 Spacer()
                 Rectangle()
                     .fill(AppColors.separator)
-                    .frame(width: 150, height: 1)
+                    .frame(width: 200, height: 1)
             }
             .padding(.top, Spacing.sm)
 
@@ -750,7 +885,7 @@ struct AddTransactionView: View {
                 Spacer()
                 Rectangle()
                     .fill(AppColors.separator)
-                    .frame(width: 150, height: 1)
+                    .frame(width: 200, height: 1)
             }
         }
     }
@@ -767,7 +902,31 @@ struct AddTransactionView: View {
 
             Spacer()
 
-            if viewModel.splitMethod == .equal {
+            // Input control (only for percentage, shares, adjustment)
+            if viewModel.splitMethod == .percentage
+                || viewModel.splitMethod == .shares
+                || viewModel.splitMethod == .adjustment {
+                SplitInputView(viewModel: viewModel, person: person)
+            }
+
+            // Dollar amount (ALWAYS rightmost, aligns with Total Balance)
+            if viewModel.splitMethod == .amount {
+                // Editable TextField styled identically to the equal display
+                HStack(spacing: Spacing.xs) {
+                    Text(CurrencyFormatter.currencySymbol)
+                        .font(AppTypography.subheadline())
+                        .foregroundColor(AppColors.textSecondary)
+
+                    TextField("0.00", text: rawInputBinding(for: person))
+                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                        .keyboardType(.decimalPad)
+                        .multilineTextAlignment(.trailing)
+                        .foregroundColor(AppColors.textPrimary)
+                        .frame(minWidth: 50, alignment: .trailing)
+                }
+                .onAppear { initializeAmountDefault(for: person) }
+            } else {
+                // Static dollar amount (equal, percentage, shares, adjustment)
                 HStack(spacing: Spacing.xs) {
                     Text(CurrencyFormatter.currencySymbol)
                         .font(AppTypography.subheadline())
@@ -778,10 +937,26 @@ struct AddTransactionView: View {
                         .foregroundColor(AppColors.textPrimary)
                         .frame(minWidth: 50, alignment: .trailing)
                 }
-            } else {
-                SplitInputView(viewModel: viewModel, person: person)
-                    .frame(maxWidth: 150)
             }
+        }
+    }
+
+    // MARK: - Breakdown Helpers
+
+    private func rawInputBinding(for person: Person) -> Binding<String> {
+        let personId = person.id ?? UUID()
+        return Binding(
+            get: { viewModel.rawInputs[personId] ?? "" },
+            set: { viewModel.rawInputs[personId] = $0 }
+        )
+    }
+
+    private func initializeAmountDefault(for person: Person) {
+        let personId = person.id ?? UUID()
+        if (viewModel.rawInputs[personId] ?? "").isEmpty {
+            let count = max(1, viewModel.selectedParticipants.count)
+            let defaultAmount = viewModel.totalAmountDouble / Double(count)
+            viewModel.rawInputs[personId] = String(format: "%.2f", defaultAmount)
         }
     }
 

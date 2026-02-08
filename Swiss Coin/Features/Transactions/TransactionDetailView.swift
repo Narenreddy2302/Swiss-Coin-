@@ -34,11 +34,24 @@ struct TransactionDetailView: View {
         return SplitMethod(rawValue: raw)
     }
 
+    private var isCurrentUserAPayer: Bool {
+        transaction.effectivePayers.contains { CurrentUser.isCurrentUser($0.personId) }
+    }
+
     private var payerName: String {
-        if let payer = transaction.payer, CurrentUser.isCurrentUser(payer.id) {
-            return "You"
+        let payers = transaction.effectivePayers
+        if payers.count <= 1 {
+            if let payer = transaction.payer, CurrentUser.isCurrentUser(payer.id) {
+                return "You"
+            }
+            return transaction.payer?.displayName ?? "Unknown"
         }
-        return transaction.payer?.displayName ?? "Unknown"
+        // Multi-payer summary
+        let isUserAPayer = payers.contains { CurrentUser.isCurrentUser($0.personId) }
+        if isUserAPayer {
+            return "You +\(payers.count - 1) others"
+        }
+        return "\(payers.count) people"
     }
 
     private var formattedDate: String {
@@ -48,8 +61,11 @@ struct TransactionDetailView: View {
 
     private var participantCount: Int {
         var participants = Set<UUID>()
-        if let payerId = transaction.payer?.id {
-            participants.insert(payerId)
+        // Include all payers (multi-payer support)
+        for payer in transaction.effectivePayers {
+            if let id = payer.personId {
+                participants.insert(id)
+            }
         }
         for split in splits {
             if let owedById = split.owedBy?.id {
@@ -229,22 +245,77 @@ struct TransactionDetailView: View {
     private var infoCard: some View {
         VStack(spacing: 0) {
             // Paid by
-            infoRow(label: "Paid by") {
-                HStack(spacing: Spacing.sm) {
-                    if let payer = transaction.payer {
-                        Circle()
-                            .fill(Color(hex: payer.safeColorHex))
-                            .frame(width: AvatarSize.xs, height: AvatarSize.xs)
-                            .overlay(
-                                Text(CurrentUser.isCurrentUser(payer.id) ? CurrentUser.initials : payer.initials)
-                                    .font(.system(size: 10, weight: .semibold))
-                                    .foregroundColor(.white)
-                            )
+            if transaction.isMultiPayer, let payerSet = transaction.payers as? Set<TransactionPayer> {
+                // Multi-payer: show each payer with amount
+                VStack(alignment: .leading, spacing: 0) {
+                    Text("Paid by")
+                        .font(AppTypography.body())
+                        .foregroundColor(AppColors.textSecondary)
+                        .padding(.horizontal, Spacing.lg)
+                        .padding(.top, Spacing.md)
+                        .padding(.bottom, Spacing.sm)
+
+                    let sortedPayers = payerSet.sorted { tp1, tp2 in
+                        if CurrentUser.isCurrentUser(tp1.paidBy?.id) { return true }
+                        if CurrentUser.isCurrentUser(tp2.paidBy?.id) { return false }
+                        return (tp1.paidBy?.displayName ?? "") < (tp2.paidBy?.displayName ?? "")
                     }
-                    Text(payerName)
-                        .font(AppTypography.body().weight(.bold))
-                        .foregroundColor(AppColors.textPrimary)
+
+                    ForEach(sortedPayers, id: \.objectID) { tp in
+                        HStack(spacing: Spacing.sm) {
+                            if let person = tp.paidBy {
+                                Circle()
+                                    .fill(person.avatarBackgroundColor)
+                                    .frame(width: AvatarSize.xs, height: AvatarSize.xs)
+                                    .overlay(
+                                        Text(CurrentUser.isCurrentUser(person.id) ? CurrentUser.initials : person.initials)
+                                            .font(.system(size: 10, weight: .medium))
+                                            .foregroundColor(person.avatarTextColor)
+                                    )
+                            }
+
+                            Text(CurrentUser.isCurrentUser(tp.paidBy?.id) ? "You" : (tp.paidBy?.displayName ?? "Unknown"))
+                                .font(AppTypography.body())
+                                .foregroundColor(AppColors.textPrimary)
+
+                            Spacer()
+
+                            Text(CurrencyFormatter.format(tp.amount))
+                                .font(AppTypography.bodyBold())
+                                .foregroundColor(AppColors.textPrimary)
+                        }
+                        .padding(.horizontal, Spacing.lg)
+                        .padding(.vertical, Spacing.xs)
+                    }
                 }
+                .padding(.bottom, Spacing.sm)
+            } else {
+                // Single payer
+                HStack(spacing: Spacing.md) {
+                    Text("Paid by")
+                        .font(AppTypography.body())
+                        .foregroundColor(AppColors.textSecondary)
+
+                    Spacer()
+
+                    HStack(spacing: Spacing.sm) {
+                        if let payer = transaction.payer {
+                            Circle()
+                                .fill(payer.avatarBackgroundColor)
+                                .frame(width: AvatarSize.xs, height: AvatarSize.xs)
+                                .overlay(
+                                    Text(CurrentUser.isCurrentUser(payer.id) ? CurrentUser.initials : payer.initials)
+                                        .font(.system(size: 10, weight: .medium))
+                                        .foregroundColor(payer.avatarTextColor)
+                                )
+                        }
+                        Text(payerName)
+                            .font(AppTypography.bodyBold())
+                            .foregroundColor(AppColors.textPrimary)
+                    }
+                }
+                .padding(.horizontal, Spacing.lg)
+                .padding(.vertical, Spacing.md)
             }
 
             Divider()
@@ -272,6 +343,27 @@ struct TransactionDetailView: View {
                 Text("\(participantCount) people")
                     .font(AppTypography.body().weight(.bold))
                     .foregroundColor(AppColors.textPrimary)
+            }
+            .padding(.horizontal, Spacing.lg)
+            .padding(.vertical, Spacing.md)
+
+            // Note (if present)
+            if let note = transaction.note, !note.isEmpty {
+                Divider()
+                    .padding(.leading, Spacing.lg)
+
+                HStack(alignment: .top) {
+                    Text("Note")
+                        .font(AppTypography.body())
+                        .foregroundColor(AppColors.textSecondary)
+                    Spacer()
+                    Text(note)
+                        .font(AppTypography.body())
+                        .foregroundColor(AppColors.textPrimary)
+                        .multilineTextAlignment(.trailing)
+                }
+                .padding(.horizontal, Spacing.lg)
+                .padding(.vertical, Spacing.md)
             }
         }
         .background(
@@ -390,12 +482,10 @@ struct TransactionDetailView: View {
     /// - If someone else paid: my share is red (I owe them), others' shares are neutral
     private func splitAmountColor(for split: TransactionSplit) -> Color {
         guard let person = split.owedBy else { return AppColors.textPrimary }
-        let isMe = CurrentUser.isCurrentUser(person.id)
-
-        if isPayer {
-            return isMe ? AppColors.textSecondary : AppColors.positive
+        if CurrentUser.isCurrentUser(person.id) {
+            return isCurrentUserAPayer ? AppColors.textSecondary : AppColors.negative
         } else {
-            return isMe ? AppColors.negative : AppColors.textSecondary
+            return isCurrentUserAPayer ? AppColors.positive : AppColors.textSecondary
         }
     }
 

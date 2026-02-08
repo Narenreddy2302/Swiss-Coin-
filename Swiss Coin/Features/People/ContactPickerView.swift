@@ -137,6 +137,8 @@ struct ContactPickerView: View {
                                     .font(.system(size: IconSize.md))
                                     .foregroundColor(AppColors.accent)
                                     .frame(width: AvatarSize.md, height: AvatarSize.md)
+                                    .background(AppColors.accent.opacity(0.1))
+                                    .clipShape(Circle())
 
                                 Text("Add Manually")
                                     .font(AppTypography.body())
@@ -153,7 +155,11 @@ struct ContactPickerView: View {
                             .contentShape(Rectangle())
                         }
                         .buttonStyle(PlainButtonStyle())
-                        .background(AppColors.cardBackground)
+                        .background(
+                            RoundedRectangle(cornerRadius: CornerRadius.md)
+                                .fill(AppColors.cardBackground)
+                        )
+                        .padding(.horizontal)
 
                         // Phone Contacts section
                         VStack(alignment: .leading, spacing: Spacing.sm) {
@@ -192,7 +198,12 @@ struct ContactPickerView: View {
                                     }
                                 }
                             }
-                            .background(AppColors.cardBackground)
+                            .clipShape(RoundedRectangle(cornerRadius: CornerRadius.md))
+                            .background(
+                                RoundedRectangle(cornerRadius: CornerRadius.md)
+                                    .fill(AppColors.cardBackground)
+                            )
+                            .padding(.horizontal)
                         }
                     }
                     .padding(.top, Spacing.lg)

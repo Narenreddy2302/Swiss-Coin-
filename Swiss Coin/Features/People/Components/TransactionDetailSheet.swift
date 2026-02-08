@@ -17,13 +17,20 @@ struct TransactionDetailSheet: View {
         self.person = person
     }
 
-    private var isUserPayer: Bool {
-        CurrentUser.isCurrentUser(transaction.payer?.id)
+    private var isUserAPayer: Bool {
+        transaction.effectivePayers.contains { CurrentUser.isCurrentUser($0.personId) }
     }
 
     private var payerName: String {
-        if isUserPayer { return "You" }
-        return transaction.payer?.name ?? "Someone"
+        let payers = transaction.effectivePayers
+        if payers.count <= 1 {
+            if isUserAPayer { return "You" }
+            return transaction.payer?.name ?? "Someone"
+        }
+        if isUserAPayer {
+            return "You +\(payers.count - 1) others"
+        }
+        return "\(payers.count) people"
     }
 
     private var creatorName: String {

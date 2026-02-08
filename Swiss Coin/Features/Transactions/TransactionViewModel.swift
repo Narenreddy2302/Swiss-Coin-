@@ -9,7 +9,21 @@ final class TransactionViewModel: ObservableObject {
     @Published var title: String = ""
     @Published var totalAmount: String = ""
     @Published var date: Date = Date()
-    @Published var selectedPayer: Person?
+    @Published var note: String = ""
+
+    // MARK: - Multi-Payer Support
+    /// Selected payers (empty means "You" pays the full amount)
+    @Published var selectedPayerPersons: Set<Person> = []
+    /// Amount each payer contributed, keyed by Person UUID
+    @Published var payerAmounts: [UUID: String] = [:]
+
+    /// Backward-compatible single payer alias (used by TwoPartySplitView)
+    var selectedPayer: Person? {
+        if selectedPayerPersons.count == 1 {
+            return selectedPayerPersons.first
+        }
+        return nil // nil = "You" or multi-payer
+    }
 
     @Published var selectedParticipants: Set<Person> = []
     @Published var splitMethod: SplitMethod = .equal
@@ -106,12 +120,56 @@ final class TransactionViewModel: ObservableObject {
         !selectedParticipants.isEmpty
     }
 
+    // MARK: - Multi-Payer Computed Properties
+
+    /// Total amount paid by all selected payers
+    var totalPaidByPayers: Double {
+        selectedPayerPersons.reduce(0.0) { sum, person in
+            sum + (Double(payerAmounts[person.id ?? UUID()] ?? "0") ?? 0)
+        }
+    }
+
+    /// Whether paid-by amounts balance with the total transaction amount
+    var isPaidByBalanced: Bool {
+        if selectedPayerPersons.count <= 1 {
+            return true // Single payer auto-fills to total
+        }
+        return abs(totalPaidByPayers - totalAmountDouble) < 0.01
+    }
+
+    /// Toggle a payer's selection. Auto-adds them to participants.
+    func togglePayer(_ person: Person) {
+        if selectedPayerPersons.contains(person) {
+            selectedPayerPersons.remove(person)
+            payerAmounts.removeValue(forKey: person.id ?? UUID())
+        } else {
+            selectedPayerPersons.insert(person)
+            // Also add them as a participant if not already
+            if !selectedParticipants.contains(person) {
+                selectedParticipants.insert(person)
+            }
+        }
+    }
+
+    /// Toggle "You" as a payer
+    func toggleCurrentUserAsPayer(in context: NSManagedObjectContext) {
+        let currentUser = CurrentUser.getOrCreate(in: context)
+        togglePayer(currentUser)
+    }
+
+    /// Whether the current user is among the selected payers
+    var isCurrentUserPayer: Bool {
+        if selectedPayerPersons.isEmpty { return true } // Default: "You" pays
+        return selectedPayerPersons.contains { CurrentUser.isCurrentUser($0.id) }
+    }
+
     // MARK: - Two-Party Split Detection
 
-    /// Whether this is a 2-party split (current user + exactly 1 other person)
+    /// Whether this is a 2-party split (current user + exactly 1 other person) with single payer
     var isTwoPartySplit: Bool {
         let otherParticipants = selectedParticipants.filter { !CurrentUser.isCurrentUser($0.id) }
         return otherParticipants.count == 1 && selectedParticipants.count == 2
+            && selectedPayerPersons.count <= 1
     }
 
     /// The other person in a 2-party split
@@ -184,7 +242,12 @@ final class TransactionViewModel: ObservableObject {
         // 3. Participant validation - at least one person
         guard !selectedParticipants.isEmpty else { return false }
 
-        // 4. Split method specific validation
+        // 4. Multi-payer validation: paid amounts must sum to total
+        if selectedPayerPersons.count > 1 {
+            guard isPaidByBalanced else { return false }
+        }
+
+        // 5. Split method specific validation
         switch splitMethod {
         case .equal:
             return true
@@ -228,6 +291,11 @@ final class TransactionViewModel: ObservableObject {
         }
         if selectedParticipants.isEmpty {
             return "Select at least one participant"
+        }
+
+        // Multi-payer validation
+        if selectedPayerPersons.count > 1 && !isPaidByBalanced {
+            return "Paid-by amounts must equal the total"
         }
 
         switch splitMethod {
@@ -369,22 +437,58 @@ final class TransactionViewModel: ObservableObject {
             transaction.date = date
             transaction.splitMethod = splitMethod.rawValue
 
-            // 4. Set payer (default to current user if nil)
-            if let payer = selectedPayer {
-                transaction.payer = payer
+            // Set note (nil if empty)
+            let trimmedNote = note.trimmingCharacters(in: .whitespacesAndNewlines)
+            transaction.note = trimmedNote.isEmpty ? nil : trimmedNote
+
+            // 4. Set legacy payer field for backward compatibility
+            let currentUser = CurrentUser.getOrCreate(in: viewContext)
+            if selectedPayerPersons.isEmpty {
+                transaction.payer = currentUser
+            } else if selectedPayerPersons.count == 1 {
+                transaction.payer = selectedPayerPersons.first
             } else {
-                transaction.payer = CurrentUser.getOrCreate(in: viewContext)
+                // Multi-payer: set legacy payer to current user if they're a payer, else first payer
+                if let currentUserPayer = selectedPayerPersons.first(where: { CurrentUser.isCurrentUser($0.id) }) {
+                    transaction.payer = currentUserPayer
+                } else {
+                    transaction.payer = selectedPayerPersons.sorted { ($0.name ?? "") < ($1.name ?? "") }.first
+                }
             }
 
-            // 5. Set creator (always the current user)
-            transaction.createdBy = CurrentUser.getOrCreate(in: viewContext)
+            // 5. Create TransactionPayer records
+            if selectedPayerPersons.isEmpty {
+                // Default: "You" pays the full amount
+                let payerRecord = TransactionPayer(context: viewContext)
+                payerRecord.paidBy = currentUser
+                payerRecord.transaction = transaction
+                payerRecord.amount = totalAmountDouble
+            } else if selectedPayerPersons.count == 1, let singlePayer = selectedPayerPersons.first {
+                // Single payer: auto-fill to total
+                let payerRecord = TransactionPayer(context: viewContext)
+                payerRecord.paidBy = singlePayer
+                payerRecord.transaction = transaction
+                payerRecord.amount = totalAmountDouble
+            } else {
+                // Multi-payer: use entered amounts
+                for person in selectedPayerPersons {
+                    let payerRecord = TransactionPayer(context: viewContext)
+                    payerRecord.paidBy = person
+                    payerRecord.transaction = transaction
+                    let amountStr = payerAmounts[person.id ?? UUID()] ?? "0"
+                    payerRecord.amount = Double(amountStr) ?? 0
+                }
+            }
 
-            // 6. Assign group if this is a group transaction
+            // 6. Set creator (always the current user)
+            transaction.createdBy = currentUser
+
+            // 7. Assign group if this is a group transaction
             if let group = selectedGroup {
                 transaction.group = group
             }
 
-            // 7. Create splits for each participant
+            // 8. Create splits for each participant
             for person in selectedParticipants {
                 let splitData = TransactionSplit(context: viewContext)
                 splitData.owedBy = person
@@ -422,7 +526,9 @@ final class TransactionViewModel: ObservableObject {
         title = ""
         totalAmount = ""
         date = Date()
-        selectedPayer = nil
+        note = ""
+        selectedPayerPersons = []
+        payerAmounts = [:]
         selectedParticipants = []
         splitMethod = .equal
         rawInputs = [:]

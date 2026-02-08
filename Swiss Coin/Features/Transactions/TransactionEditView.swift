@@ -17,6 +17,7 @@ struct TransactionEditView: View {
     @State private var title: String
     @State private var amount: String
     @State private var date: Date
+    @State private var note: String
     @State private var selectedPayer: Person?
 
     @State private var showingError = false
@@ -40,6 +41,7 @@ struct TransactionEditView: View {
         _title = State(initialValue: transaction.title ?? "")
         _amount = State(initialValue: String(format: "%.2f", transaction.amount))
         _date = State(initialValue: transaction.date ?? Date())
+        _note = State(initialValue: transaction.note ?? "")
         _selectedPayer = State(initialValue: transaction.payer)
     }
 
@@ -190,6 +192,24 @@ struct TransactionEditView: View {
             }
             .padding(.horizontal, Spacing.lg)
             .padding(.vertical, Spacing.md)
+
+            Divider()
+                .padding(.leading, Spacing.lg)
+
+            // Note Field
+            VStack(alignment: .leading, spacing: Spacing.xs) {
+                Text("Note")
+                    .font(AppTypography.caption())
+                    .foregroundColor(AppColors.textSecondary)
+
+                TextField("Add a note...", text: $note, axis: .vertical)
+                    .font(AppTypography.body())
+                    .foregroundColor(AppColors.textPrimary)
+                    .lineLimit(3...5)
+                    .limitTextLength(to: ValidationLimits.maxNoteLength, text: $note)
+            }
+            .padding(.horizontal, Spacing.lg)
+            .padding(.vertical, Spacing.md)
         }
         .background(
             RoundedRectangle(cornerRadius: CornerRadius.md)
@@ -201,14 +221,79 @@ struct TransactionEditView: View {
 
     private var payerCard: some View {
         VStack(spacing: 0) {
-            Picker("Who Paid?", selection: $selectedPayer) {
-                Text("Me").tag(nil as Person?)
-                ForEach(otherPeople) { person in
-                    Text(person.displayName).tag(person as Person?)
+            if transaction.isMultiPayer, let payerSet = transaction.payers as? Set<TransactionPayer> {
+                // Multi-payer: read-only list
+                VStack(alignment: .leading, spacing: 0) {
+                    Text("Paid By")
+                        .font(AppTypography.headline())
+                        .foregroundColor(AppColors.textPrimary)
+                        .padding(.horizontal, Spacing.lg)
+                        .padding(.top, Spacing.md)
+                        .padding(.bottom, Spacing.sm)
+
+                    Divider().padding(.leading, Spacing.lg)
+
+                    let sortedPayers = payerSet.sorted { tp1, tp2 in
+                        if CurrentUser.isCurrentUser(tp1.paidBy?.id) { return true }
+                        if CurrentUser.isCurrentUser(tp2.paidBy?.id) { return false }
+                        return (tp1.paidBy?.displayName ?? "") < (tp2.paidBy?.displayName ?? "")
+                    }
+
+                    ForEach(sortedPayers, id: \.objectID) { tp in
+                        HStack(spacing: Spacing.md) {
+                            if let person = tp.paidBy {
+                                Circle()
+                                    .fill(person.avatarBackgroundColor)
+                                    .frame(width: AvatarSize.sm, height: AvatarSize.sm)
+                                    .overlay(
+                                        Text(CurrentUser.isCurrentUser(person.id) ? CurrentUser.initials : person.initials)
+                                            .font(.system(size: 12, weight: .medium))
+                                            .foregroundColor(person.avatarTextColor)
+                                    )
+                            }
+
+                            Text(CurrentUser.isCurrentUser(tp.paidBy?.id) ? "You" : (tp.paidBy?.displayName ?? "Unknown"))
+                                .font(AppTypography.body())
+                                .foregroundColor(AppColors.textPrimary)
+
+                            Spacer()
+
+                            Text(CurrencyFormatter.format(tp.amount))
+                                .font(AppTypography.amountSmall())
+                                .foregroundColor(AppColors.textSecondary)
+                        }
+                        .padding(.horizontal, Spacing.lg)
+                        .padding(.vertical, Spacing.md)
+
+                        if tp != sortedPayers.last {
+                            Divider().padding(.leading, Spacing.lg + AvatarSize.sm + Spacing.md)
+                        }
+                    }
+
+                    // Note about multi-payer editing
+                    Divider()
+                    HStack(spacing: Spacing.sm) {
+                        Image(systemName: "info.circle.fill")
+                            .font(.system(size: IconSize.sm))
+                            .foregroundColor(AppColors.accent)
+                        Text("Multi-payer amounts can be edited when creating a new transaction.")
+                            .font(AppTypography.footnote())
+                            .foregroundColor(AppColors.textSecondary)
+                    }
+                    .padding(.horizontal, Spacing.lg)
+                    .padding(.vertical, Spacing.md)
                 }
+            } else {
+                // Single payer: existing Picker
+                Picker("Who Paid?", selection: $selectedPayer) {
+                    Text("Me").tag(nil as Person?)
+                    ForEach(otherPeople) { person in
+                        Text(person.displayName).tag(person as Person?)
+                    }
+                }
+                .padding(.horizontal, Spacing.lg)
+                .padding(.vertical, Spacing.md)
             }
-            .padding(.horizontal, Spacing.lg)
-            .padding(.vertical, Spacing.md)
         }
         .background(
             RoundedRectangle(cornerRadius: CornerRadius.md)
@@ -406,12 +491,34 @@ struct TransactionEditView: View {
             transaction.title = trimmedTitle
             transaction.amount = newAmount
             transaction.date = date
+            let trimmedNote = note.trimmingCharacters(in: .whitespacesAndNewlines)
+            transaction.note = trimmedNote.isEmpty ? nil : trimmedNote
 
-            // Update payer
-            if let payer = selectedPayer {
-                transaction.payer = payer
+            // Update payer (single-payer transactions only; multi-payer is read-only)
+            if !transaction.isMultiPayer {
+                let newPayer: Person
+                if let payer = selectedPayer {
+                    newPayer = payer
+                } else {
+                    newPayer = CurrentUser.getOrCreate(in: viewContext)
+                }
+                transaction.payer = newPayer
+
+                // Update the single TransactionPayer record if it exists
+                if let payerSet = transaction.payers as? Set<TransactionPayer>, let tp = payerSet.first {
+                    tp.paidBy = newPayer
+                    tp.amount = newAmount
+                }
             } else {
-                transaction.payer = CurrentUser.getOrCreate(in: viewContext)
+                // Multi-payer: proportionally recalculate payer amounts if total changed
+                if abs(newAmount - oldAmount) > 0.001 && oldAmount > 0.001 {
+                    let ratio = newAmount / oldAmount
+                    if let payerSet = transaction.payers as? Set<TransactionPayer> {
+                        for tp in payerSet {
+                            tp.amount = (tp.amount * ratio * 100).rounded() / 100.0
+                        }
+                    }
+                }
             }
 
             // Proportionally recalculate splits if amount changed

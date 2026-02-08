@@ -17,42 +17,36 @@ struct TransactionCardView: View {
 
     // MARK: - Computed Properties
 
-    private var isUserPayer: Bool {
-        CurrentUser.isCurrentUser(transaction.payer?.id)
+    /// Net balance for this transaction: positive = person owes you
+    private var pairwiseResult: Double {
+        guard let currentUserId = CurrentUser.currentUserId,
+              let personId = person.id else { return 0 }
+        return transaction.pairwiseBalance(personA: currentUserId, personB: personId)
     }
 
-    private var isPersonPayer: Bool {
-        transaction.payer?.id == person.id
+    private var isUserPayer: Bool {
+        pairwiseResult > 0
     }
 
     private var payerName: String {
-        if isUserPayer { return "You" }
-        if isPersonPayer { return person.firstName }
-        return transaction.payer?.firstName ?? "Unknown"
+        let payers = transaction.effectivePayers
+        let isUserAPayer = payers.contains { CurrentUser.isCurrentUser($0.personId) }
+
+        if payers.count <= 1 {
+            if isUserAPayer { return "You" }
+            return transaction.payer?.firstName ?? person.firstName
+        }
+
+        // Multi-payer
+        if isUserAPayer {
+            return "You +\(payers.count - 1)"
+        }
+        return "\(payers.count) payers"
     }
 
-    /// Amount from user's perspective: positive = they owe you, negative = you owe
+    /// Amount from user's perspective using net-position algorithm
     private var displayAmount: Double {
-        let splits = transaction.splits as? Set<TransactionSplit> ?? []
-        if isUserPayer {
-            // User paid — show what person owes
-            if let theirSplit = splits.first(where: { $0.owedBy?.id == person.id }) {
-                return theirSplit.amount
-            }
-            return 0
-        } else if isPersonPayer {
-            // Person paid — show what user owes
-            if let mySplit = splits.first(where: { CurrentUser.isCurrentUser($0.owedBy?.id) }) {
-                return mySplit.amount
-            }
-            return 0
-        } else {
-            // Third party paid — show user's split if any
-            if let mySplit = splits.first(where: { CurrentUser.isCurrentUser($0.owedBy?.id) }) {
-                return mySplit.amount
-            }
-            return 0
-        }
+        abs(pairwiseResult)
     }
 
     private var amountText: String {

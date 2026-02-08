@@ -9,27 +9,18 @@ extension Person {
 
     /// Calculate net balance with this person (mutual transactions only)
     /// Positive = they owe you, Negative = you owe them
+    /// Uses net-position algorithm to support multi-payer transactions.
     func calculateBalance() -> Double {
         var balance: Double = 0
+
+        guard let currentUserId = CurrentUser.currentUserId,
+              let theirId = self.id else { return 0 }
 
         // Get all mutual transactions (where both you and this person are involved)
         let allTransactions = getMutualTransactions()
 
         for transaction in allTransactions {
-            let splits = transaction.splits as? Set<TransactionSplit> ?? []
-            let payerId = transaction.payer?.id
-
-            if CurrentUser.isCurrentUser(payerId) {
-                // YOU paid - they owe you their share
-                if let theirSplit = splits.first(where: { $0.owedBy?.id == self.id }) {
-                    balance += theirSplit.amount
-                }
-            } else if payerId == self.id {
-                // THEY paid - you owe your share
-                if let mySplit = splits.first(where: { CurrentUser.isCurrentUser($0.owedBy?.id) }) {
-                    balance -= mySplit.amount
-                }
-            }
+            balance += transaction.pairwiseBalance(personA: currentUserId, personB: theirId)
         }
 
         // Get settlements ONLY between current user and this person
@@ -59,18 +50,24 @@ extension Person {
         // Cache the splits cast to avoid repeated conversions
         let theirSplits = owedSplits as? Set<TransactionSplit> ?? []
         let paidByThem = toTransactions as? Set<FinancialTransaction> ?? []
+        let theirPayerSplits = payerSplits as? Set<TransactionPayer> ?? []
 
         // Transactions where this person has a split (owes money)
         let owedByThem = Set(theirSplits.compactMap { $0.transaction })
 
-        let allTheirTransactions = paidByThem.union(owedByThem)
+        // Transactions where this person is a multi-payer contributor
+        let paidByThemMulti = Set(theirPayerSplits.compactMap { $0.transaction })
+
+        let allTheirTransactions = paidByThem.union(owedByThem).union(paidByThemMulti)
 
         // Filter to only mutual: where you are also involved
         return allTheirTransactions.filter { transaction in
             let splits = transaction.splits as? Set<TransactionSplit> ?? []
             let youArePayer = CurrentUser.isCurrentUser(transaction.payer?.id)
             let youHaveSplit = splits.contains { CurrentUser.isCurrentUser($0.owedBy?.id) }
-            return youArePayer || youHaveSplit
+            let youAreMultiPayer = (transaction.payers as? Set<TransactionPayer> ?? [])
+                .contains { CurrentUser.isCurrentUser($0.paidBy?.id) }
+            return youArePayer || youHaveSplit || youAreMultiPayer
         }.sorted { ($0.date ?? Date.distantPast) > ($1.date ?? Date.distantPast) }
     }
 
