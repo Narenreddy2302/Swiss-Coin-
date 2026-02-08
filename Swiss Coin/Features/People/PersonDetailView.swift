@@ -98,6 +98,13 @@ struct PersonDetailView: View {
                         Label("Edit", systemImage: "pencil")
                     }
 
+                    Button {
+                        HapticManager.tap()
+                        archivePerson()
+                    } label: {
+                        Label("Archive", systemImage: "archivebox")
+                    }
+
                     Button(role: .destructive) {
                         HapticManager.tap()
                         showingDeleteConfirmation = true
@@ -297,6 +304,19 @@ struct PersonDetailView: View {
     }
 
     // MARK: - Actions
+
+    private func archivePerson() {
+        person.isArchived = true
+        do {
+            try viewContext.save()
+            HapticManager.success()
+            dismiss()
+        } catch {
+            viewContext.rollback()
+            HapticManager.error()
+            AppLogger.coreData.error("Failed to archive person: \(error.localizedDescription)")
+        }
+    }
 
     private func deletePerson() {
         viewContext.delete(person)

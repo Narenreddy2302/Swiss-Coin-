@@ -387,10 +387,10 @@ struct ProfileView: View {
                 Text("Log Out")
                     .font(AppTypography.subheadlineMedium())
             }
-            .foregroundColor(AppColors.negative)
+            .foregroundColor(.white)
             .frame(height: ButtonHeight.md)
             .frame(maxWidth: .infinity)
-            .background(AppColors.negative.opacity(0.1))
+            .background(AppColors.negative)
             .clipShape(RoundedRectangle(cornerRadius: CornerRadius.md))
         }
         .padding(.horizontal, Spacing.lg)

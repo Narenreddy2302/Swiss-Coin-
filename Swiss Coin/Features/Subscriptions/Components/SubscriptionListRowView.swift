@@ -84,7 +84,7 @@ struct SubscriptionListRowView: View {
             // Amount
             VStack(alignment: .trailing, spacing: Spacing.xxs) {
                 Text(CurrencyFormatter.format(subscription.amount))
-                    .font(AppTypography.amountSmall())
+                    .font(AppTypography.amount())
                     .foregroundColor(AppColors.textPrimary)
 
                 Text("/\(subscription.cycleAbbreviation)")

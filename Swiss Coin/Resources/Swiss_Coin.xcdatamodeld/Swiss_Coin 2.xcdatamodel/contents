@@ -6,6 +6,7 @@
         <attribute name="phoneNumber" optional="YES" attributeType="String"/>
         <attribute name="photoData" optional="YES" attributeType="Binary"/>
         <attribute name="colorHex" optional="YES" attributeType="String"/>
+        <attribute name="isArchived" optional="YES" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <relationship name="toTransactions" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="FinancialTransaction" inverseName="payer" inverseEntity="FinancialTransaction"/>
         <relationship name="toGroups" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="UserGroup" inverseName="members" inverseEntity="UserGroup"/>
         <relationship name="toSubscriptions" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="Subscription" inverseName="subscribers" inverseEntity="Subscription"/>

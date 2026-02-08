@@ -18,9 +18,6 @@ struct SubscriptionDetailView: View {
     @State private var showingArchiveAlert = false
     @State private var showingError = false
     @State private var errorMessage = ""
-    @State private var exportFileURL: URL?
-    @State private var showingExportSheet = false
-
     var body: some View {
         List {
             // Header Section with icon and amount
@@ -247,26 +244,23 @@ struct SubscriptionDetailView: View {
                     HapticManager.tap()
                     showingEditSheet = true
                 } label: {
-                    Label("Edit Subscription", systemImage: "pencil")
+                    Text("Edit Subscription")
+                        .font(AppTypography.body().weight(.semibold))
+                        .frame(maxWidth: .infinity)
                 }
-
-                Button {
-                    HapticManager.tap()
-                    exportPaymentHistory()
-                } label: {
-                    Label("Export Payments", systemImage: "square.and.arrow.up")
-                }
-                .disabled(subscription.recentPayments.isEmpty)
+                .foregroundColor(AppColors.accent)
+                .listRowBackground(AppColors.accent.opacity(0.1))
 
                 Button {
                     HapticManager.tap()
                     togglePauseStatus()
                 } label: {
-                    Label(
-                        subscription.isActive ? "Pause Subscription" : "Resume Subscription",
-                        systemImage: subscription.isActive ? "pause.circle" : "play.circle"
-                    )
+                    Text(subscription.isActive ? "Pause Subscription" : "Resume Subscription")
+                        .font(AppTypography.body().weight(.semibold))
+                        .frame(maxWidth: .infinity)
                 }
+                .foregroundColor(AppColors.accent)
+                .listRowBackground(AppColors.accent.opacity(0.1))
 
                 Button {
                     HapticManager.tap()
@@ -276,18 +270,22 @@ struct SubscriptionDetailView: View {
                         showingArchiveAlert = true
                     }
                 } label: {
-                    Label(
-                        subscription.isArchived ? "Restore Subscription" : "Archive Subscription",
-                        systemImage: subscription.isArchived ? "arrow.uturn.backward.circle" : "archivebox"
-                    )
+                    Text(subscription.isArchived ? "Restore Subscription" : "Archive Subscription")
+                        .font(AppTypography.body().weight(.semibold))
+                        .frame(maxWidth: .infinity)
                 }
+                .foregroundColor(AppColors.accent)
+                .listRowBackground(AppColors.accent.opacity(0.1))
 
                 Button(role: .destructive) {
                     HapticManager.tap()
                     showingDeleteAlert = true
                 } label: {
-                    Label("Cancel Subscription", systemImage: "xmark.circle")
+                    Text("Cancel Subscription")
+                        .font(AppTypography.body().weight(.semibold))
+                        .frame(maxWidth: .infinity)
                 }
+                .listRowBackground(AppColors.negative.opacity(0.1))
             }
         }
         .listStyle(.plain)
@@ -321,11 +319,6 @@ struct SubscriptionDetailView: View {
             }
         } message: {
             Text(errorMessage)
-        }
-        .sheet(isPresented: $showingExportSheet) {
-            if let fileURL = exportFileURL {
-                ShareSheet(activityItems: [fileURL])
-            }
         }
     }
 
@@ -407,18 +400,6 @@ struct SubscriptionDetailView: View {
         }
     }
 
-    private func exportPaymentHistory() {
-        guard let fileURL = subscription.createPaymentHistoryCSVFile() else {
-            HapticManager.error()
-            errorMessage = "Failed to create export file"
-            showingError = true
-            return
-        }
-
-        exportFileURL = fileURL
-        showingExportSheet = true
-        HapticManager.success()
-    }
 }
 
 // MARK: - Payment History Row
@@ -451,26 +432,3 @@ struct PaymentHistoryRow: View {
     }
 }
 
-// MARK: - Share Sheet
-
-struct ShareSheet: UIViewControllerRepresentable {
-    let activityItems: [Any]
-    var applicationActivities: [UIActivity]? = nil
-
-    func makeUIViewController(context: Context) -> UIActivityViewController {
-        let controller = UIActivityViewController(
-            activityItems: activityItems,
-            applicationActivities: applicationActivities
-        )
-
-        // For iPad: Configure popover presentation
-        if let popoverController = controller.popoverPresentationController {
-            popoverController.permittedArrowDirections = []
-            popoverController.sourceView = UIView()
-        }
-
-        return controller
-    }
-
-    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
-}

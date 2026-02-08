@@ -7,6 +7,7 @@ struct PeopleView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @State private var showingContactPicker = false
     @State private var showingManualEntry = false
+    @State private var showingArchivedPeople = false
 
     // Navigation state for conversation view after adding contact
     @State private var selectedPersonForConversation: Person?
@@ -55,6 +56,17 @@ struct PeopleView: View {
                 PersonConversationView(person: person)
             }
             .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button {
+                        HapticManager.tap()
+                        showingArchivedPeople = true
+                    } label: {
+                        Image(systemName: "archivebox")
+                            .font(.system(size: 15, weight: .medium))
+                    }
+                    .accessibilityLabel("View archived people")
+                }
+
                 ToolbarItem(placement: .navigationBarTrailing) {
                     HStack {
                         if selectedSegment == 0 {
@@ -94,6 +106,10 @@ struct PeopleView: View {
                     AddPersonView()
                         .environment(\.managedObjectContext, viewContext)
                 }
+            }
+            .sheet(isPresented: $showingArchivedPeople) {
+                ArchivedPeopleView()
+                    .environment(\.managedObjectContext, viewContext)
             }
             .onAppear {
                 HapticManager.prepare()
@@ -137,12 +153,12 @@ struct PersonListView: View {
         request.sortDescriptors = [NSSortDescriptor(keyPath: \Person.name, ascending: true)]
         if let userId = CurrentUser.currentUserId {
             request.predicate = NSPredicate(
-                format: "id != %@ AND (toTransactions.@count > 0 OR owedSplits.@count > 0 OR sentSettlements.@count > 0 OR receivedSettlements.@count > 0 OR chatMessages.@count > 0)",
+                format: "id != %@ AND (isArchived == NO OR isArchived == nil) AND (toTransactions.@count > 0 OR owedSplits.@count > 0 OR sentSettlements.@count > 0 OR receivedSettlements.@count > 0 OR chatMessages.@count > 0)",
                 userId as CVarArg
             )
         } else {
             request.predicate = NSPredicate(
-                format: "toTransactions.@count > 0 OR owedSplits.@count > 0 OR sentSettlements.@count > 0 OR receivedSettlements.@count > 0 OR chatMessages.@count > 0"
+                format: "(isArchived == NO OR isArchived == nil) AND (toTransactions.@count > 0 OR owedSplits.@count > 0 OR sentSettlements.@count > 0 OR receivedSettlements.@count > 0 OR chatMessages.@count > 0)"
             )
         }
         request.fetchBatchSize = 20
@@ -193,12 +209,6 @@ struct PersonListView: View {
                                     }
                                 }
                             }
-                            .background(
-                                RoundedRectangle(cornerRadius: CornerRadius.card)
-                                    .fill(AppColors.cardBackground)
-                            )
-                            .clipShape(RoundedRectangle(cornerRadius: CornerRadius.card))
-                            .padding(.horizontal, Spacing.lg)
                         }
 
                         Spacer()
@@ -318,7 +328,7 @@ struct PersonListRowView: View {
 
             if abs(balance) > 0.01 {
                 Text(CurrencyFormatter.formatAbsolute(balance))
-                    .font(AppTypography.amountSmall())
+                    .font(AppTypography.amount())
                     .foregroundColor(balanceColor)
             }
         }
@@ -360,6 +370,13 @@ struct PersonListRowView: View {
 
             Divider()
 
+            Button {
+                HapticManager.tap()
+                archivePerson()
+            } label: {
+                Label("Archive", systemImage: "archivebox")
+            }
+
             Button(role: .destructive) {
                 HapticManager.delete()
                 showingDeleteConfirmation = true
@@ -398,6 +415,18 @@ struct PersonListRowView: View {
             }
         } message: {
             Text("This will permanently delete \(person.name ?? "this person") and ALL their transactions, payment history, and shared expenses. Other people's balances will be affected. This action cannot be undone.")
+        }
+    }
+
+    private func archivePerson() {
+        person.isArchived = true
+        do {
+            try viewContext.save()
+            HapticManager.success()
+        } catch {
+            viewContext.rollback()
+            HapticManager.error()
+            AppLogger.coreData.error("Failed to archive person: \(error.localizedDescription)")
         }
     }
 
@@ -468,11 +497,6 @@ struct GroupListView: View {
                                     }
                                 }
                             }
-                            .background(
-                                RoundedRectangle(cornerRadius: CornerRadius.card)
-                                    .fill(AppColors.cardBackground)
-                            )
-                            .clipShape(RoundedRectangle(cornerRadius: CornerRadius.card))
                             .padding(.horizontal, Spacing.lg)
                         }
 
@@ -607,7 +631,7 @@ struct GroupListRowView: View {
 
             if abs(balance) > 0.01 {
                 Text(CurrencyFormatter.formatAbsolute(balance))
-                    .font(AppTypography.amountSmall())
+                    .font(AppTypography.amount())
                     .foregroundColor(balanceColor)
             }
         }
