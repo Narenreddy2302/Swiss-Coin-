@@ -77,5 +77,17 @@ struct SubscriptionPaymentCardView: View {
                 .fill(AppColors.cardBackground)
         )
         .padding(.horizontal, Spacing.lg)
+        .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: CornerRadius.md))
+        .contextMenu {
+            Button {
+                UIPasteboard.general.string = CurrencyFormatter.format(payment.amount)
+                HapticManager.copyAction()
+            } label: {
+                Label("Copy Amount", systemImage: "doc.on.doc")
+            }
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(isUserPayer ? "You" : payment.payer?.firstName ?? "Someone") paid \(CurrencyFormatter.format(payment.amount)) for \(subscription.name ?? "subscription")")
+        .accessibilityHint("Double tap and hold for options")
     }
 }

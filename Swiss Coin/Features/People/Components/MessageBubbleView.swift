@@ -72,7 +72,7 @@ struct MessageBubbleView: View {
                 // Copy — available for all messages
                 Button {
                     UIPasteboard.general.string = message.content ?? ""
-                    HapticManager.lightTap()
+                    HapticManager.copyAction()
                 } label: {
                     Label("Copy", systemImage: "doc.on.doc")
                 }
@@ -80,7 +80,7 @@ struct MessageBubbleView: View {
                 // Edit — own messages within 15-minute window
                 if canEdit {
                     Button {
-                        HapticManager.lightTap()
+                        HapticManager.selectionChanged()
                         editText = message.content ?? ""
                         withAnimation(AppAnimation.standard) {
                             isEditing = true
@@ -94,7 +94,7 @@ struct MessageBubbleView: View {
                 if message.isFromUser, onDelete != nil {
                     Divider()
                     Button(role: .destructive) {
-                        HapticManager.delete()
+                        HapticManager.destructiveAction()
                         onDelete?(message)
                     } label: {
                         Label("Delete", systemImage: "trash")
@@ -154,7 +154,7 @@ struct MessageBubbleView: View {
 
             HStack(spacing: Spacing.sm) {
                 Button {
-                    HapticManager.cancel()
+                    HapticManager.navigationTap()
                     withAnimation(AppAnimation.standard) {
                         isEditing = false
                     }
@@ -199,13 +199,13 @@ struct MessageBubbleView: View {
 
         do {
             try viewContext.save()
-            HapticManager.success()
+            HapticManager.messageSent()
             withAnimation(AppAnimation.standard) {
                 isEditing = false
             }
         } catch {
             viewContext.rollback()
-            HapticManager.error()
+            HapticManager.errorAlert()
         }
     }
 

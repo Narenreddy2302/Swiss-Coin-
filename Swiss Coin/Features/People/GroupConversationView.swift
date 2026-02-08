@@ -159,12 +159,15 @@ struct GroupConversationView: View {
         }
         .sheet(isPresented: $showingAddTransaction) {
             QuickActionSheetPresenter(initialGroup: group)
+                .onAppear { HapticManager.sheetPresent() }
         }
         .sheet(isPresented: $showingSettlement) {
             GroupSettlementView(group: group)
+                .onAppear { HapticManager.sheetPresent() }
         }
         .sheet(isPresented: $showingReminder) {
             GroupReminderSheetView(group: group)
+                .onAppear { HapticManager.sheetPresent() }
         }
         .sheet(isPresented: $showingGroupDetail) {
             NavigationStack {
@@ -172,16 +175,19 @@ struct GroupConversationView: View {
                     .toolbar {
                         ToolbarItem(placement: .navigationBarTrailing) {
                             Button("Done") {
+                                HapticManager.sheetDismiss()
                                 showingGroupDetail = false
                             }
                         }
                     }
             }
+            .onAppear { HapticManager.sheetPresent() }
         }
         .sheet(item: $showingTransactionDetail) { transaction in
             NavigationStack {
                 TransactionDetailSheet(transaction: transaction)
             }
+            .onAppear { HapticManager.sheetPresent() }
         }
         .alert("Error", isPresented: $showingError) {
             Button("OK", role: .cancel) {}
@@ -208,6 +214,7 @@ struct GroupConversationView: View {
         )
         .sheet(item: $transactionToEdit) { transaction in
             TransactionEditView(transaction: transaction)
+                .onAppear { HapticManager.sheetPresent() }
         }
         .undoToast(
             isShowing: $showUndoTransactionToast,
@@ -222,7 +229,7 @@ struct GroupConversationView: View {
     private var toolbarLeadingContent: some View {
         HStack(spacing: Spacing.sm) {
             Button {
-                HapticManager.tap()
+                HapticManager.navigationTap()
                 dismiss()
             } label: {
                 Image(systemName: "chevron.left")
@@ -232,7 +239,7 @@ struct GroupConversationView: View {
             .accessibilityLabel("Back")
 
             Button {
-                HapticManager.tap()
+                HapticManager.navigationTap()
                 showingGroupDetail = true
             } label: {
                 groupHeaderContent
@@ -383,9 +390,10 @@ struct GroupConversationView: View {
         do {
             try viewContext.save()
             messageText = ""
-            HapticManager.lightTap()
+            HapticManager.messageSent()
         } catch {
             viewContext.rollback()
+            HapticManager.errorAlert()
             errorMessage = "Failed to send message. Please try again."
             showingError = true
             AppLogger.coreData.error("Failed to save message: \(error.localizedDescription)")
@@ -396,10 +404,10 @@ struct GroupConversationView: View {
         viewContext.delete(transaction)
         do {
             try viewContext.save()
-            HapticManager.success()
+            HapticManager.destructiveAction()
         } catch {
             viewContext.rollback()
-            HapticManager.error()
+            HapticManager.errorAlert()
             errorMessage = "Failed to delete transaction."
             showingError = true
             AppLogger.coreData.error("Failed to delete transaction: \(error.localizedDescription)")
@@ -418,13 +426,13 @@ struct GroupConversationView: View {
         viewContext.delete(message)
         do {
             try viewContext.save()
-            HapticManager.delete()
+            HapticManager.destructiveAction()
             withAnimation(AppAnimation.standard) {
                 showUndoToast = true
             }
         } catch {
             viewContext.rollback()
-            HapticManager.error()
+            HapticManager.errorAlert()
             errorMessage = "Failed to delete message."
             showingError = true
             AppLogger.coreData.error("Failed to delete message: \(error.localizedDescription)")
@@ -444,10 +452,10 @@ struct GroupConversationView: View {
 
         do {
             try viewContext.save()
-            HapticManager.success()
+            HapticManager.undoAction()
         } catch {
             viewContext.rollback()
-            HapticManager.error()
+            HapticManager.errorAlert()
         }
 
         deletedMessageContent = nil
@@ -477,13 +485,13 @@ struct GroupConversationView: View {
         viewContext.delete(transaction)
         do {
             try viewContext.save()
-            HapticManager.delete()
+            HapticManager.destructiveAction()
             withAnimation(AppAnimation.standard) {
                 showUndoTransactionToast = true
             }
         } catch {
             viewContext.rollback()
-            HapticManager.error()
+            HapticManager.errorAlert()
             errorMessage = "Failed to undo transaction."
             showingError = true
         }
@@ -513,10 +521,10 @@ struct GroupConversationView: View {
 
         do {
             try viewContext.save()
-            HapticManager.success()
+            HapticManager.undoAction()
         } catch {
             viewContext.rollback()
-            HapticManager.error()
+            HapticManager.errorAlert()
         }
 
         // Clear cached data
