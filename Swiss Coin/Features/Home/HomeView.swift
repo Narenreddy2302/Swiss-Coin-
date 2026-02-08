@@ -101,8 +101,7 @@ struct HomeView: View {
                                     title: "Subscriptions",
                                     amount: totalMonthlySubscriptions,
                                     color: .purple,
-                                    icon: "repeat.circle.fill",
-                                    subtitle: "\(activeSubscriptions.count) active /mo")
+                                    icon: "repeat.circle.fill")
                             }
                             .padding(.horizontal)
                         }
@@ -258,7 +257,6 @@ struct SummaryCard: View {
     let amount: Double
     let color: Color
     let icon: String
-    var subtitle: String? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
@@ -277,10 +275,6 @@ struct SummaryCard: View {
                 Text(CurrencyFormatter.format(amount))
                     .font(AppTypography.amountLarge())
                     .foregroundColor(AppColors.textPrimary)
-                Text(subtitle ?? " ")
-                    .font(AppTypography.caption())
-                    .foregroundColor(AppColors.textTertiary)
-                    .opacity(subtitle != nil ? 1 : 0)
             }
         }
         .frame(width: 160)
