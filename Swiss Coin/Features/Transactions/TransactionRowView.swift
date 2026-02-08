@@ -7,8 +7,9 @@ struct TransactionRowView: View {
     var onEdit: (() -> Void)? = nil
     var onDelete: (() -> Void)? = nil
 
-    // Hero animation support — optional so the row stays reusable in HomeView / SearchView
-    var animationNamespace: Namespace.ID? = nil
+    /// When true, tapping the row sets selectedTransaction to show the full-screen overlay.
+    /// When false, tapping the row pushes a NavigationLink.
+    var usesOverlayDetail: Bool = false
     @Binding var selectedTransaction: FinancialTransaction?
 
     @State private var showingEditSheet = false
@@ -16,32 +17,39 @@ struct TransactionRowView: View {
 
     // MARK: - Initializers
 
-    /// Full initializer with hero animation support (used in TransactionHistoryView)
+    /// Overlay detail initializer (used in TransactionHistoryView, HomeView, SearchView)
     init(
         transaction: FinancialTransaction,
         onEdit: (() -> Void)? = nil,
         onDelete: (() -> Void)? = nil,
-        animationNamespace: Namespace.ID? = nil,
-        selectedTransaction: Binding<FinancialTransaction?> = .constant(nil)
+        selectedTransaction: Binding<FinancialTransaction?>
     ) {
         self.transaction = transaction
         self.onEdit = onEdit
         self.onDelete = onDelete
-        self.animationNamespace = animationNamespace
+        self.usesOverlayDetail = true
         self._selectedTransaction = selectedTransaction
     }
 
+    /// NavigationLink initializer (used when no overlay is needed)
+    init(
+        transaction: FinancialTransaction,
+        onEdit: (() -> Void)? = nil,
+        onDelete: (() -> Void)? = nil
+    ) {
+        self.transaction = transaction
+        self.onEdit = onEdit
+        self.onDelete = onDelete
+        self.usesOverlayDetail = false
+        self._selectedTransaction = .constant(nil)
+    }
+
     var body: some View {
-        if animationNamespace != nil {
+        if usesOverlayDetail {
             heroContent
         } else {
             navigationLinkContent
         }
-    }
-
-    /// Whether this row's transaction is currently selected (expanded).
-    private var isSelected: Bool {
-        selectedTransaction?.id == transaction.id && selectedTransaction != nil
     }
 
     // MARK: - Hero Animation Content (TransactionHistoryView)
@@ -49,16 +57,12 @@ struct TransactionRowView: View {
     private var heroContent: some View {
         Button {
             HapticManager.lightTap()
-            withAnimation(AppAnimation.cardMorph) {
-                selectedTransaction = transaction
-            }
+            selectedTransaction = transaction
         } label: {
             rowContent
-                .opacity(isSelected ? 0 : 1)
         }
         .buttonStyle(AppButtonStyle(haptic: .none))
         .contentShape(Rectangle())
-        .applyMatchedGeometry(id: "bg-\(stableId)", namespace: animationNamespace)
         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
             Button(role: .destructive) {
                 HapticManager.delete()
@@ -241,12 +245,6 @@ struct TransactionRowView: View {
         .padding(.horizontal, Spacing.lg)
     }
 
-    // MARK: - Stable Identifier
-
-    private var stableId: String {
-        transaction.id?.uuidString ?? transaction.objectID.uriRepresentation().absoluteString
-    }
-
     // MARK: - Shared Element Views
 
     var iconView: some View {
@@ -258,7 +256,6 @@ struct TransactionRowView: View {
                     .font(.system(size: IconSize.md, weight: .medium))
                     .foregroundColor(amountColor)
             )
-            .applyMatchedGeometry(id: "icon-\(stableId)", namespace: animationNamespace, isSource: !isSelected)
     }
 
     var titleView: some View {
@@ -266,14 +263,12 @@ struct TransactionRowView: View {
             .font(AppTypography.body())
             .foregroundColor(AppColors.textPrimary)
             .lineLimit(1)
-            .applyMatchedGeometry(id: "title-\(stableId)", namespace: animationNamespace, isSource: !isSelected)
     }
 
     var amountView: some View {
         Text(amountPrefix + CurrencyFormatter.format(amountToShow))
             .font(AppTypography.amount())
             .foregroundColor(amountColor)
-            .applyMatchedGeometry(id: "amount-\(stableId)", namespace: animationNamespace, isSource: !isSelected)
     }
 
     // MARK: - Helpers

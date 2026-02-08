@@ -16,8 +16,6 @@ struct TransactionHistoryView: View {
     @State private var showingDeleteAlert = false
     @State private var transactionToDelete: FinancialTransaction?
 
-    // Card overlay animation state
-    @Namespace private var cardAnimation
     @State private var selectedTransaction: FinancialTransaction?
 
     // MARK: - Grouped Transactions
@@ -85,20 +83,14 @@ struct TransactionHistoryView: View {
                 // Overlay the Quick Action FAB
                 FinanceQuickActionView()
                     .opacity(selectedTransaction == nil ? 1 : 0)
-                    .animation(.easeOut(duration: 0.2), value: selectedTransaction == nil)
 
-                // Morphing detail overlay — uses matchedGeometryEffect for fluid card-to-detail transition
+                // Full-screen detail overlay
                 if let selected = selectedTransaction {
                     TransactionExpandedView(
                         transaction: selected,
-                        animationNamespace: cardAnimation,
                         selectedTransaction: $selectedTransaction
                     )
                     .zIndex(2)
-                    .transition(.asymmetric(
-                        insertion: .identity,
-                        removal: .identity
-                    ))
                 }
             }
             .background(AppColors.backgroundSecondary)
@@ -252,7 +244,6 @@ struct TransactionHistoryView: View {
                             transactionToDelete = transaction
                             showingDeleteAlert = true
                         },
-                        animationNamespace: cardAnimation,
                         selectedTransaction: $selectedTransaction
                     )
 

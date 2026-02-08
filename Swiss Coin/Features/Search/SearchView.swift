@@ -13,8 +13,6 @@ struct SearchView: View {
 
     @State private var searchText = ""
 
-    // Card overlay animation state
-    @Namespace private var searchCardAnimation
     @State private var selectedTransaction: FinancialTransaction?
 
     // MARK: - Fetch Requests
@@ -122,15 +120,13 @@ struct SearchView: View {
                 }
                 .allowsHitTesting(selectedTransaction == nil)
 
-                // Card modal overlay for transaction detail
+                // Full-screen detail overlay
                 if let selected = selectedTransaction {
                     TransactionExpandedView(
                         transaction: selected,
-                        animationNamespace: searchCardAnimation,
                         selectedTransaction: $selectedTransaction
                     )
                     .zIndex(2)
-                    .transition(.opacity)
                 }
             }
             .navigationTitle("Search")
@@ -163,7 +159,6 @@ struct SearchView: View {
                             ForEach(recentTransactions, id: \.id) { transaction in
                                 TransactionRowView(
                                     transaction: transaction,
-                                    animationNamespace: searchCardAnimation,
                                     selectedTransaction: $selectedTransaction
                                 )
                                 Divider()
@@ -199,7 +194,6 @@ struct SearchView: View {
                                 ForEach(filteredTransactions, id: \.id) { transaction in
                                     TransactionRowView(
                                         transaction: transaction,
-                                        animationNamespace: searchCardAnimation,
                                         selectedTransaction: $selectedTransaction
                                     )
                                     if transaction.id != filteredTransactions.last?.id {

@@ -35,8 +35,6 @@ struct HomeView: View {
     @State private var showingProfile = false
     @State private var showingAddTransaction = false
 
-    // Card overlay animation state for recent transactions
-    @Namespace private var homeCardAnimation
     @State private var selectedTransaction: FinancialTransaction?
 
     /// Tracks the last time data was refreshed to debounce rapid refreshes
@@ -158,7 +156,6 @@ struct HomeView: View {
                                     ForEach(recentTransactions, id: \.id) { transaction in
                                         TransactionRowView(
                                             transaction: transaction,
-                                            animationNamespace: homeCardAnimation,
                                             selectedTransaction: $selectedTransaction
                                         )
                                         Divider()
@@ -172,15 +169,13 @@ struct HomeView: View {
                 }
                 .allowsHitTesting(selectedTransaction == nil)
 
-                // Card modal overlay for transaction detail
+                // Full-screen detail overlay
                 if let selected = selectedTransaction {
                     TransactionExpandedView(
                         transaction: selected,
-                        animationNamespace: homeCardAnimation,
                         selectedTransaction: $selectedTransaction
                     )
                     .zIndex(2)
-                    .transition(.opacity)
                 }
             }
             .background(AppColors.backgroundSecondary)
