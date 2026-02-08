@@ -251,8 +251,9 @@ struct PersonListView: View {
         .padding(.horizontal, Spacing.lg)
         .padding(.vertical, Spacing.lg)
         .background(
-            RoundedRectangle(cornerRadius: CornerRadius.md)
+            RoundedRectangle(cornerRadius: CornerRadius.card)
                 .fill(AppColors.cardBackground)
+                .shadow(color: AppColors.shadow, radius: 8, x: 0, y: 2)
         )
         .padding(.horizontal, Spacing.lg)
     }
@@ -560,8 +561,9 @@ struct GroupListView: View {
         .padding(.horizontal, Spacing.lg)
         .padding(.vertical, Spacing.lg)
         .background(
-            RoundedRectangle(cornerRadius: CornerRadius.md)
+            RoundedRectangle(cornerRadius: CornerRadius.card)
                 .fill(AppColors.cardBackground)
+                .shadow(color: AppColors.shadow, radius: 8, x: 0, y: 2)
         )
         .padding(.horizontal, Spacing.lg)
     }

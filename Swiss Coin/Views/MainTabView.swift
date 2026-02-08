@@ -77,6 +77,6 @@ struct MainTabView: View {
                 }
                 .tag(3)
         }
-        .tint(AppColors.textPrimary)
+        .tint(AppColors.accent)
     }
 }

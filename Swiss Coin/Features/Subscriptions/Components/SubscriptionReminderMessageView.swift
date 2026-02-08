@@ -17,36 +17,36 @@ struct SubscriptionReminderMessageView: View {
     }
 
     var body: some View {
-        VStack(spacing: 4) {
-            HStack(spacing: 6) {
+        VStack(spacing: Spacing.xs) {
+            HStack(spacing: Spacing.xs) {
                 Image(systemName: "bell.fill")
-                    .font(.system(size: 12))
-                    .foregroundColor(.orange)
+                    .font(.system(size: IconSize.xs))
+                    .foregroundColor(AppColors.warning)
 
                 Text(messageText)
-                    .font(.caption)
+                    .font(AppTypography.caption())
                     .fontWeight(.medium)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(AppColors.textSecondary)
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 8)
+            .padding(.horizontal, Spacing.md)
+            .padding(.vertical, Spacing.sm)
             .background(
                 Capsule()
-                    .fill(Color.orange.opacity(0.15))
+                    .fill(AppColors.warningMuted)
             )
 
             if let message = reminder.message, !message.isEmpty {
                 Text("\"\(message)\"")
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
+                    .font(AppTypography.labelSmall())
+                    .foregroundColor(AppColors.textSecondary)
                     .italic()
             }
 
             Text(reminder.createdDate ?? Date(), style: .date)
-                .font(.caption2)
-                .foregroundColor(.secondary)
+                .font(AppTypography.labelSmall())
+                .foregroundColor(AppColors.textSecondary)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 8)
+        .padding(.vertical, Spacing.sm)
     }
 }

@@ -587,8 +587,8 @@ struct TransactionExpandedView: View {
 
             ZStack(alignment: .bottom) {
                 // Dimmed scrim
-                Color.black
-                    .opacity(isVisible ? Double(0.5 * (1 - dragProgress)) : 0)
+                AppColors.scrim
+                    .opacity(isVisible ? AppColors.scrimOpacity * (1 - dragProgress) : 0)
                     .ignoresSafeArea()
                     .onTapGesture {
                         guard !isDismissing else { return }
@@ -625,7 +625,7 @@ struct TransactionExpandedView: View {
                         topTrailingRadius: CornerRadius.xl
                     )
                     .fill(AppColors.cardBackground)
-                    .shadow(color: Color.black.opacity(0.15), radius: 20, y: -4)
+                    .shadow(color: AppColors.scrim.opacity(0.15), radius: 20, y: -4)
                 )
                 .clipShape(
                     UnevenRoundedRectangle(

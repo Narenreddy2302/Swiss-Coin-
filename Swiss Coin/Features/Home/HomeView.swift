@@ -103,7 +103,7 @@ struct HomeView: View {
                                     SummaryCard(
                                         title: "Subscriptions",
                                         amount: totalMonthlySubscriptions,
-                                        color: .purple,
+                                        color: AppColors.assetRealEstate,
                                         icon: "repeat.circle.fill")
                                 }
                                 .padding(.horizontal)
@@ -263,8 +263,9 @@ struct EmptyStateView: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, Spacing.section)
-        .background(AppColors.backgroundTertiary)
-        .cornerRadius(CornerRadius.md)
+        .background(AppColors.cardBackground)
+        .cornerRadius(CornerRadius.card)
+        .shadow(color: AppColors.shadow, radius: 8, x: 0, y: 2)
         .padding(.horizontal)
     }
 }
@@ -295,10 +296,10 @@ struct SummaryCard: View {
             }
         }
         .frame(width: 160)
-        .padding(Spacing.lg)
-        .background(AppColors.backgroundTertiary)
-        .cornerRadius(CornerRadius.md)
-        .shadow(color: AppColors.shadow, radius: 5, x: 0, y: 2)
+        .padding(Spacing.cardPadding)
+        .background(AppColors.cardBackground)
+        .cornerRadius(CornerRadius.card)
+        .shadow(color: AppColors.shadow, radius: 8, x: 0, y: 2)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(title): \(CurrencyFormatter.format(amount))")
     }
