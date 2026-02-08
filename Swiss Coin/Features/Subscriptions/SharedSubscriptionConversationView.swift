@@ -136,14 +136,17 @@ struct SharedSubscriptionConversationView: View {
         .sheet(isPresented: $showingRecordPayment) {
             RecordSubscriptionPaymentView(subscription: subscription)
                 .environment(\.managedObjectContext, viewContext)
+                .onAppear { HapticManager.sheetPresent() }
         }
         .sheet(isPresented: $showingSettlement) {
             SubscriptionSettlementView(subscription: subscription)
                 .environment(\.managedObjectContext, viewContext)
+                .onAppear { HapticManager.sheetPresent() }
         }
         .sheet(isPresented: $showingReminder) {
             SubscriptionReminderSheetView(subscription: subscription)
                 .environment(\.managedObjectContext, viewContext)
+                .onAppear { HapticManager.sheetPresent() }
         }
         .sheet(isPresented: $showingSubscriptionDetail) {
             NavigationStack {
@@ -151,11 +154,13 @@ struct SharedSubscriptionConversationView: View {
                     .toolbar {
                         ToolbarItem(placement: .navigationBarTrailing) {
                             Button("Done") {
+                                HapticManager.sheetDismiss()
                                 showingSubscriptionDetail = false
                             }
                         }
                     }
             }
+            .onAppear { HapticManager.sheetPresent() }
         }
         .alert("Error", isPresented: $showingError) {
             Button("OK", role: .cancel) {}
@@ -171,7 +176,7 @@ struct SharedSubscriptionConversationView: View {
         HStack(spacing: Spacing.sm) {
             // Custom back button
             Button {
-                HapticManager.tap()
+                HapticManager.navigationTap()
                 dismiss()
             } label: {
                 Image(systemName: "chevron.left")
@@ -181,7 +186,7 @@ struct SharedSubscriptionConversationView: View {
 
             // Subscription Icon + Name (tappable for details)
             Button {
-                HapticManager.tap()
+                HapticManager.navigationTap()
                 showingSubscriptionDetail = true
             } label: {
                 subscriptionHeaderContent
@@ -328,10 +333,11 @@ struct SharedSubscriptionConversationView: View {
 
             // Clear input and provide haptic feedback
             messageText = ""
-            HapticManager.lightTap()
+            HapticManager.messageSent()
         } catch {
             // Rollback the failed save
             viewContext.rollback()
+            HapticManager.errorAlert()
 
             // Show error to user
             errorMessage = "Failed to send message. Please try again."

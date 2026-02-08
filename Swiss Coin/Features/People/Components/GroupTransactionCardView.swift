@@ -98,7 +98,7 @@ struct GroupTransactionCardView: View {
                     .font(AppTypography.amount())
                     .foregroundColor(amountColor)
 
-                Text("\(totalAmountText) / \(splitCountText)")
+                (Text(totalAmountText).fontWeight(.bold) + Text(" / \(splitCountText)"))
                     .font(AppTypography.caption())
                     .foregroundColor(AppColors.textSecondary)
             }
@@ -115,14 +115,14 @@ struct GroupTransactionCardView: View {
             // Copy Amount — most common quick action
             Button {
                 UIPasteboard.general.string = CurrencyFormatter.format(transaction.amount)
-                HapticManager.lightTap()
+                HapticManager.copyAction()
             } label: {
                 Label("Copy Amount", systemImage: "doc.on.doc")
             }
 
             if let onViewDetails {
                 Button {
-                    HapticManager.lightTap()
+                    HapticManager.selectionChanged()
                     onViewDetails()
                 } label: {
                     Label("View Details", systemImage: "doc.text.magnifyingglass")
@@ -131,7 +131,7 @@ struct GroupTransactionCardView: View {
 
             if let onEdit {
                 Button {
-                    HapticManager.lightTap()
+                    HapticManager.selectionChanged()
                     onEdit()
                 } label: {
                     Label("Edit", systemImage: "pencil")
@@ -140,7 +140,7 @@ struct GroupTransactionCardView: View {
 
             if let onUndo {
                 Button {
-                    HapticManager.lightTap()
+                    HapticManager.undoAction()
                     onUndo()
                 } label: {
                     Label("Undo", systemImage: "arrow.uturn.backward")
@@ -150,7 +150,7 @@ struct GroupTransactionCardView: View {
             if onDelete != nil {
                 Divider()
                 Button(role: .destructive) {
-                    HapticManager.delete()
+                    HapticManager.destructiveAction()
                     onDelete?()
                 } label: {
                     Label("Delete", systemImage: "trash")

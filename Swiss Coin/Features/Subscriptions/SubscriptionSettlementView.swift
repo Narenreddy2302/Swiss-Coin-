@@ -166,7 +166,7 @@ struct SubscriptionSettlementView: View {
                                             .font(AppTypography.body())
                                             .foregroundColor(AppColors.textPrimary)
 
-                                        Text("owes you \(CurrencyFormatter.format(item.amount))")
+                                        (Text("owes you ") + Text(CurrencyFormatter.format(item.amount)).fontWeight(.bold))
                                             .font(AppTypography.caption())
                                             .foregroundColor(AppColors.positive)
                                     }
@@ -213,7 +213,7 @@ struct SubscriptionSettlementView: View {
                                             .font(AppTypography.body())
                                             .foregroundColor(AppColors.textPrimary)
 
-                                        Text("you owe \(CurrencyFormatter.format(item.amount))")
+                                        (Text("you owe ") + Text(CurrencyFormatter.format(item.amount)).fontWeight(.bold))
                                             .font(AppTypography.caption())
                                             .foregroundColor(AppColors.negative)
                                     }
@@ -252,7 +252,7 @@ struct SubscriptionSettlementView: View {
                                     .foregroundColor(AppColors.warning)
                                     .font(.system(size: 14))
 
-                                Text("Amount exceeds outstanding balance of \(CurrencyFormatter.format(outstandingBalance)). It will be capped.")
+                                (Text("Amount exceeds outstanding balance of ") + Text(CurrencyFormatter.format(outstandingBalance)).fontWeight(.bold) + Text(". It will be capped."))
                                     .font(AppTypography.caption())
                                     .foregroundColor(AppColors.warning)
                             }

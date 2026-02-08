@@ -69,14 +69,14 @@ struct SettlementMessageView: View {
         .contextMenu {
             Button {
                 UIPasteboard.general.string = messageText
-                HapticManager.lightTap()
+                HapticManager.copyAction()
             } label: {
                 Label("Copy", systemImage: "doc.on.doc")
             }
 
             Button {
                 UIPasteboard.general.string = CurrencyFormatter.format(settlement.amount)
-                HapticManager.lightTap()
+                HapticManager.copyAction()
             } label: {
                 Label("Copy Amount", systemImage: "dollarsign.circle")
             }

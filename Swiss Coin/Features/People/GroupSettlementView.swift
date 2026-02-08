@@ -349,6 +349,15 @@ private struct MemberBalanceChip: View {
         }
     }
 
+    private var balanceTextView: Text {
+        let formatted = CurrencyFormatter.formatAbsolute(balance)
+        if balance > 0 {
+            return Text("owes ") + Text(formatted).fontWeight(.bold)
+        } else {
+            return Text("owed ") + Text(formatted).fontWeight(.bold)
+        }
+    }
+
     private var balanceColor: Color {
         if balance > 0.01 {
             return AppColors.positive
@@ -379,7 +388,7 @@ private struct MemberBalanceChip: View {
                     .foregroundColor(AppColors.textPrimary)
                     .lineLimit(1)
 
-                Text(balanceText)
+                balanceTextView
                     .font(AppTypography.caption2())
                     .foregroundColor(balanceColor)
                     .lineLimit(1)

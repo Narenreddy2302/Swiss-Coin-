@@ -122,6 +122,7 @@ struct AddSubscriptionView: View {
                         .foregroundColor(AppColors.textSecondary)
                     Spacer()
                     Text("~\(CurrencyFormatter.format(monthlyCost))")
+                        .fontWeight(.bold)
                         .foregroundColor(AppColors.textSecondary)
                 }
             }
@@ -175,7 +176,7 @@ struct AddSubscriptionView: View {
                                 .foregroundColor(AppColors.textSecondary)
                             Spacer()
                             Text(CurrencyFormatter.format(amountValue / Double(selectedMembers.count + 1)))
-                                .fontWeight(.medium)
+                                .fontWeight(.bold)
                         }
                     }
                 }

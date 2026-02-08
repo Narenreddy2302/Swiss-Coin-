@@ -28,7 +28,7 @@ struct SharedSubscriptionSummaryCard: View {
                 Spacer()
 
                 VStack(alignment: .trailing, spacing: Spacing.xs) {
-                    Text("Total: \(CurrencyFormatter.format(totalMonthly))")
+                    (Text("Total: ") + Text(CurrencyFormatter.format(totalMonthly)).fontWeight(.bold))
                         .font(AppTypography.subheadline())
                         .foregroundColor(AppColors.textSecondary)
 
@@ -45,7 +45,7 @@ struct SharedSubscriptionSummaryCard: View {
                         .font(.system(size: 12))
                         .foregroundColor(AppColors.positive)
 
-                    Text("Saving \(CurrencyFormatter.format(totalMonthly - myShare))/mo by sharing")
+                    (Text("Saving ") + Text(CurrencyFormatter.format(totalMonthly - myShare)).fontWeight(.bold) + Text("/mo by sharing"))
                         .font(AppTypography.caption())
                         .foregroundColor(AppColors.positive)
                 }

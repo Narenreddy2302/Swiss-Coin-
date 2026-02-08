@@ -282,7 +282,7 @@ struct TransactionDetailView: View {
                             .foregroundColor(AppColors.textPrimary)
                         Spacer()
                         Text(CurrencyFormatter.format(tp.amount))
-                            .font(AppTypography.bodyBold())
+                            .font(AppTypography.financialDefault())
                             .foregroundColor(AppColors.textPrimary)
                     }
                 }
@@ -808,7 +808,7 @@ struct TransactionExpandedView: View {
 
                 // User net amount
                 Text(userAmountPrefix + CurrencyFormatter.format(abs(userNetAmount)))
-                    .font(.system(size: 17, weight: .semibold, design: .rounded))
+                    .font(.system(size: 17, weight: .bold, design: .rounded))
                     .foregroundColor(amountColor)
             }
         }
@@ -908,7 +908,7 @@ struct TransactionExpandedView: View {
                             .foregroundColor(AppColors.textPrimary)
                         Spacer()
                         Text(CurrencyFormatter.format(tp.amount))
-                            .font(AppTypography.bodyBold())
+                            .font(AppTypography.financialDefault())
                             .foregroundColor(AppColors.textPrimary)
                     }
                 }
