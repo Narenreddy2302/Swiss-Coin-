@@ -36,7 +36,11 @@ struct ActionBarButton: View {
     var body: some View {
         Button(action: {
             if isEnabled || isPrimary {
-                HapticManager.tap()
+                if isPrimary {
+                    HapticManager.primaryAction()
+                } else {
+                    HapticManager.actionBarTap()
+                }
                 action()
             }
         }) {
@@ -55,7 +59,7 @@ struct ActionBarButton: View {
             .background(buttonBackground)
             .cornerRadius(CornerRadius.md)
         }
-        .buttonStyle(PlainButtonStyle())
+        .buttonStyle(ActionBarPressStyle())
         .disabled(!isEnabled && !isPrimary)
         .opacity(isEnabled || isPrimary ? 1.0 : 0.6)
     }
@@ -212,6 +216,18 @@ struct SubscriptionActionBarView: View {
                 }
             )
         }
+    }
+}
+
+// MARK: - Action Bar Press Style
+
+/// Professional press style with subtle scale + opacity for action bar buttons
+private struct ActionBarPressStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.96 : 1.0)
+            .opacity(configuration.isPressed ? 0.85 : 1.0)
+            .animation(.spring(response: 0.2, dampingFraction: 0.7), value: configuration.isPressed)
     }
 }
 

@@ -150,22 +150,6 @@ struct PersonListView: View {
     }(), animation: .default)
     private var people: FetchedResults<Person>
 
-    // MARK: - Balance Summary
-
-    private var totalOwedToYou: Double {
-        people.reduce(0) { total, person in
-            let balance = person.calculateBalance()
-            return total + (balance > 0.01 ? balance : 0)
-        }
-    }
-
-    private var totalYouOwe: Double {
-        people.reduce(0) { total, person in
-            let balance = person.calculateBalance()
-            return total + (balance < -0.01 ? abs(balance) : 0)
-        }
-    }
-
     var body: some View {
         Group {
             if people.isEmpty {
@@ -173,15 +157,12 @@ struct PersonListView: View {
             } else {
                 ScrollView {
                     VStack(spacing: Spacing.xl) {
-                        // Summary header
-                        summaryHeader
-
                         // Section
-                        VStack(alignment: .leading, spacing: 0) {
+                        VStack(alignment: .leading, spacing: Spacing.sm) {
                             // Section header
                             HStack {
                                 Text("All People")
-                                    .font(AppTypography.subheadlineMedium())
+                                    .font(AppTypography.footnote())
                                     .foregroundColor(AppColors.textSecondary)
 
                                 Spacer()
@@ -197,7 +178,6 @@ struct PersonListView: View {
                                     )
                             }
                             .padding(.horizontal, Spacing.lg)
-                            .padding(.bottom, Spacing.sm)
 
                             // People rows
                             LazyVStack(spacing: 0) {
@@ -213,6 +193,12 @@ struct PersonListView: View {
                                     }
                                 }
                             }
+                            .background(
+                                RoundedRectangle(cornerRadius: CornerRadius.card)
+                                    .fill(AppColors.cardBackground)
+                            )
+                            .clipShape(RoundedRectangle(cornerRadius: CornerRadius.card))
+                            .padding(.horizontal, Spacing.lg)
                         }
 
                         Spacer()
@@ -224,39 +210,6 @@ struct PersonListView: View {
         }
     }
 
-    // MARK: - Summary Header
-
-    private var summaryHeader: some View {
-        HStack(spacing: Spacing.lg) {
-            VStack(alignment: .leading, spacing: Spacing.xxs) {
-                Text("Owed to You")
-                    .font(AppTypography.caption())
-                    .foregroundColor(AppColors.textSecondary)
-                Text(CurrencyFormatter.format(totalOwedToYou))
-                    .font(AppTypography.amountLarge())
-                    .foregroundColor(totalOwedToYou > 0 ? AppColors.positive : AppColors.textPrimary)
-            }
-
-            Spacer()
-
-            VStack(alignment: .trailing, spacing: Spacing.xxs) {
-                Text("You Owe")
-                    .font(AppTypography.caption())
-                    .foregroundColor(AppColors.textSecondary)
-                Text(CurrencyFormatter.format(totalYouOwe))
-                    .font(AppTypography.amountLarge())
-                    .foregroundColor(totalYouOwe > 0 ? AppColors.negative : AppColors.textPrimary)
-            }
-        }
-        .padding(.horizontal, Spacing.lg)
-        .padding(.vertical, Spacing.lg)
-        .background(
-            RoundedRectangle(cornerRadius: CornerRadius.card)
-                .fill(AppColors.cardBackground)
-                .shadow(color: AppColors.shadow, radius: 8, x: 0, y: 2)
-        )
-        .padding(.horizontal, Spacing.lg)
-    }
 }
 
 // MARK: - Person Empty State
@@ -472,22 +425,6 @@ struct GroupListView: View {
     }(), animation: .default)
     private var groups: FetchedResults<UserGroup>
 
-    // MARK: - Balance Summary
-
-    private var totalOwedToYou: Double {
-        groups.reduce(0) { total, group in
-            let balance = group.calculateBalance()
-            return total + (balance > 0.01 ? balance : 0)
-        }
-    }
-
-    private var totalYouOwe: Double {
-        groups.reduce(0) { total, group in
-            let balance = group.calculateBalance()
-            return total + (balance < -0.01 ? abs(balance) : 0)
-        }
-    }
-
     var body: some View {
         Group {
             if groups.isEmpty {
@@ -495,15 +432,12 @@ struct GroupListView: View {
             } else {
                 ScrollView {
                     VStack(spacing: Spacing.xl) {
-                        // Summary header
-                        summaryHeader
-
                         // Section
-                        VStack(alignment: .leading, spacing: 0) {
+                        VStack(alignment: .leading, spacing: Spacing.sm) {
                             // Section header
                             HStack {
                                 Text("All Groups")
-                                    .font(AppTypography.subheadlineMedium())
+                                    .font(AppTypography.footnote())
                                     .foregroundColor(AppColors.textSecondary)
 
                                 Spacer()
@@ -519,7 +453,6 @@ struct GroupListView: View {
                                     )
                             }
                             .padding(.horizontal, Spacing.lg)
-                            .padding(.bottom, Spacing.sm)
 
                             // Group rows
                             LazyVStack(spacing: 0) {
@@ -535,6 +468,12 @@ struct GroupListView: View {
                                     }
                                 }
                             }
+                            .background(
+                                RoundedRectangle(cornerRadius: CornerRadius.card)
+                                    .fill(AppColors.cardBackground)
+                            )
+                            .clipShape(RoundedRectangle(cornerRadius: CornerRadius.card))
+                            .padding(.horizontal, Spacing.lg)
                         }
 
                         Spacer()
@@ -546,39 +485,6 @@ struct GroupListView: View {
         }
     }
 
-    // MARK: - Summary Header
-
-    private var summaryHeader: some View {
-        HStack(spacing: Spacing.lg) {
-            VStack(alignment: .leading, spacing: Spacing.xxs) {
-                Text("Owed to You")
-                    .font(AppTypography.caption())
-                    .foregroundColor(AppColors.textSecondary)
-                Text(CurrencyFormatter.format(totalOwedToYou))
-                    .font(AppTypography.amountLarge())
-                    .foregroundColor(totalOwedToYou > 0 ? AppColors.positive : AppColors.textPrimary)
-            }
-
-            Spacer()
-
-            VStack(alignment: .trailing, spacing: Spacing.xxs) {
-                Text("You Owe")
-                    .font(AppTypography.caption())
-                    .foregroundColor(AppColors.textSecondary)
-                Text(CurrencyFormatter.format(totalYouOwe))
-                    .font(AppTypography.amountLarge())
-                    .foregroundColor(totalYouOwe > 0 ? AppColors.negative : AppColors.textPrimary)
-            }
-        }
-        .padding(.horizontal, Spacing.lg)
-        .padding(.vertical, Spacing.lg)
-        .background(
-            RoundedRectangle(cornerRadius: CornerRadius.card)
-                .fill(AppColors.cardBackground)
-                .shadow(color: AppColors.shadow, radius: 8, x: 0, y: 2)
-        )
-        .padding(.horizontal, Spacing.lg)
-    }
 }
 
 // MARK: - Group Empty State
