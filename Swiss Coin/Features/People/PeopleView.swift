@@ -315,6 +315,18 @@ struct PersonListRowView: View {
         }
     }
 
+    private var balanceTextView: Text {
+        let formatted = CurrencyFormatter.formatAbsolute(balance)
+
+        if balance > 0.01 {
+            return Text("owes you ") + Text(formatted).fontWeight(.bold)
+        } else if balance < -0.01 {
+            return Text("you owe ") + Text(formatted).fontWeight(.bold)
+        } else {
+            return Text("settled up")
+        }
+    }
+
     private var balanceColor: Color {
         if balance > 0.01 {
             return AppColors.positive
@@ -343,7 +355,7 @@ struct PersonListRowView: View {
                     .foregroundColor(AppColors.textPrimary)
                     .lineLimit(1)
 
-                Text(balanceText)
+                balanceTextView
                     .font(AppTypography.footnote())
                     .foregroundColor(balanceColor)
                     .lineLimit(1)
@@ -625,6 +637,18 @@ struct GroupListRowView: View {
         }
     }
 
+    private var balanceTextView: Text {
+        let formatted = CurrencyFormatter.formatAbsolute(balance)
+
+        if balance > 0.01 {
+            return Text("you're owed ") + Text(formatted).fontWeight(.bold)
+        } else if balance < -0.01 {
+            return Text("you owe ") + Text(formatted).fontWeight(.bold)
+        } else {
+            return Text("settled up")
+        }
+    }
+
     private var balanceColor: Color {
         if balance > 0.01 {
             return AppColors.positive
@@ -666,7 +690,7 @@ struct GroupListRowView: View {
                         .font(AppTypography.footnote())
                         .foregroundColor(AppColors.textSecondary)
 
-                    Text(balanceText)
+                    balanceTextView
                         .font(AppTypography.footnote())
                         .foregroundColor(balanceColor)
                 }

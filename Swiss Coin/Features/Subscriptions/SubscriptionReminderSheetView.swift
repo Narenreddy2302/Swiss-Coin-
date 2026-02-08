@@ -72,7 +72,7 @@ struct SubscriptionReminderSheetView: View {
                                             .font(AppTypography.body())
                                             .foregroundColor(AppColors.textPrimary)
 
-                                        Text("owes \(CurrencyFormatter.format(item.amount))")
+                                        (Text("owes ") + Text(CurrencyFormatter.format(item.amount)).fontWeight(.bold))
                                             .font(AppTypography.caption())
                                             .foregroundColor(AppColors.positive)
                                     }
@@ -131,7 +131,7 @@ struct SubscriptionReminderSheetView: View {
                                     Image(systemName: "bell.fill")
                                         .foregroundColor(AppColors.warning)
 
-                                    Text("\(member.firstName) - \(CurrencyFormatter.format(item.amount))")
+                                    (Text("\(member.firstName) - ") + Text(CurrencyFormatter.format(item.amount)).fontWeight(.bold))
                                         .font(AppTypography.body())
                                         .foregroundColor(AppColors.textPrimary)
                                 }

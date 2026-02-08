@@ -55,13 +55,13 @@ struct GroupDetailView: View {
                                     Text("You're owed")
                                         .foregroundColor(AppColors.textSecondary)
                                     Text(CurrencyFormatter.format(balance))
-                                        .fontWeight(.semibold)
+                                        .fontWeight(.bold)
                                         .foregroundColor(AppColors.positive)
                                 } else {
                                     Text("You owe")
                                         .foregroundColor(AppColors.textSecondary)
                                     Text(CurrencyFormatter.format(abs(balance)))
-                                        .fontWeight(.semibold)
+                                        .fontWeight(.bold)
                                         .foregroundColor(AppColors.negative)
                                 }
                             }
@@ -171,11 +171,11 @@ struct GroupDetailView: View {
 
                         if abs(item.balance) > 0.01 {
                             if item.balance > 0 {
-                                Text("owes \(CurrencyFormatter.format(item.balance))")
+                                (Text("owes ") + Text(CurrencyFormatter.format(item.balance)).fontWeight(.bold))
                                     .font(AppTypography.caption())
                                     .foregroundColor(AppColors.positive)
                             } else {
-                                Text("owed \(CurrencyFormatter.format(abs(item.balance)))")
+                                (Text("owed ") + Text(CurrencyFormatter.format(abs(item.balance))).fontWeight(.bold))
                                     .font(AppTypography.caption())
                                     .foregroundColor(AppColors.negative)
                             }
@@ -352,7 +352,7 @@ struct GroupDetailTransactionRow: View {
                     .font(AppTypography.amountSmall())
                     .foregroundColor(amountColor)
 
-                Text("of \(CurrencyFormatter.format(transaction.amount))")
+                (Text("of ") + Text(CurrencyFormatter.format(transaction.amount)).fontWeight(.bold))
                     .font(AppTypography.caption2())
                     .foregroundColor(AppColors.textSecondary)
             }

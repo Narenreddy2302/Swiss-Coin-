@@ -164,7 +164,7 @@ struct SubscriptionCostSummaryCard: View {
                         .font(.system(size: IconSize.xs))
                         .foregroundColor(AppColors.textTertiary)
 
-                    Text("Yearly: \(CurrencyFormatter.format(yourTotalMonthly * 12))")
+                    (Text("Yearly: ") + Text(CurrencyFormatter.format(yourTotalMonthly * 12)).fontWeight(.bold))
                         .font(AppTypography.caption())
                         .foregroundColor(AppColors.textTertiary)
                 }

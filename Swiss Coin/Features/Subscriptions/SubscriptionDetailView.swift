@@ -88,17 +88,20 @@ struct SubscriptionDetailView: View {
             Section {
                 LabeledContent("Monthly") {
                     Text(CurrencyFormatter.format(subscription.monthlyEquivalent))
+                        .fontWeight(.bold)
                         .foregroundColor(AppColors.textSecondary)
                 }
 
                 LabeledContent("Yearly") {
                     Text(CurrencyFormatter.format(subscription.yearlyEquivalent))
+                        .fontWeight(.bold)
                         .foregroundColor(AppColors.textSecondary)
                 }
 
                 if subscription.isShared {
                     LabeledContent("Your Share") {
                         Text(CurrencyFormatter.format(subscription.myShare))
+                            .fontWeight(.bold)
                             .foregroundColor(AppColors.accent)
                     }
                 }
@@ -130,7 +133,9 @@ struct SubscriptionDetailView: View {
 
                             let balance = subscription.calculateBalanceWith(member: member)
                             if abs(balance) > 0.01 {
-                                Text(balance > 0 ? "owes you \(CurrencyFormatter.formatAbsolute(balance))" : "you owe \(CurrencyFormatter.formatAbsolute(abs(balance)))")
+                                (balance > 0
+                                    ? Text("owes you ") + Text(CurrencyFormatter.formatAbsolute(balance)).fontWeight(.bold)
+                                    : Text("you owe ") + Text(CurrencyFormatter.formatAbsolute(abs(balance))).fontWeight(.bold))
                                     .font(AppTypography.subheadline())
                                     .foregroundColor(balance > 0 ? AppColors.positive : AppColors.negative)
                             } else {

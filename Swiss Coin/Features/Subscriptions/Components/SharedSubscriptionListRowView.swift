@@ -35,6 +35,17 @@ struct SharedSubscriptionListRowView: View {
         }
     }
 
+    private var balanceTextView: Text {
+        let formatted = CurrencyFormatter.formatAbsolute(balance)
+        if balance > 0.01 {
+            return Text("you're owed ") + Text(formatted).fontWeight(.bold)
+        } else if balance < -0.01 {
+            return Text("you owe ") + Text(formatted).fontWeight(.bold)
+        } else {
+            return Text("settled up")
+        }
+    }
+
     private var balanceColor: Color {
         if balance > 0.01 {
             return AppColors.positive
@@ -73,7 +84,7 @@ struct SharedSubscriptionListRowView: View {
                         .font(AppTypography.subheadline())
                         .foregroundColor(AppColors.textSecondary)
 
-                    Text(balanceText)
+                    balanceTextView
                         .font(AppTypography.subheadline())
                         .foregroundColor(balanceColor)
                 }
