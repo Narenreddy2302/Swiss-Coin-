@@ -442,9 +442,19 @@ struct TransactionDetailView: View {
     }
 }
 
-// MARK: - Expanded Detail View (Full-Screen Overlay)
+// MARK: - Sheet Content Height Preference Key
 
-/// Full-screen detail overlay that opens instantly when a transaction row is tapped.
+private struct SheetContentHeightKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
+    }
+}
+
+// MARK: - Bottom Sheet Transaction Detail View
+
+/// Bottom sheet detail view that slides up from the bottom when a transaction row is tapped.
+/// Sizes itself dynamically based on content, only scrolling when content exceeds available space.
 struct TransactionExpandedView: View {
     @ObservedObject var transaction: FinancialTransaction
     var animationNamespace: Namespace.ID? = nil
@@ -460,6 +470,8 @@ struct TransactionExpandedView: View {
     // MARK: - View State
 
     @State private var isDismissing = false
+    @State private var isVisible = false
+    @State private var contentHeight: CGFloat = 0
 
     // Drag-to-dismiss
     @State private var dragOffset: CGFloat = 0
@@ -551,28 +563,92 @@ struct TransactionExpandedView: View {
 
     // Drag progress for interactive dismiss (0 = no drag, 1 = fully dragged)
     private var dragProgress: CGFloat {
-        let threshold = UIScreen.main.bounds.height * 0.35
+        let threshold: CGFloat = 300
         return min(max(dragOffset / threshold, 0), 1)
+    }
+
+    private var bottomSafeAreaInset: CGFloat {
+        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let window = windowScene.windows.first(where: { $0.isKeyWindow })
+        else { return 0 }
+        return window.safeAreaInsets.bottom
     }
 
     // MARK: - Body
 
     var body: some View {
-        ZStack {
-            // Dimmed scrim
-            Color.black
-                .opacity(Double(0.5 * (1 - dragProgress)))
-                .ignoresSafeArea()
-                .onTapGesture {
-                    guard !isDismissing else { return }
-                    dismissCard()
-                }
+        GeometryReader { geometry in
+            let safeBottom = bottomSafeAreaInset
+            let maxContentHeight = geometry.size.height - Spacing.section - safeBottom
+            let resolvedContentHeight = contentHeight > 0
+                ? min(contentHeight, maxContentHeight)
+                : maxContentHeight
+            let totalSheetHeight = resolvedContentHeight + safeBottom
 
-            // Full-screen detail card
-            detailCard
-                .offset(y: dragOffset)
-                .scaleEffect(1 - dragProgress * 0.05, anchor: .top)
+            ZStack(alignment: .bottom) {
+                // Dimmed scrim
+                Color.black
+                    .opacity(isVisible ? Double(0.5 * (1 - dragProgress)) : 0)
+                    .ignoresSafeArea()
+                    .onTapGesture {
+                        guard !isDismissing else { return }
+                        dismissCard()
+                    }
+                    .animation(.easeOut(duration: 0.25), value: isVisible)
+
+                // Bottom sheet
+                VStack(spacing: 0) {
+                    ScrollView(showsIndicators: false) {
+                        sheetContentView
+                            .background(
+                                GeometryReader { contentGeo in
+                                    Color.clear.preference(
+                                        key: SheetContentHeightKey.self,
+                                        value: contentGeo.size.height
+                                    )
+                                }
+                            )
+                    }
+                    .scrollBounceBehavior(.basedOnSize)
+                    .frame(height: resolvedContentHeight)
+
+                    // Bottom safe area fill
+                    Color.clear
+                        .frame(height: safeBottom)
+                }
+                .frame(maxWidth: .infinity)
+                .background(
+                    UnevenRoundedRectangle(
+                        topLeadingRadius: CornerRadius.xl,
+                        bottomLeadingRadius: 0,
+                        bottomTrailingRadius: 0,
+                        topTrailingRadius: CornerRadius.xl
+                    )
+                    .fill(AppColors.cardBackground)
+                    .shadow(color: Color.black.opacity(0.15), radius: 20, y: -4)
+                )
+                .clipShape(
+                    UnevenRoundedRectangle(
+                        topLeadingRadius: CornerRadius.xl,
+                        bottomLeadingRadius: 0,
+                        bottomTrailingRadius: 0,
+                        topTrailingRadius: CornerRadius.xl
+                    )
+                )
+                .offset(y: isVisible ? dragOffset : totalSheetHeight + safeBottom)
                 .gesture(dismissDragGesture)
+            }
+        }
+        .ignoresSafeArea(.container, edges: .bottom)
+        .onPreferenceChange(SheetContentHeightKey.self) { height in
+            contentHeight = height
+        }
+        .onAppear {
+            DispatchQueue.main.async {
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.86)) {
+                    isVisible = true
+                }
+            }
         }
         .sheet(isPresented: $showingEditSheet) {
             TransactionEditView(transaction: transaction)
@@ -600,9 +676,9 @@ struct TransactionExpandedView: View {
                 guard !isDismissing else { return }
                 let translation = value.translation.height
                 if translation > 0 {
-                    dragOffset = translation * 0.55
+                    dragOffset = translation * 0.7
                 } else {
-                    dragOffset = translation * 0.12
+                    dragOffset = translation * 0.1
                 }
             }
             .onEnded { value in
@@ -618,66 +694,51 @@ struct TransactionExpandedView: View {
             }
     }
 
-    // MARK: - Full-Screen Detail Card
+    // MARK: - Sheet Content
 
-    private var detailCard: some View {
-        ScrollView(showsIndicators: false) {
-            VStack(alignment: .leading, spacing: 0) {
-                // Drag indicator pill
-                dragIndicator
+    private var sheetContentView: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            // Drag indicator pill
+            dragIndicator
 
-                // SECTION: Header (icon + title + amount)
-                heroHeaderSection
+            // SECTION: Header (icon + title + amount)
+            heroHeaderSection
 
-                // SECTION: Net impact badge
-                netImpactBadge
+            // SECTION: Net impact badge
+            netImpactBadge
 
+            expandedDottedSeparator
+                .padding(.top, Spacing.lg)
+
+            // SECTION: Transaction details (date, time, ID, created by)
+            detailsInfoSection
+
+            expandedDottedSeparator
+
+            // SECTION: Payment info (paid by, participants, split method, group)
+            paymentInfoSection
+
+            // SECTION: Split breakdown
+            if !cachedSplits.isEmpty {
                 expandedDottedSeparator
-                    .padding(.top, Spacing.lg)
 
-                // SECTION: Transaction details (date, time, ID, created by)
-                detailsInfoSection
-
-                expandedDottedSeparator
-
-                // SECTION: Payment info (paid by, participants, split method, group)
-                paymentInfoSection
-
-                // SECTION: Split breakdown
-                if !cachedSplits.isEmpty {
-                    expandedDottedSeparator
-
-                    splitBreakdownSection
-                }
-
-                // SECTION: Note
-                if let note = transaction.note, !note.isEmpty {
-                    expandedDottedSeparator
-
-                    noteSection(note: note)
-                }
-
-                // SECTION: Action buttons
-                actionButtonsSection
-                    .padding(.top, Spacing.xl)
+                splitBreakdownSection
             }
-            .padding(.horizontal, Spacing.xl)
-            .padding(.top, Spacing.md)
-            .padding(.bottom, Spacing.section)
+
+            // SECTION: Note
+            if let note = transaction.note, !note.isEmpty {
+                expandedDottedSeparator
+
+                noteSection(note: note)
+            }
+
+            // SECTION: Action buttons
+            actionButtonsSection
+                .padding(.top, Spacing.xl)
         }
-        .background(
-            RoundedRectangle(cornerRadius: CornerRadius.xl)
-                .fill(AppColors.cardBackground)
-                .shadow(
-                    color: Color.black.opacity(0.18),
-                    radius: 24,
-                    y: 8
-                )
-        )
-        .clipShape(RoundedRectangle(cornerRadius: CornerRadius.xl))
-        .compositingGroup()
-        .padding(.horizontal, Spacing.sm)
-        .padding(.top, Spacing.section)
+        .padding(.horizontal, Spacing.xl)
+        .padding(.top, Spacing.md)
+        .padding(.bottom, Spacing.section)
     }
 
     // MARK: - Drag Indicator
@@ -1005,7 +1066,12 @@ struct TransactionExpandedView: View {
         guard !isDismissing else { return }
         isDismissing = true
         HapticManager.lightTap()
-        selectedTransaction = nil
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.9)) {
+            isVisible = false
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+            selectedTransaction = nil
+        }
     }
 
     // MARK: - Helpers
