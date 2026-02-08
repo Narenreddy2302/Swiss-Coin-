@@ -91,7 +91,7 @@ struct TransactionCardView: View {
         HStack(alignment: .center, spacing: Spacing.md) {
             VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text(transaction.title ?? "Expense")
-                    .font(AppTypography.headline())
+                    .font(AppTypography.body())
                     .foregroundColor(AppColors.textPrimary)
                     .lineLimit(1)
 
