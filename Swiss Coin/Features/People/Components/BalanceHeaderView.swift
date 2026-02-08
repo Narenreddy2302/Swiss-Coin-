@@ -22,6 +22,18 @@ struct BalanceHeaderView: View {
         }
     }
 
+    private var balanceTextView: Text {
+        let formatted = CurrencyFormatter.format(abs(balance))
+
+        if balance > 0.01 {
+            return Text("\(person.firstName) owes you ") + Text(formatted).fontWeight(.bold)
+        } else if balance < -0.01 {
+            return Text("You owe \(person.firstName) ") + Text(formatted).fontWeight(.bold)
+        } else {
+            return Text("All settled up!")
+        }
+    }
+
     private var balanceColor: Color {
         if balance > 0.01 {
             return AppColors.positive
@@ -67,7 +79,7 @@ struct BalanceHeaderView: View {
             // Balance Card
             HStack {
                 Spacer()
-                Text(balanceText)
+                balanceTextView
                     .font(AppTypography.subheadlineMedium())
                     .foregroundColor(balanceColor)
                 Spacer()

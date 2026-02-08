@@ -360,7 +360,9 @@ private struct SearchPersonRow: View {
                     .lineLimit(1)
 
                 if abs(balance) > 0.01 {
-                    Text(balance > 0 ? "owes you \(CurrencyFormatter.formatAbsolute(balance))" : "you owe \(CurrencyFormatter.formatAbsolute(balance))")
+                    (balance > 0
+                        ? Text("owes you ") + Text(CurrencyFormatter.formatAbsolute(balance)).fontWeight(.bold)
+                        : Text("you owe ") + Text(CurrencyFormatter.formatAbsolute(balance)).fontWeight(.bold))
                         .font(AppTypography.subheadline())
                         .foregroundColor(balanceColor)
                 } else {
@@ -442,6 +444,7 @@ private struct SearchSubscriptionRow: View {
                 HStack(spacing: Spacing.xs) {
                     Text(CurrencyFormatter.format(subscription.amount))
                         .font(AppTypography.subheadline())
+                        .fontWeight(.bold)
                         .foregroundColor(AppColors.textSecondary)
 
                     if let cycle = subscription.cycle {

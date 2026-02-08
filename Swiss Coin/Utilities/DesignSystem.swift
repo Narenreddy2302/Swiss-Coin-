@@ -755,9 +755,9 @@ enum AppColors {
 ///   caption              11pt   Regular     14pt      0.1pt     Sans
 /// ───────────────────────────────────────────────────────────────────
 ///   financial.hero       34pt   Bold        40pt     -0.4pt     Sans Rounded
-///   financial.large      24pt   Semibold    30pt     -0.2pt     Sans
-///   financial.default    17pt   Medium      22pt      0         Sans
-///   financial.small      13pt   Medium      18pt      0         Sans
+///   financial.large      24pt   Bold        30pt     -0.2pt     Sans
+///   financial.default    17pt   Bold        22pt      0         Sans
+///   financial.small      13pt   Bold        18pt      0         Sans
 /// ───────────────────────────────────────────────────────────────────
 ///   button.large         17pt   Semibold    22pt      0         Sans
 ///   button.default       15pt   Semibold    20pt      0         Sans
@@ -897,19 +897,19 @@ enum AppTypography {
         .system(size: 34, weight: .bold, design: .rounded).monospacedDigit()
     }
 
-    /// Financial large - 24pt semibold, monospaced digits (line: 30pt, tracking: -0.2pt)
+    /// Financial large - 24pt bold, monospaced digits (line: 30pt, tracking: -0.2pt)
     static func financialLarge() -> Font {
-        .system(size: 24, weight: .semibold).monospacedDigit()
+        .system(size: 24, weight: .bold).monospacedDigit()
     }
 
-    /// Financial default - 17pt medium, monospaced digits (line: 22pt)
+    /// Financial default - 17pt bold, monospaced digits (line: 22pt)
     static func financialDefault() -> Font {
-        .system(size: 17, weight: .medium).monospacedDigit()
+        .system(size: 17, weight: .bold).monospacedDigit()
     }
 
-    /// Financial small - 13pt medium, monospaced digits (line: 18pt)
+    /// Financial small - 13pt bold, monospaced digits (line: 18pt)
     static func financialSmall() -> Font {
-        .system(size: 13, weight: .medium).monospacedDigit()
+        .system(size: 13, weight: .bold).monospacedDigit()
     }
 
     // MARK: - Button Text

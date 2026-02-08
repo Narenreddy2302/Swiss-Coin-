@@ -98,7 +98,7 @@ struct GroupTransactionCardView: View {
                     .font(AppTypography.amount())
                     .foregroundColor(amountColor)
 
-                Text("\(totalAmountText) / \(splitCountText)")
+                (Text(totalAmountText).fontWeight(.bold) + Text(" / \(splitCountText)"))
                     .font(AppTypography.caption())
                     .foregroundColor(AppColors.textSecondary)
             }

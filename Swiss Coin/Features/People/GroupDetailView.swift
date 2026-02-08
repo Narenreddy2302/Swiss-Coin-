@@ -26,43 +26,44 @@ struct GroupDetailView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 0) {
-                // Group Header
-                groupHeader
-                    .padding(.top, Spacing.lg)
+        List {
+            // Group Header
+            Section {
+                VStack(alignment: .center, spacing: Spacing.lg) {
+                    Circle()
+                        .fill(Color(hex: group.colorHex ?? CurrentUser.defaultColorHex).opacity(0.2))
+                        .frame(width: AvatarSize.xxl, height: AvatarSize.xxl)
+                        .overlay(
+                            Image(systemName: "person.3.fill")
+                                .font(.system(size: IconSize.xl))
+                                .foregroundColor(Color(hex: group.colorHex ?? CurrentUser.defaultColorHex))
+                        )
 
-                // Action Buttons
-                actionButtons
-                    .padding(.top, Spacing.lg)
-                    .padding(.horizontal, Spacing.lg)
+                    VStack(spacing: Spacing.xs) {
+                        Text(group.name ?? "Unnamed Group")
+                            .font(AppTypography.title2())
+                            .foregroundColor(AppColors.textPrimary)
 
-                // Members Section
-                membersSection
-                    .padding(.top, Spacing.xl)
+                        Text("\(group.members?.count ?? 0) Members")
+                            .font(AppTypography.subheadline())
+                            .foregroundColor(AppColors.textSecondary)
 
-                // Expenses Section
-                expensesSection
-                    .padding(.top, Spacing.xl)
-            }
-            .padding(.bottom, Spacing.section)
-        }
-        .background(AppColors.backgroundSecondary)
-        .navigationBarTitleDisplayMode(.inline)
-        .navigationTitle(group.name ?? "Group")
-        .sheet(isPresented: $showingAddTransaction) {
-            QuickActionSheetPresenter(initialGroup: group)
-        }
-        .sheet(isPresented: $showingSettlement) {
-            GroupSettlementView(group: group)
-        }
-        .sheet(isPresented: $showingConversation) {
-            NavigationStack {
-                GroupConversationView(group: group)
-                    .toolbar {
-                        ToolbarItem(placement: .navigationBarTrailing) {
-                            Button("Done") {
-                                showingConversation = false
+                        // Balance summary
+                        if abs(balance) > 0.01 {
+                            HStack(spacing: Spacing.xs) {
+                                if balance > 0 {
+                                    Text("You're owed")
+                                        .foregroundColor(AppColors.textSecondary)
+                                    Text(CurrencyFormatter.format(balance))
+                                        .fontWeight(.bold)
+                                        .foregroundColor(AppColors.positive)
+                                } else {
+                                    Text("You owe")
+                                        .foregroundColor(AppColors.textSecondary)
+                                    Text(CurrencyFormatter.format(abs(balance)))
+                                        .fontWeight(.bold)
+                                        .foregroundColor(AppColors.negative)
+                                }
                             }
                         }
                     }
@@ -252,12 +253,12 @@ struct GroupDetailView: View {
 
                         if abs(item.balance) > 0.01 {
                             if item.balance > 0 {
-                                Text("owes \(CurrencyFormatter.format(item.balance))")
-                                    .font(AppTypography.footnote())
+                                (Text("owes ") + Text(CurrencyFormatter.format(item.balance)).fontWeight(.bold))
+                                    .font(AppTypography.caption())
                                     .foregroundColor(AppColors.positive)
                             } else {
-                                Text("owed \(CurrencyFormatter.format(abs(item.balance)))")
-                                    .font(AppTypography.footnote())
+                                (Text("owed ") + Text(CurrencyFormatter.format(abs(item.balance))).fontWeight(.bold))
+                                    .font(AppTypography.caption())
                                     .foregroundColor(AppColors.negative)
                             }
                         } else {
@@ -423,7 +424,7 @@ struct GroupDetailTransactionRow: View {
                     .font(AppTypography.amountSmall())
                     .foregroundColor(amountColor)
 
-                Text("of \(CurrencyFormatter.format(transaction.amount))")
+                (Text("of ") + Text(CurrencyFormatter.format(transaction.amount)).fontWeight(.bold))
                     .font(AppTypography.caption2())
                     .foregroundColor(AppColors.textSecondary)
             }

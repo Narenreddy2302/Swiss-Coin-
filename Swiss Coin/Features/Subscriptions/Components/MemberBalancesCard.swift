@@ -43,7 +43,9 @@ struct MemberBalancesCard: View {
                         Spacer()
 
                         if abs(item.balance) > 0.01 {
-                            Text(item.balance > 0 ? "owes you \(CurrencyFormatter.formatAbsolute(item.balance))" : "you owe \(CurrencyFormatter.formatAbsolute(abs(item.balance)))")
+                            (item.balance > 0
+                                ? Text("owes you ") + Text(CurrencyFormatter.formatAbsolute(item.balance)).fontWeight(.bold)
+                                : Text("you owe ") + Text(CurrencyFormatter.formatAbsolute(abs(item.balance))).fontWeight(.bold))
                                 .font(AppTypography.subheadline())
                                 .foregroundColor(item.balance > 0 ? AppColors.positive : AppColors.negative)
                         } else {

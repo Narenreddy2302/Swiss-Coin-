@@ -28,7 +28,7 @@ struct SubscriptionInfoCard: View {
                         .font(AppTypography.headline())
                         .foregroundColor(AppColors.textPrimary)
 
-                    Text("\(CurrencyFormatter.format(subscription.amount))/\(subscription.cycleAbbreviation)")
+                    (Text(CurrencyFormatter.format(subscription.amount)).fontWeight(.bold) + Text("/\(subscription.cycleAbbreviation)"))
                         .font(AppTypography.subheadline())
                         .foregroundColor(AppColors.textSecondary)
                 }
@@ -59,7 +59,7 @@ struct SubscriptionInfoCard: View {
                 Spacer()
 
                 Text(CurrencyFormatter.format(subscription.myShare))
-                    .font(AppTypography.bodyBold())
+                    .font(AppTypography.financialDefault())
                     .foregroundColor(AppColors.textPrimary)
 
                 Text("/\(subscription.cycleAbbreviation)")

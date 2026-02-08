@@ -118,13 +118,14 @@ struct RecordSubscriptionPaymentView: View {
                         Text("Total")
                         Spacer()
                         Text(CurrencyFormatter.format(paymentAmount))
+                            .fontWeight(.bold)
                             .foregroundColor(AppColors.textSecondary)
                     }
 
                     HStack {
                         Text("Split \(subscription.subscriberCount) ways")
                         Spacer()
-                        Text("\(CurrencyFormatter.format(splitAmount)) each")
+                        (Text(CurrencyFormatter.format(splitAmount)).fontWeight(.bold) + Text(" each"))
                             .foregroundColor(AppColors.textSecondary)
                     }
                 } header: {
