@@ -18,15 +18,7 @@ struct TransactionDetailView: View {
     @State private var showingError = false
     @State private var errorMessage = ""
 
-    // MARK: - Entrance Animation States
-
-    @State private var hasAnimated = false
-    @State private var headerVisible = false
-    @State private var infoVisible = false
-    @State private var paymentVisible = false
-    @State private var impactVisible = false
-    @State private var breakdownVisible = false
-    @State private var groupVisible = false
+    // Content is shown immediately — no stagger animation
 
     // MARK: - Computed Properties (Cached)
 
@@ -108,71 +100,40 @@ struct TransactionDetailView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                let base = AppAnimation.staggerBaseDelay
-                let stagger = AppAnimation.staggerInterval
-
                 // Header: Icon + Name + Amount + Type
                 detailHeaderSection
                     .padding(.bottom, Spacing.lg)
-                    .opacity(headerVisible ? 1 : 0)
-                    .offset(y: headerVisible ? 0 : 10)
-                    .animation(AppAnimation.contentReveal.delay(base), value: headerVisible)
 
                 detailDottedSeparator
-                    .opacity(infoVisible ? 1 : 0)
-                    .animation(AppAnimation.contentReveal.delay(base + stagger), value: infoVisible)
 
                 // Transaction details: ID, Date, Time
                 detailInfoSection
                     .padding(.vertical, Spacing.lg)
-                    .opacity(infoVisible ? 1 : 0)
-                    .offset(y: infoVisible ? 0 : 10)
-                    .animation(AppAnimation.contentReveal.delay(base + stagger), value: infoVisible)
 
                 detailDottedSeparator
-                    .opacity(paymentVisible ? 1 : 0)
-                    .animation(AppAnimation.contentReveal.delay(base + stagger * 2), value: paymentVisible)
 
                 // Payment & Split info
                 detailPaymentSection
                     .padding(.vertical, Spacing.lg)
-                    .opacity(paymentVisible ? 1 : 0)
-                    .offset(y: paymentVisible ? 0 : 10)
-                    .animation(AppAnimation.contentReveal.delay(base + stagger * 2), value: paymentVisible)
 
                 detailDottedSeparator
-                    .opacity(impactVisible ? 1 : 0)
-                    .animation(AppAnimation.contentReveal.delay(base + stagger * 3), value: impactVisible)
 
                 // Net impact + Note
                 detailNetImpactSection
                     .padding(.vertical, Spacing.lg)
-                    .opacity(impactVisible ? 1 : 0)
-                    .offset(y: impactVisible ? 0 : 10)
-                    .animation(AppAnimation.contentReveal.delay(base + stagger * 3), value: impactVisible)
 
                 // Split breakdown
                 if !cachedSplits.isEmpty {
                     detailDottedSeparator
-                        .opacity(breakdownVisible ? 1 : 0)
-                        .animation(AppAnimation.contentReveal.delay(base + stagger * 4), value: breakdownVisible)
                     detailSplitBreakdown
                         .padding(.vertical, Spacing.lg)
-                        .opacity(breakdownVisible ? 1 : 0)
-                        .offset(y: breakdownVisible ? 0 : 10)
-                        .animation(AppAnimation.contentReveal.delay(base + stagger * 4), value: breakdownVisible)
                 }
 
                 // Group info
                 if transaction.group != nil {
                     detailDottedSeparator
-                        .opacity(groupVisible ? 1 : 0)
-                        .animation(AppAnimation.contentReveal.delay(base + stagger * 5), value: groupVisible)
                     detailGroupSection
                         .padding(.vertical, Spacing.lg)
-                        .opacity(groupVisible ? 1 : 0)
-                        .offset(y: groupVisible ? 0 : 10)
-                        .animation(AppAnimation.contentReveal.delay(base + stagger * 5), value: groupVisible)
                 }
             }
             .padding(.horizontal, Spacing.xl)
@@ -188,8 +149,6 @@ struct TransactionDetailView: View {
         }
         .background(AppColors.backgroundSecondary)
         .navigationTitle("Transaction")
-        .onAppear { animateSectionsIn() }
-        .onDisappear { resetAnimationState() }
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
@@ -459,34 +418,6 @@ struct TransactionDetailView: View {
         TransactionDetailHelpers.splitAmountColor(for: split, isCurrentUserAPayer: isCurrentUserAPayer)
     }
 
-    // MARK: - Entrance Animation
-
-    private func animateSectionsIn() {
-        guard !hasAnimated else { return }
-        hasAnimated = true
-
-        // Batch all visibility changes into a single withAnimation transaction.
-        // Per-section stagger delays are applied via .animation() modifiers in body.
-        withAnimation(AppAnimation.contentReveal) {
-            headerVisible = true
-            infoVisible = true
-            paymentVisible = true
-            impactVisible = true
-            breakdownVisible = true
-            groupVisible = true
-        }
-    }
-
-    private func resetAnimationState() {
-        hasAnimated = false
-        headerVisible = false
-        infoVisible = false
-        paymentVisible = false
-        impactVisible = false
-        breakdownVisible = false
-        groupVisible = false
-    }
-
     // MARK: - Delete Action
 
     private func deleteTransaction() {
@@ -511,13 +442,12 @@ struct TransactionDetailView: View {
     }
 }
 
-// MARK: - Expanded Detail View (Hero Morphing Animation)
+// MARK: - Expanded Detail View (Full-Screen Overlay)
 
-/// Full-screen detail overlay that morphs fluidly from the tapped transaction row.
-/// Uses matchedGeometryEffect for continuous card-to-detail morphing — no cuts or fades.
+/// Full-screen detail overlay that opens instantly when a transaction row is tapped.
 struct TransactionExpandedView: View {
     @ObservedObject var transaction: FinancialTransaction
-    var animationNamespace: Namespace.ID
+    var animationNamespace: Namespace.ID? = nil
     @Binding var selectedTransaction: FinancialTransaction?
 
     @Environment(\.managedObjectContext) private var viewContext
@@ -527,17 +457,8 @@ struct TransactionExpandedView: View {
     @State private var showingError = false
     @State private var errorMessage = ""
 
-    // MARK: - Morphing Animation States
+    // MARK: - View State
 
-    @State private var scrimVisible = false
-    @State private var contentRevealed = false
-    @State private var dragIndicatorVisible = false
-    @State private var section1Visible = false
-    @State private var section2Visible = false
-    @State private var section3Visible = false
-    @State private var section4Visible = false
-    @State private var section5Visible = false
-    @State private var closeButtonVisible = false
     @State private var isDismissing = false
 
     // Drag-to-dismiss
@@ -555,10 +476,6 @@ struct TransactionExpandedView: View {
     private var cachedSplits: [TransactionSplit] {
         let splitSet = transaction.splits as? Set<TransactionSplit> ?? []
         return splitSet.sorted { ($0.owedBy?.displayName ?? "") < ($1.owedBy?.displayName ?? "") }
-    }
-
-    private var stableId: String {
-        transaction.id?.uuidString ?? transaction.objectID.uriRepresentation().absoluteString
     }
 
     private var splitMethod: SplitMethod? {
@@ -633,7 +550,6 @@ struct TransactionExpandedView: View {
     }
 
     // Drag progress for interactive dismiss (0 = no drag, 1 = fully dragged)
-    // Uses 35% of screen height for consistent feel across device sizes
     private var dragProgress: CGFloat {
         let threshold = UIScreen.main.bounds.height * 0.35
         return min(max(dragOffset / threshold, 0), 1)
@@ -643,22 +559,21 @@ struct TransactionExpandedView: View {
 
     var body: some View {
         ZStack {
-            // Dimmed scrim — fades in, interactive with drag (matched to card scale curve)
+            // Dimmed scrim
             Color.black
-                .opacity(Double((scrimVisible ? 0.5 : 0) * (1 - dragProgress)))
+                .opacity(Double(0.5 * (1 - dragProgress)))
                 .ignoresSafeArea()
                 .onTapGesture {
                     guard !isDismissing else { return }
                     dismissCard()
                 }
 
-            // Morphing detail card
-            morphingDetailCard
+            // Full-screen detail card
+            detailCard
                 .offset(y: dragOffset)
                 .scaleEffect(1 - dragProgress * 0.05, anchor: .top)
                 .gesture(dismissDragGesture)
         }
-        .onAppear { animateIn() }
         .sheet(isPresented: $showingEditSheet) {
             TransactionEditView(transaction: transaction)
                 .environment(\.managedObjectContext, viewContext)
@@ -685,123 +600,84 @@ struct TransactionExpandedView: View {
                 guard !isDismissing else { return }
                 let translation = value.translation.height
                 if translation > 0 {
-                    // Natural rubber-band resistance — diminishing return on long drags
                     dragOffset = translation * 0.55
                 } else {
-                    // Very resistant upward drag (prevents over-scrolling the card up)
                     dragOffset = translation * 0.12
                 }
             }
             .onEnded { value in
                 guard !isDismissing else { return }
                 let velocity = value.predictedEndTranslation.height
-                // Dismiss if dragged far enough OR if velocity is high (flick gesture)
                 if dragOffset > 100 || velocity > 400 {
                     dismissCard()
                 } else {
-                    // Snap back with a lively spring
-                    withAnimation(AppAnimation.interactiveSpring) {
+                    withAnimation(.spring(response: 0.2, dampingFraction: 0.9)) {
                         dragOffset = 0
                     }
                 }
             }
     }
 
-    // MARK: - Morphing Detail Card
+    // MARK: - Full-Screen Detail Card
 
-    private var morphingDetailCard: some View {
+    private var detailCard: some View {
         ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: 0) {
-                let base = AppAnimation.staggerBaseDelay
-                let stagger = AppAnimation.staggerInterval
-
                 // Drag indicator pill
                 dragIndicator
-                    .opacity(dragIndicatorVisible ? 1 : 0)
-                    .scaleEffect(x: dragIndicatorVisible ? 1 : 0.5, y: 1)
-                    .animation(AppAnimation.cardMorph.delay(0.12), value: dragIndicatorVisible)
 
-                // SECTION: Hero header (icon + title + amount — these morph from the row)
+                // SECTION: Header (icon + title + amount)
                 heroHeaderSection
 
                 // SECTION: Net impact badge
                 netImpactBadge
-                    .opacity(section1Visible ? 1 : 0)
-                    .offset(y: section1Visible ? 0 : 12)
-                    .animation(AppAnimation.contentReveal.delay(base), value: section1Visible)
 
                 expandedDottedSeparator
-                    .opacity(section2Visible ? 1 : 0)
                     .padding(.top, Spacing.lg)
-                    .animation(AppAnimation.contentReveal.delay(base + stagger), value: section2Visible)
 
                 // SECTION: Transaction details (date, time, ID, created by)
                 detailsInfoSection
-                    .opacity(section2Visible ? 1 : 0)
-                    .offset(y: section2Visible ? 0 : 12)
-                    .animation(AppAnimation.contentReveal.delay(base + stagger), value: section2Visible)
 
                 expandedDottedSeparator
-                    .opacity(section3Visible ? 1 : 0)
-                    .animation(AppAnimation.contentReveal.delay(base + stagger * 2), value: section3Visible)
 
                 // SECTION: Payment info (paid by, participants, split method, group)
                 paymentInfoSection
-                    .opacity(section3Visible ? 1 : 0)
-                    .offset(y: section3Visible ? 0 : 12)
-                    .animation(AppAnimation.contentReveal.delay(base + stagger * 2), value: section3Visible)
 
                 // SECTION: Split breakdown
                 if !cachedSplits.isEmpty {
                     expandedDottedSeparator
-                        .opacity(section4Visible ? 1 : 0)
-                        .animation(AppAnimation.contentReveal.delay(base + stagger * 3), value: section4Visible)
 
                     splitBreakdownSection
-                        .opacity(section4Visible ? 1 : 0)
-                        .offset(y: section4Visible ? 0 : 12)
-                        .animation(AppAnimation.contentReveal.delay(base + stagger * 3), value: section4Visible)
                 }
 
                 // SECTION: Note
                 if let note = transaction.note, !note.isEmpty {
                     expandedDottedSeparator
-                        .opacity(section4Visible ? 1 : 0)
-                        .animation(AppAnimation.contentReveal.delay(base + stagger * 3), value: section4Visible)
 
                     noteSection(note: note)
-                        .opacity(section4Visible ? 1 : 0)
-                        .offset(y: section4Visible ? 0 : 12)
-                        .animation(AppAnimation.contentReveal.delay(base + stagger * 3), value: section4Visible)
                 }
 
                 // SECTION: Action buttons
                 actionButtonsSection
-                    .opacity(section5Visible ? 1 : 0)
-                    .offset(y: section5Visible ? 0 : 12)
                     .padding(.top, Spacing.xl)
-                    .animation(AppAnimation.contentReveal.delay(base + stagger * 4), value: section5Visible)
             }
             .padding(.horizontal, Spacing.xl)
             .padding(.top, Spacing.md)
             .padding(.bottom, Spacing.section)
         }
         .background(
-            RoundedRectangle(cornerRadius: contentRevealed ? CornerRadius.xl : CornerRadius.md)
+            RoundedRectangle(cornerRadius: CornerRadius.xl)
                 .fill(AppColors.cardBackground)
-                .matchedGeometryEffect(id: "bg-\(stableId)", in: animationNamespace)
                 .shadow(
-                    color: Color.black.opacity(scrimVisible ? 0.18 * (1 - dragProgress * 0.4) : 0),
-                    radius: contentRevealed ? 6 + 18 * (1 - dragProgress * 0.4) : 6,
-                    y: contentRevealed ? 2 + 6 * (1 - dragProgress * 0.4) : 2
+                    color: Color.black.opacity(0.18),
+                    radius: 24,
+                    y: 8
                 )
         )
-        .clipShape(RoundedRectangle(cornerRadius: contentRevealed ? CornerRadius.xl : CornerRadius.md))
+        .clipShape(RoundedRectangle(cornerRadius: CornerRadius.xl))
         .compositingGroup()
-        .scrollDisabled(!contentRevealed)
         .padding(.horizontal, Spacing.sm)
-        .padding(.top, Spacing.section + Spacing.xl)
-        .frame(maxHeight: UIScreen.main.bounds.height * 0.88)
+        .padding(.top, Spacing.section)
     }
 
     // MARK: - Drag Indicator
@@ -817,13 +693,12 @@ struct TransactionExpandedView: View {
         .padding(.bottom, Spacing.lg)
     }
 
-    // MARK: - Hero Header (Matched Geometry)
+    // MARK: - Header Section
 
     private var heroHeaderSection: some View {
         VStack(alignment: .leading, spacing: Spacing.lg) {
             // Top: Icon row with close button
             HStack(alignment: .top) {
-                // Morphing icon — matches the row icon
                 RoundedRectangle(cornerRadius: CornerRadius.md)
                     .fill(amountColor.opacity(0.12))
                     .frame(width: 56, height: 56)
@@ -832,11 +707,10 @@ struct TransactionExpandedView: View {
                             .font(.system(size: 24, weight: .semibold))
                             .foregroundColor(amountColor)
                     )
-                    .matchedGeometryEffect(id: "icon-\(stableId)", in: animationNamespace)
 
                 Spacer()
 
-                // Close button — fades in after morph
+                // Close button
                 Button {
                     guard !isDismissing else { return }
                     HapticManager.lightTap()
@@ -849,40 +723,32 @@ struct TransactionExpandedView: View {
                             AppColors.backgroundTertiary
                         )
                 }
-                .opacity(closeButtonVisible ? 1 : 0)
-                .scaleEffect(closeButtonVisible ? 1 : 0.5)
-                .animation(AppAnimation.cardMorph.delay(0.18), value: closeButtonVisible)
             }
 
-            // Title — morphs from row position to detail position
+            // Title
             VStack(alignment: .leading, spacing: Spacing.xs) {
                 Text(transaction.title ?? "Unknown")
                     .font(.system(size: 24, weight: .bold))
                     .foregroundColor(AppColors.textPrimary)
                     .lineLimit(3)
-                    .matchedGeometryEffect(id: "title-\(stableId)", in: animationNamespace)
 
-                // Split method label — appears after morph
                 Text(splitMethod?.displayName ?? "Expense")
                     .font(AppTypography.subheadline())
                     .foregroundColor(AppColors.textSecondary)
-                    .opacity(contentRevealed ? 1 : 0)
             }
 
-            // Total amount — morphs from row position
+            // Total amount
             HStack(alignment: .firstTextBaseline) {
                 Text(CurrencyFormatter.format(transaction.amount))
                     .font(.system(size: 34, weight: .bold, design: .rounded))
                     .foregroundColor(AppColors.textPrimary)
-                    .matchedGeometryEffect(id: "amount-\(stableId)", in: animationNamespace)
 
                 Spacer()
 
-                // User net amount (secondary)
+                // User net amount
                 Text(userAmountPrefix + CurrencyFormatter.format(abs(userNetAmount)))
                     .font(.system(size: 17, weight: .semibold, design: .rounded))
                     .foregroundColor(amountColor)
-                    .opacity(contentRevealed ? 1 : 0)
             }
         }
         .padding(.bottom, Spacing.md)
@@ -1133,59 +999,13 @@ struct TransactionExpandedView: View {
             .frame(height: 1)
     }
 
-    // MARK: - Animations
-
-    private func animateIn() {
-        // Phase 1: Card morph + scrim — matched geometry drives the spatial transition
-        withAnimation(AppAnimation.cardMorph) {
-            scrimVisible = true
-            contentRevealed = true
-        }
-
-        // Phase 2: Drag indicator + close button — batched into single transaction
-        // Per-element stagger applied via .animation() modifiers in the view hierarchy
-        withAnimation(AppAnimation.cardMorph) {
-            dragIndicatorVisible = true
-            closeButtonVisible = true
-        }
-
-        // Phase 3: All staggered content sections — single transaction, per-section delays via .animation() modifiers
-        withAnimation(AppAnimation.contentReveal) {
-            section1Visible = true
-            section2Visible = true
-            section3Visible = true
-            section4Visible = true
-            section5Visible = true
-        }
-    }
+    // MARK: - Dismiss
 
     private func dismissCard() {
         guard !isDismissing else { return }
         isDismissing = true
         HapticManager.lightTap()
-
-        // Phase 1: All inner content collapses simultaneously with fast spring
-        withAnimation(AppAnimation.dismiss) {
-            section5Visible = false
-            section4Visible = false
-            section3Visible = false
-            section2Visible = false
-            section1Visible = false
-            closeButtonVisible = false
-            dragIndicatorVisible = false
-        }
-
-        // Phase 2: Card morphs back to row position + scrim fades (slight delay for content to clear)
-        withAnimation(.spring(response: 0.4, dampingFraction: 0.88).delay(0.08)) {
-            contentRevealed = false
-            scrimVisible = false
-            dragOffset = 0
-        }
-
-        // Phase 3: Remove from view hierarchy after morph settles (0.6s provides safe margin over 480ms morph)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
-            selectedTransaction = nil
-        }
+        selectedTransaction = nil
     }
 
     // MARK: - Helpers
