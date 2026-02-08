@@ -149,7 +149,7 @@ enum AppColors {
     // MARK: - Status Colors
 
     /// Positive balance / money owed to user
-    static let positive = Color.blue
+    static let positive = Color.green
 
     /// Negative balance / money user owes
     static let negative = Color.red
