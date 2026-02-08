@@ -136,7 +136,10 @@ struct EditSubscriptionView: View {
             DatePicker("Next Billing", selection: $nextBillingDate, displayedComponents: .date)
 
             Picker("Category", selection: $selectedCategory) {
-                ForEach(categories, id: \.self) { Text($0) }
+                ForEach(categories, id: \.self) { category in
+                    Label(category, systemImage: iconFor(category))
+                        .tag(category)
+                }
             }
         } header: {
             Text("Subscription Details")
@@ -237,6 +240,19 @@ struct EditSubscriptionView: View {
             Text("Notes")
         }
         .listRowBackground(AppColors.cardBackground)
+    }
+
+    private func iconFor(_ category: String) -> String {
+        switch category {
+        case "Entertainment": return "film.fill"
+        case "Productivity": return "briefcase.fill"
+        case "Utilities": return "bolt.fill"
+        case "Health": return "heart.fill"
+        case "Food": return "fork.knife"
+        case "Transportation": return "car.fill"
+        case "Education": return "book.fill"
+        default: return "creditcard.fill"
+        }
     }
 
     private func saveSubscription() {

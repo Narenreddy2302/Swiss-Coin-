@@ -57,6 +57,7 @@
         <attribute name="notes" optional="YES" attributeType="String"/>
         <attribute name="notificationEnabled" optional="NO" attributeType="Boolean" defaultValueString="YES" usesScalarValueType="YES"/>
         <attribute name="notificationDaysBefore" optional="NO" attributeType="Integer 16" defaultValueString="3" usesScalarValueType="YES"/>
+        <attribute name="isArchived" optional="NO" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <relationship name="subscribers" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="Person" inverseName="toSubscriptions" inverseEntity="Person"/>
         <relationship name="payments" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="SubscriptionPayment" inverseName="subscription" inverseEntity="SubscriptionPayment"/>
         <relationship name="chatMessages" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="ChatMessage" inverseName="withSubscription" inverseEntity="ChatMessage"/>

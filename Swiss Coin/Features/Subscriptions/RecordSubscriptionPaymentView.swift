@@ -20,6 +20,7 @@ struct RecordSubscriptionPaymentView: View {
     @State private var showingPayerPicker = false
     @State private var showingError = false
     @State private var errorMessage = ""
+    @State private var isAmountValid = true
 
     @FetchRequest(
         sortDescriptors: [NSSortDescriptor(keyPath: \Person.name, ascending: true)],
@@ -32,7 +33,54 @@ struct RecordSubscriptionPaymentView: View {
     }
 
     private var canSave: Bool {
-        selectedPayer != nil && !amount.isEmpty && (Double(amount) ?? 0) > 0
+        selectedPayer != nil && isAmountValid && parsedAmount > 0
+    }
+
+    /// Parsed amount value, returns 0 if invalid
+    private var parsedAmount: Double {
+        Double(amount.trimmingCharacters(in: .whitespaces)) ?? 0
+    }
+
+    /// Validates the amount input and returns whether it's valid
+    private func validateAmount(_ value: String) -> Bool {
+        let trimmed = value.trimmingCharacters(in: .whitespaces)
+
+        // Empty is invalid but we don't show error for empty state
+        guard !trimmed.isEmpty else { return false }
+
+        // Must be a valid number
+        guard let numValue = Double(trimmed) else { return false }
+
+        // Must be positive and within reasonable bounds
+        guard numValue > 0 && numValue <= 999_999_999.99 else { return false }
+
+        // Check for reasonable decimal places (max 2)
+        if trimmed.contains(".") {
+            let parts = trimmed.split(separator: ".")
+            if parts.count == 2 && parts[1].count > 2 {
+                return false
+            }
+        }
+
+        return true
+    }
+
+    /// Sanitizes amount input to only allow valid numeric characters
+    private func sanitizeAmountInput(_ value: String) -> String {
+        var result = ""
+        var hasDecimal = false
+
+        for char in value {
+            if char.isNumber {
+                result.append(char)
+            } else if char == "." && !hasDecimal {
+                hasDecimal = true
+                result.append(char)
+            }
+            // Ignore any other characters
+        }
+
+        return result
     }
 
     private var members: [Person] {
@@ -86,11 +134,33 @@ struct RecordSubscriptionPaymentView: View {
 
                 // Amount
                 Section {
-                    HStack {
-                        Text(CurrencyFormatter.currencySymbol)
-                            .foregroundColor(AppColors.textSecondary)
-                        TextField("Amount", text: $amount)
-                            .keyboardType(.decimalPad)
+                    VStack(alignment: .leading, spacing: Spacing.xs) {
+                        HStack {
+                            Text(CurrencyFormatter.currencySymbol)
+                                .foregroundColor(AppColors.textSecondary)
+                            TextField("Amount", text: $amount)
+                                .keyboardType(.decimalPad)
+                                .onChange(of: amount) { _, newValue in
+                                    // Sanitize input to only allow valid numeric characters
+                                    let sanitized = sanitizeAmountInput(newValue)
+                                    if sanitized != newValue {
+                                        amount = sanitized
+                                    }
+                                    // Validate and update state
+                                    isAmountValid = sanitized.isEmpty || validateAmount(sanitized)
+                                }
+                        }
+
+                        // Show validation error feedback
+                        if !isAmountValid && !amount.isEmpty {
+                            HStack(spacing: Spacing.xs) {
+                                Image(systemName: "exclamationmark.circle.fill")
+                                    .font(.system(size: 12))
+                                Text("Please enter a valid amount")
+                                    .font(AppTypography.caption())
+                            }
+                            .foregroundColor(AppColors.negative)
+                        }
                     }
 
                     DatePicker("Date", selection: $date, displayedComponents: .date)
@@ -175,10 +245,12 @@ struct RecordSubscriptionPaymentView: View {
     private func savePayment() {
         HapticManager.save()
 
-        // Capture current billing date as the period start before advancing
-        let billingPeriodStart = subscription.nextBillingDate ?? date
+        // Capture all values at the start of save operation to prevent race conditions
+        // The nextBillingDate is read once and used consistently throughout
+        let capturedNextBillingDate = subscription.nextBillingDate
+        let billingPeriodStart = capturedNextBillingDate ?? date
 
-        // Calculate the new next billing date (period end)
+        // Calculate the new next billing date based on captured state
         let newNextBillingDate = subscription.calculateNextBillingDate(from: date)
 
         let payment = SubscriptionPayment(context: viewContext)
@@ -191,7 +263,7 @@ struct RecordSubscriptionPaymentView: View {
         payment.billingPeriodStart = billingPeriodStart
         payment.billingPeriodEnd = newNextBillingDate
 
-        // Update next billing date
+        // Update next billing date after creating payment with captured values
         subscription.nextBillingDate = newNextBillingDate
 
         do {

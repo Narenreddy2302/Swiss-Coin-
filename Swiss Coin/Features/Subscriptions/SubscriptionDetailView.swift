@@ -7,6 +7,7 @@
 
 import CoreData
 import SwiftUI
+import UIKit
 
 struct SubscriptionDetailView: View {
     @ObservedObject var subscription: Subscription
@@ -14,8 +15,11 @@ struct SubscriptionDetailView: View {
     @Environment(\.dismiss) var dismiss
     @State private var showingEditSheet = false
     @State private var showingDeleteAlert = false
+    @State private var showingArchiveAlert = false
     @State private var showingError = false
     @State private var errorMessage = ""
+    @State private var exportFileURL: URL?
+    @State private var showingExportSheet = false
 
     var body: some View {
         List {
@@ -248,11 +252,33 @@ struct SubscriptionDetailView: View {
 
                 Button {
                     HapticManager.tap()
+                    exportPaymentHistory()
+                } label: {
+                    Label("Export Payments", systemImage: "square.and.arrow.up")
+                }
+                .disabled(subscription.recentPayments.isEmpty)
+
+                Button {
+                    HapticManager.tap()
                     togglePauseStatus()
                 } label: {
                     Label(
                         subscription.isActive ? "Pause Subscription" : "Resume Subscription",
                         systemImage: subscription.isActive ? "pause.circle" : "play.circle"
+                    )
+                }
+
+                Button {
+                    HapticManager.tap()
+                    if subscription.isArchived {
+                        restoreSubscription()
+                    } else {
+                        showingArchiveAlert = true
+                    }
+                } label: {
+                    Label(
+                        subscription.isArchived ? "Restore Subscription" : "Archive Subscription",
+                        systemImage: subscription.isArchived ? "arrow.uturn.backward.circle" : "archivebox"
                     )
                 }
 
@@ -281,12 +307,25 @@ struct SubscriptionDetailView: View {
         } message: {
             Text("Are you sure you want to cancel this subscription? This action cannot be undone.")
         }
+        .alert("Archive Subscription", isPresented: $showingArchiveAlert) {
+            Button("Cancel", role: .cancel) {}
+            Button("Archive", role: .destructive) {
+                archiveSubscription()
+            }
+        } message: {
+            Text("This subscription will be moved to the archive. You can restore it later from the archived subscriptions list.")
+        }
         .alert("Error", isPresented: $showingError) {
             Button("OK", role: .cancel) {
                 HapticManager.tap()
             }
         } message: {
             Text(errorMessage)
+        }
+        .sheet(isPresented: $showingExportSheet) {
+            if let fileURL = exportFileURL {
+                ShareSheet(activityItems: [fileURL])
+            }
         }
     }
 
@@ -311,6 +350,45 @@ struct SubscriptionDetailView: View {
         }
     }
 
+    private func archiveSubscription() {
+        subscription.isArchived = true
+        subscription.isActive = false  // Deactivate when archiving
+        do {
+            try viewContext.save()
+
+            // Cancel any pending notification when archiving
+            NotificationManager.shared.cancelSubscriptionReminder(for: subscription)
+
+            HapticManager.success()
+            dismiss()
+        } catch {
+            viewContext.rollback()
+            HapticManager.error()
+            errorMessage = "Failed to archive subscription: \(error.localizedDescription)"
+            showingError = true
+        }
+    }
+
+    private func restoreSubscription() {
+        subscription.isArchived = false
+        subscription.isActive = true  // Reactivate when restoring
+        do {
+            try viewContext.save()
+
+            // Reschedule notification if enabled
+            if subscription.notificationEnabled {
+                NotificationManager.shared.scheduleSubscriptionReminder(for: subscription)
+            }
+
+            HapticManager.success()
+        } catch {
+            viewContext.rollback()
+            HapticManager.error()
+            errorMessage = "Failed to restore subscription: \(error.localizedDescription)"
+            showingError = true
+        }
+    }
+
     private func deleteSubscription() {
         HapticManager.delete()
 
@@ -327,6 +405,19 @@ struct SubscriptionDetailView: View {
             errorMessage = "Failed to delete subscription: \(error.localizedDescription)"
             showingError = true
         }
+    }
+
+    private func exportPaymentHistory() {
+        guard let fileURL = subscription.createPaymentHistoryCSVFile() else {
+            HapticManager.error()
+            errorMessage = "Failed to create export file"
+            showingError = true
+            return
+        }
+
+        exportFileURL = fileURL
+        showingExportSheet = true
+        HapticManager.success()
     }
 }
 
@@ -358,4 +449,28 @@ struct PaymentHistoryRow: View {
                 .foregroundColor(AppColors.textPrimary)
         }
     }
+}
+
+// MARK: - Share Sheet
+
+struct ShareSheet: UIViewControllerRepresentable {
+    let activityItems: [Any]
+    var applicationActivities: [UIActivity]? = nil
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        let controller = UIActivityViewController(
+            activityItems: activityItems,
+            applicationActivities: applicationActivities
+        )
+
+        // For iPad: Configure popover presentation
+        if let popoverController = controller.popoverPresentationController {
+            popoverController.permittedArrowDirections = []
+            popoverController.sourceView = UIView()
+        }
+
+        return controller
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }

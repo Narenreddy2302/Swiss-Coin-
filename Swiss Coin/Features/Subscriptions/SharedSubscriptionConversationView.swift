@@ -310,7 +310,10 @@ struct SharedSubscriptionConversationView: View {
         guard !trimmedText.isEmpty else { return }
 
         // Verify the subscription object is still valid
-        guard !subscription.isDeleted && subscription.managedObjectContext != nil else {
+        // Check managedObjectContext, isDeleted, and isFault to ensure object is fully materialized
+        guard subscription.managedObjectContext != nil,
+              !subscription.isDeleted,
+              !subscription.isFault else {
             errorMessage = "Unable to send message. Please try again."
             showingError = true
             return

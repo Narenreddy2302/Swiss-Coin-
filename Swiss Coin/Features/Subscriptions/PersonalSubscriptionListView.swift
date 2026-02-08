@@ -13,8 +13,8 @@ struct PersonalSubscriptionListView: View {
 
     @FetchRequest(
         sortDescriptors: [NSSortDescriptor(keyPath: \Subscription.nextBillingDate, ascending: true)],
-        predicate: NSPredicate(format: "isShared == NO"),
-        animation: .default)
+        predicate: NSPredicate(format: "isShared == NO AND isArchived == NO"),
+        animation: nil)
     private var subscriptions: FetchedResults<Subscription>
 
     // Group by billing status
@@ -65,13 +65,14 @@ struct PersonalSubscriptionListView: View {
                         .padding(.bottom, Spacing.sm)
 
                         LazyVStack(spacing: 0) {
-                            ForEach(attentionSubscriptions) { subscription in
+                            let attentionCount = attentionSubscriptions.count
+                            ForEach(Array(attentionSubscriptions.enumerated()), id: \.element.id) { index, subscription in
                                 NavigationLink(destination: SubscriptionDetailView(subscription: subscription)) {
                                     SubscriptionListRowView(subscription: subscription)
                                 }
                                 .buttonStyle(.plain)
 
-                                if subscription.objectID != attentionSubscriptions.last?.objectID {
+                                if index < attentionCount - 1 {
                                     Divider()
                                         .padding(.leading, Spacing.lg + AvatarSize.lg + Spacing.md)
                                 }
@@ -104,13 +105,14 @@ struct PersonalSubscriptionListView: View {
                         .padding(.bottom, Spacing.sm)
 
                         LazyVStack(spacing: 0) {
-                            ForEach(upcomingSubscriptions) { subscription in
+                            let upcomingCount = upcomingSubscriptions.count
+                            ForEach(Array(upcomingSubscriptions.enumerated()), id: \.element.id) { index, subscription in
                                 NavigationLink(destination: SubscriptionDetailView(subscription: subscription)) {
                                     SubscriptionListRowView(subscription: subscription)
                                 }
                                 .buttonStyle(.plain)
 
-                                if subscription.objectID != upcomingSubscriptions.last?.objectID {
+                                if index < upcomingCount - 1 {
                                     Divider()
                                         .padding(.leading, Spacing.lg + AvatarSize.lg + Spacing.md)
                                 }
@@ -143,13 +145,14 @@ struct PersonalSubscriptionListView: View {
                         .padding(.bottom, Spacing.sm)
 
                         LazyVStack(spacing: 0) {
-                            ForEach(pausedSubscriptions) { subscription in
+                            let pausedCount = pausedSubscriptions.count
+                            ForEach(Array(pausedSubscriptions.enumerated()), id: \.element.id) { index, subscription in
                                 NavigationLink(destination: SubscriptionDetailView(subscription: subscription)) {
                                     SubscriptionListRowView(subscription: subscription)
                                 }
                                 .buttonStyle(.plain)
 
-                                if subscription.objectID != pausedSubscriptions.last?.objectID {
+                                if index < pausedCount - 1 {
                                     Divider()
                                         .padding(.leading, Spacing.lg + AvatarSize.lg + Spacing.md)
                                 }
