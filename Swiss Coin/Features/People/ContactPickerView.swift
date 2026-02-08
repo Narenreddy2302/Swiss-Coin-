@@ -96,7 +96,7 @@ struct ContactPickerView: View {
         .overlay {
             if isSaving {
                 ZStack {
-                    Color.black.opacity(0.4)
+                    AppColors.scrim.opacity(AppColors.scrimOpacityHeavy)
                         .ignoresSafeArea()
                     
                     VStack(spacing: Spacing.md) {

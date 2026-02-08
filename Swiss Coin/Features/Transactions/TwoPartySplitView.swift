@@ -7,8 +7,8 @@ import SwiftUI
 struct TwoPartySplitView: View {
     @ObservedObject var viewModel: TransactionViewModel
 
-    /// Green color for "they owe you" (matching reference design)
-    private let positiveGreen = Color(hex: "#34C759")
+    /// Green color for "they owe you" - uses design system positive color
+    private var positiveGreen: Color { AppColors.positive }
 
     private var otherPerson: Person? {
         viewModel.twoPartyOtherPerson

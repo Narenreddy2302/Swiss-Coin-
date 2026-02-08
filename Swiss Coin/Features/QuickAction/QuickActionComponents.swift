@@ -71,13 +71,13 @@ struct SectionHeader: View {
     var body: some View {
         HStack {
             Text(title)
-                .font(.system(size: 13))
-                .foregroundColor(.secondary)
+                .font(AppTypography.labelDefault())
+                .foregroundColor(AppColors.textSecondary)
                 .textCase(.uppercase)
-                .tracking(0.5)
+                .tracking(AppTypography.Tracking.labelSmall)
             Spacer()
         }
-        .padding(.horizontal, 4)
+        .padding(.horizontal, Spacing.xs)
     }
 }
 
@@ -164,18 +164,18 @@ struct ContactSearchRow: View {
     // Here we assume standard Person.
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: Spacing.md) {
             PersonAvatar(
                 initials: person.initials,
                 isCurrentUser: false,  // Core Data Person is usually not "Me" unless we add a flag
                 isSelected: isSelected,
-                size: 44
+                size: AvatarSize.md
             )
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text(person.displayName)
-                    .font(.system(size: 17))
-                    .foregroundColor(.primary)
+                    .font(AppTypography.bodyLarge())
+                    .foregroundColor(AppColors.textPrimary)
                     .lineLimit(1)
             }
 
@@ -183,12 +183,12 @@ struct ContactSearchRow: View {
 
             if isSelected {
                 Image(systemName: "checkmark")
-                    .font(.system(size: 17, weight: .semibold))
+                    .font(AppTypography.headingMedium())
                     .foregroundColor(AppColors.accent)
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
+        .padding(.horizontal, Spacing.lg)
+        .padding(.vertical, Spacing.md)
     }
 }
 
@@ -199,18 +199,18 @@ struct GroupSearchRow: View {
     let isSelected: Bool
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: Spacing.md) {
             // Group icon placeholder
-            Text("👥")  // group.icon ?? "👥"
-                .font(.system(size: 20))
-                .frame(width: 44, height: 44)
-                .background(Color.orange.opacity(0.2))  // group.color ?? .orange
-                .cornerRadius(12)
+            Text("👥")
+                .font(.system(size: IconSize.md))
+                .frame(width: AvatarSize.md, height: AvatarSize.md)
+                .background(Color(hex: group.colorHex ?? AppColors.defaultAvatarColorHex).opacity(0.2))
+                .cornerRadius(CornerRadius.button)
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text(group.name ?? "Unnamed Group")
-                    .font(.system(size: 17))
-                    .foregroundColor(.primary)
+                    .font(AppTypography.bodyLarge())
+                    .foregroundColor(AppColors.textPrimary)
                     .lineLimit(1)
             }
 
@@ -218,12 +218,12 @@ struct GroupSearchRow: View {
 
             if isSelected {
                 Image(systemName: "checkmark")
-                    .font(.system(size: 17, weight: .semibold))
+                    .font(AppTypography.headingMedium())
                     .foregroundColor(AppColors.accent)
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
+        .padding(.horizontal, Spacing.lg)
+        .padding(.vertical, Spacing.md)
     }
 }
 
@@ -234,28 +234,28 @@ struct SelectedGroupBadge: View {
     let onDismiss: () -> Void
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: Spacing.sm) {
             Text("👥")
-                .font(.system(size: 18))
+                .font(.system(size: IconSize.md - 2))
 
             Text(group.name ?? "Group")
-                .font(.system(size: 15, weight: .medium))
+                .font(AppTypography.labelLarge())
                 .foregroundColor(AppColors.accent)
                 .lineLimit(1)
 
             Button(action: onDismiss) {
                 Image(systemName: "xmark")
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.system(size: IconSize.xs, weight: .semibold))
                     .foregroundColor(AppColors.accent)
-                    .frame(width: 20, height: 20)
+                    .frame(width: IconSize.md, height: IconSize.md)
                     .background(AppColors.accent.opacity(0.2))
                     .clipShape(Circle())
             }
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
+        .padding(.horizontal, Spacing.md + Spacing.xxs)
+        .padding(.vertical, Spacing.sm + Spacing.xxs)
         .background(AppColors.accent.opacity(0.1))
-        .cornerRadius(20)
+        .cornerRadius(CornerRadius.xl)
     }
 }
 
@@ -291,7 +291,7 @@ struct CurrencyPickerSheet: View {
                                 .foregroundColor(AppColors.textSecondary)
                             if selectedCurrency.id == currency.id {
                                 Image(systemName: "checkmark")
-                                    .font(.system(size: 17, weight: .semibold))
+                                    .font(AppTypography.headingMedium())
                                     .foregroundColor(AppColors.accent)
                             }
                         }
@@ -345,7 +345,7 @@ struct CategoryPickerSheet: View {
                                 Spacer()
                                 if selectedCategory?.id == category.id {
                                     Image(systemName: "checkmark")
-                                        .font(.system(size: 17, weight: .semibold))
+                                        .font(AppTypography.headingMedium())
                                         .foregroundColor(AppColors.accent)
                                 }
                             }
@@ -476,7 +476,7 @@ struct NewCategorySheet: View {
                                     .frame(width: 36, height: 36)
                                     .overlay(
                                         Circle()
-                                            .stroke(Color.white, lineWidth: selectedColorName == option.name ? 3 : 0)
+                                            .stroke(AppColors.onAccent, lineWidth: selectedColorName == option.name ? 3 : 0)
                                     )
                                     .overlay(
                                         Circle()
@@ -595,7 +595,7 @@ struct SplitOptionRow: View {
                         )
                     Circle()
                         .fill(isSelected ? AppColors.accent : Color.clear)
-                        .padding(2)
+                        .padding(Spacing.xxs)
                     Circle()
                         .fill(AppColors.buttonForeground)
                         .frame(width: 8, height: 8)

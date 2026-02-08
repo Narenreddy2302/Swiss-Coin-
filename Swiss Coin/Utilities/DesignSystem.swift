@@ -3,36 +3,67 @@
 //  Swiss Coin
 //
 //  Centralized design system constants for consistent styling across the app.
+//  Premium finance-app design theme — warm, data-focused, information-dense.
 //
 
 import SwiftUI
+import UIKit
 
 // MARK: - Spacing
 
-/// Standardized spacing values following an 4pt base grid
+/// Standardized spacing values following an 8pt grid (with 4pt half-steps)
 enum Spacing {
-    /// 4pt - Minimum spacing for tight layouts
-    static let xxs: CGFloat = 4
+    /// 2pt - Micro gaps
+    static let xxs: CGFloat = 2
 
-    /// 6pt - Small internal spacing
-    static let xs: CGFloat = 6
+    /// 4pt - Tight internal gaps
+    static let xs: CGFloat = 4
 
-    /// 8pt - Standard small spacing
+    /// 8pt - Default internal spacing
     static let sm: CGFloat = 8
 
-    /// 12pt - Medium spacing
+    /// 12pt - Between elements in a card
     static let md: CGFloat = 12
 
-    /// 16pt - Standard spacing (most common)
+    /// 16pt - Card padding, screen margins
     static let lg: CGFloat = 16
 
-    /// 20pt - Large spacing
+    /// 20pt - Between card groups
     static let xl: CGFloat = 20
 
-    /// 24pt - Extra large spacing
+    /// 24pt - Major section gaps
     static let xxl: CGFloat = 24
 
-    /// 32pt - Section spacing
+    /// 32pt - Hero area breathing room
+    static let xxxl: CGFloat = 32
+
+    // MARK: - Named Measurements
+
+    /// 16pt - Left/right margin on all screens
+    static let screenHorizontal: CGFloat = 16
+
+    /// 8pt - Below nav bar to first content
+    static let screenTopPad: CGFloat = 8
+
+    /// 16pt - Internal card padding (all sides)
+    static let cardPadding: CGFloat = 16
+
+    /// 12pt - Between stacked cards
+    static let cardGap: CGFloat = 12
+
+    /// 60pt - List/transaction row height
+    static let rowHeight: CGFloat = 60
+
+    /// 52pt - Divider left inset (past icon)
+    static let rowDividerInset: CGFloat = 52
+
+    /// 24pt - Between major sections
+    static let sectionGap: CGFloat = 24
+
+    /// 12pt - Sheet/modal top spacing
+    static let modalTopMargin: CGFloat = 12
+
+    // Legacy compatibility
     static let section: CGFloat = 32
 }
 
@@ -40,23 +71,33 @@ enum Spacing {
 
 /// Standardized corner radius values
 enum CornerRadius {
-    /// 4pt - Tags, badges, small elements
+    /// 6pt - Tags, badges, small elements
+    static let small: CGFloat = 6
+
+    /// 10pt - Input fields, small containers
+    static let medium: CGFloat = 10
+
+    /// 12pt - All button variants
+    static let button: CGFloat = 12
+
+    /// 14pt - Cards, sheets, modals
+    static let card: CGFloat = 14
+
+    /// 16pt - Hero containers
+    static let large: CGFloat = 16
+
+    /// 20pt - Special feature cards
+    static let extraLarge: CGFloat = 20
+
+    /// Full circle - Pill shapes, circular elements
+    static let full: CGFloat = 9999
+
+    // Legacy compatibility
     static let xs: CGFloat = 4
-
-    /// 8pt - Small buttons, compact cards
     static let sm: CGFloat = 8
-
-    /// 12pt - Standard cards, buttons (most common)
     static let md: CGFloat = 12
-
-    /// 16pt - Large cards, modal sheets
     static let lg: CGFloat = 16
-
-    /// 20pt - Extra large containers
     static let xl: CGFloat = 20
-
-    /// Full circle
-    static let full: CGFloat = .infinity
 }
 
 // MARK: - Icon Sizes
@@ -72,11 +113,17 @@ enum IconSize {
     /// 20pt - Medium icons
     static let md: CGFloat = 20
 
-    /// 24pt - Standard icons
+    /// 24pt - Standard icons (tab bar)
     static let lg: CGFloat = 24
+
+    /// 28pt - Category emoji size
+    static let category: CGFloat = 28
 
     /// 32pt - Large icons
     static let xl: CGFloat = 32
+
+    /// 36pt - Category background circle
+    static let categoryBackground: CGFloat = 36
 
     /// 48pt - Hero icons
     static let xxl: CGFloat = 48
@@ -115,6 +162,9 @@ enum ButtonHeight {
     /// 44pt - Standard buttons (minimum touch target)
     static let md: CGFloat = 44
 
+    /// 48pt - Input field height
+    static let input: CGFloat = 48
+
     /// 50pt - Primary action buttons
     static let lg: CGFloat = 50
 
@@ -122,39 +172,92 @@ enum ButtonHeight {
     static let xl: CGFloat = 56
 }
 
+// MARK: - Progress Bar
+
+/// Standardized progress bar dimensions
+enum ProgressBarSize {
+    /// 8pt - Standard track height
+    static let trackHeight: CGFloat = 8
+
+    /// 4pt - Track corner radius
+    static let trackRadius: CGFloat = 4
+}
+
+// MARK: - Tab Bar
+
+/// Tab bar sizing constants
+enum TabBarSize {
+    /// 49pt - Standard tab bar height (plus safe area)
+    static let height: CGFloat = 49
+
+    /// 24pt - Tab bar icon size
+    static let iconSize: CGFloat = 24
+}
+
+// MARK: - Shadows
+
+/// Standardized shadow definitions
+enum AppShadow {
+    /// Card shadow - subtle elevation
+    static func card(for colorScheme: ColorScheme) -> (color: Color, radius: CGFloat, x: CGFloat, y: CGFloat) {
+        let opacity = colorScheme == .dark ? 0.24 : 0.08
+        return (Color.black.opacity(opacity), 8, 0, 2)
+    }
+
+    /// Elevated shadow - modals/sheets
+    static func elevated(for colorScheme: ColorScheme) -> (color: Color, radius: CGFloat, x: CGFloat, y: CGFloat) {
+        let opacity = colorScheme == .dark ? 0.32 : 0.12
+        return (Color.black.opacity(opacity), 16, 0, 4)
+    }
+}
+
 // MARK: - Animation
 
 /// Standardized animation durations and curves
 enum AppAnimation {
-    /// Quick animation for micro-interactions (0.15s)
-    static let quick: Animation = .easeOut(duration: 0.15)
+    // MARK: - Duration Constants (for reference)
 
-    /// Standard animation (0.25s)
-    static let standard: Animation = .easeInOut(duration: 0.25)
+    /// Fast duration value - 0.15s
+    static let fastDuration: Double = 0.15
 
-    /// Slow animation for emphasis (0.35s)
-    static let slow: Animation = .easeInOut(duration: 0.35)
+    /// Default duration value - 0.25s
+    static let defaultDuration: Double = 0.25
 
-    /// Spring animation for bouncy effects
-    static let spring: Animation = .spring(response: 0.35, dampingFraction: 0.7)
+    /// Slow duration value - 0.4s
+    static let slowDuration: Double = 0.4
+
+    // MARK: - Animation Presets
+
+    /// Fast animation (0.15s) - button press, toggle
+    static let fast: Animation = .easeOut(duration: fastDuration)
+
+    /// Default animation (0.25s) - page transitions, reveals
+    static let standard: Animation = .easeInOut(duration: defaultDuration)
+
+    /// Slow animation (0.4s) - chart animations, complex transitions
+    static let slow: Animation = .easeInOut(duration: slowDuration)
+
+    /// Spring animation - default interactive spring (response: 0.3, damping: 0.7)
+    static let spring: Animation = .spring(response: 0.3, dampingFraction: 0.7)
 
     /// Button press scale animation
-    static let buttonPress: Animation = .easeOut(duration: 0.15)
+    static let buttonPress: Animation = .easeOut(duration: fastDuration)
+
+    // Legacy compatibility
+    static let quick: Animation = .easeOut(duration: fastDuration)
 
     // MARK: - Transaction Detail Animations
 
-    /// Card morphing spring — used for hero card-to-detail transitions.
-    /// Higher response (0.5s) gives the morph a smooth, weighty feel.
+    /// Card morphing spring — used for hero card-to-detail transitions
     static let cardMorph: Animation = .spring(response: 0.5, dampingFraction: 0.86)
 
-    /// Content reveal spring — used for staggered section entrance.
-    /// Slightly bouncy for a lively but controlled appearance.
+    /// Content reveal spring — used for staggered section entrance
     static let contentReveal: Animation = .spring(response: 0.45, dampingFraction: 0.82)
 
-    /// Interactive spring — snappy snap-back for drag gesture cancellation.
+    /// Interactive spring — snappy snap-back for drag gesture cancellation
     static let interactiveSpring: Animation = .spring(response: 0.4, dampingFraction: 0.75)
 
-    /// Dismiss collapse spring — fast, critically-damped for clean exit.
+    /// Dismiss collapse spring — fast, critically-damped for clean exit
     static let dismiss: Animation = .spring(response: 0.25, dampingFraction: 0.9)
 
     // MARK: - Stagger Timing
@@ -168,232 +271,755 @@ enum AppAnimation {
 
 // MARK: - Colors
 
-/// Semantic color definitions — pitch black dark mode, pitch white light mode
+/// Semantic color definitions — premium finance app theme
 enum AppColors {
-    // MARK: - Status Colors
 
-    /// Positive balance / money owed to user
-    static let positive = Color.green
+    // MARK: - Brand / Accent Colors
 
-    /// Negative balance / money user owes
-    static let negative = Color.red
+    /// Primary accent color - warm orange for CTAs, active states, links
+    static let accent = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(hex: "#F36D30")
+            : UIColor(hex: "#F35B16")
+    })
 
-    /// Neutral / settled state
-    static let neutral = Color.secondary
+    /// Primary pressed state
+    static let accentPressed = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(hex: "#E05A1A")
+            : UIColor(hex: "#D94E12")
+    })
 
-    /// Warning / reminder color
-    static let warning = Color.orange
+    /// Subtle accent background
+    static let accentMuted = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(hex: "#3D2215")
+            : UIColor(hex: "#FEF0EA")
+    })
 
-    /// Primary accent color — black in light mode, white in dark mode
-    static let accent = Color(.label)
+    /// Text on accent color
+    static let onAccent = Color.white
 
-    /// Default avatar color (system blue) — use as the single source of truth
-    static let defaultAvatarColorHex = "#007AFF"
-    static let defaultAvatarColor = Color(hex: "#007AFF")
+    // MARK: - Text Colors
+
+    /// Primary text - warm near-black (NOT pure black)
+    static let textPrimary = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(hex: "#F5F5F3")
+            : UIColor(hex: "#22201D")
+    })
+
+    /// Secondary text - supporting/descriptive
+    static let textSecondary = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(hex: "#A8A29E")
+            : UIColor(hex: "#6B6560")
+    })
+
+    /// Tertiary text - captions, timestamps, muted labels
+    static let textTertiary = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(hex: "#6B6560")
+            : UIColor(hex: "#A8A29E")
+    })
+
+    /// Disabled text
+    static let textDisabled = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(hex: "#3D3A37")
+            : UIColor(hex: "#D4D0CC")
+    })
+
+    /// Inverse text - text on opposite-mode surfaces
+    static let textInverse = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(hex: "#22201D")
+            : UIColor.white
+    })
+
+    /// Link text - matches accent
+    static let textLink = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(hex: "#F36D30")
+            : UIColor(hex: "#F35B16")
+    })
 
     // MARK: - Background Colors
 
-    /// Primary background — pure white (light) / pure black (dark)
+    /// Primary background - main screen background
     static let background = Color(UIColor { tc in
-        tc.userInterfaceStyle == .dark ? UIColor.black : UIColor.white
+        tc.userInterfaceStyle == .dark
+            ? UIColor(hex: "#1C1C1E")
+            : UIColor.white
     })
 
-    /// Secondary background — very subtle off-white / near-black
+    /// Secondary background - grouped/inset backgrounds
     static let backgroundSecondary = Color(UIColor { tc in
         tc.userInterfaceStyle == .dark
-            ? UIColor(red: 0.07, green: 0.07, blue: 0.07, alpha: 1) // #121212
-            : UIColor(red: 0.96, green: 0.96, blue: 0.96, alpha: 1) // #F5F5F5
+            ? UIColor(hex: "#2C2C2E")
+            : UIColor(hex: "#F7F5F3")
     })
 
-    /// Tertiary background
+    /// Tertiary background - nested surfaces
     static let backgroundTertiary = Color(UIColor { tc in
         tc.userInterfaceStyle == .dark
-            ? UIColor(red: 0.11, green: 0.11, blue: 0.11, alpha: 1) // #1C1C1C
-            : UIColor(red: 0.92, green: 0.92, blue: 0.92, alpha: 1) // #EBEBEB
+            ? UIColor(hex: "#3A3A3C")
+            : UIColor(hex: "#EFEDEB")
     })
 
-    /// Grouped background (for grouped list/table style)
+    /// Elevated surface - cards, sheets (use with shadow)
+    static let elevatedSurface = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(hex: "#2C2C2E")
+            : UIColor.white
+    })
+
+    /// Card background - elevated surface for cards
+    static let cardBackground = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(hex: "#2C2C2E")
+            : UIColor.white
+    })
+
+    /// Card background elevated - higher elevation cards
+    static let cardBackgroundElevated = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(hex: "#3A3A3C")
+            : UIColor.white
+    })
+
+    /// Grouped background
     static let groupedBackground = Color(UIColor { tc in
-        tc.userInterfaceStyle == .dark ? UIColor.black
-            : UIColor(red: 0.96, green: 0.96, blue: 0.96, alpha: 1) // #F5F5F5
+        tc.userInterfaceStyle == .dark
+            ? UIColor(hex: "#1C1C1E")
+            : UIColor(hex: "#F7F5F3")
     })
 
     /// Surface background (search bars, input fields)
     static let surface = Color(UIColor { tc in
         tc.userInterfaceStyle == .dark
-            ? UIColor(red: 0.11, green: 0.11, blue: 0.11, alpha: 1) // #1C1C1C
-            : UIColor(red: 0.92, green: 0.92, blue: 0.92, alpha: 1) // #EBEBEB
+            ? UIColor(hex: "#2C2C2E")
+            : UIColor(hex: "#F7F5F3")
     })
 
-    /// Card background
-    static let cardBackground = Color(UIColor { tc in
+    // MARK: - Borders & Dividers
+
+    /// Default border
+    static let border = Color(UIColor { tc in
         tc.userInterfaceStyle == .dark
-            ? UIColor(red: 0.07, green: 0.07, blue: 0.07, alpha: 1) // #121212
-            : UIColor.white
+            ? UIColor(hex: "#3A3A3C")
+            : UIColor(hex: "#E8E5E1")
     })
 
-    /// Elevated card background
-    static let cardBackgroundElevated = Color(UIColor { tc in
+    /// Strong border
+    static let borderStrong = Color(UIColor { tc in
         tc.userInterfaceStyle == .dark
-            ? UIColor(red: 0.11, green: 0.11, blue: 0.11, alpha: 1) // #1C1C1C
-            : UIColor.white
+            ? UIColor(hex: "#545456")
+            : UIColor(hex: "#D4D0CC")
     })
 
-    // MARK: - Text Colors
+    /// Subtle border
+    static let borderSubtle = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(hex: "#2C2C2E")
+            : UIColor(hex: "#F0EDEA")
+    })
 
-    /// Primary text
-    static let textPrimary = Color(.label)
+    /// Focus border - input focus ring
+    static let borderFocus = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(hex: "#F36D30")
+            : UIColor(hex: "#F35B16")
+    })
 
-    /// Secondary text
-    static let textSecondary = Color(.secondaryLabel)
+    /// Divider - hairline list separators
+    static let divider = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(hex: "#38383A")
+            : UIColor(hex: "#F0EDEA")
+    })
 
-    /// Tertiary text
-    static let textTertiary = Color(UIColor.tertiaryLabel)
-
-    // MARK: - Separator / Border
-
-    /// Separator color
+    /// Separator (legacy compatibility)
     static let separator = Color(UIColor { tc in
         tc.userInterfaceStyle == .dark
-            ? UIColor(white: 1.0, alpha: 0.12)
-            : UIColor(white: 0.0, alpha: 0.12)
+            ? UIColor(hex: "#38383A")
+            : UIColor(hex: "#F0EDEA")
     })
 
-    // MARK: - Shadow
+    // MARK: - Semantic: Financial
 
-    /// Adaptive shadow color
-    static let shadow = Color(UIColor { tc in
+    /// Positive - income/gain (green)
+    static let positive = Color(UIColor { tc in
         tc.userInterfaceStyle == .dark
-            ? UIColor(white: 1.0, alpha: 0.05)  // Subtle white glow in dark
-            : UIColor(white: 0.0, alpha: 0.10)  // Standard dark shadow in light
+            ? UIColor(hex: "#34C77B")
+            : UIColor(hex: "#1B8A5A")
     })
+
+    /// Positive muted background
+    static let positiveMuted = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(hex: "#1A3328")
+            : UIColor(hex: "#E8F5EE")
+    })
+
+    /// Negative - expense/loss (red)
+    static let negative = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(hex: "#F87171")
+            : UIColor(hex: "#D93025")
+    })
+
+    /// Negative muted background
+    static let negativeMuted = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(hex: "#3D1F1F")
+            : UIColor(hex: "#FDF0EF")
+    })
+
+    /// Neutral - balanced (gray)
+    static let neutral = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(hex: "#A8A29E")
+            : UIColor(hex: "#6B6560")
+    })
+
+    /// Neutral muted background
+    static let neutralMuted = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(hex: "#2C2C2E")
+            : UIColor(hex: "#F7F5F3")
+    })
+
+    /// Warning - caution (amber)
+    static let warning = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(hex: "#FBBF24")
+            : UIColor(hex: "#D97706")
+    })
+
+    /// Warning muted background
+    static let warningMuted = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(hex: "#3D3015")
+            : UIColor(hex: "#FEF9EC")
+    })
+
+    /// Info - upcoming (blue)
+    static let info = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(hex: "#60A5FA")
+            : UIColor(hex: "#2563EB")
+    })
+
+    /// Info muted background
+    static let infoMuted = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(hex: "#1E2A3D")
+            : UIColor(hex: "#EFF6FF")
+    })
+
+    // MARK: - Asset Class Colors (cool tones)
+
+    /// Cash/Banking - green
+    static let assetCash = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(hex: "#34C77B")
+            : UIColor(hex: "#1B8A5A")
+    })
+
+    /// Investments - blue
+    static let assetInvestments = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(hex: "#60A5FA")
+            : UIColor(hex: "#2563EB")
+    })
+
+    /// Real Estate - purple
+    static let assetRealEstate = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(hex: "#A78BFA")
+            : UIColor(hex: "#7C3AED")
+    })
+
+    /// Crypto - violet
+    static let assetCrypto = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(hex: "#C4B5FD")
+            : UIColor(hex: "#8B5CF6")
+    })
+
+    /// Vehicles - cyan
+    static let assetVehicles = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(hex: "#22D3EE")
+            : UIColor(hex: "#0891B2")
+    })
+
+    /// Other Assets - gray
+    static let assetOther = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(hex: "#A8A29E")
+            : UIColor(hex: "#6B6560")
+    })
+
+    // MARK: - Liability Colors (warm tones)
+
+    /// Credit Cards - red
+    static let liabilityCreditCards = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(hex: "#F87171")
+            : UIColor(hex: "#D93025")
+    })
+
+    /// Loans - yellow
+    static let liabilityLoans = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(hex: "#FBBF24")
+            : UIColor(hex: "#D97706")
+    })
+
+    /// Mortgages - amber
+    static let liabilityMortgages = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(hex: "#F59E0B")
+            : UIColor(hex: "#B45309")
+    })
+
+    /// Other Liabilities - orange
+    static let liabilityOther = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(hex: "#FB923C")
+            : UIColor(hex: "#9A3412")
+    })
+
+    // MARK: - Budget Status (3-state system)
+
+    /// Under budget - green (money remaining)
+    static let budgetUnder = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(hex: "#34C77B")
+            : UIColor(hex: "#1B8A5A")
+    })
+
+    /// On budget - gray (perfectly balanced)
+    static let budgetOn = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(hex: "#A8A29E")
+            : UIColor(hex: "#6B6560")
+    })
+
+    /// Over budget - red (overspent)
+    static let budgetOver = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(hex: "#F87171")
+            : UIColor(hex: "#D93025")
+    })
+
+    // MARK: - Chart Series Colors
+
+    static let chartSeries1 = accent
+    static let chartSeries2 = assetInvestments
+    static let chartSeries3 = positive
+    static let chartSeries4 = assetRealEstate
+    static let chartSeries5 = warning
+    static let chartSeries6 = assetVehicles
+    static let chartSeries7 = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(hex: "#F472B6")
+            : UIColor(hex: "#BE185D")
+    })
+    static let chartSeries8 = neutral
+
+    /// Chart grid lines
+    static let chartGrid = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(hex: "#3A3A3C")
+            : UIColor(hex: "#E8E5E1")
+    })
+
+    /// Chart axis labels
+    static let chartAxisLabels = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(hex: "#6B6560")
+            : UIColor(hex: "#A8A29E")
+    })
+
+    // MARK: - Interactive States
+
+    /// Hover background
+    static let hoverBackground = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(hex: "#3A3A3C")
+            : UIColor(hex: "#F7F5F3")
+    })
+
+    /// Pressed background
+    static let pressedBackground = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(hex: "#545456")
+            : UIColor(hex: "#EFEDEB")
+    })
+
+    /// Selected background
+    static let selectedBackground = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(hex: "#3D2215")
+            : UIColor(hex: "#FEF0EA")
+    })
+
+    /// Disabled state - any color at 38% opacity
+    static let disabled = Color(.secondaryLabel).opacity(0.38)
 
     // MARK: - Button Colors
 
-    /// Button background — black in light mode, white in dark mode
+    /// Button background - primary accent
     static let buttonBackground = Color(UIColor { tc in
-        tc.userInterfaceStyle == .dark ? UIColor.white : UIColor.black
+        tc.userInterfaceStyle == .dark
+            ? UIColor(hex: "#F36D30")
+            : UIColor(hex: "#F35B16")
     })
 
-    /// Button foreground/text — white in light mode, black in dark mode
-    static let buttonForeground = Color(UIColor { tc in
-        tc.userInterfaceStyle == .dark ? UIColor.black : UIColor.white
-    })
+    /// Button foreground - white on accent
+    static let buttonForeground = Color.white
 
     // MARK: - Interactive Colors
 
-    /// User message bubble — same gray as incoming for consistent look
+    /// User message bubble
     static let userBubble = Color(UIColor { tc in
         tc.userInterfaceStyle == .dark
-            ? UIColor(red: 0.17, green: 0.17, blue: 0.18, alpha: 1) // #2C2C2E
-            : UIColor(red: 0.91, green: 0.91, blue: 0.92, alpha: 1) // #E9E9EB
+            ? UIColor(hex: "#2C2C2E")
+            : UIColor(hex: "#E9E9EB")
     })
 
-    /// Other person message bubble — gray
+    /// Other person message bubble
     static let otherBubble = Color(UIColor { tc in
         tc.userInterfaceStyle == .dark
-            ? UIColor(red: 0.17, green: 0.17, blue: 0.18, alpha: 1) // #2C2C2E
-            : UIColor(red: 0.91, green: 0.91, blue: 0.92, alpha: 1) // #E9E9EB
+            ? UIColor(hex: "#2C2C2E")
+            : UIColor(hex: "#E9E9EB")
     })
 
-    /// Disabled state
-    static let disabled = Color(.secondaryLabel).opacity(0.4)
+    /// Shadow color
+    static let shadow = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(white: 0.0, alpha: 0.24)
+            : UIColor(white: 0.0, alpha: 0.08)
+    })
+
+    // MARK: - Overlay Colors
+
+    /// Scrim/overlay background - dimmed background for modals and sheets
+    static let scrim = Color.black
+
+    /// Standard scrim opacity for modal overlays
+    static let scrimOpacity: Double = 0.5
+
+    /// Light scrim opacity for subtle overlays
+    static let scrimOpacityLight: Double = 0.3
+
+    /// Heavy scrim opacity for loading states
+    static let scrimOpacityHeavy: Double = 0.4
+
+    // MARK: - Legacy Colors (for backward compatibility)
+
+    /// Default avatar color
+    static let defaultAvatarColorHex = "#F35B16"
+    static let defaultAvatarColor = accent
 }
 
 // MARK: - Typography
 
-/// Standardized typography styles
+/// Standardized typography styles with dual-font system
+/// Display: Serif for headings and hero financial numbers
+/// UI: System sans-serif for all other text
+///
+/// TYPE SCALE REFERENCE:
+/// ───────────────────────────────────────────────────────────────────
+///   TOKEN                SIZE   WEIGHT      LINE-H   TRACKING   FONT
+/// ───────────────────────────────────────────────────────────────────
+///   display.hero         34pt   Semibold    40pt     -0.4pt     Serif
+///   display.large        28pt   Semibold    34pt     -0.3pt     Serif
+///   display.medium       22pt   Medium      28pt     -0.2pt     Serif
+/// ───────────────────────────────────────────────────────────────────
+///   heading.large        20pt   Semibold    25pt      0         Sans
+///   heading.medium       17pt   Semibold    22pt      0         Sans
+///   heading.small        15pt   Semibold    20pt      0         Sans
+/// ───────────────────────────────────────────────────────────────────
+///   body.large           17pt   Regular     22pt      0         Sans
+///   body.default         15pt   Regular     20pt      0         Sans
+///   body.small           13pt   Regular     18pt      0         Sans
+/// ───────────────────────────────────────────────────────────────────
+///   label.large          15pt   Medium      20pt      0         Sans
+///   label.default        13pt   Medium      18pt      0         Sans
+///   label.small          11pt   Medium      14pt      0.1pt     Sans
+/// ───────────────────────────────────────────────────────────────────
+///   caption              11pt   Regular     14pt      0.1pt     Sans
+/// ───────────────────────────────────────────────────────────────────
+///   financial.hero       34pt   Bold        40pt     -0.4pt     Sans Rounded
+///   financial.large      24pt   Semibold    30pt     -0.2pt     Sans
+///   financial.default    17pt   Medium      22pt      0         Sans
+///   financial.small      13pt   Medium      18pt      0         Sans
+/// ───────────────────────────────────────────────────────────────────
+///   button.large         17pt   Semibold    22pt      0         Sans
+///   button.default       15pt   Semibold    20pt      0         Sans
+///   button.small         13pt   Semibold    18pt      0         Sans
+/// ───────────────────────────────────────────────────────────────────
 enum AppTypography {
 
-    // MARK: - Headers
+    // MARK: - Type Metrics
 
-    /// Large title (34pt bold)
-    static func largeTitle() -> Font {
-        .largeTitle.weight(.bold)
+    /// Line height values for typography scale (in points)
+    enum LineHeight {
+        static let displayHero: CGFloat = 40
+        static let displayLarge: CGFloat = 34
+        static let displayMedium: CGFloat = 28
+        static let headingLarge: CGFloat = 25
+        static let headingMedium: CGFloat = 22
+        static let headingSmall: CGFloat = 20
+        static let bodyLarge: CGFloat = 22
+        static let bodyDefault: CGFloat = 20
+        static let bodySmall: CGFloat = 18
+        static let labelLarge: CGFloat = 20
+        static let labelDefault: CGFloat = 18
+        static let labelSmall: CGFloat = 14
+        static let caption: CGFloat = 14
+        static let financialHero: CGFloat = 40
+        static let financialLarge: CGFloat = 30
+        static let financialDefault: CGFloat = 22
+        static let financialSmall: CGFloat = 18
+        static let buttonLarge: CGFloat = 22
+        static let buttonDefault: CGFloat = 20
+        static let buttonSmall: CGFloat = 18
     }
 
-    /// Title 1 (28pt bold)
-    static func title1() -> Font {
-        .title.weight(.bold)
+    /// Tracking (letter spacing) values for typography scale (in points)
+    enum Tracking {
+        static let displayHero: CGFloat = -0.4
+        static let displayLarge: CGFloat = -0.3
+        static let displayMedium: CGFloat = -0.2
+        static let headingLarge: CGFloat = 0
+        static let headingMedium: CGFloat = 0
+        static let headingSmall: CGFloat = 0
+        static let bodyLarge: CGFloat = 0
+        static let bodyDefault: CGFloat = 0
+        static let bodySmall: CGFloat = 0
+        static let labelLarge: CGFloat = 0
+        static let labelDefault: CGFloat = 0
+        static let labelSmall: CGFloat = 0.1
+        static let caption: CGFloat = 0.1
+        static let financialHero: CGFloat = -0.4
+        static let financialLarge: CGFloat = -0.2
+        static let financialDefault: CGFloat = 0
+        static let financialSmall: CGFloat = 0
+        static let buttonLarge: CGFloat = 0
+        static let buttonDefault: CGFloat = 0
+        static let buttonSmall: CGFloat = 0
     }
 
-    /// Title 2 (22pt bold)
-    static func title2() -> Font {
-        .title2.weight(.bold)
+    // MARK: - Display (Serif)
+
+    /// Display hero - 34pt semibold serif (line: 40pt, tracking: -0.4pt)
+    static func displayHero() -> Font {
+        .system(size: 34, weight: .semibold, design: .serif)
     }
 
-    /// Title 3 (20pt semibold)
-    static func title3() -> Font {
-        .title3.weight(.semibold)
+    /// Display large - 28pt semibold serif (line: 34pt, tracking: -0.3pt)
+    static func displayLarge() -> Font {
+        .system(size: 28, weight: .semibold, design: .serif)
     }
 
-    // MARK: - Body
-
-    /// Headline (17pt semibold)
-    static func headline() -> Font {
-        .headline
+    /// Display medium - 22pt medium serif (line: 28pt, tracking: -0.2pt)
+    static func displayMedium() -> Font {
+        .system(size: 22, weight: .medium, design: .serif)
     }
 
-    /// Body (17pt regular)
-    static func body() -> Font {
-        .body
+    // MARK: - Headings (Sans)
+
+    /// Heading large - 20pt semibold (line: 25pt)
+    static func headingLarge() -> Font {
+        .system(size: 20, weight: .semibold)
     }
 
-    /// Body emphasized (17pt semibold)
-    static func bodyBold() -> Font {
-        .body.weight(.semibold)
+    /// Heading medium - 17pt semibold (line: 22pt)
+    static func headingMedium() -> Font {
+        .system(size: 17, weight: .semibold)
     }
 
-    // MARK: - Secondary
-
-    /// Subheadline (15pt regular)
-    static func subheadline() -> Font {
-        .subheadline
+    /// Heading small - 15pt semibold (line: 20pt)
+    static func headingSmall() -> Font {
+        .system(size: 15, weight: .semibold)
     }
 
-    /// Subheadline emphasized (15pt medium)
-    static func subheadlineMedium() -> Font {
-        .subheadline.weight(.medium)
+    // MARK: - Body (Sans)
+
+    /// Body large - 17pt regular (line: 22pt)
+    static func bodyLarge() -> Font {
+        .system(size: 17, weight: .regular)
     }
 
-    // MARK: - Small
-
-    /// Footnote (13pt regular)
-    static func footnote() -> Font {
-        .footnote
+    /// Body default - 15pt regular (line: 20pt)
+    static func bodyDefault() -> Font {
+        .system(size: 15, weight: .regular)
     }
 
-    /// Caption 1 (12pt regular)
+    /// Body small - 13pt regular (line: 18pt)
+    static func bodySmall() -> Font {
+        .system(size: 13, weight: .regular)
+    }
+
+    // MARK: - Labels (Sans)
+
+    /// Label large - 15pt medium (line: 20pt)
+    static func labelLarge() -> Font {
+        .system(size: 15, weight: .medium)
+    }
+
+    /// Label default - 13pt medium (line: 18pt)
+    static func labelDefault() -> Font {
+        .system(size: 13, weight: .medium)
+    }
+
+    /// Label small - 11pt medium (line: 14pt, tracking: 0.1pt)
+    static func labelSmall() -> Font {
+        .system(size: 11, weight: .medium)
+    }
+
+    // MARK: - Caption
+
+    /// Caption - 11pt regular (line: 14pt, tracking: 0.1pt)
     static func caption() -> Font {
-        .caption
+        .system(size: 11, weight: .regular)
     }
 
-    /// Caption 2 (11pt regular)
-    static func caption2() -> Font {
-        .caption2
+    // MARK: - Financial Numbers (with tabular/monospaced digits)
+
+    /// Financial hero - 34pt bold rounded, monospaced digits (line: 40pt, tracking: -0.4pt)
+    static func financialHero() -> Font {
+        .system(size: 34, weight: .bold, design: .rounded).monospacedDigit()
     }
 
-    // MARK: - Monospace (for amounts)
-
-    /// Amount display (17pt bold, monospaced digits)
-    static func amount() -> Font {
-        .system(size: 17, weight: .bold, design: .rounded)
+    /// Financial large - 24pt semibold, monospaced digits (line: 30pt, tracking: -0.2pt)
+    static func financialLarge() -> Font {
+        .system(size: 24, weight: .semibold).monospacedDigit()
     }
 
-    /// Large amount display (22pt bold)
-    static func amountLarge() -> Font {
-        .system(size: 22, weight: .bold, design: .rounded)
+    /// Financial default - 17pt medium, monospaced digits (line: 22pt)
+    static func financialDefault() -> Font {
+        .system(size: 17, weight: .medium).monospacedDigit()
     }
 
-    /// Small amount display (15pt semibold)
-    static func amountSmall() -> Font {
-        .system(size: 15, weight: .semibold, design: .rounded)
+    /// Financial small - 13pt medium, monospaced digits (line: 18pt)
+    static func financialSmall() -> Font {
+        .system(size: 13, weight: .medium).monospacedDigit()
+    }
+
+    // MARK: - Button Text
+
+    /// Button large - 17pt semibold (line: 22pt)
+    static func buttonLarge() -> Font {
+        .system(size: 17, weight: .semibold)
+    }
+
+    /// Button default - 15pt semibold (line: 20pt)
+    static func buttonDefault() -> Font {
+        .system(size: 15, weight: .semibold)
+    }
+
+    /// Button small - 13pt semibold (line: 18pt)
+    static func buttonSmall() -> Font {
+        .system(size: 13, weight: .semibold)
+    }
+
+    // MARK: - Legacy Methods (backward compatibility)
+
+    static func largeTitle() -> Font { displayHero() }
+    static func title1() -> Font { displayLarge() }
+    static func title2() -> Font { displayMedium() }
+    static func title3() -> Font { headingLarge() }
+    static func headline() -> Font { headingMedium() }
+    static func body() -> Font { bodyLarge() }
+    static func bodyBold() -> Font { .system(size: 17, weight: .semibold) }
+    static func subheadline() -> Font { bodyDefault() }
+    static func subheadlineMedium() -> Font { labelLarge() }
+    static func footnote() -> Font { bodySmall() }
+    static func caption2() -> Font { labelSmall() }
+
+    /// Amount display - monospaced digits (legacy)
+    static func amount() -> Font { financialDefault() }
+    static func amountLarge() -> Font { financialLarge() }
+    static func amountSmall() -> Font { financialSmall() }
+}
+
+// MARK: - Financial Number Formatter
+
+/// Formats financial amounts according to design system rules:
+/// - Currency: $ prefix, comma separators, 2 decimal places ($12,345.67)
+/// - Negative amounts: minus sign (use with AppColors.negative for color)
+/// - Positive amounts: optional + sign (use with AppColors.positive for color)
+/// - Privacy mode: replace digits with bullet characters while preserving width
+enum FinancialFormatter {
+
+    /// Standard currency format: $12,345.67
+    static func currency(_ amount: Double, showCents: Bool = true, currencySymbol: String = "$") -> String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .currency
+        formatter.currencySymbol = currencySymbol
+        formatter.minimumFractionDigits = showCents ? 2 : 0
+        formatter.maximumFractionDigits = showCents ? 2 : 0
+        return formatter.string(from: NSNumber(value: amount)) ?? "\(currencySymbol)0.00"
+    }
+
+    /// Currency format with explicit sign: +$12,345.67 or -$12,345.67
+    static func signedCurrency(_ amount: Double, showCents: Bool = true, currencySymbol: String = "$") -> String {
+        let formatted = currency(abs(amount), showCents: showCents, currencySymbol: currencySymbol)
+        if amount > 0 {
+            return "+\(formatted)"
+        } else if amount < 0 {
+            return "-\(formatted)"
+        }
+        return formatted
+    }
+
+    /// Privacy mode: masks digits with bullet characters (preserves layout width)
+    /// e.g., "$12,345.67" becomes "$••,•••.••"
+    static func masked(_ amount: Double, showCents: Bool = true, currencySymbol: String = "$") -> String {
+        let formatted = currency(amount, showCents: showCents, currencySymbol: currencySymbol)
+        return formatted.map { char in
+            char.isNumber ? "•" : char
+        }.map(String.init).joined()
+    }
+
+    /// Compact format for large numbers: $12.3K, $1.5M, $2.1B
+    static func compact(_ amount: Double, currencySymbol: String = "$") -> String {
+        let absAmount = abs(amount)
+        let sign = amount < 0 ? "-" : ""
+
+        switch absAmount {
+        case 1_000_000_000...:
+            return "\(sign)\(currencySymbol)\(String(format: "%.1f", absAmount / 1_000_000_000))B"
+        case 1_000_000...:
+            return "\(sign)\(currencySymbol)\(String(format: "%.1f", absAmount / 1_000_000))M"
+        case 1_000...:
+            return "\(sign)\(currencySymbol)\(String(format: "%.1f", absAmount / 1_000))K"
+        default:
+            return currency(amount, showCents: false, currencySymbol: currencySymbol)
+        }
+    }
+
+    /// Percentage format: 12.5%
+    static func percentage(_ value: Double, decimalPlaces: Int = 1) -> String {
+        return String(format: "%.\(decimalPlaces)f%%", value)
+    }
+
+    /// Signed percentage: +12.5% or -12.5%
+    static func signedPercentage(_ value: Double, decimalPlaces: Int = 1) -> String {
+        let sign = value > 0 ? "+" : ""
+        return "\(sign)\(String(format: "%.\(decimalPlaces)f", value))%"
     }
 }
 
 // MARK: - Button Styles
 
-/// Standard button style with scale animation (haptics should be triggered in button action)
+/// Standard button style with scale animation
 struct AppButtonStyle: ButtonStyle {
     let hapticStyle: HapticStyle
 
@@ -411,13 +1037,13 @@ struct AppButtonStyle: ButtonStyle {
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .scaleEffect(configuration.isPressed ? 0.96 : 1.0)
+            .scaleEffect(configuration.isPressed ? 0.98 : 1.0)
             .opacity(configuration.isPressed ? 0.9 : 1.0)
-            .animation(AppAnimation.buttonPress, value: configuration.isPressed)
+            .animation(AppAnimation.fast, value: configuration.isPressed)
     }
 }
 
-/// Primary action button style — black in light mode, white in dark mode
+/// Primary action button style - orange accent
 struct PrimaryButtonStyle: ButtonStyle {
     let isEnabled: Bool
 
@@ -427,21 +1053,21 @@ struct PrimaryButtonStyle: ButtonStyle {
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(AppTypography.bodyBold())
+            .font(AppTypography.buttonDefault())
             .foregroundColor(isEnabled ? AppColors.buttonForeground : AppColors.textSecondary)
             .frame(maxWidth: .infinity)
             .frame(height: ButtonHeight.lg)
             .background(
-                RoundedRectangle(cornerRadius: CornerRadius.md)
+                RoundedRectangle(cornerRadius: CornerRadius.button)
                     .fill(isEnabled ? AppColors.buttonBackground : AppColors.disabled)
             )
-            .scaleEffect(configuration.isPressed ? 0.96 : 1.0)
+            .scaleEffect(configuration.isPressed ? 0.98 : 1.0)
             .opacity(configuration.isPressed ? 0.9 : 1.0)
-            .animation(AppAnimation.buttonPress, value: configuration.isPressed)
+            .animation(AppAnimation.fast, value: configuration.isPressed)
     }
 }
 
-/// Secondary action button style — outlined with theme-contrasting text
+/// Secondary action button style - outlined with accent text
 struct SecondaryButtonStyle: ButtonStyle {
     let isEnabled: Bool
 
@@ -451,21 +1077,63 @@ struct SecondaryButtonStyle: ButtonStyle {
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(AppTypography.subheadlineMedium())
-            .foregroundColor(isEnabled ? AppColors.textPrimary : AppColors.disabled)
+            .font(AppTypography.buttonDefault())
+            .foregroundColor(isEnabled ? AppColors.accent : AppColors.disabled)
             .frame(maxWidth: .infinity)
             .frame(height: ButtonHeight.lg)
             .background(
-                RoundedRectangle(cornerRadius: CornerRadius.md)
-                    .fill(AppColors.cardBackground)
+                RoundedRectangle(cornerRadius: CornerRadius.button)
+                    .fill(Color.clear)
                     .overlay(
-                        RoundedRectangle(cornerRadius: CornerRadius.md)
-                            .strokeBorder(AppColors.buttonBackground.opacity(0.2), lineWidth: 1)
+                        RoundedRectangle(cornerRadius: CornerRadius.button)
+                            .strokeBorder(isEnabled ? AppColors.accent : AppColors.disabled, lineWidth: 1)
                     )
             )
-            .scaleEffect(configuration.isPressed ? 0.96 : 1.0)
+            .scaleEffect(configuration.isPressed ? 0.98 : 1.0)
             .opacity(configuration.isPressed ? 0.9 : 1.0)
-            .animation(AppAnimation.buttonPress, value: configuration.isPressed)
+            .animation(AppAnimation.fast, value: configuration.isPressed)
+    }
+}
+
+/// Ghost button style - no background, secondary text
+struct GhostButtonStyle: ButtonStyle {
+    let isEnabled: Bool
+
+    init(isEnabled: Bool = true) {
+        self.isEnabled = isEnabled
+    }
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(AppTypography.buttonDefault())
+            .foregroundColor(isEnabled ? AppColors.textSecondary : AppColors.disabled)
+            .scaleEffect(configuration.isPressed ? 0.98 : 1.0)
+            .opacity(configuration.isPressed ? 0.7 : 1.0)
+            .animation(AppAnimation.fast, value: configuration.isPressed)
+    }
+}
+
+/// Destructive button style - red fill
+struct DestructiveButtonStyle: ButtonStyle {
+    let isEnabled: Bool
+
+    init(isEnabled: Bool = true) {
+        self.isEnabled = isEnabled
+    }
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(AppTypography.buttonDefault())
+            .foregroundColor(isEnabled ? AppColors.onAccent : AppColors.textSecondary)
+            .frame(maxWidth: .infinity)
+            .frame(height: ButtonHeight.lg)
+            .background(
+                RoundedRectangle(cornerRadius: CornerRadius.button)
+                    .fill(isEnabled ? AppColors.negative : AppColors.disabled)
+            )
+            .scaleEffect(configuration.isPressed ? 0.98 : 1.0)
+            .opacity(configuration.isPressed ? 0.9 : 1.0)
+            .animation(AppAnimation.fast, value: configuration.isPressed)
     }
 }
 
@@ -473,55 +1141,52 @@ struct SecondaryButtonStyle: ButtonStyle {
 
 /// Input validation limits for text fields and data entry
 enum ValidationLimits {
-    /// Maximum length for person/entity names (100 characters)
     static let maxNameLength = 100
-    
-    /// Maximum length for display names (50 characters)
     static let maxDisplayNameLength = 50
-    
-    /// Maximum length for phone numbers (20 characters)
     static let maxPhoneLength = 20
-    
-    /// Maximum length for email addresses (254 per RFC 5321)
     static let maxEmailLength = 254
-    
-    /// Maximum length for transaction titles (200 characters)
     static let maxTransactionTitleLength = 200
-    
-    /// Maximum length for notes/messages (1000 characters)
     static let maxNoteLength = 1000
-    
-    /// Maximum length for reminder messages (500 characters)
     static let maxMessageLength = 500
-    
-    /// Maximum transaction amount ($1 million)
     static let maxTransactionAmount: Double = 1_000_000
-    
-    /// Maximum subscription amount ($100k/year)
     static let maxSubscriptionAmount: Double = 100_000
+}
+
+// MARK: - Card Style Modifier
+
+/// Card style modifier that uses environment to get proper shadow colors
+private struct CardStyleModifier: ViewModifier {
+    @Environment(\.colorScheme) var colorScheme
+    let isElevated: Bool
+
+    func body(content: Content) -> some View {
+        let shadow = isElevated
+            ? AppShadow.elevated(for: colorScheme)
+            : AppShadow.card(for: colorScheme)
+
+        content
+            .padding(Spacing.cardPadding)
+            .background(
+                RoundedRectangle(cornerRadius: CornerRadius.card)
+                    .fill(isElevated ? AppColors.elevatedSurface : AppColors.cardBackground)
+                    .shadow(color: shadow.color, radius: shadow.radius, x: shadow.x, y: shadow.y)
+            )
+    }
 }
 
 // MARK: - View Extensions
 
 extension View {
-    /// Applies standard card styling
+    /// Applies standard card styling with shadow
+    /// Card: bg=elevated surface, radius=14pt (CornerRadius.card), shadow, no border, padding=16pt
     func cardStyle() -> some View {
-        self
-            .padding(Spacing.lg)
-            .background(
-                RoundedRectangle(cornerRadius: CornerRadius.md)
-                    .fill(AppColors.cardBackground)
-            )
+        self.modifier(CardStyleModifier(isElevated: false))
     }
 
     /// Applies elevated card styling
+    /// Elevated card: higher shadow for modals/sheets
     func elevatedCardStyle() -> some View {
-        self
-            .padding(Spacing.lg)
-            .background(
-                RoundedRectangle(cornerRadius: CornerRadius.md)
-                    .fill(AppColors.cardBackgroundElevated)
-            )
+        self.modifier(CardStyleModifier(isElevated: true))
     }
 
     /// Adds haptic feedback on tap
@@ -543,7 +1208,7 @@ extension View {
             }
         )
     }
-    
+
     /// Limits text field input to a maximum length
     func limitTextLength(to maxLength: Int, text: Binding<String>) -> some View {
         self.onChange(of: text.wrappedValue) { _, newValue in
@@ -551,5 +1216,115 @@ extension View {
                 text.wrappedValue = String(newValue.prefix(maxLength))
             }
         }
+    }
+
+    // MARK: - Typography Style Modifiers
+
+    /// Applies display hero style with proper tracking
+    func displayHeroStyle() -> some View {
+        self
+            .font(AppTypography.displayHero())
+            .tracking(AppTypography.Tracking.displayHero)
+    }
+
+    /// Applies display large style with proper tracking
+    func displayLargeStyle() -> some View {
+        self
+            .font(AppTypography.displayLarge())
+            .tracking(AppTypography.Tracking.displayLarge)
+    }
+
+    /// Applies display medium style with proper tracking
+    func displayMediumStyle() -> some View {
+        self
+            .font(AppTypography.displayMedium())
+            .tracking(AppTypography.Tracking.displayMedium)
+    }
+
+    /// Applies financial hero style with proper tracking and monospaced digits
+    func financialHeroStyle() -> some View {
+        self
+            .font(AppTypography.financialHero())
+            .tracking(AppTypography.Tracking.financialHero)
+    }
+
+    /// Applies financial large style with proper tracking and monospaced digits
+    func financialLargeStyle() -> some View {
+        self
+            .font(AppTypography.financialLarge())
+            .tracking(AppTypography.Tracking.financialLarge)
+    }
+
+    /// Applies label small style with proper tracking
+    func labelSmallStyle() -> some View {
+        self
+            .font(AppTypography.labelSmall())
+            .tracking(AppTypography.Tracking.labelSmall)
+    }
+
+    /// Applies caption style with proper tracking
+    func captionStyle() -> some View {
+        self
+            .font(AppTypography.caption())
+            .tracking(AppTypography.Tracking.caption)
+    }
+}
+
+// MARK: - Text Extension for Financial Amounts
+
+extension Text {
+    /// Creates a Text view formatted as a financial amount with proper styling
+    /// Automatically uses tabular/monospaced digits and semantic coloring
+    static func financialAmount(
+        _ amount: Double,
+        style: FinancialAmountStyle = .default,
+        showSign: Bool = false,
+        showCents: Bool = true,
+        currencySymbol: String = "$"
+    ) -> some View {
+        let formatted = showSign
+            ? FinancialFormatter.signedCurrency(amount, showCents: showCents, currencySymbol: currencySymbol)
+            : FinancialFormatter.currency(amount, showCents: showCents, currencySymbol: currencySymbol)
+
+        let font: Font
+        switch style {
+        case .hero:
+            font = AppTypography.financialHero()
+        case .large:
+            font = AppTypography.financialLarge()
+        case .default:
+            font = AppTypography.financialDefault()
+        case .small:
+            font = AppTypography.financialSmall()
+        }
+
+        return Text(formatted)
+            .font(font)
+    }
+
+    /// Financial amount style size options
+    enum FinancialAmountStyle {
+        case hero
+        case large
+        case `default`
+        case small
+    }
+}
+
+// MARK: - UIColor Hex Extension
+
+extension UIColor {
+    convenience init(hex: String) {
+        var hexSanitized = hex.trimmingCharacters(in: .whitespacesAndNewlines)
+        hexSanitized = hexSanitized.replacingOccurrences(of: "#", with: "")
+
+        var rgb: UInt64 = 0
+        Scanner(string: hexSanitized).scanHexInt64(&rgb)
+
+        let r = CGFloat((rgb & 0xFF0000) >> 16) / 255.0
+        let g = CGFloat((rgb & 0x00FF00) >> 8) / 255.0
+        let b = CGFloat(rgb & 0x0000FF) / 255.0
+
+        self.init(red: r, green: g, blue: b, alpha: 1.0)
     }
 }
