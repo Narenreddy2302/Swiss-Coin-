@@ -7,54 +7,126 @@ struct TransactionRowView: View {
     var onEdit: (() -> Void)? = nil
     var onDelete: (() -> Void)? = nil
 
+    // Hero animation support — optional so the row stays reusable in HomeView / SearchView
+    var animationNamespace: Namespace.ID? = nil
+    @Binding var selectedTransaction: FinancialTransaction?
+
     @State private var showingEditSheet = false
     @State private var showingDeleteAlert = false
 
+    // MARK: - Initializers
+
+    /// Full initializer with hero animation support (used in TransactionHistoryView)
+    init(
+        transaction: FinancialTransaction,
+        onEdit: (() -> Void)? = nil,
+        onDelete: (() -> Void)? = nil,
+        animationNamespace: Namespace.ID? = nil,
+        selectedTransaction: Binding<FinancialTransaction?> = .constant(nil)
+    ) {
+        self.transaction = transaction
+        self.onEdit = onEdit
+        self.onDelete = onDelete
+        self.animationNamespace = animationNamespace
+        self._selectedTransaction = selectedTransaction
+    }
+
     var body: some View {
-        NavigationLink(destination: TransactionDetailView(transaction: transaction)) {
-            HStack(spacing: Spacing.md) {
-                // Category Icon
-                RoundedRectangle(cornerRadius: CornerRadius.sm)
-                    .fill(amountColor.opacity(0.1))
-                    .frame(width: AvatarSize.md, height: AvatarSize.md)
-                    .overlay(
-                        Image(systemName: isPayer ? "arrow.up.right" : "arrow.down.left")
-                            .font(.system(size: IconSize.md, weight: .medium))
-                            .foregroundColor(amountColor)
-                    )
+        if animationNamespace != nil {
+            heroContent
+        } else {
+            navigationLinkContent
+        }
+    }
 
-                // Main Content
-                VStack(alignment: .leading, spacing: Spacing.xxs) {
-                    Text(transaction.title ?? "Unknown")
-                        .font(AppTypography.body())
-                        .foregroundColor(AppColors.textPrimary)
-                        .lineLimit(1)
+    // MARK: - Hero Animation Content (TransactionHistoryView)
 
-                    HStack(spacing: Spacing.xxs) {
-                        Text(dateString)
-                        Text("·")
-                        Text("By \(creatorName)")
-                            .lineLimit(1)
-                    }
-                    .font(AppTypography.caption())
-                    .foregroundColor(AppColors.textSecondary)
-                }
-
-                Spacer(minLength: Spacing.sm)
-
-                // Amount and Details
-                VStack(alignment: .trailing, spacing: Spacing.xxs) {
-                    Text(amountPrefix + CurrencyFormatter.format(amountToShow))
-                        .font(AppTypography.amount())
-                        .foregroundColor(amountColor)
-
-                    Text(splitDetails)
-                        .font(AppTypography.caption())
-                        .foregroundColor(AppColors.textTertiary)
-                }
+    private var heroContent: some View {
+        Button {
+            HapticManager.lightTap()
+            withAnimation(AppAnimation.spring) {
+                selectedTransaction = transaction
             }
-            .padding(.vertical, Spacing.md)
-            .padding(.horizontal, Spacing.lg)
+        } label: {
+            rowContent
+        }
+        .buttonStyle(.plain)
+        .contentShape(Rectangle())
+        .applyMatchedGeometry(id: "bg-\(stableId)", namespace: animationNamespace)
+        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+            Button(role: .destructive) {
+                HapticManager.delete()
+                if let onDelete = onDelete {
+                    onDelete()
+                } else {
+                    showingDeleteAlert = true
+                }
+            } label: {
+                Label("Delete", systemImage: "trash")
+            }
+
+            Button {
+                HapticManager.lightTap()
+                if let onEdit = onEdit {
+                    onEdit()
+                } else {
+                    showingEditSheet = true
+                }
+            } label: {
+                Label("Edit", systemImage: "pencil")
+            }
+            .tint(AppColors.accent)
+        }
+        .contextMenu {
+            Button {
+                HapticManager.lightTap()
+                if let onEdit = onEdit {
+                    onEdit()
+                } else {
+                    showingEditSheet = true
+                }
+            } label: {
+                Label("Edit Transaction", systemImage: "pencil")
+            }
+
+            Button {
+                HapticManager.lightTap()
+                shareTransaction()
+            } label: {
+                Label("Share", systemImage: "square.and.arrow.up")
+            }
+
+            Divider()
+
+            Button(role: .destructive) {
+                HapticManager.delete()
+                if let onDelete = onDelete {
+                    onDelete()
+                } else {
+                    showingDeleteAlert = true
+                }
+            } label: {
+                Label("Delete Transaction", systemImage: "trash")
+            }
+        }
+        .sheet(isPresented: $showingEditSheet) {
+            TransactionEditView(transaction: transaction)
+        }
+        .alert("Delete Transaction", isPresented: $showingDeleteAlert) {
+            Button("Cancel", role: .cancel) {}
+            Button("Delete", role: .destructive) {
+                deleteTransaction()
+            }
+        } message: {
+            Text("Are you sure you want to delete this transaction? This action cannot be undone.")
+        }
+    }
+
+    // MARK: - NavigationLink Content (HomeView / SearchView fallback)
+
+    private var navigationLinkContent: some View {
+        NavigationLink(destination: TransactionDetailView(transaction: transaction)) {
+            rowContent
         }
         .buttonStyle(.plain)
         .contentShape(Rectangle())
@@ -127,6 +199,77 @@ struct TransactionRowView: View {
         }
     }
 
+    // MARK: - Shared Row Content
+
+    private var rowContent: some View {
+        HStack(spacing: Spacing.md) {
+            // Category Icon
+            iconView
+
+            // Main Content
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
+                titleView
+
+                HStack(spacing: Spacing.xxs) {
+                    Text(dateString)
+                    Text("·")
+                    Text("By \(creatorName)")
+                        .lineLimit(1)
+                }
+                .font(AppTypography.caption())
+                .foregroundColor(AppColors.textSecondary)
+            }
+
+            Spacer(minLength: Spacing.sm)
+
+            // Amount and Details
+            VStack(alignment: .trailing, spacing: Spacing.xxs) {
+                amountView
+
+                Text(splitDetails)
+                    .font(AppTypography.caption())
+                    .foregroundColor(AppColors.textTertiary)
+            }
+        }
+        .padding(.vertical, Spacing.md)
+        .padding(.horizontal, Spacing.lg)
+    }
+
+    // MARK: - Stable Identifier
+
+    private var stableId: String {
+        transaction.id?.uuidString ?? transaction.objectID.uriRepresentation().absoluteString
+    }
+
+    // MARK: - Shared Element Views
+
+    var iconView: some View {
+        RoundedRectangle(cornerRadius: CornerRadius.sm)
+            .fill(amountColor.opacity(0.1))
+            .frame(width: AvatarSize.md, height: AvatarSize.md)
+            .overlay(
+                Image(systemName: isPayer ? "arrow.up.right" : "arrow.down.left")
+                    .font(.system(size: IconSize.md, weight: .medium))
+                    .foregroundColor(amountColor)
+            )
+            .applyMatchedGeometry(id: "icon-\(stableId)", namespace: animationNamespace)
+    }
+
+    var titleView: some View {
+        Text(transaction.title ?? "Unknown")
+            .font(AppTypography.body())
+            .foregroundColor(AppColors.textPrimary)
+            .lineLimit(1)
+            .applyMatchedGeometry(id: "title-\(stableId)", namespace: animationNamespace)
+    }
+
+    var amountView: some View {
+        Text(amountPrefix + CurrencyFormatter.format(amountToShow))
+            .font(AppTypography.amount())
+            .foregroundColor(amountColor)
+            .applyMatchedGeometry(id: "amount-\(stableId)", namespace: animationNamespace)
+    }
+
     // MARK: - Helpers
 
     private var dateString: String {
@@ -134,7 +277,7 @@ struct TransactionRowView: View {
         return DateFormatter.mediumDate.string(from: date)
     }
 
-    private var creatorName: String {
+    var creatorName: String {
         // Use createdBy if available, otherwise fall back to payer for backward compatibility
         let creator = transaction.createdBy ?? transaction.payer
         if let creatorId = creator?.id {
@@ -149,7 +292,7 @@ struct TransactionRowView: View {
     // MARK: - Amount Logic
 
     /// User's net position: paid - owed. Positive = others owe you.
-    private var userNetPosition: Double {
+    var userNetPosition: Double {
         let userPaid = transaction.effectivePayers
             .filter { CurrentUser.isCurrentUser($0.personId) }
             .reduce(0) { $0 + $1.amount }
@@ -159,16 +302,16 @@ struct TransactionRowView: View {
         return userPaid - userSplit
     }
 
-    private var isPayer: Bool {
+    var isPayer: Bool {
         userNetPosition > 0
     }
 
     /// Amount others owe you (if positive net) or you owe (if negative net)
-    private var amountToShow: Double {
+    var amountToShow: Double {
         abs(userNetPosition)
     }
 
-    private var amountPrefix: String {
+    var amountPrefix: String {
         let amount = amountToShow
         if amount < 0.01 {
             return ""
@@ -176,7 +319,7 @@ struct TransactionRowView: View {
         return isPayer ? "+" : "-"
     }
 
-    private var amountColor: Color {
+    var amountColor: Color {
         let amount = amountToShow
 
         if amount < 0.01 {
@@ -190,7 +333,7 @@ struct TransactionRowView: View {
         }
     }
 
-    private var splitCount: Int {
+    var splitCount: Int {
         let splits = transaction.splits as? Set<TransactionSplit> ?? []
 
         // Count unique participants (payers + those who owe)
@@ -209,7 +352,7 @@ struct TransactionRowView: View {
         return max(participants.count, 1)
     }
 
-    private var splitDetails: String {
+    var splitDetails: String {
         let formattedTotal = CurrencyFormatter.format(transaction.amount)
         let count = splitCount
         let peopleText = count == 1 ? "1 person" : "\(count) people"
@@ -261,6 +404,19 @@ struct TransactionRowView: View {
             context.rollback()
             HapticManager.error()
             AppLogger.transactions.error("Failed to delete transaction: \(error.localizedDescription)")
+        }
+    }
+}
+
+// MARK: - Matched Geometry Helper
+
+extension View {
+    @ViewBuilder
+    func applyMatchedGeometry(id: String, namespace: Namespace.ID?) -> some View {
+        if let namespace = namespace {
+            self.matchedGeometryEffect(id: id, in: namespace)
+        } else {
+            self
         }
     }
 }

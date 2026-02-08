@@ -598,3 +598,661 @@ struct TransactionDetailView: View {
         }
     }
 }
+
+// MARK: - Expanded Detail Overlay (Hero Animation)
+
+/// Full-screen expanded view used as the hero animation destination in TransactionHistoryView.
+/// Shares matchedGeometryEffect IDs with TransactionRowView for continuous morphing.
+struct TransactionExpandedView: View {
+    @ObservedObject var transaction: FinancialTransaction
+    var animationNamespace: Namespace.ID
+    @Binding var selectedTransaction: FinancialTransaction?
+
+    @Environment(\.managedObjectContext) private var viewContext
+
+    @State private var showingEditSheet = false
+    @State private var showingDeleteAlert = false
+    @State private var showingError = false
+    @State private var errorMessage = ""
+    @State private var showDetailContent = false
+
+    // MARK: - Computed Properties
+
+    private var transactionId: String {
+        transaction.id?.uuidString ?? transaction.objectID.uriRepresentation().absoluteString
+    }
+
+    private var isPayer: Bool {
+        CurrentUser.isCurrentUser(transaction.payer?.id)
+    }
+
+    private var splits: [TransactionSplit] {
+        let splitSet = transaction.splits as? Set<TransactionSplit> ?? []
+        return splitSet.sorted { ($0.owedBy?.displayName ?? "") < ($1.owedBy?.displayName ?? "") }
+    }
+
+    private var splitMethod: SplitMethod? {
+        guard let raw = transaction.splitMethod else { return nil }
+        return SplitMethod(rawValue: raw)
+    }
+
+    private var isCurrentUserAPayer: Bool {
+        transaction.effectivePayers.contains { CurrentUser.isCurrentUser($0.personId) }
+    }
+
+    private var payerName: String {
+        let payers = transaction.effectivePayers
+        if payers.count <= 1 {
+            if let payer = transaction.payer, CurrentUser.isCurrentUser(payer.id) {
+                return "You"
+            }
+            return transaction.payer?.displayName ?? "Unknown"
+        }
+        let isUserAPayer = payers.contains { CurrentUser.isCurrentUser($0.personId) }
+        if isUserAPayer {
+            return "You +\(payers.count - 1) others"
+        }
+        return "\(payers.count) people"
+    }
+
+    private var formattedDate: String {
+        guard let date = transaction.date else { return "Unknown date" }
+        return DateFormatter.longDate.string(from: date)
+    }
+
+    private var participantCount: Int {
+        var participants = Set<UUID>()
+        for payer in transaction.effectivePayers {
+            if let id = payer.personId {
+                participants.insert(id)
+            }
+        }
+        for split in splits {
+            if let owedById = split.owedBy?.id {
+                participants.insert(owedById)
+            }
+        }
+        return max(participants.count, 1)
+    }
+
+    private var userNetAmount: Double {
+        if isPayer {
+            let myShare = splits.first(where: { CurrentUser.isCurrentUser($0.owedBy?.id) })?.amount ?? 0
+            return transaction.amount - myShare
+        } else {
+            let myShare = splits.first(where: { CurrentUser.isCurrentUser($0.owedBy?.id) })?.amount ?? 0
+            return myShare > 0 ? -myShare : 0
+        }
+    }
+
+    private var netAmountColor: Color {
+        if userNetAmount > 0.01 {
+            return AppColors.positive
+        } else if userNetAmount < -0.01 {
+            return AppColors.negative
+        }
+        return AppColors.neutral
+    }
+
+    private var netAmountText: String {
+        let formatted = CurrencyFormatter.formatAbsolute(userNetAmount)
+        if userNetAmount > 0.01 {
+            return "You lent \(formatted)"
+        } else if userNetAmount < -0.01 {
+            return "You owe \(formatted)"
+        }
+        return "You paid your share"
+    }
+
+    private var netAmountBackgroundColor: Color {
+        if userNetAmount > 0.01 {
+            return AppColors.positive.opacity(0.1)
+        } else if userNetAmount < -0.01 {
+            return AppColors.negative.opacity(0.1)
+        }
+        return AppColors.backgroundTertiary
+    }
+
+    // Row-level computed properties (matching TransactionRowView)
+    private var rowUserNetPosition: Double {
+        let userPaid = transaction.effectivePayers
+            .filter { CurrentUser.isCurrentUser($0.personId) }
+            .reduce(0) { $0 + $1.amount }
+        let userSplit = (transaction.splits as? Set<TransactionSplit> ?? [])
+            .filter { CurrentUser.isCurrentUser($0.owedBy?.id) }
+            .reduce(0) { $0 + $1.amount }
+        return userPaid - userSplit
+    }
+
+    private var rowIsPayer: Bool {
+        rowUserNetPosition > 0
+    }
+
+    private var rowAmountToShow: Double {
+        abs(rowUserNetPosition)
+    }
+
+    private var rowAmountPrefix: String {
+        if rowAmountToShow < 0.01 { return "" }
+        return rowIsPayer ? "+" : "-"
+    }
+
+    private var rowAmountColor: Color {
+        if rowAmountToShow < 0.01 { return AppColors.textSecondary }
+        return rowIsPayer ? AppColors.positive : AppColors.negative
+    }
+
+    // MARK: - Body
+
+    var body: some View {
+        ZStack(alignment: .topTrailing) {
+            // Full-screen background
+            AppColors.backgroundSecondary
+                .matchedGeometryEffect(id: "bg-\(transactionId)", in: animationNamespace)
+                .ignoresSafeArea()
+
+            // Scrollable detail content
+            ScrollView {
+                VStack(spacing: Spacing.xl) {
+                    expandedHeaderSection
+
+                    // Detail sections fade in after morph
+                    Group {
+                        infoCard
+
+                        splitsCard
+
+                        if transaction.group != nil {
+                            groupCard
+                        }
+
+                        actionsCard
+                    }
+                    .opacity(showDetailContent ? 1 : 0)
+                    .animation(AppAnimation.standard.delay(0.15), value: showDetailContent)
+                }
+                .padding(.horizontal, Spacing.lg)
+                .padding(.top, Spacing.section + Spacing.xl)
+                .padding(.bottom, Spacing.section)
+            }
+
+            // Close button
+            closeButton
+        }
+        .onAppear {
+            showDetailContent = true
+        }
+        .sheet(isPresented: $showingEditSheet) {
+            TransactionEditView(transaction: transaction)
+                .environment(\.managedObjectContext, viewContext)
+        }
+        .alert("Delete Transaction", isPresented: $showingDeleteAlert) {
+            Button("Cancel", role: .cancel) {}
+            Button("Delete", role: .destructive) {
+                deleteTransaction()
+            }
+        } message: {
+            Text("Are you sure you want to delete this transaction? This action cannot be undone.")
+        }
+        .alert("Error", isPresented: $showingError) {
+            Button("OK", role: .cancel) {
+                HapticManager.tap()
+            }
+        } message: {
+            Text(errorMessage)
+        }
+    }
+
+    // MARK: - Close Button
+
+    private var closeButton: some View {
+        HStack {
+            // Ellipsis menu (edit/delete)
+            Menu {
+                Button {
+                    HapticManager.tap()
+                    showingEditSheet = true
+                } label: {
+                    Label("Edit", systemImage: "pencil")
+                }
+
+                Divider()
+
+                Button(role: .destructive) {
+                    HapticManager.tap()
+                    showingDeleteAlert = true
+                } label: {
+                    Label("Delete", systemImage: "trash")
+                }
+            } label: {
+                Image(systemName: "ellipsis.circle.fill")
+                    .font(.system(size: IconSize.lg))
+                    .foregroundStyle(AppColors.textSecondary, AppColors.backgroundTertiary)
+            }
+
+            Spacer()
+
+            // Close button
+            Button {
+                HapticManager.lightTap()
+                showDetailContent = false
+                withAnimation(AppAnimation.spring) {
+                    selectedTransaction = nil
+                }
+            } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.system(size: IconSize.lg))
+                    .foregroundStyle(AppColors.textSecondary, AppColors.backgroundTertiary)
+            }
+        }
+        .padding(.horizontal, Spacing.lg)
+        .padding(.top, Spacing.md)
+    }
+
+    // MARK: - Expanded Header Section (with matched geometry)
+
+    private var expandedHeaderSection: some View {
+        VStack(spacing: Spacing.md) {
+            // Direction-aware icon — morphs from compact (md) to expanded (xl)
+            RoundedRectangle(cornerRadius: CornerRadius.lg)
+                .fill(rowAmountColor.opacity(0.1))
+                .frame(width: AvatarSize.xl, height: AvatarSize.xl)
+                .overlay(
+                    Image(systemName: rowIsPayer ? "arrow.up.right" : "arrow.down.left")
+                        .font(.system(size: 28, weight: .semibold))
+                        .foregroundColor(rowAmountColor)
+                )
+                .matchedGeometryEffect(id: "icon-\(transactionId)", in: animationNamespace)
+
+            // Title — morphs from body left-aligned to title3 centered
+            Text(transaction.title ?? "Unknown")
+                .font(AppTypography.title3())
+                .foregroundColor(AppColors.textPrimary)
+                .multilineTextAlignment(.center)
+                .matchedGeometryEffect(id: "title-\(transactionId)", in: animationNamespace)
+
+            // Amount — morphs from compact amount to large 34pt bold
+            Text(CurrencyFormatter.format(transaction.amount))
+                .font(.system(size: 34, weight: .bold, design: .rounded))
+                .foregroundColor(AppColors.textPrimary)
+                .matchedGeometryEffect(id: "amount-\(transactionId)", in: animationNamespace)
+
+            // Date pill — fades in with detail content
+            Text(formattedDate)
+                .font(AppTypography.footnote())
+                .foregroundColor(AppColors.textSecondary)
+                .padding(.horizontal, Spacing.md)
+                .padding(.vertical, Spacing.xs)
+                .background(
+                    Capsule()
+                        .fill(AppColors.backgroundTertiary)
+                )
+                .opacity(showDetailContent ? 1 : 0)
+
+            // Net impact pill — fades in with detail content
+            Text(netAmountText)
+                .font(AppTypography.subheadlineMedium())
+                .foregroundColor(netAmountColor)
+                .padding(.horizontal, Spacing.lg)
+                .padding(.vertical, Spacing.sm)
+                .background(
+                    Capsule()
+                        .fill(netAmountBackgroundColor)
+                )
+                .opacity(showDetailContent ? 1 : 0)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, Spacing.xxl)
+        .padding(.horizontal, Spacing.lg)
+        .background(
+            RoundedRectangle(cornerRadius: CornerRadius.lg)
+                .fill(AppColors.cardBackground)
+        )
+    }
+
+    // MARK: - Info Card
+
+    private var infoCard: some View {
+        VStack(spacing: 0) {
+            if transaction.isMultiPayer, let payerSet = transaction.payers as? Set<TransactionPayer> {
+                VStack(alignment: .leading, spacing: 0) {
+                    Text("Paid by")
+                        .font(AppTypography.body())
+                        .foregroundColor(AppColors.textSecondary)
+                        .padding(.horizontal, Spacing.lg)
+                        .padding(.top, Spacing.md)
+                        .padding(.bottom, Spacing.sm)
+
+                    let sortedPayers = payerSet.sorted { tp1, tp2 in
+                        if CurrentUser.isCurrentUser(tp1.paidBy?.id) { return true }
+                        if CurrentUser.isCurrentUser(tp2.paidBy?.id) { return false }
+                        return (tp1.paidBy?.displayName ?? "") < (tp2.paidBy?.displayName ?? "")
+                    }
+
+                    ForEach(sortedPayers, id: \.objectID) { tp in
+                        HStack(spacing: Spacing.sm) {
+                            if let person = tp.paidBy {
+                                Circle()
+                                    .fill(person.avatarBackgroundColor)
+                                    .frame(width: AvatarSize.xs, height: AvatarSize.xs)
+                                    .overlay(
+                                        Text(CurrentUser.isCurrentUser(person.id) ? CurrentUser.initials : person.initials)
+                                            .font(.system(size: 10, weight: .medium))
+                                            .foregroundColor(person.avatarTextColor)
+                                    )
+                            }
+
+                            Text(CurrentUser.isCurrentUser(tp.paidBy?.id) ? "You" : (tp.paidBy?.displayName ?? "Unknown"))
+                                .font(AppTypography.body())
+                                .foregroundColor(AppColors.textPrimary)
+
+                            Spacer()
+
+                            Text(CurrencyFormatter.format(tp.amount))
+                                .font(AppTypography.bodyBold())
+                                .foregroundColor(AppColors.textPrimary)
+                        }
+                        .padding(.horizontal, Spacing.lg)
+                        .padding(.vertical, Spacing.xs)
+                    }
+                }
+                .padding(.bottom, Spacing.sm)
+            } else {
+                HStack(spacing: Spacing.md) {
+                    Text("Paid by")
+                        .font(AppTypography.body())
+                        .foregroundColor(AppColors.textSecondary)
+
+                    Spacer()
+
+                    HStack(spacing: Spacing.sm) {
+                        if let payer = transaction.payer {
+                            Circle()
+                                .fill(payer.avatarBackgroundColor)
+                                .frame(width: AvatarSize.xs, height: AvatarSize.xs)
+                                .overlay(
+                                    Text(CurrentUser.isCurrentUser(payer.id) ? CurrentUser.initials : payer.initials)
+                                        .font(.system(size: 10, weight: .medium))
+                                        .foregroundColor(payer.avatarTextColor)
+                                )
+                        }
+                        Text(payerName)
+                            .font(AppTypography.bodyBold())
+                            .foregroundColor(AppColors.textPrimary)
+                    }
+                }
+                .padding(.horizontal, Spacing.lg)
+                .padding(.vertical, Spacing.md)
+            }
+
+            Divider()
+                .padding(.leading, Spacing.lg)
+
+            expandedInfoRow(label: "Split Method") {
+                HStack(spacing: Spacing.xs) {
+                    if let method = splitMethod {
+                        Image(systemName: method.systemImage)
+                            .font(.system(size: IconSize.sm))
+                            .foregroundColor(AppColors.textPrimary)
+                    }
+                    Text(splitMethod?.displayName ?? "Equal")
+                        .font(AppTypography.body().weight(.bold))
+                        .foregroundColor(AppColors.textPrimary)
+                }
+            }
+
+            Divider()
+                .padding(.leading, Spacing.lg)
+
+            expandedInfoRow(label: "Participants") {
+                Text("\(participantCount) people")
+                    .font(AppTypography.body().weight(.bold))
+                    .foregroundColor(AppColors.textPrimary)
+            }
+            .padding(.horizontal, Spacing.lg)
+            .padding(.vertical, Spacing.md)
+
+            if let note = transaction.note, !note.isEmpty {
+                Divider()
+                    .padding(.leading, Spacing.lg)
+
+                HStack(alignment: .top) {
+                    Text("Note")
+                        .font(AppTypography.body())
+                        .foregroundColor(AppColors.textSecondary)
+                    Spacer()
+                    Text(note)
+                        .font(AppTypography.body())
+                        .foregroundColor(AppColors.textPrimary)
+                        .multilineTextAlignment(.trailing)
+                }
+                .padding(.horizontal, Spacing.lg)
+                .padding(.vertical, Spacing.md)
+            }
+        }
+        .background(
+            RoundedRectangle(cornerRadius: CornerRadius.md)
+                .fill(AppColors.cardBackground)
+        )
+    }
+
+    private func expandedInfoRow<Content: View>(label: String, @ViewBuilder value: () -> Content) -> some View {
+        HStack {
+            Text(label)
+                .font(AppTypography.body())
+                .foregroundColor(AppColors.textSecondary)
+            Spacer()
+            value()
+        }
+        .padding(.horizontal, Spacing.lg)
+        .padding(.vertical, Spacing.md)
+    }
+
+    // MARK: - Splits Card
+
+    private var splitsCard: some View {
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            Text("SPLIT BREAKDOWN")
+                .font(AppTypography.footnote())
+                .foregroundColor(AppColors.textSecondary)
+
+            VStack(spacing: 0) {
+                if splits.isEmpty {
+                    HStack {
+                        Spacer()
+                        Text("No split details available")
+                            .font(AppTypography.subheadline())
+                            .foregroundColor(AppColors.textSecondary)
+                        Spacer()
+                    }
+                    .padding(.vertical, Spacing.xxl)
+                } else {
+                    ForEach(splits, id: \.objectID) { split in
+                        expandedSplitRow(split)
+
+                        if split.objectID != splits.last?.objectID {
+                            Divider()
+                                .padding(.leading, Spacing.lg + AvatarSize.sm + Spacing.md)
+                        }
+                    }
+                }
+            }
+            .background(
+                RoundedRectangle(cornerRadius: CornerRadius.md)
+                    .fill(AppColors.cardBackground)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: CornerRadius.md))
+        }
+    }
+
+    private func expandedSplitRow(_ split: TransactionSplit) -> some View {
+        HStack(spacing: Spacing.md) {
+            if let person = split.owedBy {
+                Circle()
+                    .fill(Color(hex: person.safeColorHex))
+                    .frame(width: AvatarSize.sm, height: AvatarSize.sm)
+                    .overlay(
+                        Text(CurrentUser.isCurrentUser(person.id) ? CurrentUser.initials : person.initials)
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundColor(.white)
+                    )
+            } else {
+                Circle()
+                    .fill(AppColors.backgroundTertiary)
+                    .frame(width: AvatarSize.sm, height: AvatarSize.sm)
+                    .overlay(
+                        Text("?")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundColor(AppColors.textSecondary)
+                    )
+            }
+
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
+                Text(expandedPersonDisplayName(for: split))
+                    .font(AppTypography.body())
+                    .foregroundColor(AppColors.textPrimary)
+
+                if transaction.amount > 0 {
+                    let percentage = (split.amount / transaction.amount) * 100
+                    Text(String(format: "%.1f%% of total", percentage))
+                        .font(AppTypography.caption())
+                        .foregroundColor(AppColors.textTertiary)
+                }
+            }
+
+            Spacer()
+
+            Text(CurrencyFormatter.format(split.amount))
+                .font(AppTypography.amountSmall())
+                .foregroundColor(expandedSplitAmountColor(for: split))
+        }
+        .padding(.horizontal, Spacing.lg)
+        .padding(.vertical, Spacing.md)
+    }
+
+    private func expandedPersonDisplayName(for split: TransactionSplit) -> String {
+        guard let person = split.owedBy else { return "Unknown" }
+        if CurrentUser.isCurrentUser(person.id) {
+            return "You"
+        }
+        return person.displayName
+    }
+
+    private func expandedSplitAmountColor(for split: TransactionSplit) -> Color {
+        guard let person = split.owedBy else { return AppColors.textPrimary }
+        if CurrentUser.isCurrentUser(person.id) {
+            return isCurrentUserAPayer ? AppColors.textSecondary : AppColors.negative
+        } else {
+            return isCurrentUserAPayer ? AppColors.positive : AppColors.textSecondary
+        }
+    }
+
+    // MARK: - Group Card
+
+    private var groupCard: some View {
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            Text("GROUP")
+                .font(AppTypography.footnote())
+                .foregroundColor(AppColors.textSecondary)
+
+            if let group = transaction.group {
+                HStack(spacing: Spacing.md) {
+                    RoundedRectangle(cornerRadius: CornerRadius.sm)
+                        .fill(Color(hex: group.colorHex ?? "#808080").opacity(0.2))
+                        .frame(width: AvatarSize.sm, height: AvatarSize.sm)
+                        .overlay(
+                            Image(systemName: "person.3.fill")
+                                .font(.system(size: 12))
+                                .foregroundColor(Color(hex: group.colorHex ?? "#808080"))
+                        )
+
+                    Text(group.name ?? "Unknown Group")
+                        .font(AppTypography.body())
+                        .foregroundColor(AppColors.textPrimary)
+
+                    Spacer()
+
+                    let memberCount = (group.members as? Set<Person>)?.count ?? 0
+                    Text("\(memberCount) members")
+                        .font(AppTypography.caption())
+                        .foregroundColor(AppColors.textSecondary)
+                }
+                .padding(.horizontal, Spacing.lg)
+                .padding(.vertical, Spacing.md)
+                .background(
+                    RoundedRectangle(cornerRadius: CornerRadius.md)
+                        .fill(AppColors.cardBackground)
+                )
+            }
+        }
+    }
+
+    // MARK: - Actions Card
+
+    private var actionsCard: some View {
+        VStack(spacing: Spacing.md) {
+            Button {
+                HapticManager.tap()
+                showingEditSheet = true
+            } label: {
+                HStack(spacing: Spacing.xs) {
+                    Image(systemName: "pencil")
+                        .font(.system(size: IconSize.sm))
+                    Text("Edit Transaction")
+                        .font(AppTypography.subheadlineMedium())
+                }
+                .foregroundColor(AppColors.textPrimary)
+                .frame(height: ButtonHeight.md)
+                .frame(maxWidth: .infinity)
+                .background(AppColors.cardBackground)
+                .clipShape(RoundedRectangle(cornerRadius: CornerRadius.md))
+                .overlay(
+                    RoundedRectangle(cornerRadius: CornerRadius.md)
+                        .stroke(AppColors.separator, lineWidth: 1)
+                )
+            }
+
+            Button {
+                HapticManager.tap()
+                showingDeleteAlert = true
+            } label: {
+                HStack(spacing: Spacing.xs) {
+                    Image(systemName: "trash")
+                        .font(.system(size: IconSize.sm))
+                    Text("Delete Transaction")
+                        .font(AppTypography.subheadlineMedium())
+                }
+                .foregroundColor(AppColors.negative)
+                .frame(height: ButtonHeight.md)
+                .frame(maxWidth: .infinity)
+                .background(AppColors.negative.opacity(0.1))
+                .clipShape(RoundedRectangle(cornerRadius: CornerRadius.md))
+            }
+        }
+    }
+
+    // MARK: - Actions
+
+    private func deleteTransaction() {
+        HapticManager.delete()
+
+        if let splits = transaction.splits as? Set<TransactionSplit> {
+            splits.forEach { viewContext.delete($0) }
+        }
+
+        viewContext.delete(transaction)
+
+        do {
+            try viewContext.save()
+            HapticManager.success()
+            withAnimation(AppAnimation.spring) {
+                selectedTransaction = nil
+            }
+        } catch {
+            viewContext.rollback()
+            HapticManager.error()
+            errorMessage = "Failed to delete transaction: \(error.localizedDescription)"
+            showingError = true
+        }
+    }
+}
