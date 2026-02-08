@@ -260,7 +260,7 @@ struct TransactionRowView: View {
 
     var titleView: some View {
         Text(transaction.title ?? "Unknown")
-            .font(AppTypography.body())
+            .font(AppTypography.body().weight(.bold))
             .foregroundColor(AppColors.textPrimary)
             .lineLimit(1)
     }

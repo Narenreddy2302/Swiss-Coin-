@@ -371,10 +371,6 @@ private struct SearchPersonRow: View {
             }
 
             Spacer()
-
-            Image(systemName: "chevron.right")
-                .font(.system(size: IconSize.xs, weight: .semibold))
-                .foregroundColor(AppColors.textTertiary)
         }
         .padding(.vertical, Spacing.md)
         .padding(.horizontal, Spacing.lg)
@@ -414,10 +410,6 @@ private struct SearchGroupRow: View {
             }
 
             Spacer()
-
-            Image(systemName: "chevron.right")
-                .font(.system(size: IconSize.xs, weight: .semibold))
-                .foregroundColor(AppColors.textTertiary)
         }
         .padding(.vertical, Spacing.md)
         .padding(.horizontal, Spacing.lg)
@@ -461,10 +453,6 @@ private struct SearchSubscriptionRow: View {
             }
 
             Spacer()
-
-            Image(systemName: "chevron.right")
-                .font(.system(size: IconSize.xs, weight: .semibold))
-                .foregroundColor(AppColors.textTertiary)
         }
         .padding(.vertical, Spacing.md)
         .padding(.horizontal, Spacing.lg)

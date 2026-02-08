@@ -26,6 +26,10 @@ struct PersonalSubscriptionListView: View {
         subscriptions.filter { $0.billingStatus == .due && $0.isActive }
     }
 
+    private var attentionSubscriptions: [Subscription] {
+        overdueSubscriptions + dueSubscriptions
+    }
+
     private var upcomingSubscriptions: [Subscription] {
         subscriptions.filter { $0.billingStatus == .upcoming && $0.isActive }
     }
@@ -35,60 +39,130 @@ struct PersonalSubscriptionListView: View {
     }
 
     var body: some View {
-        List {
-            // Attention Required Section (Overdue + Due)
-            if !overdueSubscriptions.isEmpty || !dueSubscriptions.isEmpty {
-                Section {
-                    ForEach(overdueSubscriptions + dueSubscriptions) { subscription in
-                        NavigationLink(destination: SubscriptionDetailView(subscription: subscription)) {
-                            SubscriptionListRowView(subscription: subscription)
-                        }
-                        .listRowInsets(EdgeInsets())
-                        .listRowBackground(AppColors.backgroundSecondary)
-                    }
-                } header: {
-                    Text("Attention Required")
-                        .font(AppTypography.subheadlineMedium())
-                        .foregroundColor(AppColors.warning)
-                }
-            }
+        ScrollView {
+            VStack(spacing: Spacing.xl) {
+                // Attention Required Section (Overdue + Due)
+                if !attentionSubscriptions.isEmpty {
+                    VStack(alignment: .leading, spacing: 0) {
+                        HStack {
+                            Text("Attention Required")
+                                .font(AppTypography.subheadlineMedium())
+                                .foregroundColor(AppColors.warning)
 
-            // Active Subscriptions Section
-            if !upcomingSubscriptions.isEmpty {
-                Section {
-                    ForEach(upcomingSubscriptions) { subscription in
-                        NavigationLink(destination: SubscriptionDetailView(subscription: subscription)) {
-                            SubscriptionListRowView(subscription: subscription)
-                        }
-                        .listRowInsets(EdgeInsets())
-                        .listRowBackground(AppColors.backgroundSecondary)
-                    }
-                } header: {
-                    Text("Active")
-                        .font(AppTypography.subheadlineMedium())
-                        .foregroundColor(AppColors.textSecondary)
-                }
-            }
+                            Spacer()
 
-            // Paused Subscriptions Section
-            if !pausedSubscriptions.isEmpty {
-                Section {
-                    ForEach(pausedSubscriptions) { subscription in
-                        NavigationLink(destination: SubscriptionDetailView(subscription: subscription)) {
-                            SubscriptionListRowView(subscription: subscription)
+                            Text("\(attentionSubscriptions.count)")
+                                .font(AppTypography.caption())
+                                .foregroundColor(AppColors.textTertiary)
+                                .padding(.horizontal, Spacing.sm)
+                                .padding(.vertical, Spacing.xxs)
+                                .background(
+                                    Capsule()
+                                        .fill(AppColors.backgroundTertiary)
+                                )
                         }
-                        .listRowInsets(EdgeInsets())
-                        .listRowBackground(AppColors.backgroundSecondary)
+                        .padding(.horizontal, Spacing.lg)
+                        .padding(.bottom, Spacing.sm)
+
+                        LazyVStack(spacing: 0) {
+                            ForEach(attentionSubscriptions) { subscription in
+                                NavigationLink(destination: SubscriptionDetailView(subscription: subscription)) {
+                                    SubscriptionListRowView(subscription: subscription)
+                                }
+                                .buttonStyle(.plain)
+
+                                if subscription.objectID != attentionSubscriptions.last?.objectID {
+                                    Divider()
+                                        .padding(.leading, Spacing.lg + AvatarSize.lg + Spacing.md)
+                                }
+                            }
+                        }
                     }
-                } header: {
-                    Text("Paused")
-                        .font(AppTypography.subheadlineMedium())
-                        .foregroundColor(AppColors.textSecondary)
                 }
+
+                // Active Subscriptions Section
+                if !upcomingSubscriptions.isEmpty {
+                    VStack(alignment: .leading, spacing: 0) {
+                        HStack {
+                            Text("Active")
+                                .font(AppTypography.subheadlineMedium())
+                                .foregroundColor(AppColors.textSecondary)
+
+                            Spacer()
+
+                            Text("\(upcomingSubscriptions.count)")
+                                .font(AppTypography.caption())
+                                .foregroundColor(AppColors.textTertiary)
+                                .padding(.horizontal, Spacing.sm)
+                                .padding(.vertical, Spacing.xxs)
+                                .background(
+                                    Capsule()
+                                        .fill(AppColors.backgroundTertiary)
+                                )
+                        }
+                        .padding(.horizontal, Spacing.lg)
+                        .padding(.bottom, Spacing.sm)
+
+                        LazyVStack(spacing: 0) {
+                            ForEach(upcomingSubscriptions) { subscription in
+                                NavigationLink(destination: SubscriptionDetailView(subscription: subscription)) {
+                                    SubscriptionListRowView(subscription: subscription)
+                                }
+                                .buttonStyle(.plain)
+
+                                if subscription.objectID != upcomingSubscriptions.last?.objectID {
+                                    Divider()
+                                        .padding(.leading, Spacing.lg + AvatarSize.lg + Spacing.md)
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Paused Subscriptions Section
+                if !pausedSubscriptions.isEmpty {
+                    VStack(alignment: .leading, spacing: 0) {
+                        HStack {
+                            Text("Paused")
+                                .font(AppTypography.subheadlineMedium())
+                                .foregroundColor(AppColors.textSecondary)
+
+                            Spacer()
+
+                            Text("\(pausedSubscriptions.count)")
+                                .font(AppTypography.caption())
+                                .foregroundColor(AppColors.textTertiary)
+                                .padding(.horizontal, Spacing.sm)
+                                .padding(.vertical, Spacing.xxs)
+                                .background(
+                                    Capsule()
+                                        .fill(AppColors.backgroundTertiary)
+                                )
+                        }
+                        .padding(.horizontal, Spacing.lg)
+                        .padding(.bottom, Spacing.sm)
+
+                        LazyVStack(spacing: 0) {
+                            ForEach(pausedSubscriptions) { subscription in
+                                NavigationLink(destination: SubscriptionDetailView(subscription: subscription)) {
+                                    SubscriptionListRowView(subscription: subscription)
+                                }
+                                .buttonStyle(.plain)
+
+                                if subscription.objectID != pausedSubscriptions.last?.objectID {
+                                    Divider()
+                                        .padding(.leading, Spacing.lg + AvatarSize.lg + Spacing.md)
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Spacer()
+                    .frame(height: Spacing.section + Spacing.sm)
             }
+            .padding(.top, Spacing.lg)
         }
-        .listStyle(.plain)
-        .scrollContentBackground(.hidden)
         .background(AppColors.backgroundSecondary)
         .overlay {
             if subscriptions.isEmpty {
