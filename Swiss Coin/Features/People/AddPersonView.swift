@@ -147,7 +147,7 @@ struct AddPersonView: View {
                                 .padding(.vertical, Spacing.md)
                                 .contentShape(Rectangle())
                             }
-                            .buttonStyle(PlainButtonStyle())
+                            .buttonStyle(AppButtonStyle(haptic: .none))
                             .background(
                                 RoundedRectangle(cornerRadius: CornerRadius.md)
                                     .fill(AppColors.cardBackground)
@@ -163,25 +163,16 @@ struct AddPersonView: View {
                             if isSaving {
                                 ProgressView()
                                     .scaleEffect(0.8)
-                                    .tint(.white)
-                                    .frame(maxWidth: .infinity)
-                                    .frame(height: ButtonHeight.md)
+                                    .tint(AppColors.buttonForeground)
                             } else {
                                 HStack(spacing: Spacing.sm) {
                                     Image(systemName: "checkmark.circle.fill")
                                         .font(.system(size: IconSize.sm))
                                     Text("Save Contact")
-                                        .font(AppTypography.subheadlineMedium())
                                 }
-                                .frame(maxWidth: .infinity)
-                                .frame(height: ButtonHeight.md)
                             }
                         }
-                        .foregroundColor(AppColors.buttonForeground)
-                        .background(
-                            RoundedRectangle(cornerRadius: CornerRadius.md)
-                                .fill(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || showingDuplicateWarning ? AppColors.disabled : AppColors.buttonBackground)
-                        )
+                        .buttonStyle(PrimaryButtonStyle(isEnabled: !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !showingDuplicateWarning && !isSaving))
                         .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || showingDuplicateWarning || isSaving)
                         .padding(.horizontal)
                     }
