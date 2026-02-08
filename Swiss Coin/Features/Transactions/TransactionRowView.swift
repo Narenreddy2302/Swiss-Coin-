@@ -49,14 +49,14 @@ struct TransactionRowView: View {
     private var heroContent: some View {
         Button {
             HapticManager.lightTap()
-            withAnimation(.spring(response: 0.45, dampingFraction: 0.88)) {
+            withAnimation(AppAnimation.cardMorph) {
                 selectedTransaction = transaction
             }
         } label: {
             rowContent
                 .opacity(isSelected ? 0 : 1)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(AppButtonStyle(haptic: .none))
         .contentShape(Rectangle())
         .applyMatchedGeometry(id: "bg-\(stableId)", namespace: animationNamespace)
         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
