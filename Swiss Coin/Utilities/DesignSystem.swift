@@ -140,6 +140,30 @@ enum AppAnimation {
 
     /// Button press scale animation
     static let buttonPress: Animation = .easeOut(duration: 0.15)
+
+    // MARK: - Transaction Detail Animations
+
+    /// Card morphing spring — used for hero card-to-detail transitions.
+    /// Higher response (0.5s) gives the morph a smooth, weighty feel.
+    static let cardMorph: Animation = .spring(response: 0.5, dampingFraction: 0.86)
+
+    /// Content reveal spring — used for staggered section entrance.
+    /// Slightly bouncy for a lively but controlled appearance.
+    static let contentReveal: Animation = .spring(response: 0.45, dampingFraction: 0.82)
+
+    /// Interactive spring — snappy snap-back for drag gesture cancellation.
+    static let interactiveSpring: Animation = .spring(response: 0.4, dampingFraction: 0.75)
+
+    /// Dismiss collapse spring — fast, critically-damped for clean exit.
+    static let dismiss: Animation = .spring(response: 0.25, dampingFraction: 0.9)
+
+    // MARK: - Stagger Timing
+
+    /// Standard stagger interval between cascading section reveals
+    static let staggerInterval: Double = 0.07
+
+    /// Base delay before the first staggered section appears
+    static let staggerBaseDelay: Double = 0.22
 }
 
 // MARK: - Colors

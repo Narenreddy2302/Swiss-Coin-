@@ -18,6 +18,16 @@ struct TransactionDetailView: View {
     @State private var showingError = false
     @State private var errorMessage = ""
 
+    // MARK: - Entrance Animation States
+
+    @State private var hasAnimated = false
+    @State private var headerVisible = false
+    @State private var infoVisible = false
+    @State private var paymentVisible = false
+    @State private var impactVisible = false
+    @State private var breakdownVisible = false
+    @State private var groupVisible = false
+
     // MARK: - Computed Properties
 
     private var isPayer: Bool {
@@ -139,37 +149,54 @@ struct TransactionDetailView: View {
                 // Header: Icon + Name + Amount + Type
                 detailHeaderSection
                     .padding(.bottom, Spacing.lg)
+                    .opacity(headerVisible ? 1 : 0)
+                    .offset(y: headerVisible ? 0 : 10)
 
                 detailDottedSeparator
+                    .opacity(infoVisible ? 1 : 0)
 
                 // Transaction details: ID, Date, Time
                 detailInfoSection
                     .padding(.vertical, Spacing.lg)
+                    .opacity(infoVisible ? 1 : 0)
+                    .offset(y: infoVisible ? 0 : 10)
 
                 detailDottedSeparator
+                    .opacity(paymentVisible ? 1 : 0)
 
                 // Payment & Split info
                 detailPaymentSection
                     .padding(.vertical, Spacing.lg)
+                    .opacity(paymentVisible ? 1 : 0)
+                    .offset(y: paymentVisible ? 0 : 10)
 
                 detailDottedSeparator
+                    .opacity(impactVisible ? 1 : 0)
 
                 // Net impact + Note
                 detailNetImpactSection
                     .padding(.vertical, Spacing.lg)
+                    .opacity(impactVisible ? 1 : 0)
+                    .offset(y: impactVisible ? 0 : 10)
 
                 // Split breakdown
                 if !splits.isEmpty {
                     detailDottedSeparator
+                        .opacity(breakdownVisible ? 1 : 0)
                     detailSplitBreakdown
                         .padding(.vertical, Spacing.lg)
+                        .opacity(breakdownVisible ? 1 : 0)
+                        .offset(y: breakdownVisible ? 0 : 10)
                 }
 
                 // Group info
                 if transaction.group != nil {
                     detailDottedSeparator
+                        .opacity(groupVisible ? 1 : 0)
                     detailGroupSection
                         .padding(.vertical, Spacing.lg)
+                        .opacity(groupVisible ? 1 : 0)
+                        .offset(y: groupVisible ? 0 : 10)
                 }
             }
             .padding(.horizontal, Spacing.xl)
@@ -184,6 +211,7 @@ struct TransactionDetailView: View {
         }
         .background(AppColors.backgroundSecondary)
         .navigationTitle("Transaction")
+        .onAppear { animateSectionsIn() }
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
@@ -462,6 +490,24 @@ struct TransactionDetailView: View {
         }
     }
 
+    // MARK: - Entrance Animation
+
+    private func animateSectionsIn() {
+        guard !hasAnimated else { return }
+        hasAnimated = true
+
+        let reveal = AppAnimation.contentReveal
+        let base: Double = 0.05
+        let stagger = AppAnimation.staggerInterval
+
+        withAnimation(reveal.delay(base)) { headerVisible = true }
+        withAnimation(reveal.delay(base + stagger)) { infoVisible = true }
+        withAnimation(reveal.delay(base + stagger * 2)) { paymentVisible = true }
+        withAnimation(reveal.delay(base + stagger * 3)) { impactVisible = true }
+        withAnimation(reveal.delay(base + stagger * 4)) { breakdownVisible = true }
+        withAnimation(reveal.delay(base + stagger * 5)) { groupVisible = true }
+    }
+
     // MARK: - Delete Action
 
     private func deleteTransaction() {
@@ -506,6 +552,7 @@ struct TransactionExpandedView: View {
 
     @State private var scrimVisible = false
     @State private var contentRevealed = false
+    @State private var dragIndicatorVisible = false
     @State private var section1Visible = false
     @State private var section2Visible = false
     @State private var section3Visible = false
@@ -678,25 +725,28 @@ struct TransactionExpandedView: View {
     // MARK: - Drag-to-Dismiss Gesture
 
     private var dismissDragGesture: some Gesture {
-        DragGesture()
+        DragGesture(minimumDistance: 10, coordinateSpace: .local)
             .updating($isDragging) { _, state, _ in state = true }
             .onChanged { value in
                 guard !isDismissing else { return }
                 let translation = value.translation.height
-                // Only allow dragging downward with rubber-band resistance
                 if translation > 0 {
-                    dragOffset = translation * 0.6
+                    // Natural rubber-band resistance — diminishing return on long drags
+                    dragOffset = translation * 0.55
                 } else {
-                    dragOffset = translation * 0.15
+                    // Very resistant upward drag (prevents over-scrolling the card up)
+                    dragOffset = translation * 0.12
                 }
             }
             .onEnded { value in
                 guard !isDismissing else { return }
                 let velocity = value.predictedEndTranslation.height
-                if dragOffset > 120 || velocity > 500 {
+                // Dismiss if dragged far enough OR if velocity is high (flick gesture)
+                if dragOffset > 100 || velocity > 400 {
                     dismissCard()
                 } else {
-                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                    // Snap back with a lively spring
+                    withAnimation(AppAnimation.interactiveSpring) {
                         dragOffset = 0
                     }
                 }
@@ -710,7 +760,8 @@ struct TransactionExpandedView: View {
             VStack(alignment: .leading, spacing: 0) {
                 // Drag indicator pill
                 dragIndicator
-                    .opacity(contentRevealed ? 1 : 0)
+                    .opacity(dragIndicatorVisible ? 1 : 0)
+                    .scaleEffect(x: dragIndicatorVisible ? 1 : 0.5, y: 1)
 
                 // SECTION: Hero header (icon + title + amount — these morph from the row)
                 heroHeaderSection
@@ -771,7 +822,11 @@ struct TransactionExpandedView: View {
             RoundedRectangle(cornerRadius: contentRevealed ? CornerRadius.xl : CornerRadius.md)
                 .fill(AppColors.cardBackground)
                 .matchedGeometryEffect(id: "bg-\(stableId)", in: animationNamespace)
-                .shadow(color: Color.black.opacity(scrimVisible ? 0.2 : 0), radius: 30, y: 10)
+                .shadow(
+                    color: Color.black.opacity(scrimVisible ? 0.18 * (1 - dragProgress * 0.4) : 0),
+                    radius: scrimVisible ? 24 : 6,
+                    y: scrimVisible ? 8 : 2
+                )
         )
         .clipShape(RoundedRectangle(cornerRadius: contentRevealed ? CornerRadius.xl : CornerRadius.md))
         .padding(.horizontal, Spacing.sm)
@@ -1110,36 +1165,32 @@ struct TransactionExpandedView: View {
     // MARK: - Animations
 
     private func animateIn() {
-        // Phase 1: Scrim fades in immediately (the card morphs via matchedGeometry automatically)
-        withAnimation(.spring(response: 0.45, dampingFraction: 0.88)) {
+        // Phase 1: Card morph + scrim — matched geometry drives the spatial transition
+        withAnimation(AppAnimation.cardMorph) {
             scrimVisible = true
             contentRevealed = true
         }
 
-        // Phase 2: Close button pops in
-        withAnimation(.spring(response: 0.4, dampingFraction: 0.7).delay(0.15)) {
+        // Phase 2: Drag indicator scales in from center
+        withAnimation(AppAnimation.cardMorph.delay(0.12)) {
+            dragIndicatorVisible = true
+        }
+
+        // Phase 3: Close button springs in with slight bounce
+        withAnimation(.spring(response: 0.45, dampingFraction: 0.72).delay(0.18)) {
             closeButtonVisible = true
         }
 
-        // Phase 3: Staggered content sections slide up and fade in
-        let baseDelay: Double = 0.2
-        let stagger: Double = 0.06
+        // Phase 4: Staggered content sections — spring physics for natural, lively feel
+        let reveal = AppAnimation.contentReveal
+        let base = AppAnimation.staggerBaseDelay
+        let stagger = AppAnimation.staggerInterval
 
-        withAnimation(.easeOut(duration: 0.35).delay(baseDelay)) {
-            section1Visible = true
-        }
-        withAnimation(.easeOut(duration: 0.35).delay(baseDelay + stagger)) {
-            section2Visible = true
-        }
-        withAnimation(.easeOut(duration: 0.35).delay(baseDelay + stagger * 2)) {
-            section3Visible = true
-        }
-        withAnimation(.easeOut(duration: 0.35).delay(baseDelay + stagger * 3)) {
-            section4Visible = true
-        }
-        withAnimation(.easeOut(duration: 0.35).delay(baseDelay + stagger * 4)) {
-            section5Visible = true
-        }
+        withAnimation(reveal.delay(base)) { section1Visible = true }
+        withAnimation(reveal.delay(base + stagger)) { section2Visible = true }
+        withAnimation(reveal.delay(base + stagger * 2)) { section3Visible = true }
+        withAnimation(reveal.delay(base + stagger * 3)) { section4Visible = true }
+        withAnimation(reveal.delay(base + stagger * 4)) { section5Visible = true }
     }
 
     private func dismissCard() {
@@ -1147,27 +1198,26 @@ struct TransactionExpandedView: View {
         isDismissing = true
         HapticManager.lightTap()
 
-        // Phase 1: Content fades out quickly (reverse stagger)
-        withAnimation(.easeIn(duration: 0.12)) {
+        // Phase 1: All inner content collapses simultaneously with fast spring
+        withAnimation(AppAnimation.dismiss) {
             section5Visible = false
             section4Visible = false
             section3Visible = false
-        }
-        withAnimation(.easeIn(duration: 0.15).delay(0.03)) {
             section2Visible = false
             section1Visible = false
             closeButtonVisible = false
+            dragIndicatorVisible = false
         }
 
-        // Phase 2: Card morphs back to row position + scrim fades
-        withAnimation(.spring(response: 0.38, dampingFraction: 0.86).delay(0.1)) {
+        // Phase 2: Card morphs back to row position + scrim fades (slight delay for content to clear)
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.88).delay(0.08)) {
             contentRevealed = false
             scrimVisible = false
             dragOffset = 0
         }
 
-        // Phase 3: Remove from view hierarchy after morph completes
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
+        // Phase 3: Remove from view hierarchy after morph settles
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             selectedTransaction = nil
         }
     }
