@@ -16,6 +16,10 @@ struct TransactionHistoryView: View {
     @State private var showingDeleteAlert = false
     @State private var transactionToDelete: FinancialTransaction?
 
+    // Hero animation state
+    @Namespace private var heroAnimation
+    @State private var selectedTransaction: FinancialTransaction?
+
     // MARK: - Grouped Transactions
 
     private var groupedTransactions: [(key: String, transactions: [FinancialTransaction])] {
@@ -75,10 +79,23 @@ struct TransactionHistoryView: View {
                     emptyStateView
                 } else {
                     transactionList
+                        .allowsHitTesting(selectedTransaction == nil)
                 }
 
                 // Overlay the Quick Action FAB
                 FinanceQuickActionView()
+                    .opacity(selectedTransaction == nil ? 1 : 0)
+
+                // Hero animation expanded overlay
+                if let selected = selectedTransaction {
+                    TransactionExpandedView(
+                        transaction: selected,
+                        animationNamespace: heroAnimation,
+                        selectedTransaction: $selectedTransaction
+                    )
+                    .zIndex(2)
+                    .transition(.identity)
+                }
             }
             .background(AppColors.backgroundSecondary)
             .navigationTitle("History")
@@ -230,8 +247,11 @@ struct TransactionHistoryView: View {
                         onDelete: {
                             transactionToDelete = transaction
                             showingDeleteAlert = true
-                        }
+                        },
+                        animationNamespace: heroAnimation,
+                        selectedTransaction: $selectedTransaction
                     )
+                    .zIndex(selectedTransaction == transaction ? 1 : 0)
 
                     if transaction.id != transactions.last?.id {
                         Divider()
