@@ -152,12 +152,15 @@ struct PersonConversationView: View {
         }
         .sheet(isPresented: $showingAddTransaction) {
             QuickActionSheetPresenter(initialPerson: person)
+                .onAppear { HapticManager.sheetPresent() }
         }
         .sheet(isPresented: $showingSettlement) {
             SettlementView(person: person, currentBalance: balance)
+                .onAppear { HapticManager.sheetPresent() }
         }
         .sheet(isPresented: $showingReminder) {
             ReminderSheetView(person: person, amount: balance)
+                .onAppear { HapticManager.sheetPresent() }
         }
         .sheet(isPresented: $showingPersonDetail) {
             NavigationStack {
@@ -165,16 +168,19 @@ struct PersonConversationView: View {
                     .toolbar {
                         ToolbarItem(placement: .navigationBarTrailing) {
                             Button("Done") {
+                                HapticManager.sheetDismiss()
                                 showingPersonDetail = false
                             }
                         }
                     }
             }
+            .onAppear { HapticManager.sheetPresent() }
         }
         .sheet(item: $showingTransactionDetail) { transaction in
             NavigationStack {
                 TransactionDetailSheet(transaction: transaction, person: person)
             }
+            .onAppear { HapticManager.sheetPresent() }
         }
         .alert("Error", isPresented: $showingError) {
             Button("OK", role: .cancel) {}
@@ -201,6 +207,7 @@ struct PersonConversationView: View {
         )
         .sheet(item: $transactionToEdit) { transaction in
             TransactionEditView(transaction: transaction)
+                .onAppear { HapticManager.sheetPresent() }
         }
         .undoToast(
             isShowing: $showUndoTransactionToast,
@@ -215,7 +222,7 @@ struct PersonConversationView: View {
     private var toolbarLeadingContent: some View {
         HStack(spacing: Spacing.sm) {
             Button {
-                HapticManager.tap()
+                HapticManager.navigationTap()
                 dismiss()
             } label: {
                 Image(systemName: "chevron.left")
@@ -225,7 +232,7 @@ struct PersonConversationView: View {
             .accessibilityLabel("Back")
 
             Button {
-                HapticManager.tap()
+                HapticManager.navigationTap()
                 showingPersonDetail = true
             } label: {
                 personHeaderContent
@@ -370,9 +377,10 @@ struct PersonConversationView: View {
         do {
             try viewContext.save()
             messageText = ""
-            HapticManager.lightTap()
+            HapticManager.messageSent()
         } catch {
             viewContext.rollback()
+            HapticManager.errorAlert()
             errorMessage = "Failed to send message. Please try again."
             showingError = true
             AppLogger.coreData.error("Failed to save message: \(error.localizedDescription)")
@@ -383,10 +391,10 @@ struct PersonConversationView: View {
         viewContext.delete(transaction)
         do {
             try viewContext.save()
-            HapticManager.success()
+            HapticManager.destructiveAction()
         } catch {
             viewContext.rollback()
-            HapticManager.error()
+            HapticManager.errorAlert()
             errorMessage = "Failed to delete transaction."
             showingError = true
             AppLogger.coreData.error("Failed to delete transaction: \(error.localizedDescription)")
@@ -405,13 +413,13 @@ struct PersonConversationView: View {
         viewContext.delete(message)
         do {
             try viewContext.save()
-            HapticManager.delete()
+            HapticManager.destructiveAction()
             withAnimation(AppAnimation.standard) {
                 showUndoToast = true
             }
         } catch {
             viewContext.rollback()
-            HapticManager.error()
+            HapticManager.errorAlert()
             errorMessage = "Failed to delete message."
             showingError = true
             AppLogger.coreData.error("Failed to delete message: \(error.localizedDescription)")
@@ -431,10 +439,10 @@ struct PersonConversationView: View {
 
         do {
             try viewContext.save()
-            HapticManager.success()
+            HapticManager.undoAction()
         } catch {
             viewContext.rollback()
-            HapticManager.error()
+            HapticManager.errorAlert()
         }
 
         deletedMessageContent = nil
@@ -463,13 +471,13 @@ struct PersonConversationView: View {
         viewContext.delete(transaction)
         do {
             try viewContext.save()
-            HapticManager.delete()
+            HapticManager.destructiveAction()
             withAnimation(AppAnimation.standard) {
                 showUndoTransactionToast = true
             }
         } catch {
             viewContext.rollback()
-            HapticManager.error()
+            HapticManager.errorAlert()
             errorMessage = "Failed to undo transaction."
             showingError = true
         }
@@ -498,10 +506,10 @@ struct PersonConversationView: View {
 
         do {
             try viewContext.save()
-            HapticManager.success()
+            HapticManager.undoAction()
         } catch {
             viewContext.rollback()
-            HapticManager.error()
+            HapticManager.errorAlert()
         }
 
         // Clear cached data

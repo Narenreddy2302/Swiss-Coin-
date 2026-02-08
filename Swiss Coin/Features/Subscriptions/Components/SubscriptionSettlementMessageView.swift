@@ -63,5 +63,22 @@ struct SubscriptionSettlementMessageView: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 8)
+        .contextMenu {
+            Button {
+                UIPasteboard.general.string = messageText
+                HapticManager.copyAction()
+            } label: {
+                Label("Copy", systemImage: "doc.on.doc")
+            }
+
+            Button {
+                UIPasteboard.general.string = CurrencyFormatter.format(settlement.amount)
+                HapticManager.copyAction()
+            } label: {
+                Label("Copy Amount", systemImage: "dollarsign.circle")
+            }
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Settlement: \(messageText)")
     }
 }

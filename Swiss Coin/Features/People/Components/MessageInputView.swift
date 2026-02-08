@@ -38,7 +38,7 @@ struct MessageInputView: View {
             // Send Button
             Button {
                 if canSend {
-                    HapticManager.lightTap()
+                    HapticManager.messageSent()
                     isTextFieldFocused = false
                     // Spring bounce on send
                     withAnimation(.spring(response: 0.25, dampingFraction: 0.5)) {
