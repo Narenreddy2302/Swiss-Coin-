@@ -13,6 +13,8 @@ struct MessageBubbleView: View {
     @ObservedObject var message: ChatMessage
     var onDelete: ((ChatMessage) -> Void)? = nil
     var useTimelineLayout: Bool = false
+    var senderInitials: String? = nil
+    var senderColor: String? = nil
 
     @Environment(\.managedObjectContext) private var viewContext
     @State private var isEditing = false
@@ -102,8 +104,17 @@ struct MessageBubbleView: View {
 
     @ViewBuilder
     private var classicBody: some View {
-        HStack {
+        HStack(alignment: .bottom, spacing: Spacing.sm) {
             if isFromUser { Spacer(minLength: 60) }
+
+            // Avatar for non-user messages
+            if !isFromUser, let initials = senderInitials {
+                ConversationAvatarView(
+                    initials: initials,
+                    colorHex: senderColor ?? CurrentUser.defaultColorHex,
+                    size: 28
+                )
+            }
 
             VStack(alignment: isFromUser ? .trailing : .leading, spacing: Spacing.xxs) {
                 if isEditing {
@@ -273,7 +284,7 @@ struct MessageBubbleView: View {
     // MARK: - Accessibility
 
     private var accessibilityLabel: String {
-        let sender = isFromUser ? "You" : "Them"
+        let sender = isFromUser ? "You" : (senderInitials ?? "Them")
         let content = message.content ?? ""
         let edited = message.isEdited ? ", edited" : ""
         return "\(sender): \(content)\(edited), \(timeText)"

@@ -75,10 +75,29 @@ struct GroupTransactionCardView: View {
         "\(dateText) | By \(payerName)"
     }
 
+    private var payerInitials: String {
+        let payers = transaction.effectivePayers
+        let isUserAPayer = payers.contains { CurrentUser.isCurrentUser($0.personId) }
+        if isUserAPayer { return CurrentUser.initials }
+        return transaction.payer?.initials ?? "?"
+    }
+
+    private var payerColorHex: String {
+        let payers = transaction.effectivePayers
+        let isUserAPayer = payers.contains { CurrentUser.isCurrentUser($0.personId) }
+        if isUserAPayer { return CurrentUser.defaultColorHex }
+        return transaction.payer?.colorHex ?? CurrentUser.defaultColorHex
+    }
+
     // MARK: - Body
 
     var body: some View {
         HStack(alignment: .center, spacing: Spacing.md) {
+            ConversationAvatarView(
+                initials: payerInitials,
+                colorHex: payerColorHex
+            )
+
             VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text(transaction.title ?? "Expense")
                     .font(AppTypography.body())
