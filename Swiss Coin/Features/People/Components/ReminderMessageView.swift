@@ -24,28 +24,28 @@ struct ReminderMessageView: View {
                     .foregroundColor(AppColors.warning)
 
                 Text(messageText)
-                    .font(AppTypography.bodySmall())
+                    .font(AppTypography.labelDefault())
                     .foregroundColor(AppColors.textSecondary)
             }
-            .padding(.horizontal, 14)
+            .padding(.horizontal, Spacing.lg)
             .padding(.vertical, Spacing.sm)
             .background(
-                RoundedRectangle(cornerRadius: CornerRadius.lg)
+                RoundedRectangle(cornerRadius: CornerRadius.card)
                     .fill(AppColors.warningMuted)
             )
 
             if let message = reminder.message, !message.isEmpty {
                 Text("\"\(message)\"")
-                    .font(AppTypography.caption2())
+                    .captionStyle()
                     .foregroundColor(AppColors.textSecondary)
                     .italic()
-                    .padding(.leading, 4)
+                    .padding(.leading, Spacing.xs)
             }
 
             Text(reminder.createdDate ?? Date(), style: .date)
-                .font(AppTypography.caption2())
+                .captionStyle()
                 .foregroundColor(AppColors.textSecondary)
-                .padding(.leading, 4)
+                .padding(.leading, Spacing.xs)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .contextMenu {

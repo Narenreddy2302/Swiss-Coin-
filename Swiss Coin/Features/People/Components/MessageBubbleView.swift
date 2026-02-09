@@ -68,14 +68,14 @@ struct MessageBubbleView: View {
             HStack(spacing: Spacing.xs) {
                 if message.isEdited && !isEditing {
                     Text("Edited")
-                        .font(AppTypography.caption2())
+                        .labelSmallStyle()
                         .foregroundColor(AppColors.textTertiary)
                 }
                 Text(timeText)
-                    .font(AppTypography.caption2())
+                    .labelSmallStyle()
                     .foregroundColor(AppColors.textSecondary)
             }
-            .padding(.leading, 4)
+            .padding(.leading, Spacing.xs)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: CornerRadius.lg))
@@ -88,13 +88,13 @@ struct MessageBubbleView: View {
     @ViewBuilder
     private var timelineBubbleView: some View {
         Text(message.content ?? "")
-            .font(AppTypography.body())
+            .font(AppTypography.bodyLarge())
             .foregroundColor(AppColors.textPrimary)
-            .padding(.horizontal, 14)
-            .padding(.vertical, 10)
+            .padding(.horizontal, Spacing.lg)
+            .padding(.vertical, Spacing.md)
             .background(
-                RoundedRectangle(cornerRadius: CornerRadius.lg)
-                    .fill(AppColors.cardBackground)
+                RoundedRectangle(cornerRadius: CornerRadius.card)
+                    .fill(AppColors.receiptBackground)
             )
     }
 
@@ -116,14 +116,14 @@ struct MessageBubbleView: View {
                 HStack(spacing: Spacing.xs) {
                     if message.isEdited && !isEditing {
                         Text("Edited")
-                            .font(AppTypography.caption2())
+                            .labelSmallStyle()
                             .foregroundColor(AppColors.textTertiary)
                     }
                     Text(timeText)
-                        .font(AppTypography.caption2())
+                        .labelSmallStyle()
                         .foregroundColor(AppColors.textSecondary)
                 }
-                .padding(.horizontal, 4)
+                .padding(.horizontal, Spacing.xs)
             }
             .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: CornerRadius.lg))
             .contextMenu { contextMenuItems }
@@ -139,10 +139,10 @@ struct MessageBubbleView: View {
     @ViewBuilder
     private var classicBubbleView: some View {
         Text(message.content ?? "")
-            .font(AppTypography.body())
+            .font(AppTypography.bodyLarge())
             .foregroundColor(AppColors.textPrimary)
-            .padding(.horizontal, 14)
-            .padding(.vertical, 10)
+            .padding(.horizontal, Spacing.lg)
+            .padding(.vertical, Spacing.sm)
             .background(classicBubbleBackground)
     }
 
@@ -200,9 +200,9 @@ struct MessageBubbleView: View {
         VStack(alignment: .trailing, spacing: Spacing.sm) {
             TextField("Edit message...", text: $editText, axis: .vertical)
                 .limitTextLength(to: ValidationLimits.maxMessageLength, text: $editText)
-                .font(AppTypography.body())
-                .padding(.horizontal, 14)
-                .padding(.vertical, 10)
+                .font(AppTypography.bodyLarge())
+                .padding(.horizontal, Spacing.lg)
+                .padding(.vertical, Spacing.sm)
                 .background(
                     RoundedRectangle(cornerRadius: CornerRadius.lg)
                         .fill(AppColors.backgroundTertiary)
@@ -221,7 +221,7 @@ struct MessageBubbleView: View {
                     }
                 } label: {
                     Text("Cancel")
-                        .font(AppTypography.caption())
+                        .font(AppTypography.buttonSmall())
                         .foregroundColor(AppColors.textSecondary)
                         .padding(.horizontal, Spacing.md)
                         .padding(.vertical, Spacing.xs)
@@ -235,7 +235,7 @@ struct MessageBubbleView: View {
                     saveEdit()
                 } label: {
                     Text("Save")
-                        .font(AppTypography.caption())
+                        .font(AppTypography.buttonSmall())
                         .foregroundColor(AppColors.buttonForeground)
                         .padding(.horizontal, Spacing.md)
                         .padding(.vertical, Spacing.xs)

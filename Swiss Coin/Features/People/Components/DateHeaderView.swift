@@ -30,7 +30,7 @@ struct DateHeaderView: View {
         HStack {
             Spacer()
             Text(dateString)
-                .font(AppTypography.caption())
+                .captionStyle()
                 .foregroundColor(AppColors.textSecondary)
                 .padding(.horizontal, Spacing.md)
                 .padding(.vertical, Spacing.xs)

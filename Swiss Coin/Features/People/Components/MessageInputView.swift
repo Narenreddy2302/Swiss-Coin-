@@ -24,7 +24,7 @@ struct MessageInputView: View {
             TextField("Message", text: $messageText, axis: .vertical)
                 .focused($isTextFieldFocused)
                 .limitTextLength(to: ValidationLimits.maxMessageLength, text: $messageText)
-                .font(AppTypography.body())
+                .font(AppTypography.bodyLarge())
                 .padding(.horizontal, Spacing.md)
                 .padding(.vertical, Spacing.sm)
                 .background(

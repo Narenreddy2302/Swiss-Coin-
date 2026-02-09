@@ -50,9 +50,9 @@ struct PersonConversationView: View {
 
     // MARK: - Timeline Constants
 
-    private let timelineCircleSize: CGFloat = 36
-    private let timelineLeadingPad: CGFloat = 12
-    private let timelineToContent: CGFloat = 10
+    private let timelineCircleSize: CGFloat = IconSize.xs
+    private let timelineLeadingPad: CGFloat = Spacing.lg
+    private let timelineToContent: CGFloat = Spacing.sm
 
     // MARK: - Computed Properties
 
@@ -252,7 +252,7 @@ struct PersonConversationView: View {
             // Content column
             conversationItemView(for: item)
                 .padding(.trailing, Spacing.lg)
-                .padding(.bottom, isLastItem ? 0 : Spacing.md)
+                .padding(.bottom, isLastItem ? 0 : Spacing.lg)
         }
     }
 
@@ -261,23 +261,18 @@ struct PersonConversationView: View {
     @ViewBuilder
     private func timelineConnector(isLastItem: Bool, isMessage: Bool) -> some View {
         VStack(spacing: 0) {
+            // Top offset to vertically align circle with first line of content
+            Spacer()
+                .frame(height: isMessage ? Spacing.md : Spacing.xl)
+
             // Circle marker
-            ZStack {
-                Circle()
-                    .fill(AppColors.background)
-                    .frame(width: timelineCircleSize, height: timelineCircleSize)
-
-                Circle()
-                    .stroke(AppColors.timelineCircle, lineWidth: 1.5)
-                    .frame(width: timelineCircleSize, height: timelineCircleSize)
-
-                // Arrow indicator for messages
-                if isMessage {
-                    Image(systemName: "arrow.right")
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundColor(AppColors.timelineCircle)
-                }
-            }
+            Circle()
+                .fill(AppColors.background)
+                .frame(width: timelineCircleSize, height: timelineCircleSize)
+                .overlay(
+                    Circle()
+                        .stroke(AppColors.timelineCircle, lineWidth: 1.5)
+                )
 
             // Connecting line (if not last item)
             if !isLastItem {
@@ -303,7 +298,7 @@ struct PersonConversationView: View {
                 dismiss()
             } label: {
                 Image(systemName: "chevron.left")
-                    .font(AppTypography.bodyBold())
+                    .font(AppTypography.headingMedium())
                     .foregroundColor(AppColors.accent)
             }
             .accessibilityLabel("Back")
@@ -327,12 +322,12 @@ struct PersonConversationView: View {
                 .frame(width: AvatarSize.sm, height: AvatarSize.sm)
                 .overlay(
                     Text(person.initials)
-                        .font(AppTypography.subheadlineMedium())
+                        .font(AppTypography.labelLarge())
                         .foregroundColor(Color(hex: person.colorHex ?? CurrentUser.defaultColorHex))
                 )
 
             Text(person.name ?? "Unknown")
-                .font(AppTypography.bodyBold())
+                .font(AppTypography.headingMedium())
                 .foregroundColor(AppColors.textPrimary)
                 .lineLimit(1)
         }
@@ -342,11 +337,11 @@ struct PersonConversationView: View {
     private var toolbarTrailingContent: some View {
         VStack(alignment: .trailing, spacing: 2) {
             Text(balanceLabel)
-                .font(AppTypography.caption())
+                .captionStyle()
                 .foregroundColor(AppColors.textSecondary)
 
             Text(balanceAmount)
-                .font(AppTypography.amountSmall())
+                .font(AppTypography.financialSmall())
                 .foregroundColor(balanceColor)
         }
         .accessibilityElement(children: .combine)
@@ -365,11 +360,11 @@ struct PersonConversationView: View {
                 .accessibilityHidden(true)
 
             Text("No conversations yet")
-                .font(AppTypography.headline())
+                .font(AppTypography.headingMedium())
                 .foregroundColor(AppColors.textSecondary)
 
             Text("Start a conversation with \(person.firstName) or add an expense")
-                .font(AppTypography.subheadline())
+                .font(AppTypography.bodyDefault())
                 .foregroundColor(AppColors.textSecondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 40)
@@ -604,7 +599,7 @@ struct TimelineDashedLine: View {
     var body: some View {
         GeometryReader { geometry in
             Path { path in
-                let dashLength: CGFloat = 4
+                let dashLength: CGFloat = 3
                 let gapLength: CGFloat = 4
                 var y: CGFloat = 0
                 while y < geometry.size.height {
@@ -613,7 +608,7 @@ struct TimelineDashedLine: View {
                     y += dashLength + gapLength
                 }
             }
-            .stroke(color, lineWidth: 1.2)
+            .stroke(color, lineWidth: 0.8)
         }
     }
 }
