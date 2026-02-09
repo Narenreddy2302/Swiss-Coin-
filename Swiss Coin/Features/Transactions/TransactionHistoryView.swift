@@ -128,11 +128,11 @@ struct TransactionHistoryView: View {
                 )
 
             Text("No Transactions Yet")
-                .font(AppTypography.title2())
+                .font(AppTypography.headingLarge())
                 .foregroundColor(AppColors.textPrimary)
 
             Text("Your transaction history will appear here once you add expenses or split bills with friends.")
-                .font(AppTypography.subheadline())
+                .font(AppTypography.bodyDefault())
                 .foregroundColor(AppColors.textSecondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, Spacing.xxl)
@@ -141,7 +141,7 @@ struct TransactionHistoryView: View {
                 Image(systemName: "plus.circle.fill")
                     .font(.system(size: IconSize.sm))
                 Text("Tap + to create your first transaction")
-                    .font(AppTypography.subheadlineMedium())
+                    .font(AppTypography.labelLarge())
             }
             .foregroundColor(AppColors.accent)
             .padding(.top, Spacing.sm)
@@ -185,7 +185,8 @@ struct TransactionHistoryView: View {
                     .font(AppTypography.caption())
                     .foregroundColor(AppColors.textSecondary)
                 Text(CurrencyFormatter.format(totalAmount))
-                    .font(AppTypography.amountLarge())
+                    .font(AppTypography.financialLarge())
+                    .tracking(AppTypography.Tracking.financialLarge)
                     .foregroundColor(AppColors.textPrimary)
             }
 
@@ -197,7 +198,8 @@ struct TransactionHistoryView: View {
                     .font(AppTypography.caption())
                     .foregroundColor(AppColors.textSecondary)
                 Text("\(transactionCount)")
-                    .font(AppTypography.amountLarge())
+                    .font(AppTypography.financialLarge())
+                    .tracking(AppTypography.Tracking.financialLarge)
                     .foregroundColor(AppColors.textPrimary)
             }
         }
@@ -216,7 +218,7 @@ struct TransactionHistoryView: View {
             // Section header
             HStack {
                 Text(title)
-                    .font(AppTypography.subheadlineMedium())
+                    .font(AppTypography.labelLarge())
                     .foregroundColor(AppColors.textSecondary)
 
                 Spacer()

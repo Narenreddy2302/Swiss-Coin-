@@ -31,7 +31,7 @@ struct ActionHeaderButton: View {
                     .foregroundColor(color == AppColors.accent ? AppColors.buttonForeground : color)
 
                 Text(title)
-                    .font(AppTypography.bodyBold())
+                    .font(AppTypography.buttonDefault())
                     .foregroundColor(color == AppColors.accent ? AppColors.buttonForeground : color)
             }
             .padding(.horizontal, Spacing.lg)

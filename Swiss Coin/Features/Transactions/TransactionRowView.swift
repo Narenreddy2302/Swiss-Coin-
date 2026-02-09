@@ -260,14 +260,14 @@ struct TransactionRowView: View {
 
     var titleView: some View {
         Text(transaction.title ?? "Unknown")
-            .font(AppTypography.headline())
+            .font(AppTypography.headingMedium())
             .foregroundColor(AppColors.textPrimary)
             .lineLimit(1)
     }
 
     var amountView: some View {
         Text(amountPrefix + CurrencyFormatter.format(amountToShow))
-            .font(AppTypography.amount())
+            .font(AppTypography.financialDefault())
             .foregroundColor(amountColor)
     }
 

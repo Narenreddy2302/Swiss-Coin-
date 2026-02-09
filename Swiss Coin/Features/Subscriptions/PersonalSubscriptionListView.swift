@@ -46,7 +46,7 @@ struct PersonalSubscriptionListView: View {
                     VStack(alignment: .leading, spacing: 0) {
                         HStack {
                             Text("Attention Required")
-                                .font(AppTypography.subheadlineMedium())
+                                .font(AppTypography.labelLarge())
                                 .foregroundColor(AppColors.warning)
 
                             Spacer()
@@ -86,7 +86,7 @@ struct PersonalSubscriptionListView: View {
                     VStack(alignment: .leading, spacing: 0) {
                         HStack {
                             Text("Active")
-                                .font(AppTypography.subheadlineMedium())
+                                .font(AppTypography.labelLarge())
                                 .foregroundColor(AppColors.textSecondary)
 
                             Spacer()
@@ -126,7 +126,7 @@ struct PersonalSubscriptionListView: View {
                     VStack(alignment: .leading, spacing: 0) {
                         HStack {
                             Text("Paused")
-                                .font(AppTypography.subheadlineMedium())
+                                .font(AppTypography.labelLarge())
                                 .foregroundColor(AppColors.textSecondary)
 
                             Spacer()

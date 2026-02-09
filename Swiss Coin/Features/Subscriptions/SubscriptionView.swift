@@ -63,7 +63,7 @@ struct SubscriptionView: View {
                         showingArchivedSubscriptions = true
                     } label: {
                         Image(systemName: "archivebox")
-                            .font(.system(size: 15, weight: .medium))
+                            .font(AppTypography.labelLarge())
                     }
                     .accessibilityLabel("View archived subscriptions")
                 }
@@ -74,7 +74,7 @@ struct SubscriptionView: View {
                         showingAddSubscription = true
                     } label: {
                         Image(systemName: "plus")
-                            .font(.system(size: 17, weight: .semibold))
+                            .font(AppTypography.buttonLarge())
                     }
                 }
             }
