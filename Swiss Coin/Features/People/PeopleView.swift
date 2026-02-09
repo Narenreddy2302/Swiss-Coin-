@@ -314,7 +314,7 @@ struct PersonListRowView: View {
 
             VStack(alignment: .leading, spacing: Spacing.xs) {
                 Text(person.name ?? "Unknown")
-                    .font(AppTypography.body().weight(.bold))
+                    .font(AppTypography.headline())
                     .foregroundColor(AppColors.textPrimary)
                     .lineLimit(1)
 
@@ -607,7 +607,7 @@ struct GroupListRowView: View {
 
             VStack(alignment: .leading, spacing: Spacing.xs) {
                 Text(group.name ?? "Unknown Group")
-                    .font(AppTypography.body().weight(.bold))
+                    .font(AppTypography.headline())
                     .foregroundColor(AppColors.textPrimary)
                     .lineLimit(1)
 

@@ -8,10 +8,20 @@
 import CoreData
 import SwiftUI
 
+// MARK: - Transaction Filter
+
+private enum TransactionFilter: String, CaseIterable {
+    case all = "All"
+    case incoming = "Incoming"
+    case outgoing = "Outgoing"
+    case subscriptions = "Subscriptions"
+}
+
 struct SearchView: View {
     @Environment(\.managedObjectContext) private var viewContext
 
     @State private var searchText = ""
+    @State private var selectedFilter: TransactionFilter = .all
 
     @State private var selectedTransaction: FinancialTransaction?
 
@@ -50,18 +60,10 @@ struct SearchView: View {
     }(), animation: .default)
     private var allSubscriptions: FetchedResults<Subscription>
 
-    // MARK: - Filtered Results
+    // MARK: - Search Filtered Results
 
     private var isSearching: Bool {
         !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-    }
-
-    private var filteredTransactions: [FinancialTransaction] {
-        guard isSearching else { return [] }
-        let query = searchText.lowercased()
-        return allTransactions.filter { transaction in
-            transaction.title?.lowercased().contains(query) == true
-        }
     }
 
     private var filteredPeople: [Person] {
@@ -89,19 +91,51 @@ struct SearchView: View {
         }
     }
 
-    private var hasResults: Bool {
-        !filteredTransactions.isEmpty ||
+    // MARK: - Filter Logic
+
+    private func userNetPosition(for transaction: FinancialTransaction) -> Double {
+        let userPaid = transaction.effectivePayers
+            .filter { CurrentUser.isCurrentUser($0.personId) }
+            .reduce(0) { $0 + $1.amount }
+        let userSplit = (transaction.splits as? Set<TransactionSplit> ?? [])
+            .filter { CurrentUser.isCurrentUser($0.owedBy?.id) }
+            .reduce(0) { $0 + $1.amount }
+        return userPaid - userSplit
+    }
+
+    private var displayedTransactions: [FinancialTransaction] {
+        let base: [FinancialTransaction]
+        if isSearching {
+            let query = searchText.lowercased()
+            base = allTransactions.filter { $0.title?.lowercased().contains(query) == true }
+        } else {
+            base = Array(allTransactions)
+        }
+
+        switch selectedFilter {
+        case .all, .subscriptions:
+            return base
+        case .incoming:
+            return base.filter { userNetPosition(for: $0) > 0.01 }
+        case .outgoing:
+            return base.filter { userNetPosition(for: $0) < -0.01 }
+        }
+    }
+
+    private var displayedSubscriptions: [Subscription] {
+        if isSearching {
+            let query = searchText.lowercased()
+            return allSubscriptions.filter { $0.name?.lowercased().contains(query) == true }
+        }
+        return Array(allSubscriptions)
+    }
+
+    private var hasSearchResults: Bool {
+        !displayedTransactions.isEmpty ||
         !filteredPeople.isEmpty ||
         !filteredGroups.isEmpty ||
         !filteredSubscriptions.isEmpty
     }
-
-    // MARK: - Suggested Data
-
-    private var recentTransactions: [FinancialTransaction] {
-        Array(allTransactions.prefix(3))
-    }
-
 
     // MARK: - Body
 
@@ -111,14 +145,20 @@ struct SearchView: View {
                 AppColors.backgroundSecondary
                     .ignoresSafeArea()
 
-                Group {
-                    if isSearching {
-                        searchResultsView
-                    } else {
-                        suggestionsView
+                VStack(spacing: 0) {
+                    filterChipsBar
+
+                    Group {
+                        if selectedFilter == .subscriptions {
+                            subscriptionsListView
+                        } else if isSearching {
+                            searchResultsView
+                        } else {
+                            transactionListView
+                        }
                     }
+                    .allowsHitTesting(selectedTransaction == nil)
                 }
-                .allowsHitTesting(selectedTransaction == nil)
 
                 // Full-screen detail overlay
                 if let selected = selectedTransaction {
@@ -129,7 +169,7 @@ struct SearchView: View {
                     .zIndex(2)
                 }
             }
-            .navigationTitle("Search")
+            .navigationTitle("Transactions")
             .navigationBarTitleDisplayMode(.large)
         }
         .searchable(
@@ -142,38 +182,91 @@ struct SearchView: View {
         }
     }
 
-    // MARK: - Suggestions View (Empty Search State)
+    // MARK: - Filter Chips Bar
 
-    private var suggestionsView: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: Spacing.xxl) {
-                // Recent Transactions Section
-                if !recentTransactions.isEmpty {
-                    VStack(alignment: .leading, spacing: Spacing.md) {
-                        Text("Recent Transactions")
-                            .font(AppTypography.title2())
-                            .foregroundColor(AppColors.textPrimary)
-                            .padding(.horizontal)
+    private var filterChipsBar: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: Spacing.sm) {
+                ForEach(TransactionFilter.allCases, id: \.self) { filter in
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            selectedFilter = filter
+                        }
+                        HapticManager.selectionChanged()
+                    } label: {
+                        Text(filter.rawValue)
+                            .font(AppTypography.subheadlineMedium())
+                            .foregroundColor(selectedFilter == filter ? AppColors.buttonForeground : AppColors.textSecondary)
+                            .frame(height: 34)
+                            .padding(.horizontal, Spacing.md)
+                            .background(
+                                selectedFilter == filter
+                                    ? AppColors.buttonBackground
+                                    : AppColors.surface
+                            )
+                            .cornerRadius(CornerRadius.md)
+                    }
+                    .buttonStyle(AppButtonStyle(haptic: .none))
+                }
+            }
+            .padding(.horizontal)
+            .padding(.vertical, Spacing.xs)
+        }
+    }
 
-                        LazyVStack(spacing: 0) {
-                            ForEach(recentTransactions, id: \.id) { transaction in
-                                TransactionRowView(
-                                    transaction: transaction,
-                                    selectedTransaction: $selectedTransaction
-                                )
+    // MARK: - Transaction List View (Default State)
+
+    private var transactionListView: some View {
+        Group {
+            if displayedTransactions.isEmpty {
+                filterEmptyView
+            } else {
+                ScrollView {
+                    LazyVStack(spacing: 0) {
+                        ForEach(displayedTransactions, id: \.id) { transaction in
+                            TransactionRowView(
+                                transaction: transaction,
+                                selectedTransaction: $selectedTransaction
+                            )
+                            if transaction.id != displayedTransactions.last?.id {
                                 Divider()
                             }
                         }
                     }
-                }
-
-                // Browse Categories Hint
-                if recentTransactions.isEmpty {
-                    SearchEmptyPromptView()
+                    .padding(.bottom, Spacing.section)
+                    .animation(.easeInOut(duration: 0.2), value: displayedTransactions.count)
                 }
             }
-            .padding(.top, Spacing.lg)
-            .padding(.bottom, Spacing.section)
+        }
+    }
+
+    // MARK: - Subscriptions List View
+
+    private var subscriptionsListView: some View {
+        Group {
+            if displayedSubscriptions.isEmpty {
+                filterEmptyView
+            } else {
+                ScrollView {
+                    LazyVStack(spacing: 0) {
+                        ForEach(displayedSubscriptions) { subscription in
+                            NavigationLink(destination: SubscriptionDetailView(subscription: subscription)) {
+                                SearchSubscriptionRow(subscription: subscription)
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                            .simultaneousGesture(TapGesture().onEnded {
+                                HapticManager.selectionChanged()
+                            })
+
+                            if subscription.id != displayedSubscriptions.last?.id {
+                                Divider()
+                                    .padding(.leading, AvatarSize.lg + Spacing.md + Spacing.lg)
+                            }
+                        }
+                    }
+                    .padding(.bottom, Spacing.section)
+                }
+            }
         }
     }
 
@@ -181,22 +274,22 @@ struct SearchView: View {
 
     private var searchResultsView: some View {
         Group {
-            if hasResults {
+            if hasSearchResults {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: Spacing.xxl) {
                         // Transactions Results
-                        if !filteredTransactions.isEmpty {
+                        if !displayedTransactions.isEmpty {
                             SearchResultSection(
                                 title: "Transactions",
                                 icon: "arrow.left.arrow.right",
-                                count: filteredTransactions.count
+                                count: displayedTransactions.count
                             ) {
-                                ForEach(filteredTransactions, id: \.id) { transaction in
+                                ForEach(displayedTransactions, id: \.id) { transaction in
                                     TransactionRowView(
                                         transaction: transaction,
                                         selectedTransaction: $selectedTransaction
                                     )
-                                    if transaction.id != filteredTransactions.last?.id {
+                                    if transaction.id != displayedTransactions.last?.id {
                                         Divider()
                                     }
                                 }
@@ -251,7 +344,7 @@ struct SearchView: View {
                             }
                         }
 
-                        // Subscriptions Results
+                        // Subscriptions Results (only when not in subscriptions filter)
                         if !filteredSubscriptions.isEmpty {
                             SearchResultSection(
                                 title: "Subscriptions",
@@ -277,7 +370,7 @@ struct SearchView: View {
                     }
                     .padding(.top, Spacing.lg)
                     .padding(.bottom, Spacing.section)
-                    .animation(.easeInOut(duration: 0.2), value: filteredTransactions.count)
+                    .animation(.easeInOut(duration: 0.2), value: displayedTransactions.count)
                     .animation(.easeInOut(duration: 0.2), value: filteredPeople.count)
                     .animation(.easeInOut(duration: 0.2), value: filteredGroups.count)
                     .animation(.easeInOut(duration: 0.2), value: filteredSubscriptions.count)
@@ -286,6 +379,26 @@ struct SearchView: View {
                 SearchNoResultsView(searchText: searchText)
             }
         }
+    }
+
+    // MARK: - Filter Empty View
+
+    private var filterEmptyView: some View {
+        VStack(spacing: Spacing.lg) {
+            Spacer()
+
+            Image(systemName: selectedFilter == .subscriptions ? "creditcard" : "arrow.left.arrow.right")
+                .font(.system(size: IconSize.xxl))
+                .foregroundColor(AppColors.textSecondary.opacity(0.5))
+                .accessibilityHidden(true)
+
+            Text("No \(selectedFilter.rawValue) Transactions")
+                .font(AppTypography.title2())
+                .foregroundColor(AppColors.textPrimary)
+
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 
@@ -463,31 +576,6 @@ private struct SearchSubscriptionRow: View {
     }
 }
 
-// MARK: - Suggested Person Chip
-
-private struct SuggestedPersonChip: View {
-    @ObservedObject var person: Person
-
-    var body: some View {
-        VStack(spacing: Spacing.sm) {
-            Circle()
-                .fill(Color(hex: person.colorHex ?? CurrentUser.defaultColorHex).opacity(0.2))
-                .frame(width: AvatarSize.md, height: AvatarSize.md)
-                .overlay(
-                    Text(person.initials)
-                        .font(AppTypography.subheadlineMedium())
-                        .foregroundColor(Color(hex: person.colorHex ?? CurrentUser.defaultColorHex))
-                )
-
-            Text(person.firstName)
-                .font(AppTypography.caption())
-                .foregroundColor(AppColors.textPrimary)
-                .lineLimit(1)
-        }
-        .frame(width: 64)
-    }
-}
-
 // MARK: - No Results View
 
 private struct SearchNoResultsView: View {
@@ -515,43 +603,5 @@ private struct SearchNoResultsView: View {
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-}
-
-// MARK: - Empty Prompt View (No Data Yet)
-
-private struct SearchEmptyPromptView: View {
-    var body: some View {
-        VStack(spacing: Spacing.lg) {
-            Spacer()
-                .frame(height: Spacing.section)
-
-            Image(systemName: "magnifyingglass.circle")
-                .font(.system(size: IconSize.xxl))
-                .foregroundColor(AppColors.textSecondary.opacity(0.5))
-                .accessibilityHidden(true)
-
-            Text("Search Everything")
-                .font(AppTypography.title2())
-                .foregroundColor(AppColors.textPrimary)
-
-            Text("Find transactions, people, groups, and subscriptions — all in one place.")
-                .font(AppTypography.subheadline())
-                .foregroundColor(AppColors.textSecondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, Spacing.xxl)
-
-            HStack(spacing: Spacing.xs) {
-                Image(systemName: "arrow.up.circle.fill")
-                    .font(.system(size: IconSize.sm))
-                Text("Type in the search bar to get started")
-                    .font(AppTypography.subheadline())
-            }
-            .foregroundColor(AppColors.accent)
-            .padding(.top, Spacing.md)
-
-            Spacer()
-        }
-        .frame(maxWidth: .infinity)
     }
 }
