@@ -360,6 +360,15 @@ private struct SheetContentHeightKey: PreferenceKey {
     }
 }
 
+// MARK: - Scroll Offset Preference Key
+
+private struct ScrollOffsetKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
+    }
+}
+
 // MARK: - Bottom Sheet Transaction Detail View
 
 /// Bottom sheet detail view that slides up from the bottom when a transaction row is tapped.
@@ -385,6 +394,7 @@ struct TransactionExpandedView: View {
     // Drag-to-dismiss
     @State private var dragOffset: CGFloat = 0
     @GestureState private var isDragging = false
+    @State private var isAtTop = true
 
     // MARK: - Computed Properties (Cached)
 
@@ -442,6 +452,11 @@ struct TransactionExpandedView: View {
         return min(max(dragOffset / threshold, 0), 1)
     }
 
+    /// Height of the drag indicator area when rendered outside ScrollView
+    private var dragIndicatorAreaHeight: CGFloat {
+        Spacing.md + Spacing.sm + 5 + Spacing.lg
+    }
+
     private var bottomSafeAreaInset: CGFloat {
         guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
               let window = windowScene.windows.first(where: { $0.isKeyWindow })
@@ -473,8 +488,11 @@ struct TransactionExpandedView: View {
 
                 // Bottom sheet
                 VStack(spacing: 0) {
+                    // Drag indicator outside ScrollView for reliable gesture response
+                    dragIndicator
+
                     ScrollView(showsIndicators: false) {
-                        sheetContentView
+                        sheetScrollContent
                             .background(
                                 GeometryReader { contentGeo in
                                     Color.clear.preference(
@@ -483,9 +501,19 @@ struct TransactionExpandedView: View {
                                     )
                                 }
                             )
+                            .background(
+                                GeometryReader { scrollGeo in
+                                    Color.clear.preference(
+                                        key: ScrollOffsetKey.self,
+                                        value: scrollGeo.frame(in: .named("sheetScroll")).minY
+                                    )
+                                }
+                            )
                     }
+                    .coordinateSpace(name: "sheetScroll")
                     .scrollBounceBehavior(.basedOnSize)
-                    .frame(height: resolvedContentHeight)
+                    .scrollDisabled(dragOffset > 0)
+                    .frame(height: max(resolvedContentHeight - dragIndicatorAreaHeight, 0))
 
                     // Bottom safe area fill
                     Color.clear
@@ -511,12 +539,16 @@ struct TransactionExpandedView: View {
                     )
                 )
                 .offset(y: isVisible ? dragOffset : totalSheetHeight + safeBottom)
-                .gesture(dismissDragGesture)
+                .scaleEffect(1 - dragProgress * 0.04, anchor: .top)
+                .simultaneousGesture(dismissDragGesture)
             }
         }
         .ignoresSafeArea(.container, edges: .bottom)
         .onPreferenceChange(SheetContentHeightKey.self) { height in
-            contentHeight = height
+            contentHeight = height + dragIndicatorAreaHeight
+        }
+        .onPreferenceChange(ScrollOffsetKey.self) { offset in
+            isAtTop = offset >= -1
         }
         .onAppear {
             DispatchQueue.main.async {
@@ -545,27 +577,40 @@ struct TransactionExpandedView: View {
     // MARK: - Drag-to-Dismiss Gesture
 
     private var dismissDragGesture: some Gesture {
-        DragGesture(minimumDistance: 8, coordinateSpace: .local)
+        DragGesture(minimumDistance: 10, coordinateSpace: .local)
             .updating($isDragging) { _, state, _ in state = true }
             .onChanged { value in
                 guard !isDismissing else { return }
                 let translation = value.translation.height
+
+                // Only engage dismiss when scroll is at top or already dragging
+                guard isAtTop || dragOffset > 0 else { return }
+
                 if translation > 0 {
-                    // Rubber-band effect: diminishing returns as you drag further
-                    dragOffset = pow(translation, 0.8)
-                } else {
-                    // Resist upward dragging
-                    dragOffset = translation * 0.05
+                    // Rubber-band effect: diminishing returns as drag increases
+                    let newOffset = pow(translation, 0.78)
+
+                    // Haptic when crossing dismiss threshold
+                    if dragOffset <= 80 && newOffset > 80 {
+                        HapticManager.lightTap()
+                    }
+
+                    dragOffset = newOffset
+                } else if dragOffset > 0 {
+                    // Pulling back up while in dismiss drag
+                    dragOffset = max(pow(max(translation, 0), 0.78), 0)
                 }
             }
             .onEnded { value in
                 guard !isDismissing else { return }
                 let velocity = value.velocity.height
+
                 // Dismiss if dragged far enough or flicked down fast
-                if dragOffset > 80 || velocity > 600 {
+                if dragOffset > 80 || (velocity > 600 && dragOffset > 10) {
                     dismissCard()
-                } else {
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
+                } else if dragOffset > 0 {
+                    // Snap back with spring
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.82)) {
                         dragOffset = 0
                     }
                 }
@@ -574,10 +619,8 @@ struct TransactionExpandedView: View {
 
     // MARK: - Sheet Content
 
-    private var sheetContentView: some View {
+    private var sheetScrollContent: some View {
         VStack(alignment: .leading, spacing: 0) {
-            dragIndicator
-
             receiptHeroHeader
 
             expandedDottedSeparator
@@ -600,7 +643,6 @@ struct TransactionExpandedView: View {
                 .padding(.top, Spacing.xl)
         }
         .padding(.horizontal, Spacing.xl)
-        .padding(.top, Spacing.md)
         .padding(.bottom, Spacing.section)
     }
 
@@ -614,8 +656,9 @@ struct TransactionExpandedView: View {
                 .frame(width: 40, height: 5)
             Spacer()
         }
-        .padding(.top, Spacing.sm)
+        .padding(.top, Spacing.md + Spacing.sm)
         .padding(.bottom, Spacing.lg)
+        .padding(.horizontal, Spacing.xl)
         .contentShape(Rectangle())
     }
 
@@ -830,9 +873,9 @@ struct TransactionExpandedView: View {
         HapticManager.lightTap()
         withAnimation(.spring(response: 0.25, dampingFraction: 0.92)) {
             isVisible = false
-            dragOffset = 0
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            dragOffset = 0
             selectedTransaction = nil
         }
     }
