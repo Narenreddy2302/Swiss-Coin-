@@ -51,7 +51,7 @@ struct SubscriptionListRowView: View {
                 .frame(width: AvatarSize.lg, height: AvatarSize.lg)
                 .overlay(
                     Image(systemName: subscription.iconName ?? "creditcard.fill")
-                        .font(AppTypography.headline())
+                        .font(AppTypography.headingMedium())
                         .foregroundColor(Color(hex: subscription.colorHex ?? "#007AFF"))
                 )
                 .accessibilityHidden(true)
@@ -59,21 +59,21 @@ struct SubscriptionListRowView: View {
             // Name and Status
             VStack(alignment: .leading, spacing: Spacing.xs) {
                 Text(subscription.name ?? "Unknown")
-                    .font(AppTypography.headline())
+                    .font(AppTypography.headingMedium())
                     .foregroundColor(AppColors.textPrimary)
                     .lineLimit(1)
 
                 HStack(spacing: Spacing.xs) {
                     Text(subscription.cycle ?? "Monthly")
-                        .font(AppTypography.footnote())
+                        .font(AppTypography.bodySmall())
                         .foregroundColor(AppColors.textSecondary)
 
                     Text("•")
-                        .font(AppTypography.footnote())
+                        .font(AppTypography.bodySmall())
                         .foregroundColor(AppColors.textSecondary)
 
                     Text(statusText)
-                        .font(AppTypography.footnote())
+                        .font(AppTypography.bodySmall())
                         .foregroundColor(billingStatus.color)
                 }
                 .lineLimit(1)
@@ -84,7 +84,7 @@ struct SubscriptionListRowView: View {
             // Amount
             VStack(alignment: .trailing, spacing: Spacing.xxs) {
                 Text(CurrencyFormatter.format(subscription.amount))
-                    .font(AppTypography.amount())
+                    .font(AppTypography.financialDefault())
                     .foregroundColor(AppColors.textPrimary)
 
                 Text("/\(subscription.cycleAbbreviation)")

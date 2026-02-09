@@ -18,8 +18,6 @@ struct TransactionDetailView: View {
     @State private var showingError = false
     @State private var errorMessage = ""
 
-    // Content is shown immediately — no stagger animation
-
     // MARK: - Computed Properties (Cached)
 
     /// Cached effectivePayers to avoid repeated NSSet→Array conversions during animation render passes
@@ -50,22 +48,6 @@ struct TransactionDetailView: View {
         TransactionDetailHelpers.payerName(effectivePayers: cachedEffectivePayers, payer: transaction.payer)
     }
 
-    private var shortTransactionId: String {
-        guard let uuid = transaction.id else { return "N/A" }
-        let hash = abs(uuid.hashValue) % 100000
-        return "#\(String(format: "%05d", hash))"
-    }
-
-    private var formattedMonthDay: String {
-        guard let date = transaction.date else { return "Unknown date" }
-        return DateFormatter.monthDay.string(from: date)
-    }
-
-    private var formattedTime: String {
-        guard let date = transaction.date else { return "" }
-        return DateFormatter.timeOnly.string(from: date)
-    }
-
     private var participantCount: Int {
         TransactionDetailHelpers.participantCount(effectivePayers: cachedEffectivePayers, splits: cachedSplits)
     }
@@ -78,21 +60,16 @@ struct TransactionDetailView: View {
         TransactionDetailHelpers.netAmountColor(for: userNetAmount)
     }
 
-    private var netAmountText: String {
-        TransactionDetailHelpers.netAmountText(for: userNetAmount)
+    private var formattedReceiptDate: String {
+        transaction.date?.receiptFormatted ?? "Unknown date"
     }
 
-    private var netAmountBackgroundColor: Color {
-        TransactionDetailHelpers.netAmountBackgroundColor(for: userNetAmount)
+    private var headerSubtitle: String {
+        "\(CurrencyFormatter.format(transaction.amount)) / \(participantCount) People"
     }
 
-    private var directionIcon: String {
-        userNetAmount > 0 ? "arrow.up.right" : "arrow.down.left"
-    }
-
-    private var directionColor: Color {
-        if abs(userNetAmount) < 0.01 { return AppColors.textSecondary }
-        return userNetAmount > 0 ? AppColors.positive : AppColors.negative
+    private var creatorName: String {
+        TransactionDetailHelpers.creatorName(transaction: transaction)
     }
 
     // MARK: - Body
@@ -100,40 +77,31 @@ struct TransactionDetailView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                // Header: Icon + Name + Amount + Type
-                detailHeaderSection
+                receiptHeaderSection
                     .padding(.bottom, Spacing.lg)
 
                 detailDottedSeparator
 
-                // Transaction details: ID, Date, Time
-                detailInfoSection
+                receiptPaymentSection
                     .padding(.vertical, Spacing.lg)
 
-                detailDottedSeparator
-
-                // Payment & Split info
-                detailPaymentSection
-                    .padding(.vertical, Spacing.lg)
-
-                detailDottedSeparator
-
-                // Net impact + Note
-                detailNetImpactSection
-                    .padding(.vertical, Spacing.lg)
-
-                // Split breakdown
                 if !cachedSplits.isEmpty {
                     detailDottedSeparator
-                    detailSplitBreakdown
+                    receiptSplitBreakdown
                         .padding(.vertical, Spacing.lg)
                 }
 
-                // Group info
-                if transaction.group != nil {
+                if let note = transaction.note, !note.isEmpty {
                     detailDottedSeparator
-                    detailGroupSection
-                        .padding(.vertical, Spacing.lg)
+                    VStack(alignment: .leading, spacing: Spacing.sm) {
+                        Text("NOTE")
+                            .font(AppTypography.caption())
+                            .foregroundColor(AppColors.textTertiary)
+                        Text(note)
+                            .font(AppTypography.subheadline())
+                            .foregroundColor(AppColors.textSecondary)
+                    }
+                    .padding(.vertical, Spacing.lg)
                 }
             }
             .padding(.horizontal, Spacing.xl)
@@ -196,206 +164,135 @@ struct TransactionDetailView: View {
         }
     }
 
-    // MARK: - Header Section
+    // MARK: - Receipt Header
 
-    private var detailHeaderSection: some View {
-        VStack(alignment: .leading, spacing: Spacing.md) {
-            // Icon
-            RoundedRectangle(cornerRadius: CornerRadius.md)
-                .fill(AppColors.textPrimary)
-                .frame(width: 56, height: 56)
-                .overlay(
-                    Image(systemName: directionIcon)
-                        .font(.system(size: 22, weight: .semibold))
-                        .foregroundColor(AppColors.cardBackground)
-                )
-
-            // Name + Amount
+    private var receiptHeaderSection: some View {
+        VStack(alignment: .leading, spacing: Spacing.xs) {
             HStack(alignment: .firstTextBaseline) {
                 Text(transaction.title ?? "Unknown")
-                    .font(.system(size: 22, weight: .bold))
+                    .font(AppTypography.headingLarge())
                     .foregroundColor(AppColors.textPrimary)
                     .lineLimit(2)
 
                 Spacer(minLength: Spacing.md)
 
-                Text(CurrencyFormatter.format(transaction.amount))
-                    .font(.system(size: 22, weight: .bold, design: .rounded))
-                    .foregroundColor(AppColors.textPrimary)
+                Text(CurrencyFormatter.formatAbsolute(userNetAmount))
+                    .font(AppTypography.financialLarge())
+                    .foregroundColor(netAmountColor)
             }
 
-            // Category / Split method
-            Text(splitMethod?.displayName ?? "Expense")
-                .font(AppTypography.subheadline())
-                .foregroundColor(AppColors.textSecondary)
-        }
-    }
+            HStack(alignment: .firstTextBaseline) {
+                Text(formattedReceiptDate)
+                    .font(AppTypography.bodySmall())
+                    .foregroundColor(AppColors.textSecondary)
 
-    // MARK: - Info Section
+                Spacer(minLength: Spacing.md)
 
-    private var detailInfoSection: some View {
-        VStack(alignment: .leading, spacing: Spacing.xs) {
-            Text(shortTransactionId)
-                .font(AppTypography.subheadline())
-                .foregroundColor(AppColors.textSecondary)
-
-            Text(formattedMonthDay)
-                .font(AppTypography.subheadline())
-                .foregroundColor(AppColors.textSecondary)
-
-            if !formattedTime.isEmpty {
-                Text(formattedTime)
-                    .font(AppTypography.subheadline())
+                Text(headerSubtitle)
+                    .font(AppTypography.bodySmall())
                     .foregroundColor(AppColors.textSecondary)
             }
         }
     }
 
-    // MARK: - Payment Section
+    // MARK: - Receipt Payment Section
 
-    private var detailPaymentSection: some View {
-        VStack(alignment: .leading, spacing: Spacing.sm) {
+    private var receiptPaymentSection: some View {
+        VStack(alignment: .leading, spacing: Spacing.md) {
+            Text("PAYMENT")
+                .font(AppTypography.caption())
+                .foregroundColor(AppColors.textTertiary)
+
             if transaction.isMultiPayer, let payerSet = transaction.payers as? Set<TransactionPayer> {
                 let sortedPayers = payerSet.sorted { tp1, tp2 in
                     if CurrentUser.isCurrentUser(tp1.paidBy?.id) { return true }
                     if CurrentUser.isCurrentUser(tp2.paidBy?.id) { return false }
                     return (tp1.paidBy?.displayName ?? "") < (tp2.paidBy?.displayName ?? "")
                 }
-                Text("Paid by multiple")
-                    .font(AppTypography.subheadline())
-                    .foregroundColor(AppColors.textSecondary)
-
                 ForEach(sortedPayers, id: \.objectID) { tp in
-                    HStack(spacing: Spacing.sm) {
-                        if let person = tp.paidBy {
-                            Circle()
-                                .fill(person.avatarBackgroundColor)
-                                .frame(width: AvatarSize.xs, height: AvatarSize.xs)
-                                .overlay(
-                                    Text(CurrentUser.isCurrentUser(person.id) ? CurrentUser.initials : person.initials)
-                                        .font(.system(size: 10, weight: .medium))
-                                        .foregroundColor(person.avatarTextColor)
-                                )
-                        }
-                        Text(CurrentUser.isCurrentUser(tp.paidBy?.id) ? "You" : (tp.paidBy?.displayName ?? "Unknown"))
-                            .font(AppTypography.body())
-                            .foregroundColor(AppColors.textPrimary)
-                        Spacer()
-                        Text(CurrencyFormatter.format(tp.amount))
-                            .font(AppTypography.financialDefault())
-                            .foregroundColor(AppColors.textPrimary)
-                    }
+                    receiptKeyValueRow(
+                        label: "Paid by",
+                        value: CurrentUser.isCurrentUser(tp.paidBy?.id)
+                            ? "You" : (tp.paidBy?.displayName ?? "Unknown")
+                    )
                 }
             } else {
-                HStack(spacing: Spacing.sm) {
-                    Text("Paid by")
-                        .font(AppTypography.subheadline())
-                        .foregroundColor(AppColors.textSecondary)
-                    Text(payerName)
-                        .font(AppTypography.bodyBold())
+                receiptKeyValueRow(label: "Paid by", value: payerName)
+            }
+
+            receiptKeyValueRow(label: "Created by", value: creatorName)
+            receiptKeyValueRow(label: "Participants", value: "\(participantCount) People")
+
+            HStack {
+                Text("Split method")
+                    .font(AppTypography.subheadline())
+                    .foregroundColor(AppColors.textSecondary)
+                Spacer()
+                HStack(spacing: Spacing.xs) {
+                    if let method = splitMethod {
+                        Text(method.icon)
+                            .font(AppTypography.subheadlineMedium())
+                            .foregroundColor(AppColors.textPrimary)
+                    }
+                    Text(splitMethod?.displayName ?? "Equally")
+                        .font(AppTypography.subheadlineMedium())
                         .foregroundColor(AppColors.textPrimary)
                 }
             }
 
-            HStack(spacing: Spacing.xxs) {
-                Text("\(participantCount) people")
-                    .font(AppTypography.subheadline())
-                    .foregroundColor(AppColors.textSecondary)
-                Text("·")
-                    .foregroundColor(AppColors.textTertiary)
-                if let method = splitMethod {
-                    Image(systemName: method.systemImage)
-                        .font(.system(size: 12))
-                        .foregroundColor(AppColors.textSecondary)
-                }
-                Text(splitMethod?.displayName ?? "Equal")
-                    .font(AppTypography.subheadline())
-                    .foregroundColor(AppColors.textSecondary)
+            if let group = transaction.group {
+                receiptKeyValueRow(label: "Group", value: group.name ?? "Unknown Group")
             }
         }
     }
 
-    // MARK: - Net Impact Section
+    // MARK: - Receipt Split Breakdown
 
-    private var detailNetImpactSection: some View {
+    private var receiptSplitBreakdown: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
-            Text(netAmountText)
-                .font(AppTypography.subheadlineMedium())
-                .foregroundColor(netAmountColor)
-                .padding(.horizontal, Spacing.md)
-                .padding(.vertical, Spacing.sm)
-                .background(
-                    Capsule()
-                        .fill(netAmountBackgroundColor)
-                )
-
-            if let note = transaction.note, !note.isEmpty {
-                VStack(alignment: .leading, spacing: Spacing.xxs) {
-                    Text("Note")
-                        .font(AppTypography.caption())
-                        .foregroundColor(AppColors.textTertiary)
-                    Text(note)
-                        .font(AppTypography.subheadline())
-                        .foregroundColor(AppColors.textSecondary)
-                }
-            }
-        }
-    }
-
-    // MARK: - Split Breakdown
-
-    private var detailSplitBreakdown: some View {
-        VStack(alignment: .leading, spacing: Spacing.sm) {
             Text("SPLIT BREAKDOWN")
                 .font(AppTypography.caption())
                 .foregroundColor(AppColors.textTertiary)
 
             ForEach(cachedSplits, id: \.objectID) { split in
-                HStack(spacing: Spacing.sm) {
-                    if let person = split.owedBy {
-                        Circle()
-                            .fill(person.displayColor)
-                            .frame(width: AvatarSize.xs, height: AvatarSize.xs)
-                            .overlay(
-                                Text(CurrentUser.isCurrentUser(person.id) ? CurrentUser.initials : person.initials)
-                                    .font(.system(size: 10, weight: .semibold))
-                                    .foregroundColor(.white)
-                            )
-                    }
-
+                HStack {
                     Text(personDisplayName(for: split))
                         .font(AppTypography.subheadline())
                         .foregroundColor(AppColors.textPrimary)
 
                     Spacer()
 
-                    Text(CurrencyFormatter.format(split.amount))
-                        .font(AppTypography.amountSmall())
-                        .foregroundColor(splitAmountColor(for: split))
+                    HStack(spacing: Spacing.xs) {
+                        Text(CurrencyFormatter.currencySymbol)
+                            .font(AppTypography.subheadline())
+                            .foregroundColor(AppColors.textSecondary)
+                        Text(CurrencyFormatter.formatDecimal(split.amount))
+                            .font(AppTypography.financialDefault())
+                            .foregroundColor(AppColors.textPrimary)
+                    }
                 }
             }
-        }
-    }
 
-    // MARK: - Group Section
+            detailDottedSeparator
 
-    private var detailGroupSection: some View {
-        VStack(alignment: .leading, spacing: Spacing.sm) {
-            if let group = transaction.group {
-                HStack(spacing: Spacing.sm) {
-                    Image(systemName: "person.3.fill")
-                        .font(.system(size: 12))
-                        .foregroundColor(Color(hex: group.colorHex ?? "#808080"))
-                    Text(group.name ?? "Unknown Group")
+            HStack {
+                Text("Total Balance")
+                    .font(AppTypography.subheadlineMedium())
+                    .foregroundColor(AppColors.textPrimary)
+
+                Spacer()
+
+                HStack(spacing: Spacing.xs) {
+                    Text(CurrencyFormatter.currencySymbol)
                         .font(AppTypography.subheadline())
                         .foregroundColor(AppColors.textSecondary)
-                    Spacer()
-                    let memberCount = (group.members as? Set<Person>)?.count ?? 0
-                    Text("\(memberCount) members")
-                        .font(AppTypography.caption())
-                        .foregroundColor(AppColors.textTertiary)
+                    Text(CurrencyFormatter.formatDecimal(transaction.amount))
+                        .font(AppTypography.financialDefault())
+                        .foregroundColor(AppColors.textPrimary)
                 }
             }
+
+            detailDottedSeparator
         }
     }
 
@@ -409,6 +306,18 @@ struct TransactionDetailView: View {
     }
 
     // MARK: - Helpers
+
+    private func receiptKeyValueRow(label: String, value: String) -> some View {
+        HStack {
+            Text(label)
+                .font(AppTypography.subheadline())
+                .foregroundColor(AppColors.textSecondary)
+            Spacer()
+            Text(value)
+                .font(AppTypography.subheadlineMedium())
+                .foregroundColor(AppColors.textPrimary)
+        }
+    }
 
     private func personDisplayName(for split: TransactionSplit) -> String {
         TransactionDetailHelpers.personDisplayName(for: split)
@@ -503,28 +412,8 @@ struct TransactionExpandedView: View {
         TransactionDetailHelpers.payerName(effectivePayers: cachedEffectivePayers, payer: transaction.payer)
     }
 
-    private var shortTransactionId: String {
-        guard let uuid = transaction.id else { return "N/A" }
-        let hash = abs(uuid.hashValue) % 100000
-        return "#\(String(format: "%05d", hash))"
-    }
-
-    private var formattedDate: String {
-        guard let date = transaction.date else { return "Unknown date" }
-        return DateFormatter.longDate.string(from: date)
-    }
-
-    private var formattedTime: String {
-        guard let date = transaction.date else { return "" }
-        return DateFormatter.timeOnly.string(from: date)
-    }
-
     private var creatorName: String {
-        let creator = transaction.createdBy ?? transaction.payer
-        if let creatorId = creator?.id, CurrentUser.isCurrentUser(creatorId) {
-            return "You"
-        }
-        return creator?.displayName ?? "Unknown"
+        TransactionDetailHelpers.creatorName(transaction: transaction)
     }
 
     private var participantCount: Int {
@@ -539,26 +428,12 @@ struct TransactionExpandedView: View {
         TransactionDetailHelpers.netAmountColor(for: userNetAmount)
     }
 
-    private var netAmountText: String {
-        TransactionDetailHelpers.netAmountText(for: userNetAmount)
+    private var formattedReceiptDate: String {
+        transaction.date?.receiptFormatted ?? "Unknown date"
     }
 
-    private var netAmountBackgroundColor: Color {
-        TransactionDetailHelpers.netAmountBackgroundColor(for: userNetAmount)
-    }
-
-    private var directionIcon: String {
-        userNetAmount > 0 ? "arrow.up.right" : "arrow.down.left"
-    }
-
-    private var amountColor: Color {
-        if abs(userNetAmount) < 0.01 { return AppColors.textSecondary }
-        return userNetAmount > 0 ? AppColors.positive : AppColors.negative
-    }
-
-    private var userAmountPrefix: String {
-        if abs(userNetAmount) < 0.01 { return "" }
-        return userNetAmount > 0 ? "+" : "-"
+    private var headerSubtitle: String {
+        "\(CurrencyFormatter.format(transaction.amount)) / \(participantCount) People"
     }
 
     // Drag progress for interactive dismiss (0 = no drag, 1 = fully dragged)
@@ -670,24 +545,27 @@ struct TransactionExpandedView: View {
     // MARK: - Drag-to-Dismiss Gesture
 
     private var dismissDragGesture: some Gesture {
-        DragGesture(minimumDistance: 10, coordinateSpace: .local)
+        DragGesture(minimumDistance: 8, coordinateSpace: .local)
             .updating($isDragging) { _, state, _ in state = true }
             .onChanged { value in
                 guard !isDismissing else { return }
                 let translation = value.translation.height
                 if translation > 0 {
-                    dragOffset = translation * 0.7
+                    // Rubber-band effect: diminishing returns as you drag further
+                    dragOffset = pow(translation, 0.8)
                 } else {
-                    dragOffset = translation * 0.1
+                    // Resist upward dragging
+                    dragOffset = translation * 0.05
                 }
             }
             .onEnded { value in
                 guard !isDismissing else { return }
-                let velocity = value.predictedEndTranslation.height
-                if dragOffset > 100 || velocity > 400 {
+                let velocity = value.velocity.height
+                // Dismiss if dragged far enough or flicked down fast
+                if dragOffset > 80 || velocity > 600 {
                     dismissCard()
                 } else {
-                    withAnimation(.spring(response: 0.2, dampingFraction: 0.9)) {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
                         dragOffset = 0
                     }
                 }
@@ -698,41 +576,26 @@ struct TransactionExpandedView: View {
 
     private var sheetContentView: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Drag indicator pill
             dragIndicator
 
-            // SECTION: Header (icon + title + amount)
-            heroHeaderSection
-
-            // SECTION: Net impact badge
-            netImpactBadge
-
-            expandedDottedSeparator
-                .padding(.top, Spacing.lg)
-
-            // SECTION: Transaction details (date, time, ID, created by)
-            detailsInfoSection
+            receiptHeroHeader
 
             expandedDottedSeparator
 
-            // SECTION: Payment info (paid by, participants, split method, group)
-            paymentInfoSection
+            receiptPaymentSection
+                .padding(.vertical, Spacing.lg)
 
-            // SECTION: Split breakdown
             if !cachedSplits.isEmpty {
                 expandedDottedSeparator
-
-                splitBreakdownSection
+                receiptSplitBreakdown
+                    .padding(.vertical, Spacing.lg)
             }
 
-            // SECTION: Note
             if let note = transaction.note, !note.isEmpty {
                 expandedDottedSeparator
-
                 noteSection(note: note)
             }
 
-            // SECTION: Action buttons
             actionButtonsSection
                 .padding(.top, Spacing.xl)
         }
@@ -747,251 +610,150 @@ struct TransactionExpandedView: View {
         HStack {
             Spacer()
             RoundedRectangle(cornerRadius: 3)
-                .fill(AppColors.separator)
-                .frame(width: 36, height: 5)
+                .fill(AppColors.textTertiary.opacity(0.5))
+                .frame(width: 40, height: 5)
             Spacer()
         }
+        .padding(.top, Spacing.sm)
         .padding(.bottom, Spacing.lg)
+        .contentShape(Rectangle())
     }
 
-    // MARK: - Header Section
+    // MARK: - Receipt Hero Header
 
-    private var heroHeaderSection: some View {
+    private var receiptHeroHeader: some View {
         VStack(alignment: .leading, spacing: Spacing.lg) {
-            // Top: Icon row with close button
-            HStack(alignment: .top) {
-                RoundedRectangle(cornerRadius: CornerRadius.md)
-                    .fill(amountColor.opacity(0.12))
-                    .frame(width: 56, height: 56)
-                    .overlay(
-                        Image(systemName: directionIcon)
-                            .font(.system(size: 24, weight: .semibold))
-                            .foregroundColor(amountColor)
-                    )
+            // Row 1: Title + Net Amount
+            VStack(alignment: .leading, spacing: Spacing.xs) {
+                HStack(alignment: .firstTextBaseline) {
+                    Text(transaction.title ?? "Unknown")
+                        .font(AppTypography.headingLarge())
+                        .foregroundColor(AppColors.textPrimary)
+                        .lineLimit(3)
 
-                Spacer()
+                    Spacer(minLength: Spacing.md)
 
-                // Close button
-                Button {
-                    guard !isDismissing else { return }
-                    HapticManager.lightTap()
-                    dismissCard()
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 30))
-                        .foregroundStyle(
-                            AppColors.textTertiary,
-                            AppColors.backgroundTertiary
-                        )
+                    Text(CurrencyFormatter.formatAbsolute(userNetAmount))
+                        .font(AppTypography.financialLarge())
+                        .foregroundColor(netAmountColor)
+                }
+
+                // Row 2: Date + Total / People
+                HStack(alignment: .firstTextBaseline) {
+                    Text(formattedReceiptDate)
+                        .font(AppTypography.bodySmall())
+                        .foregroundColor(AppColors.textSecondary)
+
+                    Spacer(minLength: Spacing.md)
+
+                    Text(headerSubtitle)
+                        .font(AppTypography.bodySmall())
+                        .foregroundColor(AppColors.textSecondary)
                 }
             }
-
-            // Title
-            VStack(alignment: .leading, spacing: Spacing.xs) {
-                Text(transaction.title ?? "Unknown")
-                    .font(.system(size: 24, weight: .bold))
-                    .foregroundColor(AppColors.textPrimary)
-                    .lineLimit(3)
-
-                Text(splitMethod?.displayName ?? "Expense")
-                    .font(AppTypography.subheadline())
-                    .foregroundColor(AppColors.textSecondary)
-            }
-
-            // Total amount
-            HStack(alignment: .firstTextBaseline) {
-                Text(CurrencyFormatter.format(transaction.amount))
-                    .font(.system(size: 34, weight: .bold, design: .rounded))
-                    .foregroundColor(AppColors.textPrimary)
-
-                Spacer()
-
-                // User net amount
-                Text(userAmountPrefix + CurrencyFormatter.format(abs(userNetAmount)))
-                    .font(.system(size: 17, weight: .bold, design: .rounded))
-                    .foregroundColor(amountColor)
-            }
-        }
-        .padding(.bottom, Spacing.md)
-    }
-
-    // MARK: - Net Impact Badge
-
-    private var netImpactBadge: some View {
-        HStack(spacing: Spacing.sm) {
-            Image(systemName: directionIcon)
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundColor(netAmountColor)
-
-            Text(netAmountText)
-                .font(AppTypography.subheadlineMedium())
-                .foregroundColor(netAmountColor)
-        }
-        .padding(.horizontal, Spacing.md)
-        .padding(.vertical, Spacing.sm)
-        .background(
-            Capsule()
-                .fill(netAmountBackgroundColor)
-        )
-        .padding(.bottom, Spacing.xs)
-    }
-
-    // MARK: - Details Info Section
-
-    private var detailsInfoSection: some View {
-        VStack(alignment: .leading, spacing: Spacing.md) {
-            Text("DETAILS")
-                .font(AppTypography.caption())
-                .foregroundColor(AppColors.textTertiary)
-                .padding(.top, Spacing.md)
-
-            detailInfoRow(label: "Date", value: formattedDate)
-
-            if !formattedTime.isEmpty {
-                detailInfoRow(label: "Time", value: formattedTime)
-            }
-
-            detailInfoRow(label: "Transaction ID", value: shortTransactionId)
-
-            detailInfoRow(label: "Created by", value: creatorName)
         }
         .padding(.bottom, Spacing.lg)
     }
 
-    private func detailInfoRow(label: String, value: String) -> some View {
-        HStack {
-            Text(label)
-                .font(AppTypography.subheadline())
-                .foregroundColor(AppColors.textSecondary)
-            Spacer()
-            Text(value)
-                .font(AppTypography.subheadlineMedium())
-                .foregroundColor(AppColors.textPrimary)
-        }
-    }
+    // MARK: - Receipt Payment Section
 
-    // MARK: - Payment Info Section
-
-    private var paymentInfoSection: some View {
+    private var receiptPaymentSection: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
             Text("PAYMENT")
                 .font(AppTypography.caption())
                 .foregroundColor(AppColors.textTertiary)
-                .padding(.top, Spacing.md)
 
-            // Paid by
             if transaction.isMultiPayer, let payerSet = transaction.payers as? Set<TransactionPayer> {
                 let sortedPayers = payerSet.sorted { tp1, tp2 in
                     if CurrentUser.isCurrentUser(tp1.paidBy?.id) { return true }
                     if CurrentUser.isCurrentUser(tp2.paidBy?.id) { return false }
                     return (tp1.paidBy?.displayName ?? "") < (tp2.paidBy?.displayName ?? "")
                 }
-
-                Text("Paid by")
-                    .font(AppTypography.subheadline())
-                    .foregroundColor(AppColors.textSecondary)
-
                 ForEach(sortedPayers, id: \.objectID) { tp in
-                    HStack(spacing: Spacing.sm) {
-                        if let person = tp.paidBy {
-                            Circle()
-                                .fill(person.avatarBackgroundColor)
-                                .frame(width: AvatarSize.xs, height: AvatarSize.xs)
-                                .overlay(
-                                    Text(CurrentUser.isCurrentUser(person.id) ? CurrentUser.initials : person.initials)
-                                        .font(.system(size: 10, weight: .medium))
-                                        .foregroundColor(person.avatarTextColor)
-                                )
-                        }
-                        Text(CurrentUser.isCurrentUser(tp.paidBy?.id) ? "You" : (tp.paidBy?.displayName ?? "Unknown"))
-                            .font(AppTypography.body())
-                            .foregroundColor(AppColors.textPrimary)
-                        Spacer()
-                        Text(CurrencyFormatter.format(tp.amount))
-                            .font(AppTypography.financialDefault())
-                            .foregroundColor(AppColors.textPrimary)
-                    }
+                    receiptKeyValueRow(
+                        label: "Paid by",
+                        value: CurrentUser.isCurrentUser(tp.paidBy?.id)
+                            ? "You" : (tp.paidBy?.displayName ?? "Unknown")
+                    )
                 }
             } else {
-                detailInfoRow(label: "Paid by", value: payerName)
+                receiptKeyValueRow(label: "Paid by", value: payerName)
             }
 
-            // Participants + Split method
-            detailInfoRow(label: "Participants", value: "\(participantCount) people")
+            receiptKeyValueRow(label: "Created by", value: creatorName)
+            receiptKeyValueRow(label: "Participants", value: "\(participantCount) People")
 
             HStack {
                 Text("Split method")
                     .font(AppTypography.subheadline())
                     .foregroundColor(AppColors.textSecondary)
                 Spacer()
-                HStack(spacing: Spacing.xxs) {
+                HStack(spacing: Spacing.xs) {
                     if let method = splitMethod {
-                        Image(systemName: method.systemImage)
-                            .font(.system(size: 12))
+                        Text(method.icon)
+                            .font(AppTypography.subheadlineMedium())
                             .foregroundColor(AppColors.textPrimary)
                     }
-                    Text(splitMethod?.displayName ?? "Equal")
+                    Text(splitMethod?.displayName ?? "Equally")
                         .font(AppTypography.subheadlineMedium())
                         .foregroundColor(AppColors.textPrimary)
                 }
             }
 
-            // Group info
             if let group = transaction.group {
-                HStack(spacing: Spacing.sm) {
-                    Text("Group")
-                        .font(AppTypography.subheadline())
-                        .foregroundColor(AppColors.textSecondary)
-                    Spacer()
-                    HStack(spacing: Spacing.xs) {
-                        Image(systemName: "person.3.fill")
-                            .font(.system(size: 12))
-                            .foregroundColor(Color(hex: group.colorHex ?? "#808080"))
-                        Text(group.name ?? "Unknown Group")
-                            .font(AppTypography.subheadlineMedium())
-                            .foregroundColor(AppColors.textPrimary)
-                    }
-                }
+                receiptKeyValueRow(label: "Group", value: group.name ?? "Unknown Group")
             }
         }
-        .padding(.bottom, Spacing.lg)
     }
 
-    // MARK: - Split Breakdown Section
+    // MARK: - Receipt Split Breakdown
 
-    private var splitBreakdownSection: some View {
+    private var receiptSplitBreakdown: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
             Text("SPLIT BREAKDOWN")
                 .font(AppTypography.caption())
                 .foregroundColor(AppColors.textTertiary)
-                .padding(.top, Spacing.md)
 
             ForEach(cachedSplits, id: \.objectID) { split in
-                HStack(spacing: Spacing.sm) {
-                    if let person = split.owedBy {
-                        Circle()
-                            .fill(person.displayColor)
-                            .frame(width: AvatarSize.xs, height: AvatarSize.xs)
-                            .overlay(
-                                Text(CurrentUser.isCurrentUser(person.id) ? CurrentUser.initials : person.initials)
-                                    .font(.system(size: 10, weight: .semibold))
-                                    .foregroundColor(.white)
-                            )
-                    }
-
+                HStack {
                     Text(personDisplayName(for: split))
-                        .font(AppTypography.body())
+                        .font(AppTypography.subheadline())
                         .foregroundColor(AppColors.textPrimary)
 
                     Spacer()
 
-                    Text(CurrencyFormatter.format(split.amount))
-                        .font(AppTypography.amountSmall())
-                        .foregroundColor(splitAmountColor(for: split))
+                    HStack(spacing: Spacing.xs) {
+                        Text(CurrencyFormatter.currencySymbol)
+                            .font(AppTypography.subheadline())
+                            .foregroundColor(AppColors.textSecondary)
+                        Text(CurrencyFormatter.formatDecimal(split.amount))
+                            .font(AppTypography.financialDefault())
+                            .foregroundColor(AppColors.textPrimary)
+                    }
                 }
             }
+
+            expandedDottedSeparator
+
+            HStack {
+                Text("Total Balance")
+                    .font(AppTypography.subheadlineMedium())
+                    .foregroundColor(AppColors.textPrimary)
+
+                Spacer()
+
+                HStack(spacing: Spacing.xs) {
+                    Text(CurrencyFormatter.currencySymbol)
+                        .font(AppTypography.subheadline())
+                        .foregroundColor(AppColors.textSecondary)
+                    Text(CurrencyFormatter.formatDecimal(transaction.amount))
+                        .font(AppTypography.financialDefault())
+                        .foregroundColor(AppColors.textPrimary)
+                }
+            }
+
+            expandedDottedSeparator
         }
-        .padding(.bottom, Spacing.lg)
     }
 
     // MARK: - Note Section
@@ -1066,15 +828,28 @@ struct TransactionExpandedView: View {
         guard !isDismissing else { return }
         isDismissing = true
         HapticManager.lightTap()
-        withAnimation(.spring(response: 0.3, dampingFraction: 0.9)) {
+        withAnimation(.spring(response: 0.25, dampingFraction: 0.92)) {
             isVisible = false
+            dragOffset = 0
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
             selectedTransaction = nil
         }
     }
 
     // MARK: - Helpers
+
+    private func receiptKeyValueRow(label: String, value: String) -> some View {
+        HStack {
+            Text(label)
+                .font(AppTypography.subheadline())
+                .foregroundColor(AppColors.textSecondary)
+            Spacer()
+            Text(value)
+                .font(AppTypography.subheadlineMedium())
+                .foregroundColor(AppColors.textPrimary)
+        }
+    }
 
     private func personDisplayName(for split: TransactionSplit) -> String {
         TransactionDetailHelpers.personDisplayName(for: split)
@@ -1179,16 +954,11 @@ enum TransactionDetailHelpers {
         return AppColors.neutral
     }
 
-    static func netAmountText(for netAmount: Double) -> String {
-        let formatted = CurrencyFormatter.formatAbsolute(netAmount)
-        if netAmount > 0.01 { return "You lent \(formatted)" }
-        if netAmount < -0.01 { return "You owe \(formatted)" }
-        return "You paid your share"
-    }
-
-    static func netAmountBackgroundColor(for netAmount: Double) -> Color {
-        if netAmount > 0.01 { return AppColors.positive.opacity(0.12) }
-        if netAmount < -0.01 { return AppColors.negative.opacity(0.12) }
-        return AppColors.backgroundTertiary
+    static func creatorName(transaction: FinancialTransaction) -> String {
+        let creator = transaction.createdBy ?? transaction.payer
+        if let creatorId = creator?.id, CurrentUser.isCurrentUser(creatorId) {
+            return "You"
+        }
+        return creator?.displayName ?? "Unknown"
     }
 }

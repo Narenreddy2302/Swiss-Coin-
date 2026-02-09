@@ -84,7 +84,8 @@ struct HomeView: View {
                         // Summary Section (Hero-like)
                         VStack(alignment: .leading, spacing: Spacing.md) {
                             Text("Summary")
-                                .font(AppTypography.title2())
+                                .font(AppTypography.displayMedium())
+                                .tracking(AppTypography.Tracking.displayMedium)
                                 .foregroundColor(AppColors.textPrimary)
                                 .padding(.horizontal)
 
@@ -119,7 +120,7 @@ struct HomeView: View {
                                         .font(.system(size: IconSize.sm))
                                         .accessibilityHidden(true)
                                     Text("Add Transaction")
-                                        .font(AppTypography.subheadlineMedium())
+                                        .font(AppTypography.labelLarge())
                                 }
                                 .foregroundColor(AppColors.buttonForeground)
                                 .frame(maxWidth: .infinity)
@@ -138,12 +139,13 @@ struct HomeView: View {
                         VStack(alignment: .leading, spacing: Spacing.sm) {
                             HStack {
                                 Text("Recent Activity")
-                                    .font(AppTypography.title2())
+                                    .font(AppTypography.displayMedium())
+                                    .tracking(AppTypography.Tracking.displayMedium)
                                     .foregroundColor(AppColors.textPrimary)
                                 Spacer()
                                 NavigationLink(destination: TransactionHistoryView()) {
                                     Text("See All")
-                                        .font(AppTypography.body())
+                                        .font(AppTypography.labelLarge())
                                         .foregroundColor(AppColors.accent)
                                 }
                             }
@@ -243,11 +245,11 @@ struct EmptyStateView: View {
                 .accessibilityHidden(true)
 
             Text("Welcome to Swiss Coin!")
-                .font(AppTypography.title3())
+                .font(AppTypography.headingLarge())
                 .foregroundColor(AppColors.textPrimary)
 
             Text("Start by adding your first expense.\nSplit bills with friends and keep track of who owes what.")
-                .font(AppTypography.subheadline())
+                .font(AppTypography.bodyDefault())
                 .foregroundColor(AppColors.textSecondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, Spacing.lg)
@@ -256,7 +258,7 @@ struct EmptyStateView: View {
                 Image(systemName: "plus.circle.fill")
                     .font(.system(size: IconSize.sm))
                 Text("Tap Add Transaction to get started")
-                    .font(AppTypography.subheadline())
+                    .font(AppTypography.labelLarge())
             }
             .foregroundColor(AppColors.accent)
             .padding(.top, Spacing.sm)
@@ -280,7 +282,7 @@ struct SummaryCard: View {
         VStack(alignment: .leading, spacing: Spacing.md) {
             HStack {
                 Image(systemName: icon)
-                    .font(AppTypography.title2())
+                    .font(AppTypography.displayMedium())
                     .foregroundColor(color)
                     .accessibilityHidden(true)
                 Spacer()
@@ -288,10 +290,11 @@ struct SummaryCard: View {
 
             VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text(title)
-                    .font(AppTypography.subheadlineMedium())
+                    .font(AppTypography.labelLarge())
                     .foregroundColor(AppColors.textSecondary)
                 Text(CurrencyFormatter.format(amount))
-                    .font(AppTypography.amountLarge())
+                    .font(AppTypography.financialLarge())
+                    .tracking(AppTypography.Tracking.financialLarge)
                     .foregroundColor(AppColors.textPrimary)
             }
         }

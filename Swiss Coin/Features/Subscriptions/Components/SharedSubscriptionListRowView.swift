@@ -60,28 +60,28 @@ struct SharedSubscriptionListRowView: View {
                 .frame(width: AvatarSize.lg, height: AvatarSize.lg)
                 .overlay(
                     Image(systemName: subscription.iconName ?? "person.2.circle.fill")
-                        .font(AppTypography.headline())
+                        .font(AppTypography.headingMedium())
                         .foregroundColor(Color(hex: subscription.colorHex ?? "#007AFF"))
                 )
 
             // Name and Info
             VStack(alignment: .leading, spacing: Spacing.xs) {
                 Text(subscription.name ?? "Unknown")
-                    .font(AppTypography.headline())
+                    .font(AppTypography.headingMedium())
                     .foregroundColor(AppColors.textPrimary)
                     .lineLimit(1)
 
                 HStack(spacing: Spacing.xs) {
                     Text("\(memberCount + 1) members")
-                        .font(AppTypography.subheadline())
+                        .font(AppTypography.bodySmall())
                         .foregroundColor(AppColors.textSecondary)
 
                     Text("•")
-                        .font(AppTypography.subheadline())
+                        .font(AppTypography.bodySmall())
                         .foregroundColor(AppColors.textSecondary)
 
                     Text(displayInfo.text)
-                        .font(AppTypography.subheadline())
+                        .font(AppTypography.bodySmall())
                         .foregroundColor(displayInfo.color)
                 }
                 .lineLimit(1)
@@ -92,7 +92,7 @@ struct SharedSubscriptionListRowView: View {
             // Balance amount
             if abs(displayInfo.amount) > 0.01 {
                 Text(CurrencyFormatter.formatAbsolute(displayInfo.amount))
-                    .font(AppTypography.amountSmall())
+                    .font(AppTypography.financialSmall())
                     .foregroundColor(displayInfo.color)
             }
         }

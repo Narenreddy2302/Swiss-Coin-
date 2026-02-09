@@ -58,3 +58,38 @@ extension DateFormatter {
         return formatter
     }()
 }
+
+// MARK: - Date Extensions
+
+extension Date {
+    /// Formats as "Feb 5th, 2026 | Thursday" — used in receipt-style transaction detail
+    var receiptFormatted: String {
+        let calendar = Calendar.current
+        let day = calendar.component(.day, from: self)
+
+        let monthFmt = DateFormatter()
+        monthFmt.dateFormat = "MMM"
+        let month = monthFmt.string(from: self)
+
+        let yearFmt = DateFormatter()
+        yearFmt.dateFormat = "yyyy"
+        let year = yearFmt.string(from: self)
+
+        let dayOfWeek = DateFormatter.dayOfWeek.string(from: self)
+
+        return "\(month) \(day)\(Self.daySuffix(for: day)), \(year) | \(dayOfWeek)"
+    }
+
+    private static func daySuffix(for day: Int) -> String {
+        switch day {
+        case 11, 12, 13: return "th"
+        default:
+            switch day % 10 {
+            case 1: return "st"
+            case 2: return "nd"
+            case 3: return "rd"
+            default: return "th"
+            }
+        }
+    }
+}

@@ -195,7 +195,7 @@ struct SearchView: View {
                         HapticManager.selectionChanged()
                     } label: {
                         Text(filter.rawValue)
-                            .font(AppTypography.subheadlineMedium())
+                            .font(AppTypography.labelLarge())
                             .foregroundColor(selectedFilter == filter ? AppColors.buttonForeground : AppColors.textSecondary)
                             .frame(height: 34)
                             .padding(.horizontal, Spacing.md)
@@ -393,7 +393,7 @@ struct SearchView: View {
                 .accessibilityHidden(true)
 
             Text("No \(selectedFilter.rawValue) Transactions")
-                .font(AppTypography.title2())
+                .font(AppTypography.headingLarge())
                 .foregroundColor(AppColors.textPrimary)
 
             Spacer()
@@ -418,7 +418,7 @@ private struct SearchResultSection<Content: View>: View {
                     .foregroundColor(AppColors.accent)
 
                 Text(title)
-                    .font(AppTypography.headline())
+                    .font(AppTypography.headingMedium())
                     .foregroundColor(AppColors.textPrimary)
 
                 Spacer()
@@ -462,13 +462,13 @@ private struct SearchPersonRow: View {
                 .frame(width: AvatarSize.lg, height: AvatarSize.lg)
                 .overlay(
                     Text(person.initials)
-                        .font(AppTypography.title3())
+                        .font(AppTypography.headingLarge())
                         .foregroundColor(Color(hex: person.colorHex ?? CurrentUser.defaultColorHex))
                 )
 
             VStack(alignment: .leading, spacing: Spacing.xs) {
                 Text(person.name ?? "Unknown")
-                    .font(AppTypography.headline())
+                    .font(AppTypography.headingMedium())
                     .foregroundColor(AppColors.textPrimary)
                     .lineLimit(1)
 
@@ -476,11 +476,11 @@ private struct SearchPersonRow: View {
                     (balance > 0
                         ? Text("owes you ") + Text(CurrencyFormatter.formatAbsolute(balance)).fontWeight(.bold)
                         : Text("you owe ") + Text(CurrencyFormatter.formatAbsolute(balance)).fontWeight(.bold))
-                        .font(AppTypography.subheadline())
+                        .font(AppTypography.bodySmall())
                         .foregroundColor(balanceColor)
                 } else {
                     Text("settled up")
-                        .font(AppTypography.subheadline())
+                        .font(AppTypography.bodySmall())
                         .foregroundColor(AppColors.neutral)
                 }
             }
@@ -509,18 +509,18 @@ private struct SearchGroupRow: View {
                 .frame(width: AvatarSize.lg, height: AvatarSize.lg)
                 .overlay(
                     Image(systemName: "person.3.fill")
-                        .font(AppTypography.headline())
+                        .font(AppTypography.headingMedium())
                         .foregroundColor(Color(hex: group.colorHex ?? "#007AFF"))
                 )
 
             VStack(alignment: .leading, spacing: Spacing.xs) {
                 Text(group.name ?? "Unknown Group")
-                    .font(AppTypography.headline())
+                    .font(AppTypography.headingMedium())
                     .foregroundColor(AppColors.textPrimary)
                     .lineLimit(1)
 
                 Text("\(memberCount) member\(memberCount == 1 ? "" : "s")")
-                    .font(AppTypography.subheadline())
+                    .font(AppTypography.bodySmall())
                     .foregroundColor(AppColors.textSecondary)
             }
 
@@ -544,25 +544,25 @@ private struct SearchSubscriptionRow: View {
                 .frame(width: AvatarSize.lg, height: AvatarSize.lg)
                 .overlay(
                     Image(systemName: subscription.iconName ?? "creditcard.fill")
-                        .font(AppTypography.headline())
+                        .font(AppTypography.headingMedium())
                         .foregroundColor(Color(hex: subscription.colorHex ?? "#FF9500"))
                 )
 
             VStack(alignment: .leading, spacing: Spacing.xs) {
                 Text(subscription.name ?? "Unknown")
-                    .font(AppTypography.headline())
+                    .font(AppTypography.headingMedium())
                     .foregroundColor(AppColors.textPrimary)
                     .lineLimit(1)
 
                 HStack(spacing: Spacing.xs) {
                     Text(CurrencyFormatter.format(subscription.amount))
-                        .font(AppTypography.subheadline())
+                        .font(AppTypography.bodySmall())
                         .fontWeight(.bold)
                         .foregroundColor(AppColors.textSecondary)
 
                     if let cycle = subscription.cycle {
                         Text("• \(cycle)")
-                            .font(AppTypography.subheadline())
+                            .font(AppTypography.bodySmall())
                             .foregroundColor(AppColors.textSecondary)
                     }
                 }
@@ -591,11 +591,11 @@ private struct SearchNoResultsView: View {
                 .accessibilityHidden(true)
 
             Text("No Results")
-                .font(AppTypography.title2())
+                .font(AppTypography.headingLarge())
                 .foregroundColor(AppColors.textPrimary)
 
             Text("No matches found for \"\(searchText)\"")
-                .font(AppTypography.subheadline())
+                .font(AppTypography.bodyDefault())
                 .foregroundColor(AppColors.textSecondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, Spacing.xxl)

@@ -62,7 +62,7 @@ struct PeopleView: View {
                         showingArchivedPeople = true
                     } label: {
                         Image(systemName: "archivebox")
-                            .font(.system(size: 15, weight: .medium))
+                            .font(AppTypography.labelLarge())
                     }
                     .accessibilityLabel("View archived people")
                 }
@@ -75,12 +75,12 @@ struct PeopleView: View {
                                 showingContactPicker = true
                             } label: {
                                 Image(systemName: "plus")
-                                    .font(.system(size: 17, weight: .semibold))
+                                    .font(AppTypography.buttonLarge())
                             }
                         } else {
                             NavigationLink(destination: AddGroupView()) {
                                 Image(systemName: "plus")
-                                    .font(.system(size: 17, weight: .semibold))
+                                    .font(AppTypography.buttonLarge())
                             }
                             .simultaneousGesture(TapGesture().onEnded {
                                 HapticManager.lightTap()
@@ -178,7 +178,7 @@ struct PersonListView: View {
                             // Section header
                             HStack {
                                 Text("All People")
-                                    .font(AppTypography.footnote())
+                                    .font(AppTypography.labelLarge())
                                     .foregroundColor(AppColors.textSecondary)
 
                                 Spacer()
@@ -235,11 +235,11 @@ struct PersonEmptyStateView: View {
                 .accessibilityHidden(true)
 
             Text("No People Yet")
-                .font(AppTypography.title2())
+                .font(AppTypography.headingLarge())
                 .foregroundColor(AppColors.textPrimary)
 
             Text("Add an expense with someone to start tracking balances")
-                .font(AppTypography.subheadline())
+                .font(AppTypography.bodyDefault())
                 .foregroundColor(AppColors.textSecondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, Spacing.xxl)
@@ -307,19 +307,19 @@ struct PersonListRowView: View {
                 .frame(width: AvatarSize.lg, height: AvatarSize.lg)
                 .overlay(
                     Text(person.initials)
-                        .font(AppTypography.title3())
+                        .font(AppTypography.headingLarge())
                         .foregroundColor(Color(hex: person.colorHex ?? CurrentUser.defaultColorHex))
                 )
                 .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: Spacing.xs) {
                 Text(person.name ?? "Unknown")
-                    .font(AppTypography.headline())
+                    .font(AppTypography.headingMedium())
                     .foregroundColor(AppColors.textPrimary)
                     .lineLimit(1)
 
                 balanceTextView
-                    .font(AppTypography.footnote())
+                    .font(AppTypography.bodySmall())
                     .foregroundColor(balanceColor)
                     .lineLimit(1)
             }
@@ -328,7 +328,7 @@ struct PersonListRowView: View {
 
             if abs(balance) > 0.01 {
                 Text(CurrencyFormatter.formatAbsolute(balance))
-                    .font(AppTypography.amount())
+                    .font(AppTypography.financialDefault())
                     .foregroundColor(balanceColor)
             }
         }
@@ -466,7 +466,7 @@ struct GroupListView: View {
                             // Section header
                             HStack {
                                 Text("All Groups")
-                                    .font(AppTypography.footnote())
+                                    .font(AppTypography.labelLarge())
                                     .foregroundColor(AppColors.textSecondary)
 
                                 Spacer()
@@ -524,11 +524,11 @@ struct GroupEmptyStateView: View {
                 .accessibilityHidden(true)
 
             Text("No Groups Yet")
-                .font(AppTypography.title2())
+                .font(AppTypography.headingLarge())
                 .foregroundColor(AppColors.textPrimary)
 
             Text("Create a group to split expenses with multiple people")
-                .font(AppTypography.subheadline())
+                .font(AppTypography.bodyDefault())
                 .foregroundColor(AppColors.textSecondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, Spacing.xxl)
@@ -600,28 +600,28 @@ struct GroupListRowView: View {
                 .frame(width: AvatarSize.lg, height: AvatarSize.lg)
                 .overlay(
                     Image(systemName: "person.3.fill")
-                        .font(AppTypography.headline())
+                        .font(AppTypography.headingMedium())
                         .foregroundColor(Color(hex: group.colorHex ?? "#007AFF"))
                 )
                 .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: Spacing.xs) {
                 Text(group.name ?? "Unknown Group")
-                    .font(AppTypography.headline())
+                    .font(AppTypography.headingMedium())
                     .foregroundColor(AppColors.textPrimary)
                     .lineLimit(1)
 
                 HStack(spacing: Spacing.xs) {
                     Text("\(memberCount) members")
-                        .font(AppTypography.footnote())
+                        .font(AppTypography.bodySmall())
                         .foregroundColor(AppColors.textSecondary)
 
                     Text("•")
-                        .font(AppTypography.footnote())
+                        .font(AppTypography.bodySmall())
                         .foregroundColor(AppColors.textSecondary)
 
                     balanceTextView
-                        .font(AppTypography.footnote())
+                        .font(AppTypography.bodySmall())
                         .foregroundColor(balanceColor)
                 }
                 .lineLimit(1)
@@ -631,7 +631,7 @@ struct GroupListRowView: View {
 
             if abs(balance) > 0.01 {
                 Text(CurrencyFormatter.formatAbsolute(balance))
-                    .font(AppTypography.amount())
+                    .font(AppTypography.financialDefault())
                     .foregroundColor(balanceColor)
             }
         }
