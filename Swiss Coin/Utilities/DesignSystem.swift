@@ -719,6 +719,50 @@ enum AppColors {
     /// Heavy scrim opacity for loading states
     static let scrimOpacityHeavy: Double = 0.4
 
+    // MARK: - Receipt / Conversation Theme Colors
+
+    /// Warm cream background for receipt-style cards
+    static let receiptBackground = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(hex: "#2A2520")
+            : UIColor(hex: "#FAF6F0")
+    })
+
+    /// Dot grid color for receipt pattern
+    static let receiptDot = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(hex: "#3D3A37").withAlphaComponent(0.5)
+            : UIColor(hex: "#D4CFC8").withAlphaComponent(0.4)
+    })
+
+    /// Receipt dashed separator line
+    static let receiptSeparator = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(hex: "#F36D30").withAlphaComponent(0.35)
+            : UIColor(hex: "#F35B16").withAlphaComponent(0.25)
+    })
+
+    /// Dotted leader line color (between label and value on receipts)
+    static let receiptLeader = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(hex: "#6B6560").withAlphaComponent(0.3)
+            : UIColor(hex: "#C8C3BC").withAlphaComponent(0.5)
+    })
+
+    /// Timeline connector line color
+    static let timelineConnector = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(hex: "#545456").withAlphaComponent(0.5)
+            : UIColor(hex: "#C8C3BC").withAlphaComponent(0.6)
+    })
+
+    /// Timeline circle stroke color
+    static let timelineCircle = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(hex: "#6B6560")
+            : UIColor(hex: "#B8B3AC")
+    })
+
     // MARK: - Legacy Colors (for backward compatibility)
 
     /// Default avatar color
