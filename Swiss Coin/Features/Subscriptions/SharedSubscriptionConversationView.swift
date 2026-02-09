@@ -58,7 +58,7 @@ struct SharedSubscriptionConversationView: View {
             // Messages Area
             ScrollViewReader { proxy in
                 ScrollView {
-                    LazyVStack(spacing: 8) {
+                    LazyVStack(spacing: Spacing.sm) {
                         // Subscription Info Header Card
                         SubscriptionInfoCard(subscription: subscription)
                             .padding(.horizontal, Spacing.lg)
@@ -73,8 +73,8 @@ struct SharedSubscriptionConversationView: View {
                         } else {
                             ForEach(groupedItems) { group in
                                 DateHeaderView(dateString: group.dateDisplayString)
-                                    .padding(.top, 16)
-                                    .padding(.bottom, 8)
+                                    .padding(.top, Spacing.lg)
+                                    .padding(.bottom, Spacing.sm)
 
                                 ForEach(group.items) { item in
                                     conversationItemView(for: item)
@@ -83,7 +83,7 @@ struct SharedSubscriptionConversationView: View {
                             }
                         }
                     }
-                    .padding(.vertical, 16)
+                    .padding(.vertical, Spacing.lg)
                 }
                 .scrollDismissesKeyboard(.interactively)
                 .background(AppColors.background)
@@ -95,7 +95,7 @@ struct SharedSubscriptionConversationView: View {
                     scrollToBottom(proxy)
                 }
                 .onChange(of: groupedItems.count) { _, _ in
-                    withAnimation {
+                    withAnimation(AppAnimation.standard) {
                         scrollToBottom(proxy)
                     }
                 }
@@ -180,9 +180,10 @@ struct SharedSubscriptionConversationView: View {
                 dismiss()
             } label: {
                 Image(systemName: "chevron.left")
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundColor(AppColors.textSecondary)
+                    .font(AppTypography.bodyBold())
+                    .foregroundColor(AppColors.accent)
             }
+            .accessibilityLabel("Back")
 
             // Subscription Icon + Name (tappable for details)
             Button {
@@ -192,29 +193,30 @@ struct SharedSubscriptionConversationView: View {
                 subscriptionHeaderContent
             }
             .buttonStyle(.plain)
+            .accessibilityLabel("View \(subscription.name ?? "subscription") details")
         }
     }
 
     @ViewBuilder
     private var subscriptionHeaderContent: some View {
         HStack(spacing: Spacing.sm) {
-            RoundedRectangle(cornerRadius: 10)
+            RoundedRectangle(cornerRadius: CornerRadius.medium)
                 .fill(Color(hex: subscription.colorHex ?? "#007AFF"))
                 .frame(width: AvatarSize.sm, height: AvatarSize.sm)
                 .overlay(
                     Image(systemName: subscription.iconName ?? "person.2.circle.fill")
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.system(size: IconSize.sm, weight: .semibold))
                         .foregroundColor(.white)
                 )
 
             VStack(alignment: .leading, spacing: 1) {
                 Text(subscription.name ?? "Subscription")
-                    .font(.system(size: 17, weight: .semibold))
+                    .font(AppTypography.bodyBold())
                     .foregroundColor(AppColors.textPrimary)
                     .lineLimit(1)
 
                 Text("\(memberCount + 1) members")
-                    .font(.system(size: 12, weight: .regular))
+                    .font(AppTypography.caption())
                     .foregroundColor(AppColors.textSecondary)
             }
         }
@@ -222,36 +224,39 @@ struct SharedSubscriptionConversationView: View {
 
     @ViewBuilder
     private var toolbarTrailingContent: some View {
-        VStack(alignment: .trailing, spacing: 2) {
+        VStack(alignment: .trailing, spacing: Spacing.xxs) {
             Text(balanceLabel)
-                .font(.system(size: 12, weight: .regular))
+                .font(AppTypography.caption())
                 .foregroundColor(AppColors.textSecondary)
 
             Text(balanceAmount)
-                .font(.system(size: 16, weight: .bold))
+                .font(AppTypography.amountSmall())
                 .foregroundColor(balanceColor)
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Balance: \(balanceLabel) \(balanceAmount)")
     }
 
     // MARK: - Empty State
 
     private var emptyStateView: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: Spacing.lg) {
             Spacer()
 
             Image(systemName: "person.2.fill")
-                .font(.system(size: 48))
-                .foregroundColor(.secondary.opacity(0.5))
+                .font(.system(size: IconSize.xxl))
+                .foregroundColor(AppColors.textSecondary.opacity(0.5))
+                .accessibilityHidden(true)
 
             Text("No activity yet")
-                .font(.headline)
-                .foregroundColor(.secondary)
+                .font(AppTypography.headline())
+                .foregroundColor(AppColors.textSecondary)
 
             Text("Record a payment or send a message to start tracking \(subscription.displayName)")
-                .font(.subheadline)
-                .foregroundColor(.secondary)
+                .font(AppTypography.subheadline())
+                .foregroundColor(AppColors.textSecondary)
                 .multilineTextAlignment(.center)
-                .padding(.horizontal, 40)
+                .padding(.horizontal, Spacing.xxl)
 
             Spacer()
         }
@@ -266,22 +271,22 @@ struct SharedSubscriptionConversationView: View {
         switch item {
         case .payment(let payment):
             SubscriptionPaymentCardView(payment: payment, subscription: subscription)
-                .padding(.vertical, 4)
+                .padding(.vertical, Spacing.xxs)
 
         case .settlement(let settlement):
             SubscriptionSettlementMessageView(settlement: settlement)
-                .padding(.vertical, 4)
+                .padding(.vertical, Spacing.xxs)
 
         case .reminder(let reminder):
             SubscriptionReminderMessageView(reminder: reminder)
-                .padding(.vertical, 4)
+                .padding(.vertical, Spacing.xxs)
                 .onAppear {
                     markReminderAsRead(reminder)
                 }
 
         case .message(let chatMessage):
             MessageBubbleView(message: chatMessage)
-                .padding(.vertical, 2)
+                .padding(.vertical, Spacing.xxs)
         }
     }
 

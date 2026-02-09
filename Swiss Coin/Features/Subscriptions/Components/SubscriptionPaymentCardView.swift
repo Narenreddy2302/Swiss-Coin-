@@ -18,15 +18,11 @@ struct SubscriptionPaymentCardView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .center, spacing: Spacing.md) {
-                // Payment Icon
-                Circle()
-                    .fill(AppColors.positive.opacity(0.2))
-                    .frame(width: 32, height: 32)
-                    .overlay(
-                        Image(systemName: "dollarsign.circle.fill")
-                            .font(.system(size: 16))
-                            .foregroundColor(AppColors.positive)
-                    )
+                // Payer Avatar
+                ConversationAvatarView(
+                    initials: isUserPayer ? CurrentUser.initials : (payment.payer?.initials ?? "?"),
+                    colorHex: isUserPayer ? CurrentUser.defaultColorHex : (payment.payer?.colorHex ?? CurrentUser.defaultColorHex)
+                )
 
                 VStack(alignment: .leading, spacing: Spacing.xxs) {
                     Text(isUserPayer ? "You paid" : "\(payment.payer?.firstName ?? "Someone") paid")

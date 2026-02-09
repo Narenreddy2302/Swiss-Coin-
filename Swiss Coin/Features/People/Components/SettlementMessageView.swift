@@ -36,37 +36,14 @@ struct SettlementMessageView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: Spacing.xxs) {
-            HStack(spacing: Spacing.xs) {
-                Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: IconSize.xs))
-                    .foregroundColor(AppColors.positive)
-
-                Text(messageText)
-                    .font(AppTypography.labelDefault())
-                    .foregroundColor(AppColors.textSecondary)
-            }
-            .padding(.horizontal, Spacing.lg)
-            .padding(.vertical, Spacing.sm)
-            .background(
-                RoundedRectangle(cornerRadius: CornerRadius.card)
-                    .fill(AppColors.positiveMuted)
-            )
-
-            if let note = settlement.note, !note.isEmpty {
-                Text(note)
-                    .captionStyle()
-                    .foregroundColor(AppColors.textSecondary)
-                    .italic()
-                    .padding(.leading, Spacing.xs)
-            }
-
-            Text(settlement.date ?? Date(), style: .date)
-                .captionStyle()
-                .foregroundColor(AppColors.textSecondary)
-                .padding(.leading, Spacing.xs)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        SystemMessageView(
+            icon: "checkmark.circle.fill",
+            iconColor: AppColors.positive,
+            messageText: messageText,
+            noteText: settlement.note,
+            date: settlement.date,
+            backgroundColor: AppColors.positiveMuted
+        )
         .contextMenu {
             Button {
                 UIPasteboard.general.string = messageText

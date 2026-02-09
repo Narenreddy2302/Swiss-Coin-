@@ -32,37 +32,14 @@ struct SubscriptionSettlementMessageView: View {
     }
 
     var body: some View {
-        VStack(spacing: 4) {
-            HStack(spacing: 6) {
-                Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 12))
-                    .foregroundColor(.green)
-
-                Text(messageText)
-                    .font(.caption)
-                    .fontWeight(.medium)
-                    .foregroundColor(.secondary)
-            }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 8)
-            .background(
-                Capsule()
-                    .fill(AppColors.backgroundSecondary)
-            )
-
-            if let note = settlement.note, !note.isEmpty {
-                Text(note)
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
-                    .italic()
-            }
-
-            Text(settlement.date ?? Date(), style: .date)
-                .font(.caption2)
-                .foregroundColor(.secondary)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 8)
+        SystemMessageView(
+            icon: "checkmark.circle.fill",
+            iconColor: AppColors.positive,
+            messageText: messageText,
+            noteText: settlement.note,
+            date: settlement.date,
+            backgroundColor: AppColors.positiveMuted
+        )
         .contextMenu {
             Button {
                 UIPasteboard.general.string = messageText

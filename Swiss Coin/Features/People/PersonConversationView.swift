@@ -50,7 +50,7 @@ struct PersonConversationView: View {
 
     // MARK: - Timeline Constants
 
-    private let timelineCircleSize: CGFloat = IconSize.xs
+    private let timelineCircleSize: CGFloat = IconSize.lg
     private let timelineLeadingPad: CGFloat = Spacing.lg
     private let timelineToContent: CGFloat = Spacing.sm
 
@@ -244,10 +244,16 @@ struct PersonConversationView: View {
     @ViewBuilder
     private func timelineRow(item: ConversationItem, isLastItem: Bool) -> some View {
         let isMessage = item.isMessageType
+        let avatar = itemAvatarInfo(for: item)
 
         HStack(alignment: .top, spacing: 0) {
-            // Timeline column
-            timelineConnector(isLastItem: isLastItem, isMessage: isMessage)
+            // Timeline column with avatar
+            timelineConnector(
+                isLastItem: isLastItem,
+                isMessage: isMessage,
+                avatarInitials: avatar.initials,
+                avatarColor: avatar.color
+            )
 
             // Content column
             conversationItemView(for: item)
@@ -256,23 +262,46 @@ struct PersonConversationView: View {
         }
     }
 
+    // MARK: - Item Avatar Info
+
+    private func itemAvatarInfo(for item: ConversationItem) -> (initials: String, color: String) {
+        switch item {
+        case .transaction(let t):
+            let isUserPayer = t.effectivePayers.contains { CurrentUser.isCurrentUser($0.personId) }
+            if isUserPayer {
+                return (CurrentUser.initials, CurrentUser.defaultColorHex)
+            }
+            return (t.payer?.initials ?? "?", t.payer?.colorHex ?? CurrentUser.defaultColorHex)
+        case .settlement(let s):
+            if CurrentUser.isCurrentUser(s.fromPerson?.id) {
+                return (CurrentUser.initials, CurrentUser.defaultColorHex)
+            }
+            return (s.fromPerson?.initials ?? "?", s.fromPerson?.colorHex ?? CurrentUser.defaultColorHex)
+        case .reminder:
+            return (CurrentUser.initials, CurrentUser.defaultColorHex)
+        case .message(let m):
+            if m.isFromUser {
+                return (CurrentUser.initials, CurrentUser.defaultColorHex)
+            }
+            return (person.initials, person.colorHex ?? CurrentUser.defaultColorHex)
+        }
+    }
+
     // MARK: - Timeline Connector
 
     @ViewBuilder
-    private func timelineConnector(isLastItem: Bool, isMessage: Bool) -> some View {
+    private func timelineConnector(isLastItem: Bool, isMessage: Bool, avatarInitials: String, avatarColor: String) -> some View {
         VStack(spacing: 0) {
-            // Top offset to vertically align circle with first line of content
+            // Top offset to vertically align avatar with first line of content
             Spacer()
-                .frame(height: isMessage ? Spacing.md : Spacing.xl)
+                .frame(height: isMessage ? Spacing.sm : Spacing.lg)
 
-            // Circle marker
-            Circle()
-                .fill(AppColors.background)
-                .frame(width: timelineCircleSize, height: timelineCircleSize)
-                .overlay(
-                    Circle()
-                        .stroke(AppColors.timelineCircle, lineWidth: 1.5)
-                )
+            // Avatar marker
+            ConversationAvatarView(
+                initials: avatarInitials,
+                colorHex: avatarColor,
+                size: timelineCircleSize
+            )
 
             // Connecting line (if not last item)
             if !isLastItem {
@@ -414,7 +443,9 @@ struct PersonConversationView: View {
                 onDelete: { msg in
                     deleteMessageWithUndo(msg)
                 },
-                useTimelineLayout: true
+                useTimelineLayout: true,
+                senderInitials: person.initials,
+                senderColor: person.colorHex
             )
         }
     }
