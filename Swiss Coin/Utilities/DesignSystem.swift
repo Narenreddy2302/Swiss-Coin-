@@ -260,6 +260,14 @@ enum AppAnimation {
     /// Dismiss collapse spring — fast, critically-damped for clean exit
     static let dismiss: Animation = .spring(response: 0.25, dampingFraction: 0.9)
 
+    // MARK: - Theme Transition
+
+    /// Theme cross-fade duration
+    static let themeTransitionDuration: Double = 0.35
+
+    /// Reduced-motion theme cross-fade duration
+    static let themeTransitionReducedDuration: Double = 0.12
+
     // MARK: - Stagger Timing
 
     /// Standard stagger interval between cascading section reveals

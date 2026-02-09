@@ -21,6 +21,7 @@ struct ProfileView: View {
     @AppStorage("default_currency") private var defaultCurrency = "USD"
     @AppStorage("theme_mode") private var themeMode = "system"
     @AppStorage("notifications_enabled") private var notificationsEnabled = true
+    @AppStorage("reduce_motion") private var reduceMotion = false
 
     // Security
     @State private var darkModeOn = false
@@ -214,7 +215,9 @@ struct ProfileView: View {
                         .labelsHidden()
                         .onChange(of: darkModeOn) { _, newValue in
                             HapticManager.toggle()
-                            themeMode = newValue ? "dark" : "light"
+                            let newMode = newValue ? "dark" : "light"
+                            ThemeTransitionManager.shared.transition(to: newMode, reduceMotion: reduceMotion)
+                            themeMode = newMode
                         }
                 }
                 .padding(.horizontal, Spacing.lg)

@@ -64,6 +64,7 @@ final class AppearanceSettingsViewModel: ObservableObject {
 struct AppearanceSettingsView: View {
     @StateObject private var viewModel = AppearanceSettingsViewModel()
     @Environment(\.colorScheme) var systemColorScheme
+    @AppStorage("reduce_motion") private var reduceMotion = false
 
     private let accentColorOptions = [
         ("#34C759", "Green"), ("#007AFF", "Blue"), ("#FF9500", "Orange"),
@@ -94,7 +95,7 @@ struct AppearanceSettingsView: View {
                                     isSelected: viewModel.themeMode == "light"
                                 ) {
                                     HapticManager.selectionChanged()
-                                    viewModel.themeMode = "light"
+                                    changeTheme(to: "light")
                                 }
 
                                 ThemeButton(
@@ -103,7 +104,7 @@ struct AppearanceSettingsView: View {
                                     isSelected: viewModel.themeMode == "dark"
                                 ) {
                                     HapticManager.selectionChanged()
-                                    viewModel.themeMode = "dark"
+                                    changeTheme(to: "dark")
                                 }
 
                                 ThemeButton(
@@ -112,7 +113,7 @@ struct AppearanceSettingsView: View {
                                     isSelected: viewModel.themeMode == "system"
                                 ) {
                                     HapticManager.selectionChanged()
-                                    viewModel.themeMode = "system"
+                                    changeTheme(to: "system")
                                 }
                             }
                             .padding(.horizontal, Spacing.lg)
@@ -308,6 +309,12 @@ struct AppearanceSettingsView: View {
         case "extra_large": return .system(size: 20)
         default: return .system(size: 16)
         }
+    }
+
+    private func changeTheme(to mode: String) {
+        guard mode != viewModel.themeMode else { return }
+        viewModel.themeMode = mode
+        ThemeTransitionManager.shared.transition(to: mode, reduceMotion: reduceMotion)
     }
 }
 

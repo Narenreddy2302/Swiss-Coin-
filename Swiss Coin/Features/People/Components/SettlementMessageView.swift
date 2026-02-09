@@ -43,28 +43,28 @@ struct SettlementMessageView: View {
                     .foregroundColor(AppColors.positive)
 
                 Text(messageText)
-                    .font(AppTypography.bodySmall())
+                    .font(AppTypography.labelDefault())
                     .foregroundColor(AppColors.textSecondary)
             }
-            .padding(.horizontal, 14)
+            .padding(.horizontal, Spacing.lg)
             .padding(.vertical, Spacing.sm)
             .background(
-                RoundedRectangle(cornerRadius: CornerRadius.lg)
+                RoundedRectangle(cornerRadius: CornerRadius.card)
                     .fill(AppColors.positiveMuted)
             )
 
             if let note = settlement.note, !note.isEmpty {
                 Text(note)
-                    .font(AppTypography.caption2())
+                    .captionStyle()
                     .foregroundColor(AppColors.textSecondary)
                     .italic()
-                    .padding(.leading, 4)
+                    .padding(.leading, Spacing.xs)
             }
 
             Text(settlement.date ?? Date(), style: .date)
-                .font(AppTypography.caption2())
+                .captionStyle()
                 .foregroundColor(AppColors.textSecondary)
-                .padding(.leading, 4)
+                .padding(.leading, Spacing.xs)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .contextMenu {

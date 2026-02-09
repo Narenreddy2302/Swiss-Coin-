@@ -16,6 +16,8 @@ struct TransactionCardView: View {
     var onDelete: (() -> Void)? = nil
     var onComment: (() -> Void)? = nil
 
+    @Environment(\.colorScheme) var colorScheme
+
     // MARK: - Computed Properties
 
     /// Net balance for this transaction: positive = person owes you
@@ -145,13 +147,9 @@ struct TransactionCardView: View {
             actionButtons
         }
         .padding(.vertical, Spacing.lg)
-        .background(
-            ZStack {
-                AppColors.receiptBackground
-                DotGridPattern()
-            }
-        )
+        .background(AppColors.receiptBackground)
         .clipShape(RoundedRectangle(cornerRadius: CornerRadius.card))
+        .shadow(color: AppShadow.card(for: colorScheme).color, radius: AppShadow.card(for: colorScheme).radius, x: AppShadow.card(for: colorScheme).x, y: AppShadow.card(for: colorScheme).y)
         .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: CornerRadius.card))
         .contextMenu {
             Button {
@@ -198,30 +196,30 @@ struct TransactionCardView: View {
 
     @ViewBuilder
     private var headerSection: some View {
-        VStack(spacing: Spacing.xxs) {
-            HStack(alignment: .top) {
+        VStack(spacing: Spacing.xs) {
+            HStack(alignment: .firstTextBaseline) {
                 Text(transaction.title ?? "Expense")
                     .font(AppTypography.headingLarge())
                     .foregroundColor(AppColors.textPrimary)
                     .lineLimit(2)
 
-                Spacer()
+                Spacer(minLength: Spacing.sm)
 
                 Text(CurrencyFormatter.format(displayAmount))
-                    .font(AppTypography.headingLarge())
+                    .font(AppTypography.financialLarge())
                     .foregroundColor(amountColor)
             }
 
-            HStack(alignment: .top) {
+            HStack(alignment: .firstTextBaseline) {
                 Text(dateText)
-                    .font(AppTypography.bodySmall())
+                    .font(AppTypography.labelDefault())
                     .foregroundColor(AppColors.textSecondary)
                     .lineLimit(1)
 
-                Spacer()
+                Spacer(minLength: Spacing.sm)
 
                 Text("\(totalAmountText) / \(splitCountText)")
-                    .font(AppTypography.bodySmall())
+                    .font(AppTypography.labelDefault())
                     .foregroundColor(AppColors.textSecondary)
             }
         }
@@ -233,12 +231,6 @@ struct TransactionCardView: View {
     @ViewBuilder
     private var paymentSection: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
-            Text("PAYMENT")
-                .font(AppTypography.caption())
-                .tracking(1.2)
-                .foregroundColor(AppColors.textTertiary)
-                .padding(.bottom, Spacing.xxs)
-
             receiptRow(label: "Paid by", value: payerName)
             receiptRow(label: "Created by", value: creatorName)
             receiptRow(label: "Participants", value: splitCountText)
@@ -253,8 +245,7 @@ struct TransactionCardView: View {
     private var splitBreakdownSection: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             Text("SPLIT BREAKDOWN")
-                .font(AppTypography.caption())
-                .tracking(1.2)
+                .labelSmallStyle()
                 .foregroundColor(AppColors.textTertiary)
                 .padding(.bottom, Spacing.xxs)
 
@@ -279,20 +270,18 @@ struct TransactionCardView: View {
     private var totalBalanceRow: some View {
         HStack {
             Text("Total Balance")
-                .font(AppTypography.bodyDefault())
-                .fontWeight(.semibold)
+                .font(AppTypography.labelLarge())
                 .foregroundColor(AppColors.textPrimary)
 
-            DottedLeaderLine()
-                .frame(height: 1)
+            Spacer()
 
             Text(CurrencyFormatter.currencySymbol)
-                .font(AppTypography.bodyDefault())
+                .font(AppTypography.bodySmall())
                 .foregroundColor(AppColors.textSecondary)
-                .frame(width: 20, alignment: .trailing)
+                .frame(width: 14, alignment: .trailing)
 
             Text(CurrencyFormatter.formatDecimal(abs(totalBalance)))
-                .font(AppTypography.financialDefault())
+                .font(AppTypography.financialSmall())
                 .foregroundColor(AppColors.textPrimary)
                 .frame(minWidth: 50, alignment: .trailing)
         }
@@ -303,19 +292,19 @@ struct TransactionCardView: View {
 
     @ViewBuilder
     private var actionButtons: some View {
-        HStack(spacing: Spacing.md) {
+        HStack(spacing: Spacing.sm) {
             // Comment Button
             Button {
                 HapticManager.selectionChanged()
                 onComment?()
             } label: {
                 Text("Comment")
-                    .font(AppTypography.buttonDefault())
+                    .font(AppTypography.buttonSmall())
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
-                    .frame(height: ButtonHeight.md)
+                    .frame(height: ButtonHeight.sm)
                     .background(
-                        RoundedRectangle(cornerRadius: CornerRadius.extraLarge)
+                        RoundedRectangle(cornerRadius: CornerRadius.button)
                             .fill(AppColors.accent)
                     )
             }
@@ -326,13 +315,13 @@ struct TransactionCardView: View {
                 onEdit?()
             } label: {
                 Text("Edit")
-                    .font(AppTypography.buttonDefault())
+                    .font(AppTypography.buttonSmall())
                     .foregroundColor(AppColors.textPrimary)
                     .frame(maxWidth: .infinity)
-                    .frame(height: ButtonHeight.md)
+                    .frame(height: ButtonHeight.sm)
                     .background(
-                        RoundedRectangle(cornerRadius: CornerRadius.extraLarge)
-                            .stroke(AppColors.border, lineWidth: 1.5)
+                        RoundedRectangle(cornerRadius: CornerRadius.button)
+                            .stroke(AppColors.border, lineWidth: 1)
                     )
             }
         }
@@ -353,7 +342,7 @@ struct TransactionCardView: View {
                 .frame(height: 1)
 
             Text(value)
-                .font(AppTypography.bodyDefault())
+                .font(AppTypography.labelLarge())
                 .foregroundColor(AppColors.textPrimary)
                 .lineLimit(1)
         }
@@ -365,20 +354,18 @@ struct TransactionCardView: View {
     private func splitRow(name: String, amount: Double, isBold: Bool) -> some View {
         HStack(spacing: Spacing.xs) {
             Text(name)
-                .font(AppTypography.bodyDefault())
-                .fontWeight(isBold ? .bold : .regular)
+                .font(isBold ? AppTypography.labelLarge() : AppTypography.bodyDefault())
                 .foregroundColor(AppColors.textPrimary)
 
-            DottedLeaderLine()
-                .frame(height: 1)
+            Spacer()
 
             Text(CurrencyFormatter.currencySymbol)
-                .font(AppTypography.bodyDefault())
+                .font(AppTypography.bodySmall())
                 .foregroundColor(AppColors.textSecondary)
-                .frame(width: 20, alignment: .trailing)
+                .frame(width: 14, alignment: .trailing)
 
             Text(CurrencyFormatter.formatDecimal(amount))
-                .font(AppTypography.financialDefault())
+                .font(AppTypography.financialSmall())
                 .foregroundColor(AppColors.textPrimary)
                 .frame(minWidth: 50, alignment: .trailing)
         }
@@ -390,8 +377,8 @@ struct TransactionCardView: View {
     private var receiptDivider: some View {
         AppColors.receiptSeparator
             .frame(height: 1)
-            .padding(.horizontal, Spacing.md)
-            .padding(.vertical, Spacing.md)
+            .padding(.horizontal, Spacing.lg)
+            .padding(.vertical, Spacing.sm)
     }
 }
 
