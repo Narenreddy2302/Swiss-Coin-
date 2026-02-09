@@ -65,15 +65,15 @@ struct SubscriptionListRowView: View {
 
                 HStack(spacing: Spacing.xs) {
                     Text(subscription.cycle ?? "Monthly")
-                        .font(AppTypography.subheadline())
+                        .font(AppTypography.footnote())
                         .foregroundColor(AppColors.textSecondary)
 
                     Text("•")
-                        .font(AppTypography.subheadline())
+                        .font(AppTypography.footnote())
                         .foregroundColor(AppColors.textSecondary)
 
                     Text(statusText)
-                        .font(AppTypography.subheadline())
+                        .font(AppTypography.footnote())
                         .foregroundColor(billingStatus.color)
                 }
                 .lineLimit(1)

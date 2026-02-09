@@ -839,9 +839,9 @@ enum AppTypography {
         .system(size: 20, weight: .semibold)
     }
 
-    /// Heading medium - 17pt semibold (line: 22pt)
+    /// Heading medium - 17pt medium (line: 22pt)
     static func headingMedium() -> Font {
-        .system(size: 17, weight: .semibold)
+        .system(size: 17, weight: .medium)
     }
 
     /// Heading small - 15pt semibold (line: 20pt)

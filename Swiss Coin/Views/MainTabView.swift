@@ -73,7 +73,7 @@ struct MainTabView: View {
 
             SearchView()
                 .tabItem {
-                    Label("Search", systemImage: "magnifyingglass")
+                    Label("Transactions", systemImage: "arrow.left.arrow.right")
                 }
                 .tag(3)
         }
