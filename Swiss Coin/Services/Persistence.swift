@@ -69,7 +69,7 @@ struct PersistenceController {
                     } catch {
                         logger.error("CoreData: Failed to destroy persistent store: \(error.localizedDescription)")
                         logger.warning("Continuing with corrupted store — data may be unavailable")
-                    }
+                    }   
                 }
 
                 /*
