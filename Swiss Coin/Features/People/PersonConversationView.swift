@@ -50,7 +50,7 @@ struct PersonConversationView: View {
 
     // MARK: - Timeline Constants
 
-    private let timelineCircleSize: CGFloat = IconSize.lg
+    private let timelineCircleSize: CGFloat = AvatarSize.xs
     private let timelineLeadingPad: CGFloat = Spacing.lg
     private let timelineToContent: CGFloat = Spacing.sm
 
