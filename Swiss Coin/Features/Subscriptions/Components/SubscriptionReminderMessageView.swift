@@ -17,36 +17,30 @@ struct SubscriptionReminderMessageView: View {
     }
 
     var body: some View {
-        VStack(spacing: Spacing.xs) {
-            HStack(spacing: Spacing.xs) {
-                Image(systemName: "bell.fill")
-                    .font(.system(size: IconSize.xs))
-                    .foregroundColor(AppColors.warning)
-
-                Text(messageText)
-                    .font(AppTypography.caption())
-                    .fontWeight(.medium)
-                    .foregroundColor(AppColors.textSecondary)
-            }
-            .padding(.horizontal, Spacing.md)
-            .padding(.vertical, Spacing.sm)
-            .background(
-                Capsule()
-                    .fill(AppColors.warningMuted)
-            )
-
-            if let message = reminder.message, !message.isEmpty {
-                Text("\"\(message)\"")
-                    .font(AppTypography.labelSmall())
-                    .foregroundColor(AppColors.textSecondary)
-                    .italic()
+        SystemMessageView(
+            icon: "bell.fill",
+            iconColor: AppColors.warning,
+            messageText: messageText,
+            noteText: reminder.message.flatMap { $0.isEmpty ? nil : "\"\($0)\"" },
+            date: reminder.createdDate,
+            backgroundColor: AppColors.warningMuted
+        )
+        .contextMenu {
+            Button {
+                UIPasteboard.general.string = messageText
+                HapticManager.copyAction()
+            } label: {
+                Label("Copy", systemImage: "doc.on.doc")
             }
 
-            Text(reminder.createdDate ?? Date(), style: .date)
-                .font(AppTypography.labelSmall())
-                .foregroundColor(AppColors.textSecondary)
+            Button {
+                UIPasteboard.general.string = CurrencyFormatter.format(reminder.amount)
+                HapticManager.copyAction()
+            } label: {
+                Label("Copy Amount", systemImage: "dollarsign.circle")
+            }
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, Spacing.sm)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Reminder: \(messageText)")
     }
 }

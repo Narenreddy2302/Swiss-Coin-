@@ -17,37 +17,14 @@ struct ReminderMessageView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: Spacing.xxs) {
-            HStack(spacing: Spacing.xs) {
-                Image(systemName: "bell.fill")
-                    .font(.system(size: IconSize.xs))
-                    .foregroundColor(AppColors.warning)
-
-                Text(messageText)
-                    .font(AppTypography.labelDefault())
-                    .foregroundColor(AppColors.textSecondary)
-            }
-            .padding(.horizontal, Spacing.lg)
-            .padding(.vertical, Spacing.sm)
-            .background(
-                RoundedRectangle(cornerRadius: CornerRadius.card)
-                    .fill(AppColors.warningMuted)
-            )
-
-            if let message = reminder.message, !message.isEmpty {
-                Text("\"\(message)\"")
-                    .captionStyle()
-                    .foregroundColor(AppColors.textSecondary)
-                    .italic()
-                    .padding(.leading, Spacing.xs)
-            }
-
-            Text(reminder.createdDate ?? Date(), style: .date)
-                .captionStyle()
-                .foregroundColor(AppColors.textSecondary)
-                .padding(.leading, Spacing.xs)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        SystemMessageView(
+            icon: "bell.fill",
+            iconColor: AppColors.warning,
+            messageText: messageText,
+            noteText: reminder.message.flatMap { $0.isEmpty ? nil : "\"\($0)\"" },
+            date: reminder.createdDate,
+            backgroundColor: AppColors.warningMuted
+        )
         .contextMenu {
             Button {
                 UIPasteboard.general.string = messageText
