@@ -2,7 +2,7 @@
 //  SettlementMessageView.swift
 //  Swiss Coin
 //
-//  System message for settlements in person conversations.
+//  Timeline-style system message for settlements in person conversations.
 //
 
 import SwiftUI
@@ -36,21 +36,21 @@ struct SettlementMessageView: View {
     }
 
     var body: some View {
-        VStack(spacing: Spacing.xxs) {
+        VStack(alignment: .leading, spacing: Spacing.xxs) {
             HStack(spacing: Spacing.xs) {
                 Image(systemName: "checkmark.circle.fill")
                     .font(.system(size: IconSize.xs))
                     .foregroundColor(AppColors.positive)
 
                 Text(messageText)
-                    .font(AppTypography.caption())
+                    .font(AppTypography.bodySmall())
                     .foregroundColor(AppColors.textSecondary)
             }
             .padding(.horizontal, 14)
             .padding(.vertical, Spacing.sm)
             .background(
-                Capsule()
-                    .fill(AppColors.cardBackground)
+                RoundedRectangle(cornerRadius: CornerRadius.lg)
+                    .fill(AppColors.positiveMuted)
             )
 
             if let note = settlement.note, !note.isEmpty {
@@ -58,14 +58,15 @@ struct SettlementMessageView: View {
                     .font(AppTypography.caption2())
                     .foregroundColor(AppColors.textSecondary)
                     .italic()
+                    .padding(.leading, 4)
             }
 
             Text(settlement.date ?? Date(), style: .date)
                 .font(AppTypography.caption2())
                 .foregroundColor(AppColors.textSecondary)
+                .padding(.leading, 4)
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, Spacing.sm)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .contextMenu {
             Button {
                 UIPasteboard.general.string = messageText

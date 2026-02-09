@@ -2,7 +2,7 @@
 //  PersonConversationView.swift
 //  Swiss Coin
 //
-//  iMessage-style conversation view for person-to-person interactions.
+//  Timeline-style conversation view for person-to-person interactions.
 //
 
 import CoreData
@@ -48,6 +48,12 @@ struct PersonConversationView: View {
     @State private var cachedTxnSplitAmounts: [Double] = []
     @State private var cachedTxnSplitRawAmounts: [Double] = []
 
+    // MARK: - Timeline Constants
+
+    private let timelineCircleSize: CGFloat = 36
+    private let timelineLeadingPad: CGFloat = 12
+    private let timelineToContent: CGFloat = 10
+
     // MARK: - Computed Properties
 
     private var balance: Double {
@@ -56,6 +62,10 @@ struct PersonConversationView: View {
 
     private var groupedItems: [ConversationDateGroup] {
         person.getGroupedConversationItems()
+    }
+
+    private var allItems: [ConversationItem] {
+        groupedItems.flatMap { $0.items }
     }
 
     private var totalItemCount: Int {
@@ -85,27 +95,40 @@ struct PersonConversationView: View {
             // Messages Area
             ScrollViewReader { proxy in
                 ScrollView {
-                    LazyVStack(spacing: Spacing.sm) {
+                    LazyVStack(spacing: 0) {
                         if groupedItems.isEmpty {
                             emptyStateView
                         } else {
-                            ForEach(groupedItems) { group in
+                            ForEach(Array(groupedItems.enumerated()), id: \.element.id) { groupIndex, group in
+                                // Date Header
                                 DateHeaderView(dateString: group.dateDisplayString)
-                                    .padding(.top, Spacing.lg)
+                                    .padding(.top, groupIndex == 0 ? Spacing.md : Spacing.lg)
                                     .padding(.bottom, Spacing.sm)
 
-                                ForEach(group.items) { item in
-                                    conversationItemView(for: item)
-                                        .id(item.id)
-                                        .transition(.opacity.combined(with: .scale(scale: 0.95)))
+                                ForEach(Array(group.items.enumerated()), id: \.element.id) { itemIndex, item in
+                                    let isLastInGroup = itemIndex == group.items.count - 1
+                                    let isLastGroup = groupIndex == groupedItems.count - 1
+                                    let isLastItem = isLastInGroup && isLastGroup
+
+                                    timelineRow(
+                                        item: item,
+                                        isLastItem: isLastItem
+                                    )
+                                    .id(item.id)
+                                    .transition(.opacity.combined(with: .scale(scale: 0.95)))
                                 }
                             }
                         }
                     }
-                    .padding(.vertical, Spacing.lg)
+                    .padding(.vertical, Spacing.md)
                 }
                 .scrollDismissesKeyboard(.interactively)
-                .background(AppColors.background)
+                .background(
+                    ZStack {
+                        AppColors.background
+                        DotGridPattern(dotSpacing: 16, dotRadius: 0.5, color: AppColors.receiptDot.opacity(0.5))
+                    }
+                )
                 .onTapGesture {
                     hideKeyboard()
                 }
@@ -216,6 +239,60 @@ struct PersonConversationView: View {
         )
     }
 
+    // MARK: - Timeline Row
+
+    @ViewBuilder
+    private func timelineRow(item: ConversationItem, isLastItem: Bool) -> some View {
+        let isMessage = item.isMessageType
+
+        HStack(alignment: .top, spacing: 0) {
+            // Timeline column
+            timelineConnector(isLastItem: isLastItem, isMessage: isMessage)
+
+            // Content column
+            conversationItemView(for: item)
+                .padding(.trailing, Spacing.lg)
+                .padding(.bottom, isLastItem ? 0 : Spacing.md)
+        }
+    }
+
+    // MARK: - Timeline Connector
+
+    @ViewBuilder
+    private func timelineConnector(isLastItem: Bool, isMessage: Bool) -> some View {
+        VStack(spacing: 0) {
+            // Circle marker
+            ZStack {
+                Circle()
+                    .fill(AppColors.background)
+                    .frame(width: timelineCircleSize, height: timelineCircleSize)
+
+                Circle()
+                    .stroke(AppColors.timelineCircle, lineWidth: 1.5)
+                    .frame(width: timelineCircleSize, height: timelineCircleSize)
+
+                // Arrow indicator for messages
+                if isMessage {
+                    Image(systemName: "arrow.right")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(AppColors.timelineCircle)
+                }
+            }
+
+            // Connecting line (if not last item)
+            if !isLastItem {
+                TimelineDashedLine()
+                    .frame(width: 1)
+                    .frame(maxHeight: .infinity)
+            } else {
+                Spacer(minLength: 0)
+            }
+        }
+        .frame(width: timelineCircleSize)
+        .padding(.leading, timelineLeadingPad)
+        .padding(.trailing, timelineToContent)
+    }
+
     // MARK: - Toolbar Components
 
     @ViewBuilder
@@ -324,26 +401,26 @@ struct PersonConversationView: View {
                 onDelete: {
                     transactionToDelete = transaction
                     showingDeleteTransaction = true
+                },
+                onComment: {
+                    // Focus message input - no extra sheet needed
                 }
             )
-            .padding(.vertical, Spacing.xxs)
 
         case .settlement(let settlement):
             SettlementMessageView(settlement: settlement, person: person)
-                .padding(.vertical, Spacing.xxs)
 
         case .reminder(let reminder):
             ReminderMessageView(reminder: reminder, person: person)
-                .padding(.vertical, Spacing.xxs)
 
         case .message(let chatMessage):
             MessageBubbleView(
                 message: chatMessage,
                 onDelete: { msg in
                     deleteMessageWithUndo(msg)
-                }
+                },
+                useTimelineLayout: true
             )
-            .padding(.vertical, 2)
         }
     }
 
@@ -516,5 +593,27 @@ struct PersonConversationView: View {
         cachedTxnSplitPersons = []
         cachedTxnSplitAmounts = []
         cachedTxnSplitRawAmounts = []
+    }
+}
+
+// MARK: - Timeline Dashed Line
+
+struct TimelineDashedLine: View {
+    var color: Color = AppColors.timelineConnector
+
+    var body: some View {
+        GeometryReader { geometry in
+            Path { path in
+                let dashLength: CGFloat = 4
+                let gapLength: CGFloat = 4
+                var y: CGFloat = 0
+                while y < geometry.size.height {
+                    path.move(to: CGPoint(x: geometry.size.width / 2, y: y))
+                    path.addLine(to: CGPoint(x: geometry.size.width / 2, y: min(y + dashLength, geometry.size.height)))
+                    y += dashLength + gapLength
+                }
+            }
+            .stroke(color, lineWidth: 1.2)
+        }
     }
 }

@@ -141,6 +141,11 @@ enum ConversationItem: Identifiable {
         case .message(let m): return m.timestamp ?? Date.distantPast
         }
     }
+
+    var isMessageType: Bool {
+        if case .message = self { return true }
+        return false
+    }
 }
 
 struct ConversationDateGroup: Identifiable {

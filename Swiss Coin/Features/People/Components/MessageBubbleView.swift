@@ -2,7 +2,8 @@
 //  MessageBubbleView.swift
 //  Swiss Coin
 //
-//  iMessage-style chat bubble with context menu, inline editing, and copy support.
+//  Chat bubble with context menu, inline editing, and copy support.
+//  Supports both timeline (left-aligned) and classic (iMessage-style) layouts.
 //
 
 import SwiftUI
@@ -11,6 +12,7 @@ import CoreData
 struct MessageBubbleView: View {
     @ObservedObject var message: ChatMessage
     var onDelete: ((ChatMessage) -> Void)? = nil
+    var useTimelineLayout: Bool = false
 
     @Environment(\.managedObjectContext) private var viewContext
     @State private var isEditing = false
@@ -44,6 +46,62 @@ struct MessageBubbleView: View {
     // MARK: - Body
 
     var body: some View {
+        if useTimelineLayout {
+            timelineBody
+        } else {
+            classicBody
+        }
+    }
+
+    // MARK: - Timeline Layout (left-aligned, for PersonConversationView)
+
+    @ViewBuilder
+    private var timelineBody: some View {
+        VStack(alignment: .leading, spacing: Spacing.xxs) {
+            if isEditing {
+                editingView
+            } else {
+                timelineBubbleView
+            }
+
+            // Timestamp + Edited badge
+            HStack(spacing: Spacing.xs) {
+                if message.isEdited && !isEditing {
+                    Text("Edited")
+                        .font(AppTypography.caption2())
+                        .foregroundColor(AppColors.textTertiary)
+                }
+                Text(timeText)
+                    .font(AppTypography.caption2())
+                    .foregroundColor(AppColors.textSecondary)
+            }
+            .padding(.leading, 4)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: CornerRadius.lg))
+        .contextMenu { contextMenuItems }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(accessibilityLabel)
+        .accessibilityHint(message.isFromUser ? "Double tap and hold for options" : "")
+    }
+
+    @ViewBuilder
+    private var timelineBubbleView: some View {
+        Text(message.content ?? "")
+            .font(AppTypography.body())
+            .foregroundColor(AppColors.textPrimary)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .background(
+                RoundedRectangle(cornerRadius: CornerRadius.lg)
+                    .fill(AppColors.cardBackground)
+            )
+    }
+
+    // MARK: - Classic Layout (iMessage-style, for Group/Subscription views)
+
+    @ViewBuilder
+    private var classicBody: some View {
         HStack {
             if isFromUser { Spacer(minLength: 60) }
 
@@ -51,7 +109,7 @@ struct MessageBubbleView: View {
                 if isEditing {
                     editingView
                 } else {
-                    bubbleView
+                    classicBubbleView
                 }
 
                 // Timestamp + Edited badge
@@ -68,39 +126,7 @@ struct MessageBubbleView: View {
                 .padding(.horizontal, 4)
             }
             .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: CornerRadius.lg))
-            .contextMenu {
-                // Copy — available for all messages
-                Button {
-                    UIPasteboard.general.string = message.content ?? ""
-                    HapticManager.copyAction()
-                } label: {
-                    Label("Copy", systemImage: "doc.on.doc")
-                }
-
-                // Edit — own messages within 15-minute window
-                if canEdit {
-                    Button {
-                        HapticManager.selectionChanged()
-                        editText = message.content ?? ""
-                        withAnimation(AppAnimation.standard) {
-                            isEditing = true
-                        }
-                    } label: {
-                        Label("Edit", systemImage: "pencil")
-                    }
-                }
-
-                // Delete — own messages only
-                if message.isFromUser, onDelete != nil {
-                    Divider()
-                    Button(role: .destructive) {
-                        HapticManager.destructiveAction()
-                        onDelete?(message)
-                    } label: {
-                        Label("Delete", systemImage: "trash")
-                    }
-                }
-            }
+            .contextMenu { contextMenuItems }
 
             if !isFromUser { Spacer(minLength: 60) }
         }
@@ -110,19 +136,17 @@ struct MessageBubbleView: View {
         .accessibilityHint(message.isFromUser ? "Double tap and hold for options" : "")
     }
 
-    // MARK: - Bubble View
-
     @ViewBuilder
-    private var bubbleView: some View {
+    private var classicBubbleView: some View {
         Text(message.content ?? "")
             .font(AppTypography.body())
             .foregroundColor(AppColors.textPrimary)
             .padding(.horizontal, 14)
             .padding(.vertical, 10)
-            .background(bubbleBackground)
+            .background(classicBubbleBackground)
     }
 
-    private var bubbleBackground: some View {
+    private var classicBubbleBackground: some View {
         UnevenRoundedRectangle(
             topLeadingRadius: CornerRadius.lg,
             bottomLeadingRadius: isFromUser ? CornerRadius.lg : Spacing.xs,
@@ -130,6 +154,43 @@ struct MessageBubbleView: View {
             topTrailingRadius: CornerRadius.lg
         )
         .fill(isFromUser ? AppColors.userBubble : AppColors.otherBubble)
+    }
+
+    // MARK: - Context Menu
+
+    @ViewBuilder
+    private var contextMenuItems: some View {
+        // Copy
+        Button {
+            UIPasteboard.general.string = message.content ?? ""
+            HapticManager.copyAction()
+        } label: {
+            Label("Copy", systemImage: "doc.on.doc")
+        }
+
+        // Edit — own messages within 15-minute window
+        if canEdit {
+            Button {
+                HapticManager.selectionChanged()
+                editText = message.content ?? ""
+                withAnimation(AppAnimation.standard) {
+                    isEditing = true
+                }
+            } label: {
+                Label("Edit", systemImage: "pencil")
+            }
+        }
+
+        // Delete — own messages only
+        if message.isFromUser, onDelete != nil {
+            Divider()
+            Button(role: .destructive) {
+                HapticManager.destructiveAction()
+                onDelete?(message)
+            } label: {
+                Label("Delete", systemImage: "trash")
+            }
+        }
     }
 
     // MARK: - Edit Mode
