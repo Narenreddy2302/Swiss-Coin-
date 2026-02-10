@@ -45,6 +45,10 @@ final class TransactionViewModel: ObservableObject {
     init(context: NSManagedObjectContext) {
         self.viewContext = context
         setupSearchListeners()
+
+        // Default payer ("You") should be in the split by default
+        let currentUser = CurrentUser.getOrCreate(in: context)
+        selectedParticipants.insert(currentUser)
     }
 
     // MARK: - Search Functionality
@@ -535,5 +539,9 @@ final class TransactionViewModel: ObservableObject {
         selectedGroup = nil
         paidBySearchText = ""
         splitWithSearchText = ""
+
+        // Default payer ("You") should be in the split by default
+        let currentUser = CurrentUser.getOrCreate(in: viewContext)
+        selectedParticipants.insert(currentUser)
     }
 }
