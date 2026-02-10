@@ -112,7 +112,7 @@ struct MessageBubbleView: View {
                 ConversationAvatarView(
                     initials: initials,
                     colorHex: senderColor ?? CurrentUser.defaultColorHex,
-                    size: 28
+                    size: AvatarSize.xs
                 )
             }
 
