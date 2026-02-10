@@ -125,7 +125,7 @@ struct PersonConversationView: View {
                 .scrollDismissesKeyboard(.interactively)
                 .background(
                     ZStack {
-                        AppColors.background
+                        AppColors.backgroundSecondary
                         DotGridPattern(dotSpacing: 16, dotRadius: 0.5, color: AppColors.receiptDot.opacity(0.5))
                     }
                 )
@@ -157,10 +157,10 @@ struct PersonConversationView: View {
                 onSend: sendMessage
             )
         }
-        .background(AppColors.background)
+        .background(AppColors.backgroundSecondary)
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(AppColors.backgroundTertiary, for: .navigationBar)
+        .toolbarBackground(AppColors.backgroundSecondary, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
         .toolbar(.hidden, for: .tabBar)
         .tint(AppColors.textSecondary)
@@ -491,6 +491,14 @@ struct PersonConversationView: View {
     }
 
     private func deleteTransaction(_ transaction: FinancialTransaction) {
+        // Delete associated splits first
+        if let splits = transaction.splits as? Set<TransactionSplit> {
+            splits.forEach { viewContext.delete($0) }
+        }
+        // Delete associated payers
+        if let payers = transaction.payers as? Set<TransactionPayer> {
+            payers.forEach { viewContext.delete($0) }
+        }
         viewContext.delete(transaction)
         do {
             try viewContext.save()

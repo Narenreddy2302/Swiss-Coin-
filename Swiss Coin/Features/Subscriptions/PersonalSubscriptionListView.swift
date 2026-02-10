@@ -39,6 +39,9 @@ struct PersonalSubscriptionListView: View {
     }
 
     var body: some View {
+        if subscriptions.isEmpty {
+            EmptySubscriptionView(isShared: false)
+        } else {
         ScrollView {
             VStack(spacing: Spacing.xl) {
                 // Attention Required Section (Overdue + Due)
@@ -167,10 +170,6 @@ struct PersonalSubscriptionListView: View {
             .padding(.top, Spacing.lg)
         }
         .background(AppColors.backgroundSecondary)
-        .overlay {
-            if subscriptions.isEmpty {
-                EmptySubscriptionView(isShared: false)
-            }
         }
     }
 }

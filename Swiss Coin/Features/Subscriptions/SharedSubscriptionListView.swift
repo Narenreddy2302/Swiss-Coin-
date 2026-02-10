@@ -31,6 +31,9 @@ struct SharedSubscriptionListView: View {
     // MARK: - Body
 
     var body: some View {
+        if subscriptions.isEmpty {
+            EmptySubscriptionView(isShared: true)
+        } else {
         ScrollView {
             LazyVStack(spacing: 0) {
                 let subscriptionCount = subscriptions.count
@@ -54,10 +57,6 @@ struct SharedSubscriptionListView: View {
             .animation(.easeInOut(duration: 0.2), value: subscriptions.count)
         }
         .background(AppColors.backgroundSecondary)
-        .overlay {
-            if subscriptions.isEmpty {
-                EmptySubscriptionView(isShared: true)
-            }
         }
     }
 }

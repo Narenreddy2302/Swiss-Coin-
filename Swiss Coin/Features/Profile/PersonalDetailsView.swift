@@ -2,7 +2,7 @@
 //  PersonalDetailsView.swift
 //  Swiss Coin
 //
-//  Simplified personal details editor with card-based design.
+//  Premium personal details editor with card-based design.
 //
 
 import Combine
@@ -26,10 +26,11 @@ struct PersonalDetailsView: View {
                     ProfilePhotoSection(viewModel: viewModel)
 
                     // Name Section
-                    VStack(alignment: .leading, spacing: Spacing.md) {
-                        Text("Your Name")
-                            .font(AppTypography.headline())
-                            .foregroundColor(AppColors.textPrimary)
+                    VStack(alignment: .leading, spacing: Spacing.sm) {
+                        Text("NAME")
+                            .font(AppTypography.footnote())
+                            .textCase(.uppercase)
+                            .foregroundColor(AppColors.textSecondary)
                             .padding(.horizontal, Spacing.lg)
 
                         VStack(spacing: 0) {
@@ -79,10 +80,11 @@ struct PersonalDetailsView: View {
                     ProfileColorSection(viewModel: viewModel)
 
                     // Contact Info Section
-                    VStack(alignment: .leading, spacing: Spacing.md) {
-                        Text("Contact Information")
-                            .font(AppTypography.headline())
-                            .foregroundColor(AppColors.textPrimary)
+                    VStack(alignment: .leading, spacing: Spacing.sm) {
+                        Text("CONTACT INFORMATION")
+                            .font(AppTypography.footnote())
+                            .textCase(.uppercase)
+                            .foregroundColor(AppColors.textSecondary)
                             .padding(.horizontal, Spacing.lg)
 
                         VStack(spacing: 0) {
@@ -95,13 +97,13 @@ struct PersonalDetailsView: View {
 
                                     Text(viewModel.phoneNumber.isEmpty ? "Not set" : viewModel.formattedPhoneNumber)
                                         .font(AppTypography.body())
-                                        .foregroundColor(AppColors.textPrimary)
+                                        .foregroundColor(viewModel.phoneNumber.isEmpty ? AppColors.textTertiary : AppColors.textPrimary)
                                 }
 
                                 Spacer()
 
                                 Image(systemName: "lock.fill")
-                                    .font(.system(size: 12))
+                                    .font(.system(size: IconSize.xs))
                                     .foregroundColor(AppColors.textSecondary)
                             }
                             .padding(.horizontal, Spacing.lg)
@@ -154,11 +156,13 @@ struct PersonalDetailsView: View {
                                 .font(AppTypography.subheadlineMedium())
                         }
                     }
-                    .foregroundColor(AppColors.buttonForeground)
+                    .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
-                    .frame(height: ButtonHeight.md)
-                    .background(viewModel.canSave ? AppColors.buttonBackground : AppColors.disabled)
+                    .frame(height: ButtonHeight.lg)
+                    .background(viewModel.canSave ? AppColors.accent : AppColors.disabled)
+                    .clipShape(RoundedRectangle(cornerRadius: CornerRadius.md))
                     .disabled(!viewModel.canSave)
+                    .padding(.horizontal, Spacing.lg)
                     .padding(.top, Spacing.lg)
                 }
                 .padding(.top, Spacing.lg)
@@ -223,52 +227,49 @@ private struct ProfilePhotoSection: View {
     @ObservedObject var viewModel: PersonalDetailsViewModel
 
     var body: some View {
-        VStack(spacing: Spacing.md) {
+        VStack(spacing: Spacing.sm) {
             Button {
                 HapticManager.tap()
                 viewModel.showingPhotoOptions = true
             } label: {
-                ZStack {
+                ZStack(alignment: .bottomTrailing) {
                     if let image = viewModel.selectedImage {
                         Image(uiImage: image)
                             .resizable()
                             .scaledToFill()
-                            .frame(width: 100, height: 100)
+                            .frame(width: 110, height: 110)
                             .clipShape(Circle())
                             .overlay(
                                 Circle()
-                                    .stroke(Color(hex: viewModel.profileColor), lineWidth: 3)
+                                    .stroke(Color(hex: viewModel.profileColor), lineWidth: 2)
                             )
                     } else {
                         Circle()
-                            .fill(Color(hex: viewModel.profileColor).opacity(0.2))
-                            .frame(width: 100, height: 100)
+                            .fill(Color(hex: viewModel.profileColor).opacity(0.15))
+                            .frame(width: 110, height: 110)
                             .overlay(
                                 Text(viewModel.initials)
-                                    .font(.system(size: 40, weight: .semibold))
+                                    .font(.system(size: 42, weight: .semibold))
                                     .foregroundColor(Color(hex: viewModel.profileColor))
-                            )
-                            .overlay(
-                                Circle()
-                                    .stroke(Color(hex: viewModel.profileColor).opacity(0.3), lineWidth: 3)
                             )
                     }
 
                     // Camera badge
                     Circle()
                         .fill(AppColors.accent)
-                        .frame(width: 32, height: 32)
+                        .frame(width: 30, height: 30)
                         .overlay(
                             Image(systemName: "camera.fill")
-                                .font(.system(size: 14, weight: .semibold))
-                                .foregroundColor(AppColors.buttonForeground)
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundColor(.white)
                         )
-                        .offset(x: 35, y: 35)
+                        .offset(x: -2, y: -2)
                 }
+                .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
             }
             .buttonStyle(.plain)
 
-            Text("Tap to change photo")
+            Text("Change Photo")
                 .font(AppTypography.caption())
                 .foregroundColor(AppColors.textSecondary)
         }
@@ -289,10 +290,11 @@ private struct ProfileColorSection: View {
     ]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: Spacing.md) {
-            Text("Profile Color")
-                .font(AppTypography.headline())
-                .foregroundColor(AppColors.textPrimary)
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            Text("PROFILE COLOR")
+                .font(AppTypography.footnote())
+                .textCase(.uppercase)
+                .foregroundColor(AppColors.textSecondary)
                 .padding(.horizontal, Spacing.lg)
 
             LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 6), spacing: Spacing.md) {
@@ -304,7 +306,7 @@ private struct ProfileColorSection: View {
                     } label: {
                         Circle()
                             .fill(Color(hex: color))
-                            .frame(width: 44, height: 44)
+                            .frame(width: 40, height: 40)
                             .overlay(
                                 Circle()
                                     .stroke(
@@ -314,7 +316,7 @@ private struct ProfileColorSection: View {
                             )
                             .overlay(
                                 Image(systemName: "checkmark")
-                                    .font(.system(size: 16, weight: .bold))
+                                    .font(.system(size: 14, weight: .bold))
                                     .foregroundColor(.white)
                                     .opacity(viewModel.profileColor == color ? 1 : 0)
                             )
@@ -324,6 +326,7 @@ private struct ProfileColorSection: View {
             .padding(.horizontal, Spacing.lg)
             .padding(.vertical, Spacing.md)
             .background(AppColors.cardBackground)
+            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: viewModel.profileColor)
         }
     }
 }

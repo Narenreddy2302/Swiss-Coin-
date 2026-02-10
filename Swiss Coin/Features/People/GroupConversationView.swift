@@ -110,7 +110,7 @@ struct GroupConversationView: View {
                     .padding(.vertical, Spacing.lg)
                 }
                 .scrollDismissesKeyboard(.interactively)
-                .background(AppColors.background)
+                .background(AppColors.backgroundSecondary)
                 .onTapGesture {
                     hideKeyboard()
                 }
@@ -141,10 +141,10 @@ struct GroupConversationView: View {
                 onSend: sendMessage
             )
         }
-        .background(AppColors.background)
+        .background(AppColors.backgroundSecondary)
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(AppColors.backgroundTertiary, for: .navigationBar)
+        .toolbarBackground(AppColors.backgroundSecondary, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
         .toolbar(.hidden, for: .tabBar)
         .tint(AppColors.textSecondary)
@@ -401,6 +401,14 @@ struct GroupConversationView: View {
     }
 
     private func deleteTransaction(_ transaction: FinancialTransaction) {
+        // Delete associated splits first
+        if let splits = transaction.splits as? Set<TransactionSplit> {
+            splits.forEach { viewContext.delete($0) }
+        }
+        // Delete associated payers
+        if let payers = transaction.payers as? Set<TransactionPayer> {
+            payers.forEach { viewContext.delete($0) }
+        }
         viewContext.delete(transaction)
         do {
             try viewContext.save()

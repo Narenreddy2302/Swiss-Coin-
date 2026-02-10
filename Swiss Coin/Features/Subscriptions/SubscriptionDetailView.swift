@@ -238,29 +238,29 @@ struct SubscriptionDetailView: View {
                 }
             }
 
-            // Actions Section
-            Section {
+        }
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
+        .background(AppColors.backgroundSecondary)
+        .navigationTitle("Details")
+        .navigationBarTitleDisplayMode(.inline)
+        .safeAreaInset(edge: .bottom) {
+            VStack(spacing: Spacing.sm) {
                 Button {
                     HapticManager.tap()
                     showingEditSheet = true
                 } label: {
                     Text("Edit Subscription")
-                        .font(AppTypography.body().weight(.semibold))
-                        .frame(maxWidth: .infinity)
                 }
-                .foregroundColor(AppColors.accent)
-                .listRowBackground(AppColors.accent.opacity(0.1))
+                .buttonStyle(SecondaryButtonStyle())
 
                 Button {
                     HapticManager.tap()
                     togglePauseStatus()
                 } label: {
                     Text(subscription.isActive ? "Pause Subscription" : "Resume Subscription")
-                        .font(AppTypography.body().weight(.semibold))
-                        .frame(maxWidth: .infinity)
                 }
-                .foregroundColor(AppColors.accent)
-                .listRowBackground(AppColors.accent.opacity(0.1))
+                .buttonStyle(SecondaryButtonStyle())
 
                 Button {
                     HapticManager.tap()
@@ -271,28 +271,21 @@ struct SubscriptionDetailView: View {
                     }
                 } label: {
                     Text(subscription.isArchived ? "Restore Subscription" : "Archive Subscription")
-                        .font(AppTypography.body().weight(.semibold))
-                        .frame(maxWidth: .infinity)
                 }
-                .foregroundColor(AppColors.accent)
-                .listRowBackground(AppColors.accent.opacity(0.1))
+                .buttonStyle(SecondaryButtonStyle())
 
-                Button(role: .destructive) {
+                Button {
                     HapticManager.tap()
                     showingDeleteAlert = true
                 } label: {
                     Text("Cancel Subscription")
-                        .font(AppTypography.body().weight(.semibold))
-                        .frame(maxWidth: .infinity)
                 }
-                .listRowBackground(AppColors.negative.opacity(0.1))
+                .buttonStyle(DestructiveButtonStyle())
             }
+            .padding(.horizontal, Spacing.lg)
+            .padding(.vertical, Spacing.md)
+            .background(AppColors.backgroundSecondary)
         }
-        .listStyle(.plain)
-        .scrollContentBackground(.hidden)
-        .background(AppColors.backgroundSecondary)
-        .navigationTitle("Details")
-        .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showingEditSheet) {
             EditSubscriptionView(subscription: subscription)
                 .environment(\.managedObjectContext, viewContext)

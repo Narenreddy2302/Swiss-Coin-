@@ -428,12 +428,6 @@ class QuickActionViewModel: ObservableObject {
             participantIds.remove(id)
             splitDetails.removeValue(forKey: id)
             selectedGroup = nil
-
-            // Remove from payers if the removed participant was a payer
-            if let payer = paidByPersons.first(where: { $0.id == id }) {
-                paidByPersons.remove(payer)
-                payerAmountInputs.removeValue(forKey: id)
-            }
         } else {
             participantIds.insert(id)
         }

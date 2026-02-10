@@ -16,6 +16,7 @@ struct ProfileView: View {
 
     @State private var currentUser: Person?
     @State private var showingLogoutAlert = false
+    @State private var userPhoto: UIImage?
 
     // Settings
     @AppStorage("default_currency") private var defaultCurrency = "USD"
@@ -141,14 +142,33 @@ struct ProfileView: View {
     private var profileSection: some View {
         NavigationLink(destination: PersonalDetailsView()) {
             HStack(spacing: Spacing.md) {
-                Circle()
-                    .fill(Color(hex: userColor).opacity(0.2))
-                    .frame(width: 56, height: 56)
-                    .overlay(
-                        Text(userInitials)
-                            .font(.system(size: 22, weight: .semibold))
-                            .foregroundColor(Color(hex: userColor))
-                    )
+                // Avatar - show photo or initials
+                Group {
+                    if let photo = userPhoto {
+                        Image(uiImage: photo)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 60, height: 60)
+                            .clipShape(Circle())
+                            .overlay(
+                                Circle()
+                                    .stroke(Color(hex: userColor).opacity(0.3), lineWidth: 2)
+                            )
+                    } else {
+                        Circle()
+                            .fill(Color(hex: userColor).opacity(0.15))
+                            .frame(width: 60, height: 60)
+                            .overlay(
+                                Text(userInitials)
+                                    .font(.system(size: 24, weight: .semibold))
+                                    .foregroundColor(Color(hex: userColor))
+                            )
+                            .overlay(
+                                Circle()
+                                    .stroke(Color(hex: userColor).opacity(0.2), lineWidth: 2)
+                            )
+                    }
+                }
 
                 VStack(alignment: .leading, spacing: Spacing.xxs) {
                     Text(userName)
@@ -156,7 +176,7 @@ struct ProfileView: View {
                         .foregroundColor(AppColors.textPrimary)
                         .lineLimit(1)
 
-                    Text("Edit Profile")
+                    Text("Personal Details")
                         .font(AppTypography.subheadline())
                         .foregroundColor(AppColors.textSecondary)
                 }
@@ -404,6 +424,9 @@ struct ProfileView: View {
 
     private func loadCurrentUser() {
         currentUser = CurrentUser.getOrCreate(in: viewContext)
+        if let photoData = currentUser?.photoData, let image = UIImage(data: photoData) {
+            userPhoto = image
+        }
     }
 
     private func loadSecuritySettings() {

@@ -378,21 +378,21 @@ enum AppColors {
     /// Elevated surface - cards, sheets (use with shadow)
     static let elevatedSurface = Color(UIColor { tc in
         tc.userInterfaceStyle == .dark
-            ? UIColor(hex: "#2C2C2E")
+            ? UIColor(hex: "#3A3A3C")
             : UIColor.white
     })
 
     /// Card background - elevated surface for cards
     static let cardBackground = Color(UIColor { tc in
         tc.userInterfaceStyle == .dark
-            ? UIColor(hex: "#2C2C2E")
+            ? UIColor(hex: "#3A3A3C")
             : UIColor.white
     })
 
     /// Card background elevated - higher elevation cards
     static let cardBackgroundElevated = Color(UIColor { tc in
         tc.userInterfaceStyle == .dark
-            ? UIColor(hex: "#3A3A3C")
+            ? UIColor(hex: "#48484A")
             : UIColor.white
     })
 

@@ -5,9 +5,10 @@ struct HomeView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.scenePhase) private var scenePhase
 
-    // Fetch last 5 transactions (limited at fetch level for efficiency)
+    // Fetch last 5 valid transactions (filter out deleted/corrupt entries)
     @FetchRequest(fetchRequest: {
         let request: NSFetchRequest<FinancialTransaction> = FinancialTransaction.fetchRequest()
+        request.predicate = NSPredicate(format: "title != nil AND title.length > 0")
         request.sortDescriptors = [NSSortDescriptor(keyPath: \FinancialTransaction.date, ascending: false)]
         request.fetchLimit = 5
         return request
@@ -39,12 +40,13 @@ struct HomeView: View {
 
     /// Tracks the last time data was refreshed to debounce rapid refreshes
     @State private var lastRefreshDate = Date.distantPast
+    @State private var isRefreshing = false
 
     // MARK: - Computed Properties
 
-    /// Recent transactions (already limited to 5 by fetchLimit)
+    /// Recent transactions (already limited to 5 by fetchLimit, filtered for validity)
     private var recentTransactions: [FinancialTransaction] {
-        Array(allTransactions)
+        Array(allTransactions).filter { !$0.isDeleted && $0.managedObjectContext != nil }
     }
 
     /// Calculate total amount the current user owes to others
@@ -168,6 +170,8 @@ struct HomeView: View {
                     }
                     .padding(.top, Spacing.lg)
                     .padding(.bottom, Spacing.section + Spacing.sm)
+                    .opacity(isRefreshing ? 0.6 : 1.0)
+                    .animation(AppAnimation.contentReveal, value: isRefreshing)
                 }
                 .allowsHitTesting(selectedTransaction == nil)
 
@@ -182,8 +186,7 @@ struct HomeView: View {
             }
             .background(AppColors.backgroundSecondary)
             .refreshable {
-                refreshData()
-                HapticManager.lightTap()
+                await performRefresh()
             }
             .navigationTitle("Home")
             .navigationBarTitleDisplayMode(.large)
@@ -218,6 +221,16 @@ struct HomeView: View {
     }
 
     // MARK: - Refresh Helpers
+
+    private func performRefresh() async {
+        isRefreshing = true
+        refreshData()
+        try? await Task.sleep(nanoseconds: 600_000_000)
+        withAnimation(AppAnimation.contentReveal) {
+            isRefreshing = false
+        }
+        HapticManager.success()
+    }
 
     /// Refresh only if enough time has elapsed since the last refresh (debounce).
     /// Prevents redundant refreshes when multiple triggers fire in quick succession
