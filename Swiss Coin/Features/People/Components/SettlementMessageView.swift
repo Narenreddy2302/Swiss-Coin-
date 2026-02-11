@@ -10,6 +10,8 @@ import SwiftUI
 struct SettlementMessageView: View {
     let settlement: Settlement
     let person: Person
+    var onCopy: (() -> Void)? = nil
+    var onCopyAmount: (() -> Void)? = nil
 
     private var messageText: String {
         let formatted = CurrencyFormatter.format(settlement.amount)
@@ -44,17 +46,16 @@ struct SettlementMessageView: View {
             date: settlement.date,
             backgroundColor: AppColors.positiveMuted
         )
+        .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: CornerRadius.card))
         .contextMenu {
             Button {
-                UIPasteboard.general.string = messageText
-                HapticManager.copyAction()
+                onCopy?()
             } label: {
                 Label("Copy", systemImage: "doc.on.doc")
             }
 
             Button {
-                UIPasteboard.general.string = CurrencyFormatter.format(settlement.amount)
-                HapticManager.copyAction()
+                onCopyAmount?()
             } label: {
                 Label("Copy Amount", systemImage: "dollarsign.circle")
             }

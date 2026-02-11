@@ -161,17 +161,22 @@ struct SplitInputView: View {
 
 #Preview {
     let context = PersistenceController.preview.container.viewContext
-    let viewModel = TransactionViewModel(context: context)
-    viewModel.totalAmount = "100"
-    viewModel.splitMethod = .percentage
+    let viewModel: TransactionViewModel = {
+        let vm = TransactionViewModel(context: context)
+        vm.totalAmount = "100"
+        vm.splitMethod = .percentage
+        return vm
+    }()
 
-    // Create a mock person
-    let person = Person(context: context)
-    person.id = UUID()
-    person.name = "John Doe"
-    person.colorHex = "#007AFF"
+    let person: Person = {
+        let p = Person(context: context)
+        p.id = UUID()
+        p.name = "John Doe"
+        p.colorHex = "#007AFF"
+        return p
+    }()
 
-    return SplitInputView(viewModel: viewModel, person: person)
+    SplitInputView(viewModel: viewModel, person: person)
         .padding()
         .background(AppColors.backgroundSecondary)
 }

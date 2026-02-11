@@ -2,7 +2,8 @@
 //  PersonConversationView.swift
 //  Swiss Coin
 //
-//  Timeline-style conversation view for person-to-person interactions.
+//  Professional timeline-style conversation view for person-to-person interactions.
+//  Features receipt-style transaction cards and elegant message bubbles.
 //
 
 import CoreData
@@ -26,6 +27,7 @@ struct PersonConversationView: View {
     @State private var transactionToDelete: FinancialTransaction?
     @State private var showingDeleteTransaction = false
     @State private var showingTransactionDetail: FinancialTransaction?
+    @State private var isMessageInputFocused = false
 
     // Undo toast state (messages)
     @State private var showUndoToast = false
@@ -52,7 +54,7 @@ struct PersonConversationView: View {
 
     private let timelineCircleSize: CGFloat = AvatarSize.xs
     private let timelineLeadingPad: CGFloat = Spacing.lg
-    private let timelineToContent: CGFloat = Spacing.sm
+    private let timelineToContent: CGFloat = Spacing.md
 
     // MARK: - Computed Properties
 
@@ -126,7 +128,11 @@ struct PersonConversationView: View {
                 .background(
                     ZStack {
                         AppColors.backgroundSecondary
-                        DotGridPattern(dotSpacing: 16, dotRadius: 0.5, color: AppColors.receiptDot.opacity(0.5))
+                        DotGridPattern(
+                            dotSpacing: 16,
+                            dotRadius: 0.5,
+                            color: AppColors.receiptDot.opacity(0.5)
+                        )
                     }
                 )
                 .onTapGesture {
@@ -410,7 +416,7 @@ struct PersonConversationView: View {
     private func conversationItemView(for item: ConversationItem) -> some View {
         switch item {
         case .transaction(let transaction):
-            TransactionCardView(
+            EnhancedTransactionCardView(
                 transaction: transaction,
                 person: person,
                 onEdit: {
@@ -427,30 +433,83 @@ struct PersonConversationView: View {
                     showingDeleteTransaction = true
                 },
                 onComment: {
-                    // Focus message input - no extra sheet needed
+                    // Focus message input - will be handled by state
                 }
             )
 
         case .settlement(let settlement):
-            SettlementMessageView(settlement: settlement, person: person)
+            SettlementMessageView(
+                settlement: settlement,
+                person: person,
+                onCopy: {
+                    UIPasteboard.general.string = settlementMessageText(settlement)
+                    HapticManager.copyAction()
+                },
+                onCopyAmount: {
+                    UIPasteboard.general.string = CurrencyFormatter.format(settlement.amount)
+                    HapticManager.copyAction()
+                }
+            )
 
         case .reminder(let reminder):
-            ReminderMessageView(reminder: reminder, person: person)
+            ReminderMessageView(
+                reminder: reminder,
+                onCopy: {
+                    UIPasteboard.general.string = reminderMessageText(reminder)
+                    HapticManager.copyAction()
+                },
+                onCopyAmount: {
+                    UIPasteboard.general.string = CurrencyFormatter.format(reminder.amount)
+                    HapticManager.copyAction()
+                }
+            )
 
         case .message(let chatMessage):
-            MessageBubbleView(
+            TimelineMessageBubbleView(
                 message: chatMessage,
+                person: person,
                 onDelete: { msg in
                     deleteMessageWithUndo(msg)
                 },
-                useTimelineLayout: true,
-                senderInitials: person.initials,
-                senderColor: person.colorHex
+                onFocusInput: {
+                    isMessageInputFocused = true
+                }
             )
         }
     }
 
-    // MARK: - Helpers
+    // MARK: - Helper Methods
+
+    private func settlementMessageText(_ settlement: Settlement) -> String {
+        let formatted = CurrencyFormatter.format(settlement.amount)
+        let fromPersonId = settlement.fromPerson?.id
+        let toPersonId = settlement.toPerson?.id
+
+        if CurrentUser.isCurrentUser(fromPersonId) {
+            if toPersonId == person.id {
+                return "You paid \(person.firstName) \(formatted)"
+            } else {
+                return "You paid \(settlement.toPerson?.firstName ?? "someone") \(formatted)"
+            }
+        } else if CurrentUser.isCurrentUser(toPersonId) {
+            if fromPersonId == person.id {
+                return "\(person.firstName) paid you \(formatted)"
+            } else {
+                return "\(settlement.fromPerson?.firstName ?? "Someone") paid you \(formatted)"
+            }
+        } else {
+            let fromName = settlement.fromPerson?.firstName ?? "Someone"
+            let toName = settlement.toPerson?.firstName ?? "someone"
+            return "\(fromName) paid \(toName) \(formatted)"
+        }
+    }
+
+    private func reminderMessageText(_ reminder: Reminder) -> String {
+        let formatted = CurrencyFormatter.format(reminder.amount)
+        return "Reminder sent for \(formatted)"
+    }
+
+    // MARK: - Scroll Helpers
 
     private func scrollToBottom(_ proxy: ScrollViewProxy) {
         if let lastGroup = groupedItems.last,
@@ -458,6 +517,8 @@ struct PersonConversationView: View {
             proxy.scrollTo(lastItem.id, anchor: .bottom)
         }
     }
+
+    // MARK: - Message Actions
 
     private func sendMessage() {
         let trimmedText = messageText.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -489,30 +550,6 @@ struct PersonConversationView: View {
             AppLogger.coreData.error("Failed to save message: \(error.localizedDescription)")
         }
     }
-
-    private func deleteTransaction(_ transaction: FinancialTransaction) {
-        // Delete associated splits first
-        if let splits = transaction.splits as? Set<TransactionSplit> {
-            splits.forEach { viewContext.delete($0) }
-        }
-        // Delete associated payers
-        if let payers = transaction.payers as? Set<TransactionPayer> {
-            payers.forEach { viewContext.delete($0) }
-        }
-        viewContext.delete(transaction)
-        do {
-            try viewContext.save()
-            HapticManager.destructiveAction()
-        } catch {
-            viewContext.rollback()
-            HapticManager.errorAlert()
-            errorMessage = "Failed to delete transaction."
-            showingError = true
-            AppLogger.coreData.error("Failed to delete transaction: \(error.localizedDescription)")
-        }
-    }
-
-    // MARK: - Message Delete with Undo
 
     private func deleteMessageWithUndo(_ message: ChatMessage) {
         // Cache data for potential undo
@@ -561,7 +598,29 @@ struct PersonConversationView: View {
         deletedMessageIsEdited = false
     }
 
-    // MARK: - Transaction Undo
+    // MARK: - Transaction Actions
+
+    private func deleteTransaction(_ transaction: FinancialTransaction) {
+        // Delete associated splits first
+        if let splits = transaction.splits as? Set<TransactionSplit> {
+            splits.forEach { viewContext.delete($0) }
+        }
+        // Delete associated payers
+        if let payers = transaction.payers as? Set<TransactionPayer> {
+            payers.forEach { viewContext.delete($0) }
+        }
+        viewContext.delete(transaction)
+        do {
+            try viewContext.save()
+            HapticManager.destructiveAction()
+        } catch {
+            viewContext.rollback()
+            HapticManager.errorAlert()
+            errorMessage = "Failed to delete transaction."
+            showingError = true
+            AppLogger.coreData.error("Failed to delete transaction: \(error.localizedDescription)")
+        }
+    }
 
     private func undoTransactionWithToast(_ transaction: FinancialTransaction) {
         // Cache transaction data before deletion

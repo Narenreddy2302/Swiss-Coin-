@@ -49,6 +49,12 @@ struct GroupConversationView: View {
     @State private var cachedTxnSplitAmounts: [Double] = []
     @State private var cachedTxnSplitRawAmounts: [Double] = []
 
+    // MARK: - Timeline Constants
+
+    private let timelineCircleSize: CGFloat = AvatarSize.xs
+    private let timelineLeadingPad: CGFloat = Spacing.lg
+    private let timelineToContent: CGFloat = Spacing.md
+
     // MARK: - Computed Properties
 
     private var balance: Double {
@@ -90,19 +96,26 @@ struct GroupConversationView: View {
             // Messages Area
             ScrollViewReader { proxy in
                 ScrollView {
-                    LazyVStack(spacing: Spacing.sm) {
+                    LazyVStack(spacing: 0) {
                         if groupedItems.isEmpty {
                             emptyStateView
                         } else {
-                            ForEach(groupedItems) { dateGroup in
-                                DateHeaderView(dateString: dateGroup.dateDisplayString)
-                                    .padding(.top, Spacing.lg)
+                            ForEach(Array(groupedItems.enumerated()), id: \.element.id) { groupIndex, group in
+                                DateHeaderView(dateString: group.dateDisplayString)
+                                    .padding(.top, groupIndex == 0 ? Spacing.md : Spacing.lg)
                                     .padding(.bottom, Spacing.sm)
 
-                                ForEach(dateGroup.items) { item in
-                                    conversationItemView(for: item)
-                                        .id(item.id)
-                                        .transition(.opacity.combined(with: .scale(scale: 0.95)))
+                                ForEach(Array(group.items.enumerated()), id: \.element.id) { itemIndex, item in
+                                    let isLastInGroup = itemIndex == group.items.count - 1
+                                    let isLastGroup = groupIndex == groupedItems.count - 1
+                                    let isLastItem = isLastInGroup && isLastGroup
+
+                                    timelineRow(
+                                        item: item,
+                                        isLastItem: isLastItem
+                                    )
+                                    .id(item.id)
+                                    .transition(.opacity.combined(with: .scale(scale: 0.95)))
                                 }
                             }
                         }
@@ -110,7 +123,12 @@ struct GroupConversationView: View {
                     .padding(.vertical, Spacing.lg)
                 }
                 .scrollDismissesKeyboard(.interactively)
-                .background(AppColors.backgroundSecondary)
+                .background(
+                    ZStack {
+                        AppColors.backgroundSecondary
+                        DotGridPattern(dotSpacing: 16, dotRadius: 0.5, color: AppColors.receiptDot.opacity(0.5))
+                    }
+                )
                 .onTapGesture {
                     hideKeyboard()
                 }
@@ -316,15 +334,94 @@ struct GroupConversationView: View {
         .padding(.vertical, 60)
     }
 
+    // MARK: - Timeline Row
+
+    @ViewBuilder
+    private func timelineRow(item: GroupConversationItem, isLastItem: Bool) -> some View {
+        let isMessage = isMessageItem(item)
+        let avatar = itemAvatarInfo(for: item)
+
+        HStack(alignment: .top, spacing: 0) {
+            timelineConnector(
+                isLastItem: isLastItem,
+                isMessage: isMessage,
+                avatarInitials: avatar.initials,
+                avatarColor: avatar.color
+            )
+
+            conversationItemView(for: item)
+                .padding(.trailing, Spacing.lg)
+                .padding(.bottom, isLastItem ? 0 : Spacing.lg)
+        }
+    }
+
+    private func isMessageItem(_ item: GroupConversationItem) -> Bool {
+        if case .message = item { return true }
+        return false
+    }
+
+    // MARK: - Item Avatar Info
+
+    private func itemAvatarInfo(for item: GroupConversationItem) -> (initials: String, color: String) {
+        switch item {
+        case .transaction(let t):
+            let isUserPayer = t.effectivePayers.contains { CurrentUser.isCurrentUser($0.personId) }
+            if isUserPayer {
+                return (CurrentUser.initials, CurrentUser.defaultColorHex)
+            }
+            return (t.payer?.initials ?? "?", t.payer?.colorHex ?? CurrentUser.defaultColorHex)
+        case .settlement(let s):
+            if CurrentUser.isCurrentUser(s.fromPerson?.id) {
+                return (CurrentUser.initials, CurrentUser.defaultColorHex)
+            }
+            return (s.fromPerson?.initials ?? "?", s.fromPerson?.colorHex ?? CurrentUser.defaultColorHex)
+        case .reminder:
+            return (CurrentUser.initials, CurrentUser.defaultColorHex)
+        case .message(let m):
+            if m.isFromUser {
+                return (CurrentUser.initials, CurrentUser.defaultColorHex)
+            }
+            return ("?", CurrentUser.defaultColorHex)
+        }
+    }
+
+    // MARK: - Timeline Connector
+
+    @ViewBuilder
+    private func timelineConnector(isLastItem: Bool, isMessage: Bool, avatarInitials: String, avatarColor: String) -> some View {
+        VStack(spacing: 0) {
+            Spacer()
+                .frame(height: isMessage ? Spacing.sm : Spacing.lg)
+
+            ConversationAvatarView(
+                initials: avatarInitials,
+                colorHex: avatarColor,
+                size: timelineCircleSize
+            )
+
+            if !isLastItem {
+                TimelineDashedLine()
+                    .frame(width: 1)
+                    .frame(maxHeight: .infinity)
+            } else {
+                Spacer(minLength: 0)
+            }
+        }
+        .frame(width: timelineCircleSize)
+        .padding(.leading, timelineLeadingPad)
+        .padding(.trailing, timelineToContent)
+    }
+
     // MARK: - Conversation Item View
 
     @ViewBuilder
     private func conversationItemView(for item: GroupConversationItem) -> some View {
         switch item {
         case .transaction(let transaction):
-            GroupTransactionCardView(
+            FeedTransactionContent(
                 transaction: transaction,
                 group: group,
+                cardStyle: true,
                 onEdit: {
                     transactionToEdit = transaction
                 },
@@ -339,25 +436,119 @@ struct GroupConversationView: View {
                     showingDeleteTransaction = true
                 }
             )
-            .padding(.vertical, Spacing.xxs)
 
         case .settlement(let settlement):
-            GroupSettlementMessageView(settlement: settlement)
-                .padding(.vertical, Spacing.xxs)
+            feedContentHeader(
+                name: "Settlement",
+                timestamp: settlement.date
+            ) {
+                FeedSystemContent(
+                    icon: "checkmark.circle.fill",
+                    iconColor: AppColors.positive,
+                    messageText: settlementMessageText(settlement),
+                    noteText: settlement.note
+                )
+            }
+            .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: CornerRadius.card))
+            .contextMenu {
+                Button {
+                    UIPasteboard.general.string = settlementMessageText(settlement)
+                    HapticManager.copyAction()
+                } label: {
+                    Label("Copy", systemImage: "doc.on.doc")
+                }
+                Button {
+                    UIPasteboard.general.string = CurrencyFormatter.format(settlement.amount)
+                    HapticManager.copyAction()
+                } label: {
+                    Label("Copy Amount", systemImage: "dollarsign.circle")
+                }
+            }
 
         case .reminder(let reminder):
-            GroupReminderMessageView(reminder: reminder)
-                .padding(.vertical, Spacing.xxs)
+            feedContentHeader(
+                name: "Reminder",
+                timestamp: reminder.createdDate
+            ) {
+                FeedSystemContent(
+                    icon: "bell.fill",
+                    iconColor: AppColors.warning,
+                    messageText: reminderMessageText(reminder),
+                    noteText: reminder.message.flatMap { $0.isEmpty ? nil : "\"\($0)\"" }
+                )
+            }
+            .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: CornerRadius.card))
+            .contextMenu {
+                Button {
+                    UIPasteboard.general.string = CurrencyFormatter.format(reminder.amount)
+                    HapticManager.copyAction()
+                } label: {
+                    Label("Copy Amount", systemImage: "dollarsign.circle")
+                }
+            }
 
         case .message(let chatMessage):
-            MessageBubbleView(
-                message: chatMessage,
-                onDelete: { msg in
-                    deleteMessageWithUndo(msg)
-                }
-            )
-            .padding(.vertical, Spacing.xxs)
+            feedContentHeader(
+                name: chatMessage.isFromUser ? "You" : "Member",
+                timestamp: chatMessage.timestamp
+            ) {
+                FeedMessageContent(
+                    message: chatMessage,
+                    onDelete: { msg in
+                        deleteMessageWithUndo(msg)
+                    }
+                )
+            }
         }
+    }
+
+    // MARK: - Feed Content Helpers
+
+    @ViewBuilder
+    private func feedContentHeader<Content: View>(
+        name: String,
+        timestamp: Date?,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        VStack(alignment: .leading, spacing: Spacing.xs) {
+            HStack(spacing: Spacing.xs) {
+                Text(name)
+                    .font(AppTypography.labelLarge())
+                    .foregroundColor(AppColors.textPrimary)
+
+                if let timestamp {
+                    Text("\u{00B7}")
+                        .font(AppTypography.bodySmall())
+                        .foregroundColor(AppColors.textTertiary)
+
+                    Text(timestamp.relativeShort)
+                        .font(AppTypography.bodySmall())
+                        .foregroundColor(AppColors.textTertiary)
+                }
+
+                Spacer()
+            }
+
+            content()
+        }
+    }
+
+    private func settlementMessageText(_ settlement: Settlement) -> String {
+        let formatted = CurrencyFormatter.format(settlement.amount)
+        if CurrentUser.isCurrentUser(settlement.fromPerson?.id) {
+            return "You paid \(settlement.toPerson?.firstName ?? "someone") \(formatted)"
+        } else if CurrentUser.isCurrentUser(settlement.toPerson?.id) {
+            return "\(settlement.fromPerson?.firstName ?? "Someone") paid you \(formatted)"
+        } else {
+            let fromName = settlement.fromPerson?.firstName ?? "Someone"
+            let toName = settlement.toPerson?.firstName ?? "someone"
+            return "\(fromName) paid \(toName) \(formatted)"
+        }
+    }
+
+    private func reminderMessageText(_ reminder: Reminder) -> String {
+        let personName = reminder.toPerson?.firstName ?? "Someone"
+        return "Reminder sent to \(personName) for \(CurrencyFormatter.format(reminder.amount))"
     }
 
     // MARK: - Helpers
