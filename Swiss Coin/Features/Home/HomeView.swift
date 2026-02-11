@@ -175,14 +175,6 @@ struct HomeView: View {
                 }
                 .allowsHitTesting(selectedTransaction == nil)
 
-                // Full-screen detail overlay
-                if let selected = selectedTransaction {
-                    TransactionExpandedView(
-                        transaction: selected,
-                        selectedTransaction: $selectedTransaction
-                    )
-                    .zIndex(2)
-                }
             }
             .background(AppColors.backgroundSecondary)
             .refreshable {
@@ -203,6 +195,15 @@ struct HomeView: View {
             .sheet(isPresented: $showingAddTransaction) {
                 AddTransactionView()
                     .environment(\.managedObjectContext, viewContext)
+            }
+            .sheet(isPresented: Binding(
+                get: { selectedTransaction != nil },
+                set: { if !$0 { selectedTransaction = nil } }
+            )) {
+                if let transaction = selectedTransaction {
+                    TransactionExpandedView(transaction: transaction)
+                        .environment(\.managedObjectContext, viewContext)
+                }
             }
             .onAppear {
                 refreshIfStale()

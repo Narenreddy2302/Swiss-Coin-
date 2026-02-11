@@ -9,7 +9,8 @@ import SwiftUI
 
 struct ReminderMessageView: View {
     let reminder: Reminder
-    let person: Person
+    var onCopy: (() -> Void)? = nil
+    var onCopyAmount: (() -> Void)? = nil
 
     private var messageText: String {
         let formatted = CurrencyFormatter.format(reminder.amount)
@@ -25,17 +26,16 @@ struct ReminderMessageView: View {
             date: reminder.createdDate,
             backgroundColor: AppColors.warningMuted
         )
+        .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: CornerRadius.card))
         .contextMenu {
             Button {
-                UIPasteboard.general.string = messageText
-                HapticManager.copyAction()
+                onCopy?()
             } label: {
                 Label("Copy", systemImage: "doc.on.doc")
             }
 
             Button {
-                UIPasteboard.general.string = CurrencyFormatter.format(reminder.amount)
-                HapticManager.copyAction()
+                onCopyAmount?()
             } label: {
                 Label("Copy Amount", systemImage: "dollarsign.circle")
             }

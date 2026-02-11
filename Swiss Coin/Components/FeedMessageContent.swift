@@ -1,0 +1,170 @@
+//
+//  FeedMessageContent.swift
+//  Swiss Coin
+//
+//  Message content for feed rows with inline editing and context menu.
+//
+
+import SwiftUI
+import CoreData
+
+struct FeedMessageContent: View {
+    @ObservedObject var message: ChatMessage
+    var onDelete: ((ChatMessage) -> Void)? = nil
+
+    @Environment(\.managedObjectContext) private var viewContext
+    @State private var isEditing = false
+    @State private var editText = ""
+
+    // MARK: - Computed Properties
+
+    private var isFromUser: Bool {
+        message.isFromUser
+    }
+
+    /// Edit window: 15 minutes from message creation
+    private var canEdit: Bool {
+        guard message.isFromUser else { return false }
+        guard let timestamp = message.timestamp else { return false }
+        return Date().timeIntervalSince(timestamp) < 15 * 60
+    }
+
+    private var canSaveEdit: Bool {
+        let trimmed = editText.trimmingCharacters(in: .whitespacesAndNewlines)
+        return !trimmed.isEmpty && trimmed != message.content
+    }
+
+    // MARK: - Body
+
+    var body: some View {
+        if isEditing {
+            editingView
+        } else {
+            normalView
+        }
+    }
+
+    // MARK: - Normal View
+
+    @ViewBuilder
+    private var normalView: some View {
+        VStack(alignment: .leading, spacing: Spacing.xxs) {
+            Text(message.content ?? "")
+                .font(AppTypography.bodyDefault())
+                .foregroundColor(AppColors.textPrimary)
+
+            if message.isEdited {
+                Text("Edited")
+                    .labelSmallStyle()
+                    .foregroundColor(AppColors.textTertiary)
+            }
+        }
+        .padding(Spacing.md)
+        .background(
+            RoundedRectangle(cornerRadius: CornerRadius.card)
+                .fill(AppColors.cardBackground)
+                .shadow(color: Color.black.opacity(0.04), radius: 4, x: 0, y: 2)
+                .shadow(color: Color.black.opacity(0.02), radius: 1, x: 0, y: 1)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: CornerRadius.card)
+                .stroke(AppColors.border.opacity(0.3), lineWidth: 0.5)
+        )
+        .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: CornerRadius.card))
+        .contextMenu {
+            Button {
+                UIPasteboard.general.string = message.content ?? ""
+                HapticManager.copyAction()
+            } label: {
+                Label("Copy", systemImage: "doc.on.doc")
+            }
+
+            if canEdit {
+                Button {
+                    HapticManager.selectionChanged()
+                    editText = message.content ?? ""
+                    withAnimation(AppAnimation.standard) {
+                        isEditing = true
+                    }
+                } label: {
+                    Label("Edit", systemImage: "pencil")
+                }
+            }
+
+            if isFromUser, onDelete != nil {
+                Divider()
+                Button(role: .destructive) {
+                    HapticManager.destructiveAction()
+                    onDelete?(message)
+                } label: {
+                    Label("Delete", systemImage: "trash")
+                }
+            }
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Message: \(message.content ?? "")\(message.isEdited ? ", edited" : "")")
+    }
+
+    // MARK: - Editing View
+
+    @ViewBuilder
+    private var editingView: some View {
+        VStack(alignment: .trailing, spacing: Spacing.sm) {
+            TextField("Edit message", text: $editText, axis: .vertical)
+                .lineLimit(1...8)
+                .limitTextLength(to: ValidationLimits.maxMessageLength, text: $editText)
+                .font(AppTypography.bodyDefault())
+                .padding(Spacing.sm)
+                .background(
+                    RoundedRectangle(cornerRadius: CornerRadius.medium)
+                        .fill(AppColors.backgroundTertiary)
+                )
+
+            HStack(spacing: Spacing.sm) {
+                Button {
+                    HapticManager.navigationTap()
+                    withAnimation(AppAnimation.standard) {
+                        isEditing = false
+                    }
+                } label: {
+                    Text("Cancel")
+                        .font(AppTypography.buttonSmall())
+                        .foregroundColor(AppColors.textSecondary)
+                }
+
+                Spacer()
+
+                Button {
+                    saveEdit()
+                } label: {
+                    Text("Save")
+                        .font(AppTypography.buttonSmall())
+                        .foregroundColor(canSaveEdit ? AppColors.accent : AppColors.disabled)
+                }
+                .disabled(!canSaveEdit)
+            }
+            .font(AppTypography.labelDefault())
+        }
+    }
+
+    // MARK: - Actions
+
+    private func saveEdit() {
+        let trimmed = editText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, trimmed != message.content else { return }
+
+        message.content = trimmed
+        message.isEdited = true
+
+        do {
+            try viewContext.save()
+            HapticManager.messageSent()
+            withAnimation(AppAnimation.standard) {
+                isEditing = false
+            }
+        } catch {
+            viewContext.rollback()
+            HapticManager.errorAlert()
+        }
+    }
+}

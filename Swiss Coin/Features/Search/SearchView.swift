@@ -160,17 +160,18 @@ struct SearchView: View {
                     .allowsHitTesting(selectedTransaction == nil)
                 }
 
-                // Full-screen detail overlay
-                if let selected = selectedTransaction {
-                    TransactionExpandedView(
-                        transaction: selected,
-                        selectedTransaction: $selectedTransaction
-                    )
-                    .zIndex(2)
-                }
             }
             .navigationTitle("Transactions")
             .navigationBarTitleDisplayMode(.large)
+            .sheet(isPresented: Binding(
+                get: { selectedTransaction != nil },
+                set: { if !$0 { selectedTransaction = nil } }
+            )) {
+                if let transaction = selectedTransaction {
+                    TransactionExpandedView(transaction: transaction)
+                        .environment(\.managedObjectContext, viewContext)
+                }
+            }
         }
         .searchable(
             text: $searchText,

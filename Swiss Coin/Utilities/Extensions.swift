@@ -92,4 +92,24 @@ extension Date {
             }
         }
     }
+
+    /// Short relative time string: "Just now", "2m", "1h", "Yesterday", or short date
+    var relativeShort: String {
+        let now = Date()
+        let interval = now.timeIntervalSince(self)
+
+        if interval < 60 {
+            return "Just now"
+        } else if interval < 3600 {
+            let minutes = Int(interval / 60)
+            return "\(minutes)m"
+        } else if interval < 86400 {
+            let hours = Int(interval / 3600)
+            return "\(hours)h"
+        } else if Calendar.current.isDateInYesterday(self) {
+            return "Yesterday"
+        } else {
+            return DateFormatter.shortDate.string(from: self)
+        }
+    }
 }
