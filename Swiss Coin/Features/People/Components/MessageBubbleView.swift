@@ -12,6 +12,7 @@ import CoreData
 struct MessageBubbleView: View {
     @ObservedObject var message: ChatMessage
     var onDelete: ((ChatMessage) -> Void)? = nil
+    var onFocusInput: (() -> Void)? = nil
     var useTimelineLayout: Bool = false
     var senderInitials: String? = nil
     var senderColor: String? = nil
@@ -177,6 +178,16 @@ struct MessageBubbleView: View {
             HapticManager.copyAction()
         } label: {
             Label("Copy", systemImage: "doc.on.doc")
+        }
+
+        // Reply (focuses input)
+        if onFocusInput != nil {
+            Button {
+                HapticManager.selectionChanged()
+                onFocusInput?()
+            } label: {
+                Label("Reply", systemImage: "arrow.turn.up.left")
+            }
         }
 
         // Edit — own messages within 15-minute window

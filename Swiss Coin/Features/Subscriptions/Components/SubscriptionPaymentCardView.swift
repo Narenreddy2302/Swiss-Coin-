@@ -26,11 +26,11 @@ struct SubscriptionPaymentCardView: View {
 
                 VStack(alignment: .leading, spacing: Spacing.xxs) {
                     Text(isUserPayer ? "You paid" : "\(payment.payer?.firstName ?? "Someone") paid")
-                        .font(AppTypography.bodyBold())
+                        .font(AppTypography.headingMedium())
                         .foregroundColor(AppColors.textPrimary)
 
                     Text(subscription.name ?? "Subscription")
-                        .font(AppTypography.footnote())
+                        .font(AppTypography.bodySmall())
                         .foregroundColor(AppColors.textSecondary)
                 }
 
@@ -38,11 +38,11 @@ struct SubscriptionPaymentCardView: View {
 
                 VStack(alignment: .trailing, spacing: Spacing.xxs) {
                     Text(CurrencyFormatter.format(payment.amount))
-                        .font(AppTypography.amount())
+                        .font(AppTypography.financialDefault())
                         .foregroundColor(AppColors.textPrimary)
 
                     Text("\(subscription.subscriberCount) way split")
-                        .font(AppTypography.footnote())
+                        .font(AppTypography.bodySmall())
                         .foregroundColor(AppColors.textSecondary)
                 }
             }
@@ -53,11 +53,11 @@ struct SubscriptionPaymentCardView: View {
             if let note = payment.note, !note.isEmpty {
                 HStack(spacing: Spacing.xs) {
                     Image(systemName: "text.quote")
-                        .font(.system(size: 12))
+                        .font(.system(size: IconSize.xs))
                         .foregroundColor(AppColors.textSecondary)
 
                     Text(note)
-                        .font(AppTypography.footnote())
+                        .font(AppTypography.bodySmall())
                         .foregroundColor(AppColors.textSecondary)
                         .italic()
                         .lineLimit(2)
@@ -69,11 +69,16 @@ struct SubscriptionPaymentCardView: View {
             }
         }
         .background(
-            RoundedRectangle(cornerRadius: CornerRadius.md)
+            RoundedRectangle(cornerRadius: CornerRadius.card)
                 .fill(AppColors.cardBackground)
+                .shadow(color: Color.black.opacity(0.04), radius: 4, x: 0, y: 2)
+                .shadow(color: Color.black.opacity(0.02), radius: 1, x: 0, y: 1)
         )
-        .padding(.horizontal, Spacing.lg)
-        .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: CornerRadius.md))
+        .overlay(
+            RoundedRectangle(cornerRadius: CornerRadius.card)
+                .stroke(AppColors.border.opacity(0.3), lineWidth: 0.5)
+        )
+        .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: CornerRadius.card))
         .contextMenu {
             Button {
                 UIPasteboard.general.string = CurrencyFormatter.format(payment.amount)

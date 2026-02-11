@@ -251,7 +251,7 @@ struct GroupConversationView: View {
                 dismiss()
             } label: {
                 Image(systemName: "chevron.left")
-                    .font(AppTypography.bodyBold())
+                    .font(AppTypography.headingMedium())
                     .foregroundColor(AppColors.accent)
             }
             .accessibilityLabel("Back")
@@ -281,7 +281,7 @@ struct GroupConversationView: View {
 
             VStack(alignment: .leading, spacing: 1) {
                 Text(group.name ?? "Unknown Group")
-                    .font(AppTypography.bodyBold())
+                    .font(AppTypography.headingMedium())
                     .foregroundColor(AppColors.textPrimary)
                     .lineLimit(1)
 
@@ -300,7 +300,7 @@ struct GroupConversationView: View {
                 .foregroundColor(AppColors.textSecondary)
 
             Text(balanceAmount)
-                .font(AppTypography.amountSmall())
+                .font(AppTypography.financialSmall())
                 .foregroundColor(balanceColor)
         }
         .accessibilityElement(children: .combine)
@@ -319,14 +319,14 @@ struct GroupConversationView: View {
                 .accessibilityHidden(true)
 
             Text("No activity yet")
-                .font(AppTypography.headline())
+                .font(AppTypography.headingMedium())
                 .foregroundColor(AppColors.textSecondary)
 
             Text("Start a conversation with \(group.name ?? "the group") or add a group expense")
-                .font(AppTypography.subheadline())
+                .font(AppTypography.bodyDefault())
                 .foregroundColor(AppColors.textSecondary)
                 .multilineTextAlignment(.center)
-                .padding(.horizontal, Spacing.xxl)
+                .padding(.horizontal, Spacing.xxxl)
 
             Spacer()
         }

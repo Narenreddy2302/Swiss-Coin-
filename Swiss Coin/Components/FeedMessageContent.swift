@@ -11,6 +11,7 @@ import CoreData
 struct FeedMessageContent: View {
     @ObservedObject var message: ChatMessage
     var onDelete: ((ChatMessage) -> Void)? = nil
+    var onFocusInput: (() -> Void)? = nil
 
     @Environment(\.managedObjectContext) private var viewContext
     @State private var isEditing = false
@@ -79,6 +80,15 @@ struct FeedMessageContent: View {
                 Label("Copy", systemImage: "doc.on.doc")
             }
 
+            if onFocusInput != nil {
+                Button {
+                    HapticManager.selectionChanged()
+                    onFocusInput?()
+                } label: {
+                    Label("Reply", systemImage: "arrow.turn.up.left")
+                }
+            }
+
             if canEdit {
                 Button {
                     HapticManager.selectionChanged()
@@ -116,7 +126,7 @@ struct FeedMessageContent: View {
                 .font(AppTypography.bodyDefault())
                 .padding(Spacing.sm)
                 .background(
-                    RoundedRectangle(cornerRadius: CornerRadius.medium)
+                    RoundedRectangle(cornerRadius: CornerRadius.lg)
                         .fill(AppColors.backgroundTertiary)
                 )
 
@@ -130,20 +140,29 @@ struct FeedMessageContent: View {
                     Text("Cancel")
                         .font(AppTypography.buttonSmall())
                         .foregroundColor(AppColors.textSecondary)
+                        .padding(.horizontal, Spacing.md)
+                        .padding(.vertical, Spacing.xs)
+                        .background(
+                            Capsule()
+                                .fill(AppColors.backgroundTertiary)
+                        )
                 }
-
-                Spacer()
 
                 Button {
                     saveEdit()
                 } label: {
                     Text("Save")
                         .font(AppTypography.buttonSmall())
-                        .foregroundColor(canSaveEdit ? AppColors.accent : AppColors.disabled)
+                        .foregroundColor(AppColors.buttonForeground)
+                        .padding(.horizontal, Spacing.md)
+                        .padding(.vertical, Spacing.xs)
+                        .background(
+                            Capsule()
+                                .fill(canSaveEdit ? AppColors.buttonBackground : AppColors.disabled)
+                        )
                 }
                 .disabled(!canSaveEdit)
             }
-            .font(AppTypography.labelDefault())
         }
     }
 

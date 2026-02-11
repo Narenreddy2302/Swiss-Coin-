@@ -2,8 +2,8 @@
 //  SharedSubscriptionConversationView.swift
 //  Swiss Coin
 //
-//  iMessage-style conversation view for shared subscriptions.
-//  Matches GroupConversationView pattern exactly.
+//  Professional timeline-style conversation view for shared subscriptions.
+//  Matches PersonConversationView and GroupConversationView layout patterns.
 //
 
 import CoreData
@@ -23,6 +23,20 @@ struct SharedSubscriptionConversationView: View {
     @State private var showingError = false
     @State private var errorMessage = ""
 
+    // Undo toast state (messages)
+    @State private var showUndoToast = false
+    @State private var deletedMessageContent: String?
+    @State private var deletedMessageTimestamp: Date?
+    @State private var deletedMessageIsEdited: Bool = false
+
+    // MARK: - Timeline Constants
+
+    private let timelineCircleSize: CGFloat = AvatarSize.xs
+    private let timelineLeadingPad: CGFloat = Spacing.lg
+    private let timelineToContent: CGFloat = Spacing.md
+
+    // MARK: - Computed Properties
+
     private var balance: Double {
         subscription.calculateUserBalance()
     }
@@ -31,16 +45,18 @@ struct SharedSubscriptionConversationView: View {
         subscription.getGroupedConversationItems()
     }
 
-    // Balance display properties
+    private var totalItemCount: Int {
+        groupedItems.reduce(0) { $0 + $1.items.count }
+    }
+
     private var balanceLabel: String {
-        if balance > 0.01 { return "You're owed" }
-        else if balance < -0.01 { return "You owe" }
-        else { return "Balance" }
+        if balance > 0.01 { return "you're owed" }
+        else if balance < -0.01 { return "you owe" }
+        else { return "settled" }
     }
 
     private var balanceAmount: String {
-        if abs(balance) < 0.01 { return "Settled" }
-        return CurrencyFormatter.formatAbsolute(balance)
+        CurrencyFormatter.formatAbsolute(balance)
     }
 
     private var balanceColor: Color {
@@ -53,40 +69,61 @@ struct SharedSubscriptionConversationView: View {
         subscription.memberCount
     }
 
+    // MARK: - Body
+
     var body: some View {
         VStack(spacing: 0) {
             // Messages Area
             ScrollViewReader { proxy in
                 ScrollView {
-                    LazyVStack(spacing: Spacing.sm) {
+                    LazyVStack(spacing: 0) {
                         // Subscription Info Header Card
                         SubscriptionInfoCard(subscription: subscription)
                             .padding(.horizontal, Spacing.lg)
                             .padding(.top, Spacing.lg)
+                            .padding(.bottom, Spacing.sm)
 
                         // Member Balances Card
                         MemberBalancesCard(subscription: subscription)
                             .padding(.horizontal, Spacing.lg)
+                            .padding(.bottom, Spacing.sm)
 
                         if groupedItems.isEmpty {
                             emptyStateView
                         } else {
-                            ForEach(groupedItems) { group in
+                            ForEach(Array(groupedItems.enumerated()), id: \.element.id) { groupIndex, group in
                                 DateHeaderView(dateString: group.dateDisplayString)
-                                    .padding(.top, Spacing.lg)
+                                    .padding(.top, groupIndex == 0 ? Spacing.md : Spacing.lg)
                                     .padding(.bottom, Spacing.sm)
 
-                                ForEach(group.items) { item in
-                                    conversationItemView(for: item)
-                                        .id(item.id)
+                                ForEach(Array(group.items.enumerated()), id: \.element.id) { itemIndex, item in
+                                    let isLastInGroup = itemIndex == group.items.count - 1
+                                    let isLastGroup = groupIndex == groupedItems.count - 1
+                                    let isLastItem = isLastInGroup && isLastGroup
+
+                                    timelineRow(
+                                        item: item,
+                                        isLastItem: isLastItem
+                                    )
+                                    .id(item.id)
+                                    .transition(.opacity.combined(with: .scale(scale: 0.95)))
                                 }
                             }
                         }
                     }
-                    .padding(.vertical, Spacing.lg)
+                    .padding(.vertical, Spacing.md)
                 }
                 .scrollDismissesKeyboard(.interactively)
-                .background(AppColors.backgroundSecondary)
+                .background(
+                    ZStack {
+                        AppColors.backgroundSecondary
+                        DotGridPattern(
+                            dotSpacing: 16,
+                            dotRadius: 0.5,
+                            color: AppColors.receiptDot.opacity(0.5)
+                        )
+                    }
+                )
                 .onTapGesture {
                     hideKeyboard()
                 }
@@ -94,7 +131,7 @@ struct SharedSubscriptionConversationView: View {
                     HapticManager.prepare()
                     scrollToBottom(proxy)
                 }
-                .onChange(of: groupedItems.count) { _, _ in
+                .onChange(of: totalItemCount) { _, _ in
                     withAnimation(AppAnimation.standard) {
                         scrollToBottom(proxy)
                     }
@@ -167,6 +204,88 @@ struct SharedSubscriptionConversationView: View {
         } message: {
             Text(errorMessage)
         }
+        .undoToast(
+            isShowing: $showUndoToast,
+            message: "Message deleted",
+            onUndo: undoDeleteMessage
+        )
+    }
+
+    // MARK: - Timeline Row
+
+    @ViewBuilder
+    private func timelineRow(item: SubscriptionConversationItem, isLastItem: Bool) -> some View {
+        let isMessage = isMessageItem(item)
+        let avatar = itemAvatarInfo(for: item)
+
+        HStack(alignment: .top, spacing: 0) {
+            timelineConnector(
+                isLastItem: isLastItem,
+                isMessage: isMessage,
+                avatarInitials: avatar.initials,
+                avatarColor: avatar.color
+            )
+
+            conversationItemView(for: item)
+                .padding(.trailing, Spacing.lg)
+                .padding(.bottom, isLastItem ? 0 : Spacing.lg)
+        }
+    }
+
+    private func isMessageItem(_ item: SubscriptionConversationItem) -> Bool {
+        if case .message = item { return true }
+        return false
+    }
+
+    // MARK: - Item Avatar Info
+
+    private func itemAvatarInfo(for item: SubscriptionConversationItem) -> (initials: String, color: String) {
+        switch item {
+        case .payment(let payment):
+            if CurrentUser.isCurrentUser(payment.payer?.id) {
+                return (CurrentUser.initials, CurrentUser.defaultColorHex)
+            }
+            return (payment.payer?.initials ?? "?", payment.payer?.colorHex ?? CurrentUser.defaultColorHex)
+        case .settlement(let settlement):
+            if CurrentUser.isCurrentUser(settlement.fromPerson?.id) {
+                return (CurrentUser.initials, CurrentUser.defaultColorHex)
+            }
+            return (settlement.fromPerson?.initials ?? "?", settlement.fromPerson?.colorHex ?? CurrentUser.defaultColorHex)
+        case .reminder:
+            return (CurrentUser.initials, CurrentUser.defaultColorHex)
+        case .message(let m):
+            if m.isFromUser {
+                return (CurrentUser.initials, CurrentUser.defaultColorHex)
+            }
+            return ("?", CurrentUser.defaultColorHex)
+        }
+    }
+
+    // MARK: - Timeline Connector
+
+    @ViewBuilder
+    private func timelineConnector(isLastItem: Bool, isMessage: Bool, avatarInitials: String, avatarColor: String) -> some View {
+        VStack(spacing: 0) {
+            Spacer()
+                .frame(height: isMessage ? Spacing.sm : Spacing.lg)
+
+            ConversationAvatarView(
+                initials: avatarInitials,
+                colorHex: avatarColor,
+                size: timelineCircleSize
+            )
+
+            if !isLastItem {
+                TimelineDashedLine()
+                    .frame(width: 1)
+                    .frame(maxHeight: .infinity)
+            } else {
+                Spacer(minLength: 0)
+            }
+        }
+        .frame(width: timelineCircleSize)
+        .padding(.leading, timelineLeadingPad)
+        .padding(.trailing, timelineToContent)
     }
 
     // MARK: - Toolbar Content
@@ -174,18 +293,16 @@ struct SharedSubscriptionConversationView: View {
     @ViewBuilder
     private var toolbarLeadingContent: some View {
         HStack(spacing: Spacing.sm) {
-            // Custom back button
             Button {
                 HapticManager.navigationTap()
                 dismiss()
             } label: {
                 Image(systemName: "chevron.left")
-                    .font(AppTypography.bodyBold())
+                    .font(AppTypography.headingMedium())
                     .foregroundColor(AppColors.accent)
             }
             .accessibilityLabel("Back")
 
-            // Subscription Icon + Name (tappable for details)
             Button {
                 HapticManager.navigationTap()
                 showingSubscriptionDetail = true
@@ -200,7 +317,7 @@ struct SharedSubscriptionConversationView: View {
     @ViewBuilder
     private var subscriptionHeaderContent: some View {
         HStack(spacing: Spacing.sm) {
-            RoundedRectangle(cornerRadius: CornerRadius.medium)
+            RoundedRectangle(cornerRadius: CornerRadius.sm)
                 .fill(Color(hex: subscription.colorHex ?? "#007AFF"))
                 .frame(width: AvatarSize.sm, height: AvatarSize.sm)
                 .overlay(
@@ -211,7 +328,7 @@ struct SharedSubscriptionConversationView: View {
 
             VStack(alignment: .leading, spacing: 1) {
                 Text(subscription.name ?? "Subscription")
-                    .font(AppTypography.bodyBold())
+                    .font(AppTypography.headingMedium())
                     .foregroundColor(AppColors.textPrimary)
                     .lineLimit(1)
 
@@ -224,13 +341,13 @@ struct SharedSubscriptionConversationView: View {
 
     @ViewBuilder
     private var toolbarTrailingContent: some View {
-        VStack(alignment: .trailing, spacing: Spacing.xxs) {
+        VStack(alignment: .trailing, spacing: 2) {
             Text(balanceLabel)
                 .font(AppTypography.caption())
                 .foregroundColor(AppColors.textSecondary)
 
             Text(balanceAmount)
-                .font(AppTypography.amountSmall())
+                .font(AppTypography.financialSmall())
                 .foregroundColor(balanceColor)
         }
         .accessibilityElement(children: .combine)
@@ -249,14 +366,14 @@ struct SharedSubscriptionConversationView: View {
                 .accessibilityHidden(true)
 
             Text("No activity yet")
-                .font(AppTypography.headline())
+                .font(AppTypography.headingMedium())
                 .foregroundColor(AppColors.textSecondary)
 
             Text("Record a payment or send a message to start tracking \(subscription.displayName)")
-                .font(AppTypography.subheadline())
+                .font(AppTypography.bodyDefault())
                 .foregroundColor(AppColors.textSecondary)
                 .multilineTextAlignment(.center)
-                .padding(.horizontal, Spacing.xxl)
+                .padding(.horizontal, Spacing.xxxl)
 
             Spacer()
         }
@@ -271,22 +388,59 @@ struct SharedSubscriptionConversationView: View {
         switch item {
         case .payment(let payment):
             SubscriptionPaymentCardView(payment: payment, subscription: subscription)
-                .padding(.vertical, Spacing.xxs)
 
         case .settlement(let settlement):
             SubscriptionSettlementMessageView(settlement: settlement)
-                .padding(.vertical, Spacing.xxs)
 
         case .reminder(let reminder):
             SubscriptionReminderMessageView(reminder: reminder)
-                .padding(.vertical, Spacing.xxs)
                 .onAppear {
                     markReminderAsRead(reminder)
                 }
 
         case .message(let chatMessage):
-            MessageBubbleView(message: chatMessage)
-                .padding(.vertical, Spacing.xxs)
+            feedContentHeader(
+                name: chatMessage.isFromUser ? "You" : "Member",
+                timestamp: chatMessage.timestamp
+            ) {
+                FeedMessageContent(
+                    message: chatMessage,
+                    onDelete: { msg in
+                        deleteMessageWithUndo(msg)
+                    }
+                )
+            }
+        }
+    }
+
+    // MARK: - Feed Content Helpers
+
+    @ViewBuilder
+    private func feedContentHeader<Content: View>(
+        name: String,
+        timestamp: Date?,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        VStack(alignment: .leading, spacing: Spacing.xs) {
+            HStack(spacing: Spacing.xs) {
+                Text(name)
+                    .font(AppTypography.labelLarge())
+                    .foregroundColor(AppColors.textPrimary)
+
+                if let timestamp {
+                    Text("\u{00B7}")
+                        .font(AppTypography.bodySmall())
+                        .foregroundColor(AppColors.textTertiary)
+
+                    Text(timestamp.relativeShort)
+                        .font(AppTypography.bodySmall())
+                        .foregroundColor(AppColors.textTertiary)
+                }
+
+                Spacer()
+            }
+
+            content()
         }
     }
 
@@ -314,8 +468,6 @@ struct SharedSubscriptionConversationView: View {
         let trimmedText = messageText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedText.isEmpty else { return }
 
-        // Verify the subscription object is still valid
-        // Check managedObjectContext, isDeleted, and isFault to ensure object is fully materialized
         guard subscription.managedObjectContext != nil,
               !subscription.isDeleted,
               !subscription.isFault else {
@@ -324,30 +476,71 @@ struct SharedSubscriptionConversationView: View {
             return
         }
 
-        // Create new chat message
         let newMessage = ChatMessage(context: viewContext)
         newMessage.id = UUID()
         newMessage.content = trimmedText
         newMessage.timestamp = Date()
         newMessage.isFromUser = true
+        newMessage.isEdited = false
         newMessage.withSubscription = subscription
 
-        // Save context with proper error handling
         do {
             try viewContext.save()
-
-            // Clear input and provide haptic feedback
             messageText = ""
             HapticManager.messageSent()
         } catch {
-            // Rollback the failed save
             viewContext.rollback()
             HapticManager.errorAlert()
-
-            // Show error to user
             errorMessage = "Failed to send message. Please try again."
             showingError = true
             AppLogger.coreData.error("Failed to save message: \(error.localizedDescription)")
         }
+    }
+
+    // MARK: - Message Delete with Undo
+
+    private func deleteMessageWithUndo(_ message: ChatMessage) {
+        deletedMessageContent = message.content
+        deletedMessageTimestamp = message.timestamp
+        deletedMessageIsEdited = message.isEdited
+
+        viewContext.delete(message)
+        do {
+            try viewContext.save()
+            HapticManager.destructiveAction()
+            withAnimation(AppAnimation.standard) {
+                showUndoToast = true
+            }
+        } catch {
+            viewContext.rollback()
+            HapticManager.errorAlert()
+            errorMessage = "Failed to delete message."
+            showingError = true
+            AppLogger.coreData.error("Failed to delete message: \(error.localizedDescription)")
+        }
+    }
+
+    private func undoDeleteMessage() {
+        guard let content = deletedMessageContent else { return }
+
+        let restored = ChatMessage(context: viewContext)
+        restored.id = UUID()
+        restored.content = content
+        restored.timestamp = deletedMessageTimestamp ?? Date()
+        restored.isFromUser = true
+        restored.isEdited = deletedMessageIsEdited
+        restored.withSubscription = subscription
+
+        do {
+            try viewContext.save()
+            HapticManager.undoAction()
+        } catch {
+            viewContext.rollback()
+            HapticManager.errorAlert()
+        }
+
+        deletedMessageContent = nil
+        deletedMessageTimestamp = nil
+        deletedMessageIsEdited = false
     }
 }
