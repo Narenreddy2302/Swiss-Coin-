@@ -372,7 +372,7 @@ struct PersonConversationView: View {
     private var toolbarTrailingContent: some View {
         VStack(alignment: .trailing, spacing: 2) {
             Text(balanceLabel)
-                .captionStyle()
+                .font(AppTypography.caption())
                 .foregroundColor(AppColors.textSecondary)
 
             Text(balanceAmount)
@@ -402,7 +402,7 @@ struct PersonConversationView: View {
                 .font(AppTypography.bodyDefault())
                 .foregroundColor(AppColors.textSecondary)
                 .multilineTextAlignment(.center)
-                .padding(.horizontal, 40)
+                .padding(.horizontal, Spacing.xxxl)
 
             Spacer()
         }
