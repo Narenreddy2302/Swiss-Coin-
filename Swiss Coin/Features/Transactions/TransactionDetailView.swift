@@ -17,23 +17,14 @@ struct TransactionDetailView: View {
     @State private var showingDeleteAlert = false
     @State private var showingError = false
     @State private var errorMessage = ""
+    @State private var isDeleting = false
 
-    // MARK: - Computed Properties (Cached)
+    // MARK: - Memoized Data
 
-    /// Cached effectivePayers to avoid repeated NSSet→Array conversions during animation render passes
-    private var cachedEffectivePayers: [(personId: UUID?, amount: Double)] {
-        transaction.effectivePayers
-    }
+    @State private var memoizedSplits: [TransactionSplit] = []
+    @State private var memoizedEffectivePayers: [(personId: UUID?, amount: Double)] = []
 
-    /// Cached and sorted splits to avoid re-sorting on every render pass
-    private var cachedSplits: [TransactionSplit] {
-        let splitSet = transaction.splits as? Set<TransactionSplit> ?? []
-        return splitSet.sorted { ($0.owedBy?.displayName ?? "") < ($1.owedBy?.displayName ?? "") }
-    }
-
-    private var isPayer: Bool {
-        CurrentUser.isCurrentUser(transaction.payer?.id)
-    }
+    // MARK: - Computed Properties
 
     private var splitMethod: SplitMethod? {
         guard let raw = transaction.splitMethod else { return nil }
@@ -41,19 +32,19 @@ struct TransactionDetailView: View {
     }
 
     private var isCurrentUserAPayer: Bool {
-        cachedEffectivePayers.contains { CurrentUser.isCurrentUser($0.personId) }
+        memoizedEffectivePayers.contains { CurrentUser.isCurrentUser($0.personId) }
     }
 
     private var payerName: String {
-        TransactionDetailHelpers.payerName(effectivePayers: cachedEffectivePayers, payer: transaction.payer)
+        TransactionDetailHelpers.payerName(effectivePayers: memoizedEffectivePayers, payer: transaction.payer)
     }
 
     private var participantCount: Int {
-        TransactionDetailHelpers.participantCount(effectivePayers: cachedEffectivePayers, splits: cachedSplits)
+        TransactionDetailHelpers.participantCount(effectivePayers: memoizedEffectivePayers, splits: memoizedSplits)
     }
 
     private var userNetAmount: Double {
-        TransactionDetailHelpers.userNetAmount(effectivePayers: cachedEffectivePayers, splits: cachedSplits)
+        TransactionDetailHelpers.userNetAmount(effectivePayers: memoizedEffectivePayers, splits: memoizedSplits)
     }
 
     private var netAmountColor: Color {
@@ -85,7 +76,7 @@ struct TransactionDetailView: View {
                 receiptPaymentSection
                     .padding(.vertical, Spacing.lg)
 
-                if !cachedSplits.isEmpty {
+                if !memoizedSplits.isEmpty {
                     detailDottedSeparator
                     receiptSplitBreakdown
                         .padding(.vertical, Spacing.lg)
@@ -141,8 +132,11 @@ struct TransactionDetailView: View {
                         .font(.system(size: IconSize.md, weight: .medium))
                         .foregroundColor(AppColors.textPrimary)
                 }
+                .disabled(isDeleting)
             }
         }
+        .onAppear { refreshMemoizedData() }
+        .onChange(of: transaction.splits?.count) { _, _ in refreshMemoizedData() }
         .sheet(isPresented: $showingEditSheet) {
             TransactionEditView(transaction: transaction)
                 .environment(\.managedObjectContext, viewContext)
@@ -254,23 +248,8 @@ struct TransactionDetailView: View {
                 .font(AppTypography.caption())
                 .foregroundColor(AppColors.textTertiary)
 
-            ForEach(cachedSplits, id: \.objectID) { split in
-                HStack {
-                    Text(personDisplayName(for: split))
-                        .font(AppTypography.subheadline())
-                        .foregroundColor(AppColors.textPrimary)
-
-                    Spacer()
-
-                    HStack(spacing: Spacing.xs) {
-                        Text(CurrencyFormatter.currencySymbol)
-                            .font(AppTypography.subheadline())
-                            .foregroundColor(AppColors.textSecondary)
-                        Text(CurrencyFormatter.formatDecimal(split.amount))
-                            .font(AppTypography.financialDefault())
-                            .foregroundColor(AppColors.textPrimary)
-                    }
-                }
+            ForEach(memoizedSplits, id: \.objectID) { split in
+                splitRow(for: split)
             }
 
             detailDottedSeparator
@@ -293,6 +272,41 @@ struct TransactionDetailView: View {
             }
 
             detailDottedSeparator
+        }
+    }
+
+    // MARK: - Split Row with Avatar
+
+    private func splitRow(for split: TransactionSplit) -> some View {
+        let person = split.owedBy
+        let isMe = CurrentUser.isCurrentUser(person?.id)
+        let colorHex = person?.colorHex ?? CurrentUser.defaultColorHex
+        let displayInitials = isMe ? CurrentUser.initials : (person?.initials ?? "?")
+
+        return HStack(spacing: Spacing.md) {
+            Circle()
+                .fill(Color(hex: colorHex).opacity(0.15))
+                .frame(width: AvatarSize.xs, height: AvatarSize.xs)
+                .overlay(
+                    Text(displayInitials)
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundColor(Color(hex: colorHex))
+                )
+
+            Text(personDisplayName(for: split))
+                .font(AppTypography.subheadline())
+                .foregroundColor(AppColors.textPrimary)
+
+            Spacer()
+
+            HStack(spacing: Spacing.xs) {
+                Text(CurrencyFormatter.currencySymbol)
+                    .font(AppTypography.subheadline())
+                    .foregroundColor(AppColors.textSecondary)
+                Text(CurrencyFormatter.formatDecimal(split.amount))
+                    .font(AppTypography.financialDefault())
+                    .foregroundColor(AppColors.textPrimary)
+            }
         }
     }
 
@@ -323,13 +337,17 @@ struct TransactionDetailView: View {
         TransactionDetailHelpers.personDisplayName(for: split)
     }
 
-    private func splitAmountColor(for split: TransactionSplit) -> Color {
-        TransactionDetailHelpers.splitAmountColor(for: split, isCurrentUserAPayer: isCurrentUserAPayer)
+    private func refreshMemoizedData() {
+        memoizedEffectivePayers = transaction.effectivePayers
+        let splitSet = transaction.splits as? Set<TransactionSplit> ?? []
+        memoizedSplits = splitSet.sorted { ($0.owedBy?.displayName ?? "") < ($1.owedBy?.displayName ?? "") }
     }
 
     // MARK: - Delete Action
 
     private func deleteTransaction() {
+        guard !isDeleting else { return }
+        isDeleting = true
         HapticManager.delete()
 
         if let splits = transaction.splits as? Set<TransactionSplit> {
@@ -345,7 +363,8 @@ struct TransactionDetailView: View {
         } catch {
             viewContext.rollback()
             HapticManager.error()
-            errorMessage = "Failed to delete transaction: \(error.localizedDescription)"
+            isDeleting = false
+            errorMessage = "Could not delete this transaction. Please try again."
             showingError = true
         }
     }
@@ -354,7 +373,8 @@ struct TransactionDetailView: View {
 // MARK: - Transaction Detail Sheet View
 
 /// Native sheet-based transaction detail view presented when a transaction row is tapped.
-/// Uses presentation detents for smooth sizing — starts at medium height, swipeable to full screen.
+/// Uses presentation detents for smooth sizing -- starts at medium height, swipeable to full screen.
+/// Staggered content reveal animation for polished entrance.
 struct TransactionExpandedView: View {
     @ObservedObject var transaction: FinancialTransaction
 
@@ -365,19 +385,22 @@ struct TransactionExpandedView: View {
     @State private var showingDeleteAlert = false
     @State private var showingError = false
     @State private var errorMessage = ""
+    @State private var isDeleting = false
 
-    // MARK: - Computed Properties (Cached)
+    // MARK: - Staggered Reveal State
 
-    /// Cached effectivePayers to avoid repeated NSSet→Array conversions during animation render passes
-    private var cachedEffectivePayers: [(personId: UUID?, amount: Double)] {
-        transaction.effectivePayers
-    }
+    @State private var showHeader = false
+    @State private var showPayment = false
+    @State private var showSplits = false
+    @State private var showNote = false
+    @State private var showActions = false
 
-    /// Cached and sorted splits to avoid re-sorting on every render pass
-    private var cachedSplits: [TransactionSplit] {
-        let splitSet = transaction.splits as? Set<TransactionSplit> ?? []
-        return splitSet.sorted { ($0.owedBy?.displayName ?? "") < ($1.owedBy?.displayName ?? "") }
-    }
+    // MARK: - Memoized Data
+
+    @State private var memoizedSplits: [TransactionSplit] = []
+    @State private var memoizedEffectivePayers: [(personId: UUID?, amount: Double)] = []
+
+    // MARK: - Computed Properties
 
     private var splitMethod: SplitMethod? {
         guard let raw = transaction.splitMethod else { return nil }
@@ -385,11 +408,11 @@ struct TransactionExpandedView: View {
     }
 
     private var isCurrentUserAPayer: Bool {
-        cachedEffectivePayers.contains { CurrentUser.isCurrentUser($0.personId) }
+        memoizedEffectivePayers.contains { CurrentUser.isCurrentUser($0.personId) }
     }
 
     private var payerName: String {
-        TransactionDetailHelpers.payerName(effectivePayers: cachedEffectivePayers, payer: transaction.payer)
+        TransactionDetailHelpers.payerName(effectivePayers: memoizedEffectivePayers, payer: transaction.payer)
     }
 
     private var creatorName: String {
@@ -397,11 +420,11 @@ struct TransactionExpandedView: View {
     }
 
     private var participantCount: Int {
-        TransactionDetailHelpers.participantCount(effectivePayers: cachedEffectivePayers, splits: cachedSplits)
+        TransactionDetailHelpers.participantCount(effectivePayers: memoizedEffectivePayers, splits: memoizedSplits)
     }
 
     private var userNetAmount: Double {
-        TransactionDetailHelpers.userNetAmount(effectivePayers: cachedEffectivePayers, splits: cachedSplits)
+        TransactionDetailHelpers.userNetAmount(effectivePayers: memoizedEffectivePayers, splits: memoizedSplits)
     }
 
     private var netAmountColor: Color {
@@ -428,7 +451,9 @@ struct TransactionExpandedView: View {
         .presentationDragIndicator(.visible)
         .presentationCornerRadius(CornerRadius.xl)
         .onAppear {
+            refreshMemoizedData()
             HapticManager.lightTap()
+            triggerStaggeredReveal()
         }
         .sheet(isPresented: $showingEditSheet) {
             TransactionEditView(transaction: transaction)
@@ -452,59 +477,93 @@ struct TransactionExpandedView: View {
     private var sheetScrollContent: some View {
         VStack(alignment: .leading, spacing: 0) {
             receiptHeroHeader
+                .opacity(showHeader ? 1 : 0)
+                .offset(y: showHeader ? 0 : 8)
 
             expandedDottedSeparator
+                .opacity(showHeader ? 1 : 0)
 
             receiptPaymentSection
                 .padding(.vertical, Spacing.lg)
+                .opacity(showPayment ? 1 : 0)
+                .offset(y: showPayment ? 0 : 8)
 
-            if !cachedSplits.isEmpty {
+            if !memoizedSplits.isEmpty {
                 expandedDottedSeparator
+                    .opacity(showSplits ? 1 : 0)
                 receiptSplitBreakdown
                     .padding(.vertical, Spacing.lg)
+                    .opacity(showSplits ? 1 : 0)
+                    .offset(y: showSplits ? 0 : 8)
             }
 
             if let note = transaction.note, !note.isEmpty {
                 expandedDottedSeparator
+                    .opacity(showNote ? 1 : 0)
                 noteSection(note: note)
+                    .opacity(showNote ? 1 : 0)
+                    .offset(y: showNote ? 0 : 8)
             }
 
             actionButtonsSection
                 .padding(.top, Spacing.xl)
+                .opacity(showActions ? 1 : 0)
+                .offset(y: showActions ? 0 : 8)
         }
         .padding(.horizontal, Spacing.xl)
         .padding(.bottom, Spacing.section)
     }
 
+    // MARK: - Staggered Reveal
+
+    private func triggerStaggeredReveal() {
+        let base = AppAnimation.staggerBaseDelay
+        let interval = AppAnimation.staggerInterval
+
+        withAnimation(AppAnimation.contentReveal.delay(base)) {
+            showHeader = true
+        }
+        withAnimation(AppAnimation.contentReveal.delay(base + interval)) {
+            showPayment = true
+        }
+        withAnimation(AppAnimation.contentReveal.delay(base + interval * 2)) {
+            showSplits = true
+        }
+        withAnimation(AppAnimation.contentReveal.delay(base + interval * 3)) {
+            showNote = true
+        }
+        withAnimation(AppAnimation.contentReveal.delay(base + interval * 4)) {
+            showActions = true
+        }
+    }
+
     // MARK: - Receipt Hero Header
 
     private var receiptHeroHeader: some View {
-        VStack(alignment: .leading, spacing: Spacing.lg) {
-            VStack(alignment: .leading, spacing: Spacing.xs) {
-                HStack(alignment: .firstTextBaseline) {
-                    Text(transaction.title ?? "Unknown")
-                        .font(AppTypography.headingLarge())
-                        .foregroundColor(AppColors.textPrimary)
-                        .lineLimit(3)
+        VStack(alignment: .leading, spacing: Spacing.xs) {
+            HStack(alignment: .firstTextBaseline) {
+                Text(transaction.title ?? "Unknown")
+                    .font(AppTypography.headingLarge())
+                    .foregroundColor(AppColors.textPrimary)
+                    .lineLimit(3)
 
-                    Spacer(minLength: Spacing.md)
+                Spacer(minLength: Spacing.md)
 
-                    Text(CurrencyFormatter.formatAbsolute(userNetAmount))
-                        .font(AppTypography.financialLarge())
-                        .foregroundColor(netAmountColor)
-                }
+                Text(CurrencyFormatter.formatAbsolute(userNetAmount))
+                    .font(AppTypography.financialLarge())
+                    .foregroundColor(netAmountColor)
+            }
 
-                HStack(alignment: .firstTextBaseline) {
-                    Text(formattedReceiptDate)
-                        .font(AppTypography.bodySmall())
-                        .foregroundColor(AppColors.textSecondary)
+            HStack(alignment: .firstTextBaseline) {
+                Text(formattedReceiptDate)
+                    .font(AppTypography.bodySmall())
+                    .foregroundColor(AppColors.textSecondary)
 
-                    Spacer(minLength: Spacing.md)
+                Spacer(minLength: Spacing.md)
 
-                    Text(headerSubtitle)
-                        .font(AppTypography.bodySmall())
-                        .foregroundColor(AppColors.textSecondary)
-                }
+                Text(headerSubtitle)
+                    .font(AppTypography.bodySmall())
+                    .foregroundColor(AppColors.textSecondary)
             }
         }
         .padding(.top, Spacing.lg)
@@ -570,23 +629,8 @@ struct TransactionExpandedView: View {
                 .font(AppTypography.caption())
                 .foregroundColor(AppColors.textTertiary)
 
-            ForEach(cachedSplits, id: \.objectID) { split in
-                HStack {
-                    Text(personDisplayName(for: split))
-                        .font(AppTypography.subheadline())
-                        .foregroundColor(AppColors.textPrimary)
-
-                    Spacer()
-
-                    HStack(spacing: Spacing.xs) {
-                        Text(CurrencyFormatter.currencySymbol)
-                            .font(AppTypography.subheadline())
-                            .foregroundColor(AppColors.textSecondary)
-                        Text(CurrencyFormatter.formatDecimal(split.amount))
-                            .font(AppTypography.financialDefault())
-                            .foregroundColor(AppColors.textPrimary)
-                    }
-                }
+            ForEach(memoizedSplits, id: \.objectID) { split in
+                splitRow(for: split)
             }
 
             expandedDottedSeparator
@@ -609,6 +653,41 @@ struct TransactionExpandedView: View {
             }
 
             expandedDottedSeparator
+        }
+    }
+
+    // MARK: - Split Row with Avatar
+
+    private func splitRow(for split: TransactionSplit) -> some View {
+        let person = split.owedBy
+        let isMe = CurrentUser.isCurrentUser(person?.id)
+        let colorHex = person?.colorHex ?? CurrentUser.defaultColorHex
+        let displayInitials = isMe ? CurrentUser.initials : (person?.initials ?? "?")
+
+        return HStack(spacing: Spacing.md) {
+            Circle()
+                .fill(Color(hex: colorHex).opacity(0.15))
+                .frame(width: AvatarSize.xs, height: AvatarSize.xs)
+                .overlay(
+                    Text(displayInitials)
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundColor(Color(hex: colorHex))
+                )
+
+            Text(personDisplayName(for: split))
+                .font(AppTypography.subheadline())
+                .foregroundColor(AppColors.textPrimary)
+
+            Spacer()
+
+            HStack(spacing: Spacing.xs) {
+                Text(CurrencyFormatter.currencySymbol)
+                    .font(AppTypography.subheadline())
+                    .foregroundColor(AppColors.textSecondary)
+                Text(CurrencyFormatter.formatDecimal(split.amount))
+                    .font(AppTypography.financialDefault())
+                    .foregroundColor(AppColors.textPrimary)
+            }
         }
     }
 
@@ -649,15 +728,21 @@ struct TransactionExpandedView: View {
                 .background(AppColors.backgroundTertiary)
                 .clipShape(RoundedRectangle(cornerRadius: CornerRadius.md))
             }
+            .disabled(isDeleting)
 
             Button {
                 HapticManager.tap()
                 showingDeleteAlert = true
             } label: {
                 HStack(spacing: Spacing.sm) {
-                    Image(systemName: "trash")
-                        .font(.system(size: 14, weight: .medium))
-                    Text("Delete Transaction")
+                    if isDeleting {
+                        ProgressView()
+                            .tint(AppColors.negative)
+                    } else {
+                        Image(systemName: "trash")
+                            .font(.system(size: 14, weight: .medium))
+                    }
+                    Text(isDeleting ? "Deleting..." : "Delete Transaction")
                         .font(AppTypography.bodyBold())
                 }
                 .foregroundColor(AppColors.negative)
@@ -666,6 +751,7 @@ struct TransactionExpandedView: View {
                 .background(AppColors.negative.opacity(0.08))
                 .clipShape(RoundedRectangle(cornerRadius: CornerRadius.md))
             }
+            .disabled(isDeleting)
         }
     }
 
@@ -696,13 +782,17 @@ struct TransactionExpandedView: View {
         TransactionDetailHelpers.personDisplayName(for: split)
     }
 
-    private func splitAmountColor(for split: TransactionSplit) -> Color {
-        TransactionDetailHelpers.splitAmountColor(for: split, isCurrentUserAPayer: isCurrentUserAPayer)
+    private func refreshMemoizedData() {
+        memoizedEffectivePayers = transaction.effectivePayers
+        let splitSet = transaction.splits as? Set<TransactionSplit> ?? []
+        memoizedSplits = splitSet.sorted { ($0.owedBy?.displayName ?? "") < ($1.owedBy?.displayName ?? "") }
     }
 
     // MARK: - Delete Action
 
     private func deleteTransaction() {
+        guard !isDeleting else { return }
+        isDeleting = true
         HapticManager.delete()
 
         if let splits = transaction.splits as? Set<TransactionSplit> {
@@ -717,7 +807,8 @@ struct TransactionExpandedView: View {
         } catch {
             viewContext.rollback()
             HapticManager.error()
-            errorMessage = "Failed to delete transaction: \(error.localizedDescription)"
+            isDeleting = false
+            errorMessage = "Could not delete this transaction. Please try again."
             showingError = true
         }
     }
