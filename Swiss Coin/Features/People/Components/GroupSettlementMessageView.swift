@@ -2,7 +2,7 @@
 //  GroupSettlementMessageView.swift
 //  Swiss Coin
 //
-//  System message for settlements in group conversations.
+//  Full-width green notification strip for settlements in group conversations.
 //
 
 import SwiftUI
@@ -31,11 +31,11 @@ struct GroupSettlementMessageView: View {
     var body: some View {
         SystemMessageView(
             icon: "checkmark.circle.fill",
-            iconColor: AppColors.positive,
+            iconColor: AppColors.stripText,
             messageText: messageText,
             noteText: settlement.note,
             date: settlement.date,
-            backgroundColor: AppColors.settlementBackground
+            backgroundColor: AppColors.settlementStripBackground
         )
         .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: CornerRadius.card))
         .contextMenu {

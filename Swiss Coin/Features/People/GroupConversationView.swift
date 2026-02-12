@@ -351,19 +351,25 @@ struct GroupConversationView: View {
 
     @ViewBuilder
     private func timelineRow(item: GroupConversationItem, isLastItem: Bool) -> some View {
-        let isMessage = isMessageItem(item)
-        let avatar = itemAvatarInfo(for: item)
-
-        HStack(alignment: .top, spacing: 0) {
-            timelineConnector(
-                isMessage: isMessage,
-                avatarInitials: avatar.initials,
-                avatarColor: avatar.color
-            )
-
+        if item.isSystemStrip {
+            // Reminders & settlements render as full-width notification strips — no avatar
             conversationItemView(for: item)
-                .padding(.trailing, Spacing.lg)
                 .padding(.bottom, isLastItem ? 0 : Spacing.lg)
+        } else {
+            let isMessage = isMessageItem(item)
+            let avatar = itemAvatarInfo(for: item)
+
+            HStack(alignment: .top, spacing: 0) {
+                timelineConnector(
+                    isMessage: isMessage,
+                    avatarInitials: avatar.initials,
+                    avatarColor: avatar.color
+                )
+
+                conversationItemView(for: item)
+                    .padding(.trailing, Spacing.lg)
+                    .padding(.bottom, isLastItem ? 0 : Spacing.lg)
+            }
         }
     }
 

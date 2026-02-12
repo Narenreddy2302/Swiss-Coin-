@@ -265,21 +265,27 @@ struct PersonConversationView: View {
 
     @ViewBuilder
     private func timelineRow(item: ConversationItem, isLastItem: Bool) -> some View {
-        let isMessage = item.isMessageType
-        let avatar = itemAvatarInfo(for: item)
-
-        HStack(alignment: .top, spacing: 0) {
-            // Timeline column with avatar
-            timelineConnector(
-                isMessage: isMessage,
-                avatarInitials: avatar.initials,
-                avatarColor: avatar.color
-            )
-
-            // Content column
+        if item.isSystemStrip {
+            // Reminders & settlements render as full-width notification strips — no avatar
             conversationItemView(for: item)
-                .padding(.trailing, Spacing.lg)
                 .padding(.bottom, isLastItem ? 0 : Spacing.lg)
+        } else {
+            let isMessage = item.isMessageType
+            let avatar = itemAvatarInfo(for: item)
+
+            HStack(alignment: .top, spacing: 0) {
+                // Timeline column with avatar
+                timelineConnector(
+                    isMessage: isMessage,
+                    avatarInitials: avatar.initials,
+                    avatarColor: avatar.color
+                )
+
+                // Content column
+                conversationItemView(for: item)
+                    .padding(.trailing, Spacing.lg)
+                    .padding(.bottom, isLastItem ? 0 : Spacing.lg)
+            }
         }
     }
 
