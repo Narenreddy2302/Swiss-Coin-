@@ -159,10 +159,10 @@ struct FeedTransactionContent: View {
         .clipShape(RoundedRectangle(cornerRadius: CornerRadius.card))
         .shadow(color: Color.black.opacity(0.04), radius: 6, x: 0, y: 2)
         .shadow(color: Color.black.opacity(0.02), radius: 2, x: 0, y: 1)
-        .padding(.horizontal, Spacing.screenHorizontal)
         .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: CornerRadius.card))
-        .onTapGesture { onViewDetails?() }
         .contextMenu { contextMenuContent }
+        .padding(.horizontal, Spacing.screenHorizontal)
+        .onTapGesture { onViewDetails?() }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(transaction.title ?? "Expense"), \(CurrencyFormatter.format(displayAmount)), \(transaction.date?.receiptFormatted ?? "")")
     }
@@ -407,6 +407,7 @@ struct FeedTransactionContent: View {
                 .padding(.top, Spacing.xxs)
             }
         }
+        .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: CornerRadius.card))
         .contentShape(Rectangle())
         .onTapGesture { onViewDetails?() }
         .contextMenu { contextMenuContent }

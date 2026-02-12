@@ -37,6 +37,7 @@ struct GroupSettlementMessageView: View {
             date: settlement.date,
             backgroundColor: AppColors.settlementBackground
         )
+        .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: CornerRadius.card))
         .contextMenu {
             Button {
                 UIPasteboard.general.string = messageText

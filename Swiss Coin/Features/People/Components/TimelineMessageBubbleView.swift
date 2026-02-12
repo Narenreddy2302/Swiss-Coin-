@@ -80,8 +80,6 @@ struct TimelineMessageBubbleView: View {
             .padding(.leading, Spacing.xs)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: CornerRadius.lg))
-        .contextMenu { contextMenuItems }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilityLabel)
         .accessibilityHint(isFromUser ? "Double tap and hold for options" : "")
@@ -109,6 +107,8 @@ struct TimelineMessageBubbleView: View {
                         y: 1
                     )
             )
+            .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: CornerRadius.card))
+            .contextMenu { contextMenuItems }
     }
 
     // MARK: - Context Menu

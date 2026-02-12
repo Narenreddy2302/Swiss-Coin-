@@ -81,8 +81,6 @@ struct MessageBubbleView: View {
             .padding(.leading, Spacing.xs)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: CornerRadius.lg))
-        .contextMenu { contextMenuItems }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilityLabel)
         .accessibilityHint(message.isFromUser ? "Double tap and hold for options" : "")
@@ -102,6 +100,8 @@ struct MessageBubbleView: View {
                 RoundedRectangle(cornerRadius: CornerRadius.card)
                     .fill(bubbleColor)
             )
+            .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: CornerRadius.card))
+            .contextMenu { contextMenuItems }
     }
 
     // MARK: - Classic Layout (iMessage-style, for Group/Subscription views)
@@ -140,8 +140,6 @@ struct MessageBubbleView: View {
                 }
                 .padding(.horizontal, Spacing.xs)
             }
-            .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: CornerRadius.lg))
-            .contextMenu { contextMenuItems }
 
             if !isFromUser { Spacer(minLength: 60) }
         }
@@ -159,6 +157,13 @@ struct MessageBubbleView: View {
             .padding(.horizontal, Spacing.lg)
             .padding(.vertical, Spacing.sm)
             .background(classicBubbleBackground)
+            .contentShape(.contextMenuPreview, UnevenRoundedRectangle(
+                topLeadingRadius: CornerRadius.lg,
+                bottomLeadingRadius: isFromUser ? CornerRadius.lg : Spacing.xs,
+                bottomTrailingRadius: isFromUser ? Spacing.xs : CornerRadius.lg,
+                topTrailingRadius: CornerRadius.lg
+            ))
+            .contextMenu { contextMenuItems }
     }
 
     private var classicBubbleBackground: some View {

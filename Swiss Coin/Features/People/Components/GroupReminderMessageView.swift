@@ -25,6 +25,7 @@ struct GroupReminderMessageView: View {
             date: reminder.createdDate,
             backgroundColor: AppColors.reminderBackground
         )
+        .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: CornerRadius.card))
         .contextMenu {
             Button {
                 UIPasteboard.general.string = messageText

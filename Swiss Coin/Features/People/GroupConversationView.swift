@@ -454,20 +454,20 @@ struct GroupConversationView: View {
                     messageText: settlementMessageText(settlement),
                     noteText: settlement.note
                 )
-            }
-            .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: CornerRadius.card))
-            .contextMenu {
-                Button {
-                    UIPasteboard.general.string = settlementMessageText(settlement)
-                    HapticManager.copyAction()
-                } label: {
-                    Label("Copy", systemImage: "doc.on.doc")
-                }
-                Button {
-                    UIPasteboard.general.string = CurrencyFormatter.format(settlement.amount)
-                    HapticManager.copyAction()
-                } label: {
-                    Label("Copy Amount", systemImage: "dollarsign.circle")
+                .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: CornerRadius.card))
+                .contextMenu {
+                    Button {
+                        UIPasteboard.general.string = settlementMessageText(settlement)
+                        HapticManager.copyAction()
+                    } label: {
+                        Label("Copy", systemImage: "doc.on.doc")
+                    }
+                    Button {
+                        UIPasteboard.general.string = CurrencyFormatter.format(settlement.amount)
+                        HapticManager.copyAction()
+                    } label: {
+                        Label("Copy Amount", systemImage: "dollarsign.circle")
+                    }
                 }
             }
 
@@ -482,14 +482,14 @@ struct GroupConversationView: View {
                     messageText: reminderMessageText(reminder),
                     noteText: reminder.message.flatMap { $0.isEmpty ? nil : "\"\($0)\"" }
                 )
-            }
-            .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: CornerRadius.card))
-            .contextMenu {
-                Button {
-                    UIPasteboard.general.string = CurrencyFormatter.format(reminder.amount)
-                    HapticManager.copyAction()
-                } label: {
-                    Label("Copy Amount", systemImage: "dollarsign.circle")
+                .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: CornerRadius.card))
+                .contextMenu {
+                    Button {
+                        UIPasteboard.general.string = CurrencyFormatter.format(reminder.amount)
+                        HapticManager.copyAction()
+                    } label: {
+                        Label("Copy Amount", systemImage: "dollarsign.circle")
+                    }
                 }
             }
 
