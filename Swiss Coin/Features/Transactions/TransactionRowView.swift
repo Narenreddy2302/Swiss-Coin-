@@ -243,7 +243,7 @@ struct TransactionRowView: View {
         }
         .padding(.vertical, Spacing.md)
         .padding(.horizontal, Spacing.lg)
-        .background(AppColors.background)
+        .background(Color.clear)
     }
 
     // MARK: - Shared Element Views
