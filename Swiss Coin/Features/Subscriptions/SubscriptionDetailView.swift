@@ -238,54 +238,55 @@ struct SubscriptionDetailView: View {
                 }
             }
 
+            // Actions Section
+            Section {
+                VStack(spacing: Spacing.sm) {
+                    Button {
+                        HapticManager.tap()
+                        showingEditSheet = true
+                    } label: {
+                        Text("Edit Subscription")
+                    }
+                    .buttonStyle(SecondaryButtonStyle())
+
+                    Button {
+                        HapticManager.tap()
+                        togglePauseStatus()
+                    } label: {
+                        Text(subscription.isActive ? "Pause Subscription" : "Resume Subscription")
+                    }
+                    .buttonStyle(SecondaryButtonStyle())
+
+                    Button {
+                        HapticManager.tap()
+                        if subscription.isArchived {
+                            restoreSubscription()
+                        } else {
+                            showingArchiveAlert = true
+                        }
+                    } label: {
+                        Text(subscription.isArchived ? "Restore Subscription" : "Archive Subscription")
+                    }
+                    .buttonStyle(SecondaryButtonStyle())
+
+                    Button {
+                        HapticManager.tap()
+                        showingDeleteAlert = true
+                    } label: {
+                        Text("Cancel Subscription")
+                    }
+                    .buttonStyle(DestructiveButtonStyle())
+                }
+                .padding(.vertical, Spacing.sm)
+            }
+            .listRowBackground(Color.clear)
+
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
         .background(AppColors.backgroundSecondary)
         .navigationTitle("Details")
         .navigationBarTitleDisplayMode(.inline)
-        .safeAreaInset(edge: .bottom) {
-            VStack(spacing: Spacing.sm) {
-                Button {
-                    HapticManager.tap()
-                    showingEditSheet = true
-                } label: {
-                    Text("Edit Subscription")
-                }
-                .buttonStyle(SecondaryButtonStyle())
-
-                Button {
-                    HapticManager.tap()
-                    togglePauseStatus()
-                } label: {
-                    Text(subscription.isActive ? "Pause Subscription" : "Resume Subscription")
-                }
-                .buttonStyle(SecondaryButtonStyle())
-
-                Button {
-                    HapticManager.tap()
-                    if subscription.isArchived {
-                        restoreSubscription()
-                    } else {
-                        showingArchiveAlert = true
-                    }
-                } label: {
-                    Text(subscription.isArchived ? "Restore Subscription" : "Archive Subscription")
-                }
-                .buttonStyle(SecondaryButtonStyle())
-
-                Button {
-                    HapticManager.tap()
-                    showingDeleteAlert = true
-                } label: {
-                    Text("Cancel Subscription")
-                }
-                .buttonStyle(DestructiveButtonStyle())
-            }
-            .padding(.horizontal, Spacing.lg)
-            .padding(.vertical, Spacing.md)
-            .background(AppColors.backgroundSecondary)
-        }
         .sheet(isPresented: $showingEditSheet) {
             EditSubscriptionView(subscription: subscription)
                 .environment(\.managedObjectContext, viewContext)
