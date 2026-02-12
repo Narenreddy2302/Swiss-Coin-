@@ -2,7 +2,7 @@
 //  PersonalDetailsView.swift
 //  Swiss Coin
 //
-//  Premium personal details editor with card-based design.
+//  Minimal personal details editor with card-based design.
 //
 
 import Combine
@@ -14,6 +14,11 @@ struct PersonalDetailsView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.dismiss) var dismiss
     @StateObject private var viewModel = PersonalDetailsViewModel()
+    @FocusState private var focusedField: Field?
+
+    private enum Field: Hashable {
+        case displayName, fullName, email
+    }
 
     var body: some View {
         ZStack {
@@ -21,160 +26,34 @@ struct PersonalDetailsView: View {
                 .ignoresSafeArea()
 
             ScrollView {
-                VStack(spacing: Spacing.xxl) {
-                    // Profile Photo Section
-                    ProfilePhotoSection(viewModel: viewModel)
-
-                    // Name Section
-                    VStack(alignment: .leading, spacing: Spacing.sm) {
-                        Text("NAME")
-                            .font(AppTypography.footnote())
-                            .textCase(.uppercase)
-                            .foregroundColor(AppColors.textSecondary)
-                            .padding(.horizontal, Spacing.lg)
-
-                        VStack(spacing: 0) {
-                            // Display Name
-                            VStack(alignment: .leading, spacing: Spacing.xs) {
-                                Text("Display Name")
-                                    .font(AppTypography.caption())
-                                    .foregroundColor(AppColors.textSecondary)
-
-                                TextField("How you appear to others", text: $viewModel.displayName)
-                                    .textContentType(.nickname)
-                                    .font(AppTypography.body())
-                                    .foregroundColor(AppColors.textPrimary)
-                                    .limitTextLength(to: ValidationLimits.maxDisplayNameLength, text: $viewModel.displayName)
-                                    .onChange(of: viewModel.displayName) { _, _ in
-                                        viewModel.hasChanges = true
-                                    }
-                            }
-                            .padding(.horizontal, Spacing.lg)
-                            .padding(.vertical, Spacing.md)
-
-                            Divider()
-                                .padding(.leading, Spacing.lg)
-
-                            // Full Name (Optional)
-                            VStack(alignment: .leading, spacing: Spacing.xs) {
-                                Text("Full Name (Optional)")
-                                    .font(AppTypography.caption())
-                                    .foregroundColor(AppColors.textSecondary)
-
-                                TextField("Your complete name", text: $viewModel.fullName)
-                                    .textContentType(.name)
-                                    .font(AppTypography.body())
-                                    .foregroundColor(AppColors.textPrimary)
-                                    .limitTextLength(to: ValidationLimits.maxNameLength, text: $viewModel.fullName)
-                                    .onChange(of: viewModel.fullName) { _, _ in
-                                        viewModel.hasChanges = true
-                                    }
-                            }
-                            .padding(.horizontal, Spacing.lg)
-                            .padding(.vertical, Spacing.md)
-                        }
-                        .background(AppColors.cardBackground)
-                    }
-
-                    // Profile Color Section
-                    ProfileColorSection(viewModel: viewModel)
-
-                    // Contact Info Section
-                    VStack(alignment: .leading, spacing: Spacing.sm) {
-                        Text("CONTACT INFORMATION")
-                            .font(AppTypography.footnote())
-                            .textCase(.uppercase)
-                            .foregroundColor(AppColors.textSecondary)
-                            .padding(.horizontal, Spacing.lg)
-
-                        VStack(spacing: 0) {
-                            // Phone (Read-only)
-                            HStack {
-                                VStack(alignment: .leading, spacing: Spacing.xs) {
-                                    Text("Phone Number")
-                                        .font(AppTypography.caption())
-                                        .foregroundColor(AppColors.textSecondary)
-
-                                    Text(viewModel.phoneNumber.isEmpty ? "Not set" : viewModel.formattedPhoneNumber)
-                                        .font(AppTypography.body())
-                                        .foregroundColor(viewModel.phoneNumber.isEmpty ? AppColors.textTertiary : AppColors.textPrimary)
-                                }
-
-                                Spacer()
-
-                                Image(systemName: "lock.fill")
-                                    .font(.system(size: IconSize.xs))
-                                    .foregroundColor(AppColors.textSecondary)
-                            }
-                            .padding(.horizontal, Spacing.lg)
-                            .padding(.vertical, Spacing.md)
-
-                            Divider()
-                                .padding(.leading, Spacing.lg)
-
-                            // Email (Editable)
-                            VStack(alignment: .leading, spacing: Spacing.xs) {
-                                Text("Email (Optional)")
-                                    .font(AppTypography.caption())
-                                    .foregroundColor(AppColors.textSecondary)
-
-                                TextField("your@email.com", text: $viewModel.email)
-                                    .textContentType(.emailAddress)
-                                    .keyboardType(.emailAddress)
-                                    .textInputAutocapitalization(.never)
-                                    .autocorrectionDisabled()
-                                    .font(AppTypography.body())
-                                    .foregroundColor(AppColors.textPrimary)
-                                    .limitTextLength(to: ValidationLimits.maxEmailLength, text: $viewModel.email)
-                                    .onChange(of: viewModel.email) { _, newValue in
-                                        viewModel.hasChanges = true
-                                        viewModel.validateEmail(newValue)
-                                    }
-
-                                if !viewModel.emailError.isEmpty {
-                                    Text(viewModel.emailError)
-                                        .font(AppTypography.caption())
-                                        .foregroundColor(AppColors.negative)
-                                }
-                            }
-                            .padding(.horizontal, Spacing.lg)
-                            .padding(.vertical, Spacing.md)
-                        }
-                        .background(AppColors.cardBackground)
-                    }
-
-                    // Save Button
-                    Button {
-                        viewModel.saveChanges(context: viewContext)
-                    } label: {
-                        if viewModel.isSaving {
-                            ProgressView()
-                                .scaleEffect(0.8)
-                                .tint(.white)
-                        } else {
-                            Text("Save Changes")
-                                .font(AppTypography.subheadlineMedium())
-                        }
-                    }
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: ButtonHeight.lg)
-                    .background(viewModel.canSave ? AppColors.accent : AppColors.disabled)
-                    .clipShape(RoundedRectangle(cornerRadius: CornerRadius.md))
-                    .disabled(!viewModel.canSave)
-                    .padding(.horizontal, Spacing.lg)
-                    .padding(.top, Spacing.lg)
+                VStack(spacing: Spacing.xl) {
+                    avatarSection
+                    nameSection
+                    contactSection
+                    colorSection
+                    memberSection
+                    saveButton
                 }
                 .padding(.top, Spacing.lg)
                 .padding(.bottom, Spacing.section)
             }
+            .scrollDismissesKeyboard(.interactively)
         }
         .navigationTitle("Personal Details")
         .navigationBarTitleDisplayMode(.large)
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("Done") {
+                    focusedField = nil
+                }
+                .font(AppTypography.labelLarge())
+            }
+        }
         .onAppear {
             viewModel.loadCurrentUserData(context: viewContext)
         }
-        .alert("Saved Successfully", isPresented: $viewModel.showingSaveConfirmation) {
+        .alert("Saved", isPresented: $viewModel.showingSaveConfirmation) {
             Button("OK", role: .cancel) {
                 HapticManager.success()
                 dismiss()
@@ -218,16 +97,13 @@ struct PersonalDetailsView: View {
                 HapticManager.tap()
             }
         }
+        .interactiveDismissDisabled(viewModel.hasChanges)
     }
-}
 
-// MARK: - Profile Photo Section
+    // MARK: - Avatar Section
 
-private struct ProfilePhotoSection: View {
-    @ObservedObject var viewModel: PersonalDetailsViewModel
-
-    var body: some View {
-        VStack(spacing: Spacing.sm) {
+    private var avatarSection: some View {
+        VStack(spacing: Spacing.md) {
             Button {
                 HapticManager.tap()
                 viewModel.showingPhotoOptions = true
@@ -237,97 +113,361 @@ private struct ProfilePhotoSection: View {
                         Image(uiImage: image)
                             .resizable()
                             .scaledToFill()
-                            .frame(width: 110, height: 110)
+                            .frame(width: AvatarSize.xxl, height: AvatarSize.xxl)
                             .clipShape(Circle())
                             .overlay(
                                 Circle()
-                                    .stroke(Color(hex: viewModel.profileColor), lineWidth: 2)
+                                    .stroke(Color(hex: viewModel.profileColor).opacity(0.4), lineWidth: 2.5)
                             )
                     } else {
                         Circle()
-                            .fill(Color(hex: viewModel.profileColor).opacity(0.15))
-                            .frame(width: 110, height: 110)
+                            .fill(Color(hex: viewModel.profileColor).opacity(0.12))
+                            .frame(width: AvatarSize.xxl, height: AvatarSize.xxl)
                             .overlay(
                                 Text(viewModel.initials)
-                                    .font(.system(size: 42, weight: .semibold))
+                                    .font(.system(size: 38, weight: .semibold))
                                     .foregroundColor(Color(hex: viewModel.profileColor))
                             )
                     }
 
-                    // Camera badge
                     Circle()
                         .fill(AppColors.accent)
-                        .frame(width: 30, height: 30)
+                        .frame(width: 28, height: 28)
                         .overlay(
                             Image(systemName: "camera.fill")
-                                .font(.system(size: 13, weight: .semibold))
+                                .font(.system(size: 12, weight: .semibold))
                                 .foregroundColor(.white)
                         )
+                        .shadow(color: Color.black.opacity(0.15), radius: 4, x: 0, y: 2)
                         .offset(x: -2, y: -2)
                 }
-                .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
             }
             .buttonStyle(.plain)
 
-            Text("Change Photo")
-                .font(AppTypography.caption())
-                .foregroundColor(AppColors.textSecondary)
+            Text("Tap to change photo")
+                .font(AppTypography.bodySmall())
+                .foregroundColor(AppColors.textTertiary)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, Spacing.lg)
+        .padding(.vertical, Spacing.sm)
     }
-}
 
-// MARK: - Profile Color Section
+    // MARK: - Name Section
 
-private struct ProfileColorSection: View {
-    @ObservedObject var viewModel: PersonalDetailsViewModel
-
-    private let colorOptions = [
-        "#34C759", "#007AFF", "#FF9500", "#FF2D55",
-        "#AF52DE", "#5856D6", "#00C7BE", "#FF3B30",
-        "#32ADE6", "#BF5AF2", "#FFD60A", "#64D2FF"
-    ]
-
-    var body: some View {
+    private var nameSection: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
-            Text("PROFILE COLOR")
-                .font(AppTypography.footnote())
-                .textCase(.uppercase)
-                .foregroundColor(AppColors.textSecondary)
-                .padding(.horizontal, Spacing.lg)
+            sectionHeader("NAME")
 
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 6), spacing: Spacing.md) {
-                ForEach(colorOptions, id: \.self) { color in
-                    Button {
-                        HapticManager.selectionChanged()
-                        viewModel.profileColor = color
-                        viewModel.hasChanges = true
-                    } label: {
-                        Circle()
-                            .fill(Color(hex: color))
-                            .frame(width: 40, height: 40)
-                            .overlay(
-                                Circle()
-                                    .stroke(
-                                        viewModel.profileColor == color ? AppColors.textPrimary : Color.clear,
-                                        lineWidth: 3
-                                    )
-                            )
-                            .overlay(
-                                Image(systemName: "checkmark")
-                                    .font(.system(size: 14, weight: .bold))
-                                    .foregroundColor(.white)
-                                    .opacity(viewModel.profileColor == color ? 1 : 0)
-                            )
+            VStack(spacing: Spacing.lg) {
+                // Display Name
+                VStack(alignment: .leading, spacing: Spacing.xs) {
+                    HStack {
+                        Text("Display Name")
+                            .font(AppTypography.labelDefault())
+                            .foregroundColor(AppColors.textSecondary)
+
+                        Spacer()
+
+                        if viewModel.displayName.isEmpty {
+                            Text("Required")
+                                .font(AppTypography.caption())
+                                .foregroundColor(AppColors.negative)
+                        }
+                    }
+
+                    TextField("How you appear to others", text: $viewModel.displayName)
+                        .textContentType(.nickname)
+                        .font(AppTypography.bodyLarge())
+                        .foregroundColor(AppColors.textPrimary)
+                        .focused($focusedField, equals: .displayName)
+                        .padding(.horizontal, Spacing.md)
+                        .padding(.vertical, Spacing.md)
+                        .background(
+                            RoundedRectangle(cornerRadius: CornerRadius.medium)
+                                .fill(AppColors.backgroundSecondary)
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: CornerRadius.medium)
+                                .strokeBorder(
+                                    focusedField == .displayName ? AppColors.borderFocus : AppColors.border,
+                                    lineWidth: focusedField == .displayName ? 1.5 : 0.5
+                                )
+                        )
+                        .limitTextLength(to: ValidationLimits.maxDisplayNameLength, text: $viewModel.displayName)
+                        .onChange(of: viewModel.displayName) { _, _ in
+                            viewModel.hasChanges = true
+                        }
+
+                    HStack {
+                        Spacer()
+                        Text("\(viewModel.displayName.count)/\(ValidationLimits.maxDisplayNameLength)")
+                            .font(AppTypography.caption())
+                            .foregroundColor(AppColors.textTertiary)
+                    }
+                }
+
+                // Full Name
+                VStack(alignment: .leading, spacing: Spacing.xs) {
+                    Text("Full Name")
+                        .font(AppTypography.labelDefault())
+                        .foregroundColor(AppColors.textSecondary)
+
+                    TextField("Optional", text: $viewModel.fullName)
+                        .textContentType(.name)
+                        .font(AppTypography.bodyLarge())
+                        .foregroundColor(AppColors.textPrimary)
+                        .focused($focusedField, equals: .fullName)
+                        .padding(.horizontal, Spacing.md)
+                        .padding(.vertical, Spacing.md)
+                        .background(
+                            RoundedRectangle(cornerRadius: CornerRadius.medium)
+                                .fill(AppColors.backgroundSecondary)
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: CornerRadius.medium)
+                                .strokeBorder(
+                                    focusedField == .fullName ? AppColors.borderFocus : AppColors.border,
+                                    lineWidth: focusedField == .fullName ? 1.5 : 0.5
+                                )
+                        )
+                        .limitTextLength(to: ValidationLimits.maxNameLength, text: $viewModel.fullName)
+                        .onChange(of: viewModel.fullName) { _, _ in
+                            viewModel.hasChanges = true
+                        }
+                }
+            }
+            .padding(Spacing.lg)
+            .background(
+                RoundedRectangle(cornerRadius: CornerRadius.card)
+                    .fill(AppColors.cardBackground)
+            )
+            .padding(.horizontal, Spacing.lg)
+        }
+    }
+
+    // MARK: - Contact Section
+
+    private var contactSection: some View {
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            sectionHeader("CONTACT")
+
+            VStack(spacing: Spacing.lg) {
+                // Phone (read-only)
+                VStack(alignment: .leading, spacing: Spacing.xs) {
+                    HStack(spacing: Spacing.xs) {
+                        Text("Phone Number")
+                            .font(AppTypography.labelDefault())
+                            .foregroundColor(AppColors.textSecondary)
+
+                        Image(systemName: "lock.fill")
+                            .font(.system(size: 10))
+                            .foregroundColor(AppColors.textTertiary)
+                    }
+
+                    HStack {
+                        Text(viewModel.phoneNumber.isEmpty ? "Not set" : viewModel.formattedPhoneNumber)
+                            .font(AppTypography.bodyLarge())
+                            .foregroundColor(viewModel.phoneNumber.isEmpty ? AppColors.textTertiary : AppColors.textPrimary)
+
+                        Spacer()
+                    }
+                    .padding(.horizontal, Spacing.md)
+                    .padding(.vertical, Spacing.md)
+                    .background(
+                        RoundedRectangle(cornerRadius: CornerRadius.medium)
+                            .fill(AppColors.backgroundTertiary.opacity(0.5))
+                    )
+                }
+
+                // Email
+                VStack(alignment: .leading, spacing: Spacing.xs) {
+                    Text("Email")
+                        .font(AppTypography.labelDefault())
+                        .foregroundColor(AppColors.textSecondary)
+
+                    TextField("Optional", text: $viewModel.email)
+                        .textContentType(.emailAddress)
+                        .keyboardType(.emailAddress)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .font(AppTypography.bodyLarge())
+                        .foregroundColor(AppColors.textPrimary)
+                        .focused($focusedField, equals: .email)
+                        .padding(.horizontal, Spacing.md)
+                        .padding(.vertical, Spacing.md)
+                        .background(
+                            RoundedRectangle(cornerRadius: CornerRadius.medium)
+                                .fill(AppColors.backgroundSecondary)
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: CornerRadius.medium)
+                                .strokeBorder(
+                                    !viewModel.emailError.isEmpty
+                                        ? AppColors.negative
+                                        : focusedField == .email ? AppColors.borderFocus : AppColors.border,
+                                    lineWidth: (focusedField == .email || !viewModel.emailError.isEmpty) ? 1.5 : 0.5
+                                )
+                        )
+                        .limitTextLength(to: ValidationLimits.maxEmailLength, text: $viewModel.email)
+                        .onChange(of: viewModel.email) { _, newValue in
+                            viewModel.hasChanges = true
+                            viewModel.validateEmail(newValue)
+                        }
+
+                    if !viewModel.emailError.isEmpty {
+                        HStack(spacing: Spacing.xs) {
+                            Image(systemName: "exclamationmark.circle.fill")
+                                .font(.system(size: 12))
+                            Text(viewModel.emailError)
+                                .font(AppTypography.caption())
+                        }
+                        .foregroundColor(AppColors.negative)
+                        .transition(.opacity.combined(with: .move(edge: .top)))
+                    }
+                }
+                .animation(AppAnimation.fast, value: viewModel.emailError.isEmpty)
+            }
+            .padding(Spacing.lg)
+            .background(
+                RoundedRectangle(cornerRadius: CornerRadius.card)
+                    .fill(AppColors.cardBackground)
+            )
+            .padding(.horizontal, Spacing.lg)
+        }
+    }
+
+    // MARK: - Color Section
+
+    private var colorSection: some View {
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            sectionHeader("PROFILE COLOR")
+
+            VStack(spacing: Spacing.md) {
+                HStack(spacing: Spacing.md) {
+                    Circle()
+                        .fill(Color(hex: viewModel.profileColor))
+                        .frame(width: 22, height: 22)
+
+                    Text("Your accent color across the app")
+                        .font(AppTypography.bodySmall())
+                        .foregroundColor(AppColors.textSecondary)
+
+                    Spacer()
+                }
+
+                LazyVGrid(
+                    columns: Array(repeating: GridItem(.flexible(), spacing: Spacing.md), count: 6),
+                    spacing: Spacing.md
+                ) {
+                    ForEach(PersonalDetailsViewModel.colorOptions, id: \.self) { color in
+                        Button {
+                            HapticManager.selectionChanged()
+                            withAnimation(AppAnimation.spring) {
+                                viewModel.profileColor = color
+                                viewModel.hasChanges = true
+                            }
+                        } label: {
+                            Circle()
+                                .fill(Color(hex: color))
+                                .frame(width: 36, height: 36)
+                                .overlay(
+                                    Circle()
+                                        .stroke(AppColors.textPrimary, lineWidth: 2.5)
+                                        .opacity(viewModel.profileColor == color ? 1 : 0)
+                                )
+                                .overlay(
+                                    Image(systemName: "checkmark")
+                                        .font(.system(size: 13, weight: .bold))
+                                        .foregroundColor(.white)
+                                        .opacity(viewModel.profileColor == color ? 1 : 0)
+                                )
+                                .scaleEffect(viewModel.profileColor == color ? 1.1 : 1.0)
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
             }
+            .padding(Spacing.lg)
+            .background(
+                RoundedRectangle(cornerRadius: CornerRadius.card)
+                    .fill(AppColors.cardBackground)
+            )
             .padding(.horizontal, Spacing.lg)
-            .padding(.vertical, Spacing.md)
-            .background(AppColors.cardBackground)
-            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: viewModel.profileColor)
+            .animation(AppAnimation.spring, value: viewModel.profileColor)
         }
+    }
+
+    // MARK: - Member Section
+
+    private var memberSection: some View {
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            sectionHeader("ACCOUNT")
+
+            HStack(spacing: Spacing.md) {
+                Image(systemName: "person.crop.circle.badge.checkmark")
+                    .font(.system(size: IconSize.md))
+                    .foregroundColor(AppColors.positive)
+
+                VStack(alignment: .leading, spacing: Spacing.xxs) {
+                    Text("Member since")
+                        .font(AppTypography.labelDefault())
+                        .foregroundColor(AppColors.textSecondary)
+
+                    Text(viewModel.memberSinceText)
+                        .font(AppTypography.bodyDefault())
+                        .foregroundColor(AppColors.textPrimary)
+                }
+
+                Spacer()
+            }
+            .padding(Spacing.lg)
+            .background(
+                RoundedRectangle(cornerRadius: CornerRadius.card)
+                    .fill(AppColors.cardBackground)
+            )
+            .padding(.horizontal, Spacing.lg)
+        }
+    }
+
+    // MARK: - Save Button
+
+    private var saveButton: some View {
+        Button {
+            focusedField = nil
+            viewModel.saveChanges(context: viewContext)
+        } label: {
+            HStack(spacing: Spacing.sm) {
+                if viewModel.isSaving {
+                    ProgressView()
+                        .scaleEffect(0.8)
+                        .tint(.white)
+                } else {
+                    Text("Save Changes")
+                        .font(AppTypography.buttonLarge())
+                }
+            }
+            .foregroundColor(.white)
+            .frame(maxWidth: .infinity)
+            .frame(height: ButtonHeight.lg)
+            .background(
+                RoundedRectangle(cornerRadius: CornerRadius.button)
+                    .fill(viewModel.canSave ? AppColors.accent : AppColors.disabled)
+            )
+        }
+        .disabled(!viewModel.canSave)
+        .padding(.horizontal, Spacing.lg)
+        .padding(.top, Spacing.sm)
+        .animation(AppAnimation.fast, value: viewModel.canSave)
+    }
+
+    // MARK: - Helpers
+
+    private func sectionHeader(_ title: String) -> some View {
+        Text(title)
+            .font(AppTypography.caption())
+            .foregroundColor(AppColors.textTertiary)
+            .tracking(0.5)
+            .padding(.horizontal, Spacing.lg + Spacing.xs)
     }
 }
 
@@ -335,6 +475,13 @@ private struct ProfileColorSection: View {
 
 @MainActor
 class PersonalDetailsViewModel: ObservableObject {
+    // Color options
+    static let colorOptions = [
+        "#34C759", "#007AFF", "#FF9500", "#FF2D55",
+        "#AF52DE", "#5856D6", "#00C7BE", "#FF3B30",
+        "#32ADE6", "#BF5AF2", "#FFD60A", "#64D2FF",
+    ]
+
     // Form fields
     @Published var displayName: String = ""
     @Published var fullName: String = ""
@@ -353,11 +500,8 @@ class PersonalDetailsViewModel: ObservableObject {
     @Published var isSaving = false
     @Published var hasChanges = false
 
-    // Original values for change detection
-    private var originalDisplayName = ""
-    private var originalFullName = ""
-    private var originalEmail = ""
-    private var originalColor = ""
+    // Account info
+    private var accountCreatedDate: Date?
 
     var initials: String {
         if displayName.isEmpty {
@@ -375,7 +519,6 @@ class PersonalDetailsViewModel: ObservableObject {
         let digits = phoneNumber.filter { $0.isNumber }
         guard digits.count >= 7 else { return phoneNumber }
 
-        // Swiss: +41 XX XXX XX XX (11 digits with country code)
         if digits.hasPrefix("41") && digits.count == 11 {
             let area = String(digits.dropFirst(2).prefix(2))
             let rest = String(digits.dropFirst(4))
@@ -385,7 +528,6 @@ class PersonalDetailsViewModel: ObservableObject {
             return "+41 \(area) \(p1) \(p2) \(p3)"
         }
 
-        // Swiss local: 0XX XXX XX XX (10 digits starting with 0)
         if digits.hasPrefix("0") && digits.count == 10 {
             let area = String(digits.prefix(3))
             let rest = String(digits.dropFirst(3))
@@ -395,7 +537,6 @@ class PersonalDetailsViewModel: ObservableObject {
             return "\(area) \(p1) \(p2) \(p3)"
         }
 
-        // US/Canada: +1 (XXX) XXX-XXXX (11 digits with country code)
         if digits.hasPrefix("1") && digits.count == 11 {
             let body = String(digits.dropFirst())
             let area = String(body.prefix(3))
@@ -404,7 +545,6 @@ class PersonalDetailsViewModel: ObservableObject {
             return "+1 (\(area)) \(mid)-\(last)"
         }
 
-        // US local: (XXX) XXX-XXXX (10 digits)
         if digits.count == 10 && !digits.hasPrefix("0") && !digits.hasPrefix("44") && !digits.hasPrefix("91") {
             let area = String(digits.prefix(3))
             let mid = String(digits.dropFirst(3).prefix(3))
@@ -412,7 +552,6 @@ class PersonalDetailsViewModel: ObservableObject {
             return "(\(area)) \(mid)-\(last)"
         }
 
-        // UK: +44 XXXX XXXXXX (12 digits with country code)
         if digits.hasPrefix("44") && digits.count == 12 {
             let body = String(digits.dropFirst(2))
             let p1 = String(body.prefix(4))
@@ -420,7 +559,6 @@ class PersonalDetailsViewModel: ObservableObject {
             return "+44 \(p1) \(p2)"
         }
 
-        // India: +91 XXXXX XXXXX (12 digits with country code)
         if digits.hasPrefix("91") && digits.count == 12 {
             let body = String(digits.dropFirst(2))
             let p1 = String(body.prefix(5))
@@ -428,7 +566,6 @@ class PersonalDetailsViewModel: ObservableObject {
             return "+91 \(p1) \(p2)"
         }
 
-        // Generic international
         let hasPlus = phoneNumber.trimmingCharacters(in: .whitespaces).hasPrefix("+")
         var result = ""
         for (i, char) in digits.enumerated() {
@@ -448,6 +585,31 @@ class PersonalDetailsViewModel: ObservableObject {
         selectedImage != nil
     }
 
+    var memberSinceText: String {
+        if let date = accountCreatedDate {
+            let formatter = DateFormatter()
+            formatter.dateFormat = "MMMM yyyy"
+            return formatter.string(from: date)
+        }
+
+        if let storedDateString = UserDefaults.standard.string(forKey: "account_created_date"),
+           let storedDate = ISO8601DateFormatter().date(from: storedDateString)
+        {
+            return {
+                let formatter = DateFormatter()
+                formatter.dateFormat = "MMMM yyyy"
+                return formatter.string(from: storedDate)
+            }()
+        }
+
+        // First time - store current date
+        let now = Date()
+        UserDefaults.standard.set(ISO8601DateFormatter().string(from: now), forKey: "account_created_date")
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMMM yyyy"
+        return formatter.string(from: now)
+    }
+
     // MARK: - Load Data
 
     func loadCurrentUserData(context: NSManagedObjectContext) {
@@ -456,20 +618,18 @@ class PersonalDetailsViewModel: ObservableObject {
         profileColor = currentUser.colorHex ?? AppColors.defaultAvatarColorHex
         phoneNumber = currentUser.phoneNumber ?? ""
 
-        // Load photo from CoreData
         if let photoData = currentUser.photoData, let image = UIImage(data: photoData) {
             selectedImage = image
         }
 
-        // Load email from UserDefaults
         email = UserDefaults.standard.string(forKey: "user_email") ?? ""
         fullName = UserDefaults.standard.string(forKey: "user_full_name") ?? ""
 
-        // Store original values
-        originalDisplayName = displayName
-        originalFullName = fullName
-        originalEmail = email
-        originalColor = profileColor
+        if let storedDateString = UserDefaults.standard.string(forKey: "account_created_date"),
+           let storedDate = ISO8601DateFormatter().date(from: storedDateString)
+        {
+            accountCreatedDate = storedDate
+        }
     }
 
     // MARK: - Validation
@@ -497,12 +657,10 @@ class PersonalDetailsViewModel: ObservableObject {
         HapticManager.save()
 
         do {
-            // Update CoreData
             let currentUser = CurrentUser.getOrCreate(in: context)
             currentUser.name = displayName
             currentUser.colorHex = profileColor
 
-            // Save photo data
             if let image = selectedImage {
                 currentUser.photoData = image.jpegData(compressionQuality: 0.8)
             } else {
@@ -511,11 +669,9 @@ class PersonalDetailsViewModel: ObservableObject {
 
             try context.save()
 
-            // Save additional fields to UserDefaults
             UserDefaults.standard.set(email, forKey: "user_email")
             UserDefaults.standard.set(fullName, forKey: "user_full_name")
 
-            // Update CurrentUser profile
             CurrentUser.updateProfile(
                 name: displayName,
                 colorHex: profileColor,
@@ -538,7 +694,6 @@ class PersonalDetailsViewModel: ObservableObject {
     // MARK: - Photo Management
 
     func didSelectImage(_ image: UIImage) {
-        // Resize if needed
         let maxDimension: CGFloat = 800
         let size = image.size
         let ratio = min(maxDimension / size.width, maxDimension / size.height)
@@ -553,7 +708,6 @@ class PersonalDetailsViewModel: ObservableObject {
             selectedImage = image
         }
 
-        // Check file size (max 5MB)
         if let data = selectedImage?.jpegData(compressionQuality: 0.8), data.count > 5 * 1024 * 1024 {
             HapticManager.error()
             errorMessage = "Image is too large. Maximum size is 5MB."
