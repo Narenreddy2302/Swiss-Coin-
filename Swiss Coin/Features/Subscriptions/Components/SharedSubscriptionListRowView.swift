@@ -37,7 +37,6 @@ private struct BalanceDisplayInfo {
 struct SharedSubscriptionListRowView: View {
     @ObservedObject var subscription: Subscription
     @Environment(\.managedObjectContext) private var viewContext
-    @State private var isPressed = false
     @State private var showingRecordPayment = false
     @State private var showingReminder = false
     @State private var showingDetail = false
@@ -63,6 +62,7 @@ struct SharedSubscriptionListRowView: View {
                         .font(AppTypography.headingMedium())
                         .foregroundColor(Color(hex: subscription.colorHex ?? "#007AFF"))
                 )
+                .accessibilityHidden(true)
 
             // Name and Info
             VStack(alignment: .leading, spacing: Spacing.xs) {
@@ -76,7 +76,7 @@ struct SharedSubscriptionListRowView: View {
                         .font(AppTypography.bodySmall())
                         .foregroundColor(AppColors.textSecondary)
 
-                    Text("•")
+                    Text("\u{2022}")
                         .font(AppTypography.bodySmall())
                         .foregroundColor(AppColors.textSecondary)
 
@@ -92,15 +92,15 @@ struct SharedSubscriptionListRowView: View {
             // Balance amount
             if abs(displayInfo.amount) > 0.01 {
                 Text(CurrencyFormatter.formatAbsolute(displayInfo.amount))
-                    .font(AppTypography.financialSmall())
+                    .font(AppTypography.financialDefault())
                     .foregroundColor(displayInfo.color)
             }
         }
-        .padding(.vertical, Spacing.lg)
+        .padding(.vertical, Spacing.md)
         .padding(.horizontal, Spacing.lg)
-        .scaleEffect(isPressed ? 0.98 : 1.0)
-        .animation(AppAnimation.quick, value: isPressed)
         .contentShape(Rectangle())
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(subscription.name ?? "Unknown"), \(memberCount + 1) members, \(displayInfo.text)")
         .contextMenu {
             Button {
                 HapticManager.lightTap()
