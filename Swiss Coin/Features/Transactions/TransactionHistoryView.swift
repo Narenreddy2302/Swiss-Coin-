@@ -85,7 +85,7 @@ struct TransactionHistoryView: View {
                     .opacity(selectedTransaction == nil ? 1 : 0)
 
             }
-            .background(AppColors.background)
+            .background(AppColors.backgroundSecondary)
             .sheet(isPresented: Binding(
                 get: { selectedTransaction != nil },
                 set: { if !$0 { selectedTransaction = nil } }
@@ -150,7 +150,7 @@ struct TransactionHistoryView: View {
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(AppColors.background)
+        .background(AppColors.backgroundSecondary)
     }
 
     // MARK: - Transaction List
@@ -208,7 +208,7 @@ struct TransactionHistoryView: View {
         .padding(.vertical, Spacing.lg)
         .background(
             RoundedRectangle(cornerRadius: CornerRadius.md)
-                .fill(AppColors.background)
+                .fill(AppColors.cardBackground)
                 .shadow(color: Color.black.opacity(0.06), radius: 6, x: 0, y: 2)
         )
     }
@@ -259,7 +259,7 @@ struct TransactionHistoryView: View {
             }
             .background(
                 RoundedRectangle(cornerRadius: CornerRadius.md)
-                    .fill(AppColors.background)
+                    .fill(AppColors.cardBackground)
                     .shadow(color: Color.black.opacity(0.06), radius: 6, x: 0, y: 2)
             )
         }

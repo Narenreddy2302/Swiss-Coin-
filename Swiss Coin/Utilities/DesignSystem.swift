@@ -692,11 +692,11 @@ enum AppColors {
 
     // MARK: - Interactive Colors
 
-    /// User message bubble — warm accent tint to distinguish from other messages
+    /// User message bubble — white for visibility against off-white background
     static let userBubble = Color(UIColor { tc in
         tc.userInterfaceStyle == .dark
-            ? UIColor(hex: "#3D2A1E")
-            : UIColor(hex: "#FDE8DB")
+            ? UIColor(hex: "#3A3A3C")
+            : UIColor.white
     })
 
     /// User message bubble text color
@@ -706,17 +706,17 @@ enum AppColors {
             : UIColor(hex: "#22201D")
     })
 
-    /// Other person message bubble — neutral cool gray
+    /// Other person message bubble — white for visibility against off-white background
     static let otherBubble = Color(UIColor { tc in
         tc.userInterfaceStyle == .dark
-            ? UIColor(hex: "#2C2C2E")
-            : UIColor(hex: "#EFECEA")
+            ? UIColor(hex: "#3A3A3C")
+            : UIColor.white
     })
 
     /// Other message bubble text color
     static let otherBubbleText = Color(UIColor { tc in
         tc.userInterfaceStyle == .dark
-            ? UIColor(hex: "#E8E6E3")
+            ? UIColor(hex: "#F5F5F3")
             : UIColor(hex: "#22201D")
     })
 
@@ -743,11 +743,11 @@ enum AppColors {
 
     // MARK: - Receipt / Conversation Theme Colors
 
-    /// Warm cream background for receipt-style cards
+    /// Receipt-style card background — white for clear visibility
     static let receiptBackground = Color(UIColor { tc in
         tc.userInterfaceStyle == .dark
-            ? UIColor(hex: "#2A2520")
-            : UIColor(hex: "#FAF6F0")
+            ? UIColor(hex: "#3A3A3C")
+            : UIColor.white
     })
 
     /// Dot grid color for receipt pattern
@@ -787,17 +787,17 @@ enum AppColors {
 
     // MARK: - Conversation View Colors
 
-    /// Conversation scroll area background
+    /// Conversation scroll area background — matches backgroundSecondary for consistency
     static let conversationBackground = Color(UIColor { tc in
         tc.userInterfaceStyle == .dark
-            ? UIColor(hex: "#1A1A1C")
-            : UIColor(hex: "#F5F3F0")
+            ? UIColor(hex: "#2C2C2E")
+            : UIColor(hex: "#F7F5F3")
     })
 
-    /// Transaction card background in conversation — elevated to stand out from scroll area
+    /// Transaction card background in conversation — white for clear visibility
     static let transactionCardBackground = Color(UIColor { tc in
         tc.userInterfaceStyle == .dark
-            ? UIColor(hex: "#2C2A28")
+            ? UIColor(hex: "#3A3A3C")
             : UIColor.white
     })
 
@@ -829,10 +829,10 @@ enum AppColors {
             : UIColor(hex: "#6B6560")
     })
 
-    /// Message input area background
+    /// Message input area background — matches app background for consistency
     static let messageInputBackground = Color(UIColor { tc in
         tc.userInterfaceStyle == .dark
-            ? UIColor(hex: "#1C1C1E")
+            ? UIColor(hex: "#2C2C2E")
             : UIColor(hex: "#F7F5F3")
     })
 
@@ -843,11 +843,11 @@ enum AppColors {
             : UIColor(hex: "#EFEDEB")
     })
 
-    /// Action bar background — slightly elevated from conversation background
+    /// Action bar background — matches app background for consistency
     static let actionBarBackground = Color(UIColor { tc in
         tc.userInterfaceStyle == .dark
-            ? UIColor(hex: "#222224")
-            : UIColor(hex: "#F0EDEA")
+            ? UIColor(hex: "#2C2C2E")
+            : UIColor(hex: "#F7F5F3")
     })
 
     /// Settlement message background — muted positive for dark, subtle green tint for light
