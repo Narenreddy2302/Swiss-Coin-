@@ -2,6 +2,14 @@ import CoreData
 import os
 import SwiftUI
 
+// MARK: - Static Formatters (allocated once, reused across all renders)
+
+private let monthYearFormatter: DateFormatter = {
+    let formatter = DateFormatter()
+    formatter.dateFormat = "MMMM yyyy"
+    return formatter
+}()
+
 struct TransactionHistoryView: View {
     @Environment(\.managedObjectContext) private var viewContext
 
@@ -9,6 +17,7 @@ struct TransactionHistoryView: View {
         let request: NSFetchRequest<FinancialTransaction> = FinancialTransaction.fetchRequest()
         request.sortDescriptors = [NSSortDescriptor(keyPath: \FinancialTransaction.date, ascending: false)]
         request.fetchBatchSize = 50
+        request.relationshipKeyPathsForPrefetching = ["payer", "splits", "payers", "createdBy"]
         return request
     }(), animation: .default)
     private var transactions: FetchedResults<FinancialTransaction>
@@ -18,9 +27,13 @@ struct TransactionHistoryView: View {
 
     @State private var selectedTransaction: FinancialTransaction?
 
-    // MARK: - Grouped Transactions
+    // MARK: - Cached Computed Values (avoid O(n) per render)
 
-    private var groupedTransactions: [(key: String, transactions: [FinancialTransaction])] {
+    @State private var cachedGroups: [(key: String, transactions: [FinancialTransaction])] = []
+    @State private var cachedTotalAmount: Double = 0
+    @State private var cachedTransactionCount: Int = 0
+
+    private func recomputeGroupedTransactions() {
         let calendar = Calendar.current
         let now = Date()
 
@@ -36,38 +49,27 @@ struct TransactionHistoryView: View {
             } else if let daysAgo = calendar.dateComponents([.day], from: date, to: now).day, daysAgo < 30 {
                 return "This Month"
             } else {
-                let formatter = DateFormatter()
-                formatter.dateFormat = "MMMM yyyy"
-                return formatter.string(from: date)
+                return monthYearFormatter.string(from: date)
             }
         }
 
-        // Define sort order for group keys
         let order = ["Today", "Yesterday", "This Week", "This Month"]
 
-        return grouped
+        cachedGroups = grouped
             .sorted { first, second in
                 let idx1 = order.firstIndex(of: first.key) ?? Int.max
                 let idx2 = order.firstIndex(of: second.key) ?? Int.max
                 if idx1 != Int.max || idx2 != Int.max {
                     return idx1 < idx2
                 }
-                // For month-year strings, sort descending by the first transaction date
                 let date1 = first.value.first?.date ?? Date.distantPast
                 let date2 = second.value.first?.date ?? Date.distantPast
                 return date1 > date2
             }
             .map { (key: $0.key, transactions: $0.value.sorted { ($0.date ?? .distantPast) > ($1.date ?? .distantPast) }) }
-    }
 
-    // MARK: - Summary
-
-    private var totalAmount: Double {
-        transactions.reduce(0) { $0 + $1.amount }
-    }
-
-    private var transactionCount: Int {
-        transactions.count
+        cachedTotalAmount = transactions.reduce(0) { $0 + $1.amount }
+        cachedTransactionCount = transactions.count
     }
 
     var body: some View {
@@ -110,6 +112,8 @@ struct TransactionHistoryView: View {
             } message: {
                 Text("Are you sure you want to delete this transaction? This action cannot be undone.")
             }
+            .onAppear { recomputeGroupedTransactions() }
+            .onChange(of: transactions.count) { recomputeGroupedTransactions() }
         }
     }
 
@@ -163,7 +167,7 @@ struct TransactionHistoryView: View {
 
                 // Grouped Transactions
                 LazyVStack(spacing: Spacing.xl) {
-                    ForEach(groupedTransactions, id: \.key) { group in
+                    ForEach(cachedGroups, id: \.key) { group in
                         transactionSection(title: group.key, transactions: group.transactions)
                     }
                 }
@@ -185,7 +189,7 @@ struct TransactionHistoryView: View {
                 Text("Total")
                     .font(AppTypography.caption())
                     .foregroundColor(AppColors.textSecondary)
-                Text(CurrencyFormatter.format(totalAmount))
+                Text(CurrencyFormatter.format(cachedTotalAmount))
                     .font(AppTypography.financialLarge())
                     .tracking(AppTypography.Tracking.financialLarge)
                     .foregroundColor(AppColors.textPrimary)
@@ -198,7 +202,7 @@ struct TransactionHistoryView: View {
                 Text("Transactions")
                     .font(AppTypography.caption())
                     .foregroundColor(AppColors.textSecondary)
-                Text("\(transactionCount)")
+                Text("\(cachedTransactionCount)")
                     .font(AppTypography.financialLarge())
                     .tracking(AppTypography.Tracking.financialLarge)
                     .foregroundColor(AppColors.textPrimary)

@@ -403,10 +403,10 @@ struct TransactionExpandedView: View {
             sheetScrollContent
         }
         .scrollBounceBehavior(.basedOnSize)
-        .background(AppColors.cardBackground)
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
         .presentationCornerRadius(CornerRadius.xl)
+        .presentationBackground(AppColors.cardBackground)
         .onAppear {
             recomputeCachedState()
             HapticManager.lightTap()

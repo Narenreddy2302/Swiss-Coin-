@@ -26,6 +26,7 @@ struct SearchView: View {
     @State private var selectedFilter: TransactionFilter = .all
 
     @State private var selectedTransaction: FinancialTransaction?
+    @State private var cachedDisplayedTransactions: [FinancialTransaction] = []
 
     // MARK: - Fetch Requests
 
@@ -34,6 +35,7 @@ struct SearchView: View {
         request.sortDescriptors = [NSSortDescriptor(keyPath: \FinancialTransaction.date, ascending: false)]
         request.fetchLimit = 200  // Limit for search performance
         request.fetchBatchSize = 50
+        request.relationshipKeyPathsForPrefetching = ["payer", "splits", "payers", "createdBy"]
         return request
     }(), animation: .default)
     private var allTransactions: FetchedResults<FinancialTransaction>
@@ -105,7 +107,7 @@ struct SearchView: View {
         return userPaid - userSplit
     }
 
-    private var displayedTransactions: [FinancialTransaction] {
+    private func updateDisplayedTransactions() {
         let base: [FinancialTransaction]
         if isSearching {
             let query = debouncedSearchText.lowercased()
@@ -116,11 +118,11 @@ struct SearchView: View {
 
         switch selectedFilter {
         case .all, .subscriptions:
-            return base
+            cachedDisplayedTransactions = base
         case .incoming:
-            return base.filter { userNetPosition(for: $0) > 0.01 }
+            cachedDisplayedTransactions = base.filter { userNetPosition(for: $0) > 0.01 }
         case .outgoing:
-            return base.filter { userNetPosition(for: $0) < -0.01 }
+            cachedDisplayedTransactions = base.filter { userNetPosition(for: $0) < -0.01 }
         }
     }
 
@@ -133,7 +135,7 @@ struct SearchView: View {
     }
 
     private var hasSearchResults: Bool {
-        !displayedTransactions.isEmpty ||
+        !cachedDisplayedTransactions.isEmpty ||
         !filteredPeople.isEmpty ||
         !filteredGroups.isEmpty ||
         !filteredSubscriptions.isEmpty
@@ -182,13 +184,17 @@ struct SearchView: View {
         )
         .onAppear {
             HapticManager.prepare()
+            updateDisplayedTransactions()
         }
+        .onChange(of: allTransactions.count) { updateDisplayedTransactions() }
+        .onChange(of: selectedFilter) { updateDisplayedTransactions() }
         .onChange(of: searchText) { _, newValue in
             searchDebounceTask?.cancel()
             searchDebounceTask = Task {
                 try? await Task.sleep(nanoseconds: 250_000_000)
                 guard !Task.isCancelled else { return }
                 debouncedSearchText = newValue
+                updateDisplayedTransactions()
             }
         }
     }
@@ -229,23 +235,23 @@ struct SearchView: View {
 
     private var transactionListView: some View {
         Group {
-            if displayedTransactions.isEmpty {
+            if cachedDisplayedTransactions.isEmpty {
                 filterEmptyView
             } else {
                 ScrollView {
                     LazyVStack(spacing: 0) {
-                        ForEach(displayedTransactions, id: \.id) { transaction in
+                        ForEach(cachedDisplayedTransactions, id: \.id) { transaction in
                             TransactionRowView(
                                 transaction: transaction,
                                 selectedTransaction: $selectedTransaction
                             )
-                            if transaction.id != displayedTransactions.last?.id {
+                            if transaction.id != cachedDisplayedTransactions.last?.id {
                                 Divider()
                             }
                         }
                     }
                     .padding(.bottom, Spacing.section)
-                    .animation(.easeInOut(duration: 0.2), value: displayedTransactions.count)
+                    .animation(.easeInOut(duration: 0.2), value: cachedDisplayedTransactions.count)
                 }
             }
         }
@@ -289,18 +295,18 @@ struct SearchView: View {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: Spacing.xxl) {
                         // Transactions Results
-                        if !displayedTransactions.isEmpty {
+                        if !cachedDisplayedTransactions.isEmpty {
                             SearchResultSection(
                                 title: "Transactions",
                                 icon: "arrow.left.arrow.right",
-                                count: displayedTransactions.count
+                                count: cachedDisplayedTransactions.count
                             ) {
-                                ForEach(displayedTransactions, id: \.id) { transaction in
+                                ForEach(cachedDisplayedTransactions, id: \.id) { transaction in
                                     TransactionRowView(
                                         transaction: transaction,
                                         selectedTransaction: $selectedTransaction
                                     )
-                                    if transaction.id != displayedTransactions.last?.id {
+                                    if transaction.id != cachedDisplayedTransactions.last?.id {
                                         Divider()
                                     }
                                 }
@@ -381,7 +387,7 @@ struct SearchView: View {
                     }
                     .padding(.top, Spacing.lg)
                     .padding(.bottom, Spacing.section)
-                    .animation(.easeInOut(duration: 0.2), value: displayedTransactions.count)
+                    .animation(.easeInOut(duration: 0.2), value: cachedDisplayedTransactions.count)
                     .animation(.easeInOut(duration: 0.2), value: filteredPeople.count)
                     .animation(.easeInOut(duration: 0.2), value: filteredGroups.count)
                     .animation(.easeInOut(duration: 0.2), value: filteredSubscriptions.count)

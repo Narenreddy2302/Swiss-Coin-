@@ -15,6 +15,12 @@ struct TransactionRowView: View {
     @State private var showingEditSheet = false
     @State private var showingDeleteAlert = false
 
+    // MARK: - Cached Values (computed once, not every render)
+    @State private var cachedNetPosition: Double = 0
+    @State private var cachedSplitDetails: String = ""
+    @State private var cachedDateString: String = ""
+    @State private var cachedCreatorName: String = ""
+
     // MARK: - Initializers
 
     /// Overlay detail initializer (used in TransactionHistoryView, HomeView, SearchView)
@@ -45,10 +51,53 @@ struct TransactionRowView: View {
     }
 
     var body: some View {
-        if usesOverlayDetail {
-            heroContent
+        Group {
+            if usesOverlayDetail {
+                heroContent
+            } else {
+                navigationLinkContent
+            }
+        }
+        .onAppear { recomputeCache() }
+        .onChange(of: transaction.amount) { recomputeCache() }
+    }
+
+    private func recomputeCache() {
+        let userPaid = transaction.effectivePayers
+            .filter { CurrentUser.isCurrentUser($0.personId) }
+            .reduce(0) { $0 + $1.amount }
+        let userSplit = (transaction.splits as? Set<TransactionSplit> ?? [])
+            .filter { CurrentUser.isCurrentUser($0.owedBy?.id) }
+            .reduce(0) { $0 + $1.amount }
+        cachedNetPosition = userPaid - userSplit
+
+        // Split count
+        let splits = transaction.splits as? Set<TransactionSplit> ?? []
+        var participants = Set<UUID>()
+        for payer in transaction.effectivePayers {
+            if let id = payer.personId { participants.insert(id) }
+        }
+        for split in splits {
+            if let owedById = split.owedBy?.id { participants.insert(owedById) }
+        }
+        let count = max(participants.count, 1)
+        let formattedTotal = CurrencyFormatter.format(transaction.amount)
+        let peopleText = count == 1 ? "1 person" : "\(count) people"
+        cachedSplitDetails = "\(formattedTotal) · \(peopleText)"
+
+        // Date string
+        if let date = transaction.date {
+            cachedDateString = DateFormatter.mediumDate.string(from: date)
         } else {
-            navigationLinkContent
+            cachedDateString = ""
+        }
+
+        // Creator name
+        let creator = transaction.createdBy ?? transaction.payer
+        if let creatorId = creator?.id {
+            cachedCreatorName = CurrentUser.isCurrentUser(creatorId) ? "You" : (creator?.firstName ?? "Unknown")
+        } else {
+            cachedCreatorName = "Unknown"
         }
     }
 
@@ -221,9 +270,9 @@ struct TransactionRowView: View {
                 titleView
 
                 HStack(spacing: Spacing.xxs) {
-                    Text(dateString)
+                    Text(cachedDateString)
                     Text("·")
-                    Text("By \(creatorName)")
+                    Text("By \(cachedCreatorName)")
                         .lineLimit(1)
                 }
                 .font(AppTypography.caption())
@@ -236,7 +285,7 @@ struct TransactionRowView: View {
             VStack(alignment: .trailing, spacing: Spacing.xxs) {
                 amountView
 
-                Text(splitDetails)
+                Text(cachedSplitDetails)
                     .font(AppTypography.caption())
                     .foregroundColor(AppColors.textTertiary)
             }
@@ -272,93 +321,24 @@ struct TransactionRowView: View {
             .foregroundColor(amountColor)
     }
 
-    // MARK: - Helpers
-
-    private var dateString: String {
-        guard let date = transaction.date else { return "" }
-        return DateFormatter.mediumDate.string(from: date)
-    }
-
-    var creatorName: String {
-        // Use createdBy if available, otherwise fall back to payer for backward compatibility
-        let creator = transaction.createdBy ?? transaction.payer
-        if let creatorId = creator?.id {
-            if CurrentUser.isCurrentUser(creatorId) {
-                return "You"
-            }
-            return creator?.firstName ?? "Unknown"
-        }
-        return "Unknown"
-    }
-
-    // MARK: - Amount Logic
-
-    /// User's net position: paid - owed. Positive = others owe you.
-    var userNetPosition: Double {
-        let userPaid = transaction.effectivePayers
-            .filter { CurrentUser.isCurrentUser($0.personId) }
-            .reduce(0) { $0 + $1.amount }
-        let userSplit = (transaction.splits as? Set<TransactionSplit> ?? [])
-            .filter { CurrentUser.isCurrentUser($0.owedBy?.id) }
-            .reduce(0) { $0 + $1.amount }
-        return userPaid - userSplit
-    }
+    // MARK: - Amount Logic (derived from cached net position)
 
     var isPayer: Bool {
-        userNetPosition > 0
+        cachedNetPosition > 0
     }
 
-    /// Amount others owe you (if positive net) or you owe (if negative net)
     var amountToShow: Double {
-        abs(userNetPosition)
+        abs(cachedNetPosition)
     }
 
     var amountPrefix: String {
-        let amount = amountToShow
-        if amount < 0.01 {
-            return ""
-        }
+        if amountToShow < 0.01 { return "" }
         return isPayer ? "+" : "-"
     }
 
     var amountColor: Color {
-        let amount = amountToShow
-
-        if amount < 0.01 {
-            return AppColors.textSecondary
-        }
-
-        if isPayer {
-            return AppColors.positive
-        } else {
-            return AppColors.negative
-        }
-    }
-
-    var splitCount: Int {
-        let splits = transaction.splits as? Set<TransactionSplit> ?? []
-
-        // Count unique participants (payers + those who owe)
-        var participants = Set<UUID>()
-        for payer in transaction.effectivePayers {
-            if let id = payer.personId {
-                participants.insert(id)
-            }
-        }
-        for split in splits {
-            if let owedById = split.owedBy?.id {
-                participants.insert(owedById)
-            }
-        }
-
-        return max(participants.count, 1)
-    }
-
-    var splitDetails: String {
-        let formattedTotal = CurrencyFormatter.format(transaction.amount)
-        let count = splitCount
-        let peopleText = count == 1 ? "1 person" : "\(count) people"
-        return "\(formattedTotal) · \(peopleText)"
+        if amountToShow < 0.01 { return AppColors.textSecondary }
+        return isPayer ? AppColors.positive : AppColors.negative
     }
 
     // MARK: - Actions
@@ -367,8 +347,8 @@ struct TransactionRowView: View {
         let shareText = """
         \(transaction.title ?? "Transaction")
         Amount: \(CurrencyFormatter.format(transaction.amount))
-        Date: \(dateString)
-        Split between \(splitCount) people
+        Date: \(cachedDateString)
+        \(cachedSplitDetails)
         """
 
         guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
