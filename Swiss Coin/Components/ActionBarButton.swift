@@ -100,7 +100,7 @@ struct ActionBarContainer<Content: View>: View {
         }
         .padding(.horizontal, Spacing.lg)
         .padding(.vertical, Spacing.md)
-        .background(AppColors.backgroundSecondary)
+        .background(AppColors.actionBarBackground)
         .onAppear {
             HapticManager.prepare()
         }

@@ -29,7 +29,7 @@ struct MessageInputView: View {
                 .padding(.vertical, Spacing.sm)
                 .background(
                     RoundedRectangle(cornerRadius: CornerRadius.xl)
-                        .fill(AppColors.backgroundTertiary)
+                        .fill(AppColors.messageInputFieldBackground)
                 )
                 .lineLimit(1...5)
                 .accessibilityLabel("Message input")
@@ -65,7 +65,7 @@ struct MessageInputView: View {
         }
         .padding(.horizontal, Spacing.md)
         .padding(.vertical, Spacing.sm)
-        .background(AppColors.backgroundSecondary)
+        .background(AppColors.messageInputBackground)
         .onAppear {
             HapticManager.prepare()
         }

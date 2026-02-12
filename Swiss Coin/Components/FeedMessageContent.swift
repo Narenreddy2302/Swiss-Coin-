@@ -49,10 +49,13 @@ struct FeedMessageContent: View {
 
     @ViewBuilder
     private var normalView: some View {
+        let bubbleColor = isFromUser ? AppColors.userBubble : AppColors.otherBubble
+        let textColor = isFromUser ? AppColors.userBubbleText : AppColors.otherBubbleText
+
         VStack(alignment: .leading, spacing: Spacing.xxs) {
             Text(message.content ?? "")
                 .font(AppTypography.bodyLarge())
-                .foregroundColor(AppColors.textPrimary)
+                .foregroundColor(textColor)
 
             if message.isEdited {
                 Text("Edited")
@@ -63,13 +66,9 @@ struct FeedMessageContent: View {
         .padding(Spacing.md)
         .background(
             RoundedRectangle(cornerRadius: CornerRadius.card)
-                .fill(AppColors.cardBackground)
+                .fill(bubbleColor)
                 .shadow(color: Color.black.opacity(0.04), radius: 4, x: 0, y: 2)
                 .shadow(color: Color.black.opacity(0.02), radius: 1, x: 0, y: 1)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: CornerRadius.card)
-                .stroke(AppColors.border.opacity(0.3), lineWidth: 0.5)
         )
         .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: CornerRadius.card))
         .contextMenu {

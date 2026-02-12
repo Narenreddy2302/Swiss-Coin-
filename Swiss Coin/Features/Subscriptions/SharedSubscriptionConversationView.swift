@@ -116,7 +116,7 @@ struct SharedSubscriptionConversationView: View {
                 .scrollDismissesKeyboard(.interactively)
                 .background(
                     ZStack {
-                        AppColors.backgroundSecondary
+                        AppColors.conversationBackground
                         DotGridPattern(
                             dotSpacing: 16,
                             dotRadius: 0.5,
@@ -153,10 +153,10 @@ struct SharedSubscriptionConversationView: View {
                 onSend: sendMessage
             )
         }
-        .background(AppColors.backgroundSecondary)
+        .background(AppColors.conversationBackground)
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(AppColors.backgroundSecondary, for: .navigationBar)
+        .toolbarBackground(AppColors.conversationBackground, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
         .toolbar(.hidden, for: .tabBar)
         .tint(AppColors.textSecondary)

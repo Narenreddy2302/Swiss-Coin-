@@ -42,8 +42,8 @@ struct SystemMessageView: View {
                     .foregroundColor(iconColor)
 
                 Text(messageText)
-                    .font(AppTypography.bodySmall())
-                    .foregroundColor(AppColors.textSecondary)
+                    .font(AppTypography.labelDefault())
+                    .foregroundColor(AppColors.textPrimary)
             }
             .padding(.horizontal, Spacing.md)
             .padding(.vertical, Spacing.sm)

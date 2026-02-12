@@ -35,7 +35,7 @@ struct GroupSettlementMessageView: View {
             messageText: messageText,
             noteText: settlement.note,
             date: settlement.date,
-            backgroundColor: AppColors.positiveMuted
+            backgroundColor: AppColors.settlementBackground
         )
         .contextMenu {
             Button {
