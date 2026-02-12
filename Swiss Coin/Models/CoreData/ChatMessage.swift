@@ -25,6 +25,7 @@ extension ChatMessage {
     @NSManaged public var withPerson: Person?
     @NSManaged public var withGroup: UserGroup?
     @NSManaged public var withSubscription: Subscription?
+    @NSManaged public var onTransaction: FinancialTransaction?
 
 }
 

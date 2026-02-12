@@ -92,8 +92,9 @@ extension Person {
         let reminders = receivedReminders as? Set<Reminder> ?? []
         items.append(contentsOf: reminders.map { ConversationItem.reminder($0) })
 
-        // Add chat messages with this person
-        let messages = chatMessages as? Set<ChatMessage> ?? []
+        // Add chat messages with this person (exclude transaction comments)
+        let messages = (chatMessages as? Set<ChatMessage> ?? [])
+            .filter { $0.onTransaction == nil }
         items.append(contentsOf: messages.map { ConversationItem.message($0) })
 
         // Sort by date ascending (oldest first, like iMessage)

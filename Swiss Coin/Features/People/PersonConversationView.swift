@@ -38,6 +38,9 @@ struct PersonConversationView: View {
     // Transaction edit state
     @State private var transactionToEdit: FinancialTransaction?
 
+    // Transaction comment state
+    @State private var transactionToComment: FinancialTransaction?
+
     // Transaction undo toast state
     @State private var showUndoTransactionToast = false
     @State private var cachedTxnTitle: String = ""
@@ -239,6 +242,10 @@ struct PersonConversationView: View {
             TransactionEditView(transaction: transaction)
                 .onAppear { HapticManager.sheetPresent() }
         }
+        .sheet(item: $transactionToComment) { transaction in
+            TransactionCommentSheet(transaction: transaction, person: person)
+                .onAppear { HapticManager.sheetPresent() }
+        }
         .undoToast(
             isShowing: $showUndoTransactionToast,
             message: "Transaction undone",
@@ -434,7 +441,7 @@ struct PersonConversationView: View {
                     showingDeleteTransaction = true
                 },
                 onComment: {
-                    // Focus message input - will be handled by state
+                    transactionToComment = transaction
                 }
             )
 

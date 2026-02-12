@@ -85,6 +85,10 @@ struct EnhancedTransactionCardView: View {
         }
     }
 
+    private var commentCount: Int {
+        (transaction.comments as? Set<ChatMessage>)?.count ?? 0
+    }
+
     private var splitCount: Int {
         (transaction.splits as? Set<TransactionSplit>)?.count ?? 0
     }
@@ -151,20 +155,6 @@ struct EnhancedTransactionCardView: View {
         .padding(.vertical, Spacing.lg)
         .background(AppColors.transactionCardBackground)
         .clipShape(RoundedRectangle(cornerRadius: CornerRadius.card))
-        .overlay(
-            // Accent strip at top of card
-            VStack {
-                AppColors.transactionCardAccent
-                    .frame(height: 3)
-                    .clipShape(UnevenRoundedRectangle(
-                        topLeadingRadius: CornerRadius.card,
-                        bottomLeadingRadius: 0,
-                        bottomTrailingRadius: 0,
-                        topTrailingRadius: CornerRadius.card
-                    ))
-                Spacer()
-            }
-        )
         .shadow(
             color: cardShadow.color,
             radius: cardShadow.radius,
@@ -294,15 +284,21 @@ struct EnhancedTransactionCardView: View {
                 HapticManager.selectionChanged()
                 onComment?()
             } label: {
-                Text("Comment")
-                    .font(AppTypography.buttonDefault())
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: ButtonHeight.sm)
-                    .background(
-                        RoundedRectangle(cornerRadius: CornerRadius.button)
-                            .fill(AppColors.accent)
-                    )
+                HStack(spacing: Spacing.xs) {
+                    Text("Comment")
+                    if commentCount > 0 {
+                        Text("\(commentCount)")
+                            .font(AppTypography.labelSmall())
+                    }
+                }
+                .font(AppTypography.buttonDefault())
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .frame(height: ButtonHeight.sm)
+                .background(
+                    RoundedRectangle(cornerRadius: CornerRadius.button)
+                        .fill(AppColors.accent)
+                )
             }
 
             // Edit Button - Outlined
@@ -351,7 +347,7 @@ struct EnhancedTransactionCardView: View {
     private func splitRow(name: String, amount: Double, isCurrentUser: Bool) -> some View {
         HStack(spacing: Spacing.xs) {
             Text(name)
-                .font(isCurrentUser ? AppTypography.labelLarge() : AppTypography.bodyDefault())
+                .font(isCurrentUser ? AppTypography.labelDefault() : AppTypography.bodySmall())
                 .foregroundColor(AppColors.textPrimary)
 
             Spacer()
