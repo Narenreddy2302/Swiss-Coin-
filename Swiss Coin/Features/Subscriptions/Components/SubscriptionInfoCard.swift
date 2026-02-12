@@ -25,11 +25,11 @@ struct SubscriptionInfoCard: View {
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(subscription.name ?? "Subscription")
-                        .font(AppTypography.headline())
+                        .font(AppTypography.headingMedium())
                         .foregroundColor(AppColors.textPrimary)
 
                     (Text(CurrencyFormatter.format(subscription.amount)).fontWeight(.bold) + Text("/\(subscription.cycleAbbreviation)"))
-                        .font(AppTypography.subheadline())
+                        .font(AppTypography.bodyDefault())
                         .foregroundColor(AppColors.textSecondary)
                 }
 
@@ -42,7 +42,7 @@ struct SubscriptionInfoCard: View {
                         .foregroundColor(AppColors.textSecondary)
 
                     Text(subscription.nextBillingDate?.formatted(.dateTime.month(.abbreviated).day()) ?? "")
-                        .font(AppTypography.subheadlineMedium())
+                        .font(AppTypography.labelLarge())
                         .foregroundColor(subscription.billingStatus.color)
                 }
             }
@@ -53,7 +53,7 @@ struct SubscriptionInfoCard: View {
             // Your share info
             HStack {
                 Text("Your share")
-                    .font(AppTypography.subheadline())
+                    .font(AppTypography.bodyDefault())
                     .foregroundColor(AppColors.textSecondary)
 
                 Spacer()
@@ -63,7 +63,7 @@ struct SubscriptionInfoCard: View {
                     .foregroundColor(AppColors.textPrimary)
 
                 Text("/\(subscription.cycleAbbreviation)")
-                    .font(AppTypography.subheadline())
+                    .font(AppTypography.bodyDefault())
                     .foregroundColor(AppColors.textSecondary)
             }
         }

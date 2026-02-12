@@ -38,7 +38,7 @@ struct SubscriptionPaymentCardView: View {
 
                 VStack(alignment: .trailing, spacing: Spacing.xxs) {
                     Text(CurrencyFormatter.format(payment.amount))
-                        .font(AppTypography.financialDefault())
+                        .font(AppTypography.financialLarge())
                         .foregroundColor(AppColors.textPrimary)
 
                     Text("\(subscription.subscriberCount) way split")

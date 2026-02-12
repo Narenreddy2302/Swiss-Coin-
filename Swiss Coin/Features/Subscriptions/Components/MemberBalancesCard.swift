@@ -20,7 +20,7 @@ struct MemberBalancesCard: View {
         } else {
             VStack(alignment: .leading, spacing: Spacing.md) {
                 Text("Member Balances")
-                    .font(AppTypography.subheadlineMedium())
+                    .font(AppTypography.labelLarge())
                     .foregroundColor(AppColors.textSecondary)
 
                 ForEach(memberBalances, id: \.member.id) { item in
@@ -31,12 +31,12 @@ struct MemberBalancesCard: View {
                             .frame(width: 28, height: 28)
                             .overlay(
                                 Text(item.member.initials)
-                                    .font(.system(size: 10, weight: .medium))
+                                    .font(AppTypography.labelSmall())
                                     .foregroundColor(Color(hex: item.member.colorHex ?? "#808080"))
                             )
 
                         Text(item.member.firstName)
-                            .font(AppTypography.body())
+                            .font(AppTypography.bodyDefault())
                             .foregroundColor(AppColors.textPrimary)
                             .lineLimit(1)
 
@@ -46,11 +46,11 @@ struct MemberBalancesCard: View {
                             (item.balance > 0
                                 ? Text("owes you ") + Text(CurrencyFormatter.formatAbsolute(item.balance)).fontWeight(.bold)
                                 : Text("you owe ") + Text(CurrencyFormatter.formatAbsolute(abs(item.balance))).fontWeight(.bold))
-                                .font(AppTypography.subheadline())
+                                .font(AppTypography.bodySmall())
                                 .foregroundColor(item.balance > 0 ? AppColors.positive : AppColors.negative)
                         } else {
                             Text("settled")
-                                .font(AppTypography.subheadline())
+                                .font(AppTypography.bodySmall())
                                 .foregroundColor(AppColors.neutral)
                         }
                     }

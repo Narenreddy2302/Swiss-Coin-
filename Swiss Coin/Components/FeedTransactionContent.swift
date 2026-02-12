@@ -181,19 +181,19 @@ struct FeedTransactionContent: View {
                 Spacer()
 
                 Text("\(amountPrefix)\(CurrencyFormatter.format(displayAmount))")
-                    .font(AppTypography.financialDefault())
+                    .font(AppTypography.financialLarge())
                     .foregroundColor(amountColor)
             }
 
             HStack {
                 Text(transaction.date?.receiptFormatted ?? "")
-                    .font(AppTypography.bodySmall())
+                    .font(AppTypography.labelDefault())
                     .foregroundColor(AppColors.textSecondary)
 
                 Spacer()
 
                 Text("\(totalAmountText) / \(splitCountText)")
-                    .font(AppTypography.bodySmall())
+                    .font(AppTypography.labelDefault())
                     .foregroundColor(AppColors.textSecondary)
             }
         }
@@ -215,12 +215,13 @@ struct FeedTransactionContent: View {
     private func cardDetailRow(label: String, value: String) -> some View {
         HStack {
             Text(label)
-                .font(AppTypography.bodySmall())
+                .font(AppTypography.bodyDefault())
                 .foregroundColor(AppColors.textSecondary)
             Spacer()
             Text(value)
-                .font(AppTypography.bodySmall())
+                .font(AppTypography.labelLarge())
                 .foregroundColor(AppColors.textPrimary)
+                .lineLimit(1)
         }
     }
 
@@ -232,13 +233,13 @@ struct FeedTransactionContent: View {
             Text("SPLIT BREAKDOWN")
                 .font(AppTypography.labelSmall())
                 .foregroundColor(AppColors.textTertiary)
-                .tracking(1)
+                .tracking(0.5)
                 .padding(.bottom, Spacing.xxs)
 
             ForEach(sortedSplits, id: \.objectID) { split in
                 HStack {
                     Text(TransactionDetailHelpers.personDisplayName(for: split))
-                        .font(AppTypography.bodySmall())
+                        .font(AppTypography.labelDefault())
                         .foregroundColor(AppColors.textPrimary)
                         .lineLimit(1)
 
@@ -303,7 +304,7 @@ struct FeedTransactionContent: View {
                     onComment?()
                 } label: {
                     Text("Comment")
-                        .font(AppTypography.buttonSmall())
+                        .font(AppTypography.buttonDefault())
                         .foregroundColor(AppColors.accent)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, Spacing.sm)
@@ -320,7 +321,7 @@ struct FeedTransactionContent: View {
                     onEdit?()
                 } label: {
                     Text("Edit")
-                        .font(AppTypography.buttonSmall())
+                        .font(AppTypography.buttonDefault())
                         .foregroundColor(AppColors.accent)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, Spacing.sm)
@@ -347,7 +348,7 @@ struct FeedTransactionContent: View {
                 Spacer()
 
                 Text("\(amountPrefix)\(CurrencyFormatter.format(displayAmount))")
-                    .font(AppTypography.financialSmall())
+                    .font(AppTypography.financialDefault())
                     .foregroundColor(amountColor)
             }
 
