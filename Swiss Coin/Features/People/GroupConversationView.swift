@@ -344,7 +344,6 @@ struct GroupConversationView: View {
 
         HStack(alignment: .top, spacing: 0) {
             timelineConnector(
-                isLastItem: isLastItem,
                 isMessage: isMessage,
                 avatarInitials: avatar.initials,
                 avatarColor: avatar.color
@@ -389,7 +388,7 @@ struct GroupConversationView: View {
     // MARK: - Timeline Connector
 
     @ViewBuilder
-    private func timelineConnector(isLastItem: Bool, isMessage: Bool, avatarInitials: String, avatarColor: String) -> some View {
+    private func timelineConnector(isMessage: Bool, avatarInitials: String, avatarColor: String) -> some View {
         VStack(spacing: 0) {
             Spacer()
                 .frame(height: isMessage ? Spacing.sm : Spacing.lg)
@@ -400,13 +399,7 @@ struct GroupConversationView: View {
                 size: timelineCircleSize
             )
 
-            if !isLastItem {
-                TimelineDashedLine()
-                    .frame(width: 1)
-                    .frame(maxHeight: .infinity)
-            } else {
-                Spacer(minLength: 0)
-            }
+            Spacer(minLength: 0)
         }
         .frame(width: timelineCircleSize)
         .padding(.leading, timelineLeadingPad)

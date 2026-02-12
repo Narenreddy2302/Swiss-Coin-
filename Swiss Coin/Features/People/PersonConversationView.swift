@@ -263,7 +263,6 @@ struct PersonConversationView: View {
         HStack(alignment: .top, spacing: 0) {
             // Timeline column with avatar
             timelineConnector(
-                isLastItem: isLastItem,
                 isMessage: isMessage,
                 avatarInitials: avatar.initials,
                 avatarColor: avatar.color
@@ -304,7 +303,7 @@ struct PersonConversationView: View {
     // MARK: - Timeline Connector
 
     @ViewBuilder
-    private func timelineConnector(isLastItem: Bool, isMessage: Bool, avatarInitials: String, avatarColor: String) -> some View {
+    private func timelineConnector(isMessage: Bool, avatarInitials: String, avatarColor: String) -> some View {
         VStack(spacing: 0) {
             // Top offset to vertically align avatar with first line of content
             Spacer()
@@ -317,14 +316,8 @@ struct PersonConversationView: View {
                 size: timelineCircleSize
             )
 
-            // Connecting line (if not last item)
-            if !isLastItem {
-                TimelineDashedLine()
-                    .frame(width: 1)
-                    .frame(maxHeight: .infinity)
-            } else {
-                Spacer(minLength: 0)
-            }
+            // Spacer below avatar
+            Spacer(minLength: 0)
         }
         .frame(width: timelineCircleSize)
         .padding(.leading, timelineLeadingPad)
@@ -694,27 +687,5 @@ struct PersonConversationView: View {
         cachedTxnSplitPersons = []
         cachedTxnSplitAmounts = []
         cachedTxnSplitRawAmounts = []
-    }
-}
-
-// MARK: - Timeline Dashed Line
-
-struct TimelineDashedLine: View {
-    var color: Color = AppColors.timelineConnector
-
-    var body: some View {
-        GeometryReader { geometry in
-            Path { path in
-                let dashLength: CGFloat = 3
-                let gapLength: CGFloat = 4
-                var y: CGFloat = 0
-                while y < geometry.size.height {
-                    path.move(to: CGPoint(x: geometry.size.width / 2, y: y))
-                    path.addLine(to: CGPoint(x: geometry.size.width / 2, y: min(y + dashLength, geometry.size.height)))
-                    y += dashLength + gapLength
-                }
-            }
-            .stroke(color, lineWidth: 0.8)
-        }
     }
 }
