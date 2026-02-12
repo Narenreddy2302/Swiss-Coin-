@@ -70,11 +70,11 @@ struct TimelineMessageBubbleView: View {
             HStack(spacing: Spacing.xs) {
                 if message.isEdited && !isEditing {
                     Text("Edited")
-                        .font(AppTypography.labelSmall())
+                        .labelSmallStyle()
                         .foregroundColor(AppColors.textTertiary)
                 }
                 Text(timeText)
-                    .font(AppTypography.labelSmall())
+                    .labelSmallStyle()
                     .foregroundColor(AppColors.textSecondary)
             }
             .padding(.leading, Spacing.xs)
