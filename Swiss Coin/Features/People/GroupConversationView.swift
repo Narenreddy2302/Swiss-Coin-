@@ -120,7 +120,7 @@ struct GroupConversationView: View {
                             }
                         }
                     }
-                    .padding(.vertical, Spacing.lg)
+                    .padding(.vertical, Spacing.md)
                 }
                 .scrollDismissesKeyboard(.interactively)
                 .background(

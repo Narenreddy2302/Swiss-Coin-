@@ -42,8 +42,7 @@ struct SystemMessageView: View {
                     .foregroundColor(iconColor)
 
                 Text(messageText)
-                    .font(AppTypography.caption())
-                    .fontWeight(.medium)
+                    .font(AppTypography.bodySmall())
                     .foregroundColor(AppColors.textSecondary)
             }
             .padding(.horizontal, Spacing.md)
@@ -55,15 +54,15 @@ struct SystemMessageView: View {
 
             if let noteText, !noteText.isEmpty {
                 Text(noteText)
-                    .font(AppTypography.caption2())
-                    .foregroundColor(AppColors.textSecondary)
+                    .captionStyle()
+                    .foregroundColor(AppColors.textTertiary)
                     .italic()
             }
 
             if let date {
                 Text(date, style: .date)
-                    .font(AppTypography.caption2())
-                    .foregroundColor(AppColors.textSecondary)
+                    .captionStyle()
+                    .foregroundColor(AppColors.textTertiary)
             }
         }
         .frame(maxWidth: .infinity)

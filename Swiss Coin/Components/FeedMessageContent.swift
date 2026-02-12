@@ -51,7 +51,7 @@ struct FeedMessageContent: View {
     private var normalView: some View {
         VStack(alignment: .leading, spacing: Spacing.xxs) {
             Text(message.content ?? "")
-                .font(AppTypography.bodyDefault())
+                .font(AppTypography.bodyLarge())
                 .foregroundColor(AppColors.textPrimary)
 
             if message.isEdited {
@@ -123,7 +123,7 @@ struct FeedMessageContent: View {
             TextField("Edit message", text: $editText, axis: .vertical)
                 .lineLimit(1...8)
                 .limitTextLength(to: ValidationLimits.maxMessageLength, text: $editText)
-                .font(AppTypography.bodyDefault())
+                .font(AppTypography.bodyLarge())
                 .padding(Spacing.sm)
                 .background(
                     RoundedRectangle(cornerRadius: CornerRadius.lg)
