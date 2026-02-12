@@ -18,18 +18,15 @@ struct TransactionDetailView: View {
     @State private var showingError = false
     @State private var errorMessage = ""
 
-    // MARK: - Computed Properties (Cached)
+    // MARK: - Cached State (computed once, not every render)
 
-    /// Cached effectivePayers to avoid repeated NSSet→Array conversions during animation render passes
-    private var cachedEffectivePayers: [(personId: UUID?, amount: Double)] {
-        transaction.effectivePayers
-    }
-
-    /// Cached and sorted splits to avoid re-sorting on every render pass
-    private var cachedSplits: [TransactionSplit] {
-        let splitSet = transaction.splits as? Set<TransactionSplit> ?? []
-        return splitSet.sorted { ($0.owedBy?.displayName ?? "") < ($1.owedBy?.displayName ?? "") }
-    }
+    @State private var cachedEffectivePayers: [(personId: UUID?, amount: Double)] = []
+    @State private var cachedSplits: [TransactionSplit] = []
+    @State private var payerName = ""
+    @State private var creatorName = ""
+    @State private var participantCount = 1
+    @State private var userNetAmount: Double = 0
+    @State private var formattedReceiptDate = ""
 
     private var isPayer: Bool {
         CurrentUser.isCurrentUser(transaction.payer?.id)
@@ -44,32 +41,24 @@ struct TransactionDetailView: View {
         cachedEffectivePayers.contains { CurrentUser.isCurrentUser($0.personId) }
     }
 
-    private var payerName: String {
-        TransactionDetailHelpers.payerName(effectivePayers: cachedEffectivePayers, payer: transaction.payer)
-    }
-
-    private var participantCount: Int {
-        TransactionDetailHelpers.participantCount(effectivePayers: cachedEffectivePayers, splits: cachedSplits)
-    }
-
-    private var userNetAmount: Double {
-        TransactionDetailHelpers.userNetAmount(effectivePayers: cachedEffectivePayers, splits: cachedSplits)
-    }
-
     private var netAmountColor: Color {
         TransactionDetailHelpers.netAmountColor(for: userNetAmount)
-    }
-
-    private var formattedReceiptDate: String {
-        transaction.date?.receiptFormatted ?? "Unknown date"
     }
 
     private var headerSubtitle: String {
         "\(CurrencyFormatter.format(transaction.amount)) / \(participantCount) People"
     }
 
-    private var creatorName: String {
-        TransactionDetailHelpers.creatorName(transaction: transaction)
+    private func recomputeCachedState() {
+        let payers = transaction.effectivePayers
+        cachedEffectivePayers = payers
+        let splitSet = transaction.splits as? Set<TransactionSplit> ?? []
+        cachedSplits = splitSet.sorted { ($0.owedBy?.displayName ?? "") < ($1.owedBy?.displayName ?? "") }
+        payerName = TransactionDetailHelpers.payerName(effectivePayers: payers, payer: transaction.payer)
+        creatorName = TransactionDetailHelpers.creatorName(transaction: transaction)
+        participantCount = TransactionDetailHelpers.participantCount(effectivePayers: payers, splits: cachedSplits)
+        userNetAmount = TransactionDetailHelpers.userNetAmount(effectivePayers: payers, splits: cachedSplits)
+        formattedReceiptDate = transaction.date?.receiptFormatted ?? "Unknown date"
     }
 
     // MARK: - Body
@@ -110,7 +99,6 @@ struct TransactionDetailView: View {
                 RoundedRectangle(cornerRadius: CornerRadius.lg)
                     .fill(AppColors.cardBackground)
             )
-            .compositingGroup()
             .padding(.horizontal, Spacing.lg)
             .padding(.top, Spacing.sm)
             .padding(.bottom, Spacing.section)
@@ -162,6 +150,9 @@ struct TransactionDetailView: View {
         } message: {
             Text(errorMessage)
         }
+        .onAppear { recomputeCachedState() }
+        .onChange(of: transaction.amount) { _ in recomputeCachedState() }
+        .onChange(of: transaction.title) { _ in recomputeCachedState() }
     }
 
     // MARK: - Receipt Header
@@ -366,18 +357,15 @@ struct TransactionExpandedView: View {
     @State private var showingError = false
     @State private var errorMessage = ""
 
-    // MARK: - Computed Properties (Cached)
+    // MARK: - Cached State (computed once, not every render)
 
-    /// Cached effectivePayers to avoid repeated NSSet→Array conversions during animation render passes
-    private var cachedEffectivePayers: [(personId: UUID?, amount: Double)] {
-        transaction.effectivePayers
-    }
-
-    /// Cached and sorted splits to avoid re-sorting on every render pass
-    private var cachedSplits: [TransactionSplit] {
-        let splitSet = transaction.splits as? Set<TransactionSplit> ?? []
-        return splitSet.sorted { ($0.owedBy?.displayName ?? "") < ($1.owedBy?.displayName ?? "") }
-    }
+    @State private var cachedEffectivePayers: [(personId: UUID?, amount: Double)] = []
+    @State private var cachedSplits: [TransactionSplit] = []
+    @State private var payerName = ""
+    @State private var creatorName = ""
+    @State private var participantCount = 1
+    @State private var userNetAmount: Double = 0
+    @State private var formattedReceiptDate = ""
 
     private var splitMethod: SplitMethod? {
         guard let raw = transaction.splitMethod else { return nil }
@@ -388,32 +376,24 @@ struct TransactionExpandedView: View {
         cachedEffectivePayers.contains { CurrentUser.isCurrentUser($0.personId) }
     }
 
-    private var payerName: String {
-        TransactionDetailHelpers.payerName(effectivePayers: cachedEffectivePayers, payer: transaction.payer)
-    }
-
-    private var creatorName: String {
-        TransactionDetailHelpers.creatorName(transaction: transaction)
-    }
-
-    private var participantCount: Int {
-        TransactionDetailHelpers.participantCount(effectivePayers: cachedEffectivePayers, splits: cachedSplits)
-    }
-
-    private var userNetAmount: Double {
-        TransactionDetailHelpers.userNetAmount(effectivePayers: cachedEffectivePayers, splits: cachedSplits)
-    }
-
     private var netAmountColor: Color {
         TransactionDetailHelpers.netAmountColor(for: userNetAmount)
     }
 
-    private var formattedReceiptDate: String {
-        transaction.date?.receiptFormatted ?? "Unknown date"
-    }
-
     private var headerSubtitle: String {
         "\(CurrencyFormatter.format(transaction.amount)) / \(participantCount) People"
+    }
+
+    private func recomputeCachedState() {
+        let payers = transaction.effectivePayers
+        cachedEffectivePayers = payers
+        let splitSet = transaction.splits as? Set<TransactionSplit> ?? []
+        cachedSplits = splitSet.sorted { ($0.owedBy?.displayName ?? "") < ($1.owedBy?.displayName ?? "") }
+        payerName = TransactionDetailHelpers.payerName(effectivePayers: payers, payer: transaction.payer)
+        creatorName = TransactionDetailHelpers.creatorName(transaction: transaction)
+        participantCount = TransactionDetailHelpers.participantCount(effectivePayers: payers, splits: cachedSplits)
+        userNetAmount = TransactionDetailHelpers.userNetAmount(effectivePayers: payers, splits: cachedSplits)
+        formattedReceiptDate = transaction.date?.receiptFormatted ?? "Unknown date"
     }
 
     // MARK: - Body
@@ -428,8 +408,11 @@ struct TransactionExpandedView: View {
         .presentationDragIndicator(.visible)
         .presentationCornerRadius(CornerRadius.xl)
         .onAppear {
+            recomputeCachedState()
             HapticManager.lightTap()
         }
+        .onChange(of: transaction.amount) { _ in recomputeCachedState() }
+        .onChange(of: transaction.title) { _ in recomputeCachedState() }
         .sheet(isPresented: $showingEditSheet) {
             TransactionEditView(transaction: transaction)
                 .environment(\.managedObjectContext, viewContext)

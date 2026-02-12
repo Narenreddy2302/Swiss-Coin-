@@ -22,6 +22,10 @@ struct EnhancedTransactionCardView: View {
 
     // MARK: - Computed Properties
 
+    private var cardShadow: (color: Color, radius: CGFloat, x: CGFloat, y: CGFloat) {
+        AppShadow.card(for: colorScheme)
+    }
+
     /// Net balance for this transaction from current user's perspective
     /// Positive = user is owed money (orange), Negative = user owes money (green)
     private var pairwiseResult: Double {
@@ -71,7 +75,7 @@ struct EnhancedTransactionCardView: View {
         return creator?.name ?? "Someone"
     }
 
-    private var splits: [TransactionSplit] {
+    private var sortedSplits: [TransactionSplit] {
         let splitsSet = transaction.splits as? Set<TransactionSplit> ?? []
         return splitsSet.sorted { s1, s2 in
             let isMe1 = CurrentUser.isCurrentUser(s1.owedBy?.id)
@@ -82,7 +86,7 @@ struct EnhancedTransactionCardView: View {
     }
 
     private var splitCount: Int {
-        splits.count
+        (transaction.splits as? Set<TransactionSplit>)?.count ?? 0
     }
 
     private var splitCountText: String {
@@ -110,7 +114,7 @@ struct EnhancedTransactionCardView: View {
     }
 
     private var totalBalance: Double {
-        splits.reduce(0.0) { $0 + $1.amount }
+        (transaction.splits as? Set<TransactionSplit> ?? []).reduce(0.0) { $0 + $1.amount }
     }
 
     private var isSettled: Bool {
@@ -148,10 +152,10 @@ struct EnhancedTransactionCardView: View {
         .background(AppColors.cardBackground)
         .clipShape(RoundedRectangle(cornerRadius: CornerRadius.card))
         .shadow(
-            color: AppShadow.card(for: colorScheme).color,
-            radius: AppShadow.card(for: colorScheme).radius,
-            x: AppShadow.card(for: colorScheme).x,
-            y: AppShadow.card(for: colorScheme).y
+            color: cardShadow.color,
+            radius: cardShadow.radius,
+            x: cardShadow.x,
+            y: cardShadow.y
         )
         .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: CornerRadius.card))
         .contextMenu { contextMenuContent }
@@ -229,7 +233,7 @@ struct EnhancedTransactionCardView: View {
                 .padding(.bottom, Spacing.xxs)
 
             VStack(spacing: Spacing.sm) {
-                ForEach(splits, id: \.self) { split in
+                ForEach(sortedSplits, id: \.self) { split in
                     let owedBy = split.owedBy
                     let isMe = CurrentUser.isCurrentUser(owedBy?.id)
                     let name = isMe ? "You" : (owedBy?.name ?? "Unknown")
