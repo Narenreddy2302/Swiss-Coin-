@@ -2,7 +2,7 @@
 //  SettlementMessageView.swift
 //  Swiss Coin
 //
-//  Timeline-style system message for settlements in person conversations.
+//  Full-width green notification strip for settlements in person conversations.
 //
 
 import SwiftUI
@@ -40,13 +40,13 @@ struct SettlementMessageView: View {
     var body: some View {
         SystemMessageView(
             icon: "checkmark.circle.fill",
-            iconColor: AppColors.positive,
+            iconColor: AppColors.stripText,
             messageText: messageText,
             noteText: settlement.note,
             date: settlement.date,
-            backgroundColor: AppColors.settlementBackground
+            backgroundColor: AppColors.settlementStripBackground
         )
-        .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: CornerRadius.card))
+        .contentShape(Rectangle())
         .contextMenu {
             Button {
                 onCopy?()

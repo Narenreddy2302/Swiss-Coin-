@@ -147,6 +147,14 @@ enum ConversationItem: Identifiable {
         if case .message = self { return true }
         return false
     }
+
+    /// True for settlements and reminders — rendered as full-width notification strips
+    var isSystemStrip: Bool {
+        switch self {
+        case .settlement, .reminder: return true
+        default: return false
+        }
+    }
 }
 
 struct ConversationDateGroup: Identifiable {

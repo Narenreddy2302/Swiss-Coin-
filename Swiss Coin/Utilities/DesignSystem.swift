@@ -864,6 +864,23 @@ enum AppColors {
             : UIColor(hex: "#FDF5E6")
     })
 
+    /// Reminder notification strip — red for attention
+    static let reminderStripBackground = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(hex: "#8B2D2D")
+            : UIColor(hex: "#E74C3C")
+    })
+
+    /// Settlement notification strip — green for positive resolution
+    static let settlementStripBackground = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(hex: "#1E6B45")
+            : UIColor(hex: "#27AE60")
+    })
+
+    /// Text color used on colored notification strips
+    static let stripText = Color.white
+
     // MARK: - Legacy Colors (for backward compatibility)
 
     /// Default avatar color
