@@ -90,14 +90,17 @@ struct MessageBubbleView: View {
 
     @ViewBuilder
     private var timelineBubbleView: some View {
+        let bubbleColor = isFromUser ? AppColors.userBubble : AppColors.otherBubble
+        let textColor = isFromUser ? AppColors.userBubbleText : AppColors.otherBubbleText
+
         Text(message.content ?? "")
             .font(AppTypography.bodyLarge())
-            .foregroundColor(AppColors.textPrimary)
+            .foregroundColor(textColor)
             .padding(.horizontal, Spacing.lg)
             .padding(.vertical, Spacing.md)
             .background(
                 RoundedRectangle(cornerRadius: CornerRadius.card)
-                    .fill(AppColors.receiptBackground)
+                    .fill(bubbleColor)
             )
     }
 
@@ -152,7 +155,7 @@ struct MessageBubbleView: View {
     private var classicBubbleView: some View {
         Text(message.content ?? "")
             .font(AppTypography.bodyLarge())
-            .foregroundColor(AppColors.textPrimary)
+            .foregroundColor(isFromUser ? AppColors.userBubbleText : AppColors.otherBubbleText)
             .padding(.horizontal, Spacing.lg)
             .padding(.vertical, Spacing.sm)
             .background(classicBubbleBackground)

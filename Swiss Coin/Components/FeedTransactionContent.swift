@@ -134,7 +134,7 @@ struct FeedTransactionContent: View {
             VStack(alignment: .leading, spacing: 0) {
                 cardHeader
 
-                AppColors.divider
+                AppColors.transactionCardDivider
                     .frame(height: 0.5)
                     .padding(.top, Spacing.md)
 
@@ -155,7 +155,7 @@ struct FeedTransactionContent: View {
             .padding(Spacing.lg)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .background(AppColors.cardBackground)
+        .background(AppColors.transactionCardBackground)
         .clipShape(RoundedRectangle(cornerRadius: CornerRadius.card))
         .shadow(color: Color.black.opacity(0.04), radius: 6, x: 0, y: 2)
         .shadow(color: Color.black.opacity(0.02), radius: 2, x: 0, y: 1)
@@ -263,7 +263,7 @@ struct FeedTransactionContent: View {
 
     @ViewBuilder
     private var cardTotalBalance: some View {
-        AppColors.divider
+        AppColors.transactionCardDivider
             .frame(height: 0.5)
 
         HStack {

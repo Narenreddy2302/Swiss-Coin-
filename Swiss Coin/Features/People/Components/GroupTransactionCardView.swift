@@ -126,7 +126,7 @@ struct GroupTransactionCardView: View {
         .padding(.vertical, Spacing.md)
         .background(
             RoundedRectangle(cornerRadius: CornerRadius.md)
-                .fill(AppColors.cardBackground)
+                .fill(AppColors.transactionCardBackground)
         )
         .padding(.horizontal, Spacing.lg)
         .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: CornerRadius.md))

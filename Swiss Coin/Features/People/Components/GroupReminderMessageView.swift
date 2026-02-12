@@ -23,7 +23,7 @@ struct GroupReminderMessageView: View {
             messageText: messageText,
             noteText: reminder.message.flatMap { $0.isEmpty ? nil : "\"\($0)\"" },
             date: reminder.createdDate,
-            backgroundColor: AppColors.warningMuted
+            backgroundColor: AppColors.reminderBackground
         )
         .contextMenu {
             Button {

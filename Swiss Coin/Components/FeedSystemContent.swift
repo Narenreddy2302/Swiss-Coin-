@@ -21,8 +21,8 @@ struct FeedSystemContent: View {
                     .foregroundColor(iconColor)
 
                 Text(messageText)
-                    .font(AppTypography.bodySmall())
-                    .foregroundColor(AppColors.textSecondary)
+                    .font(AppTypography.labelDefault())
+                    .foregroundColor(AppColors.textPrimary)
             }
 
             if let noteText, !noteText.isEmpty {

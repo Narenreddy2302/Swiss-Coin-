@@ -91,24 +91,23 @@ struct TimelineMessageBubbleView: View {
 
     @ViewBuilder
     private var messageContent: some View {
+        let bubbleColor = isFromUser ? AppColors.userBubble : AppColors.otherBubble
+        let textColor = isFromUser ? AppColors.userBubbleText : AppColors.otherBubbleText
+
         Text(message.content ?? "")
             .font(AppTypography.bodyLarge())
-            .foregroundColor(AppColors.textPrimary)
+            .foregroundColor(textColor)
             .padding(.horizontal, Spacing.lg)
             .padding(.vertical, Spacing.md)
             .background(
                 RoundedRectangle(cornerRadius: CornerRadius.card)
-                    .fill(AppColors.cardBackground)
+                    .fill(bubbleColor)
                     .shadow(
                         color: Color.black.opacity(colorScheme == .dark ? 0.2 : 0.05),
                         radius: 2,
                         x: 0,
                         y: 1
                     )
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: CornerRadius.card)
-                    .stroke(AppColors.border.opacity(0.5), lineWidth: 0.5)
             )
     }
 

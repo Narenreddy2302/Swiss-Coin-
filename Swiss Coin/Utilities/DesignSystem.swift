@@ -692,18 +692,32 @@ enum AppColors {
 
     // MARK: - Interactive Colors
 
-    /// User message bubble
+    /// User message bubble — warm accent tint to distinguish from other messages
     static let userBubble = Color(UIColor { tc in
         tc.userInterfaceStyle == .dark
-            ? UIColor(hex: "#2C2C2E")
-            : UIColor(hex: "#E9E9EB")
+            ? UIColor(hex: "#3D2A1E")
+            : UIColor(hex: "#FDE8DB")
     })
 
-    /// Other person message bubble
+    /// User message bubble text color
+    static let userBubbleText = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(hex: "#F5F5F3")
+            : UIColor(hex: "#22201D")
+    })
+
+    /// Other person message bubble — neutral cool gray
     static let otherBubble = Color(UIColor { tc in
         tc.userInterfaceStyle == .dark
             ? UIColor(hex: "#2C2C2E")
-            : UIColor(hex: "#E9E9EB")
+            : UIColor(hex: "#EFECEA")
+    })
+
+    /// Other message bubble text color
+    static let otherBubbleText = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(hex: "#E8E6E3")
+            : UIColor(hex: "#22201D")
     })
 
     /// Shadow color
@@ -769,6 +783,85 @@ enum AppColors {
         tc.userInterfaceStyle == .dark
             ? UIColor(hex: "#6B6560")
             : UIColor(hex: "#B8B3AC")
+    })
+
+    // MARK: - Conversation View Colors
+
+    /// Conversation scroll area background
+    static let conversationBackground = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(hex: "#1A1A1C")
+            : UIColor(hex: "#F5F3F0")
+    })
+
+    /// Transaction card background in conversation — elevated to stand out from scroll area
+    static let transactionCardBackground = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(hex: "#2C2A28")
+            : UIColor.white
+    })
+
+    /// Transaction card header accent strip — subtle accent at top of transaction cards
+    static let transactionCardAccent = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(hex: "#F36D30").withAlphaComponent(0.6)
+            : UIColor(hex: "#F35B16").withAlphaComponent(0.4)
+    })
+
+    /// Transaction card divider color — warmer than generic dividers
+    static let transactionCardDivider = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(hex: "#4A4540").withAlphaComponent(0.6)
+            : UIColor(hex: "#E8E2DA")
+    })
+
+    /// Date header badge background in conversations
+    static let dateHeaderBackground = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(hex: "#2C2C2E").withAlphaComponent(0.85)
+            : UIColor(hex: "#E8E5E1").withAlphaComponent(0.85)
+    })
+
+    /// Date header text color
+    static let dateHeaderText = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(hex: "#B8B3AC")
+            : UIColor(hex: "#6B6560")
+    })
+
+    /// Message input area background
+    static let messageInputBackground = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(hex: "#1C1C1E")
+            : UIColor(hex: "#F7F5F3")
+    })
+
+    /// Message input field background
+    static let messageInputFieldBackground = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(hex: "#38383A")
+            : UIColor(hex: "#EFEDEB")
+    })
+
+    /// Action bar background — slightly elevated from conversation background
+    static let actionBarBackground = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(hex: "#222224")
+            : UIColor(hex: "#F0EDEA")
+    })
+
+    /// Settlement message background — muted positive for dark, subtle green tint for light
+    static let settlementBackground = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(hex: "#1D3028")
+            : UIColor(hex: "#E6F4EC")
+    })
+
+    /// Reminder message background — muted warning for dark, subtle amber tint for light
+    static let reminderBackground = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(hex: "#3A2E15")
+            : UIColor(hex: "#FDF5E6")
     })
 
     // MARK: - Legacy Colors (for backward compatibility)

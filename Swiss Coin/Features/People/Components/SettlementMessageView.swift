@@ -44,7 +44,7 @@ struct SettlementMessageView: View {
             messageText: messageText,
             noteText: settlement.note,
             date: settlement.date,
-            backgroundColor: AppColors.positiveMuted
+            backgroundColor: AppColors.settlementBackground
         )
         .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: CornerRadius.card))
         .contextMenu {

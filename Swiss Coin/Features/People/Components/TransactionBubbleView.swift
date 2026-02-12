@@ -46,11 +46,11 @@ struct TransactionBubbleView: View {
                 VStack(alignment: .leading, spacing: 6) {
                     Text(transaction.title ?? "Unknown")
                         .font(AppTypography.subheadlineMedium())
-                        .foregroundColor(AppColors.textPrimary)
+                        .foregroundColor(isFromUser ? AppColors.userBubbleText : AppColors.otherBubbleText)
 
                     Text(amountText)
                         .font(AppTypography.amountSmall())
-                        .foregroundColor(AppColors.textSecondary)
+                        .foregroundColor(isFromUser ? AppColors.userBubbleText.opacity(0.7) : AppColors.otherBubbleText.opacity(0.7))
                 }
                 .padding(.horizontal, 14)
                 .padding(.vertical, 10)

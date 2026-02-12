@@ -149,8 +149,22 @@ struct EnhancedTransactionCardView: View {
             actionButtons
         }
         .padding(.vertical, Spacing.lg)
-        .background(AppColors.cardBackground)
+        .background(AppColors.transactionCardBackground)
         .clipShape(RoundedRectangle(cornerRadius: CornerRadius.card))
+        .overlay(
+            // Accent strip at top of card
+            VStack {
+                AppColors.transactionCardAccent
+                    .frame(height: 3)
+                    .clipShape(UnevenRoundedRectangle(
+                        topLeadingRadius: CornerRadius.card,
+                        bottomLeadingRadius: 0,
+                        bottomTrailingRadius: 0,
+                        topTrailingRadius: CornerRadius.card
+                    ))
+                Spacer()
+            }
+        )
         .shadow(
             color: cardShadow.color,
             radius: cardShadow.radius,
@@ -306,7 +320,7 @@ struct EnhancedTransactionCardView: View {
                             .stroke(AppColors.border, lineWidth: 1)
                             .background(
                                 RoundedRectangle(cornerRadius: CornerRadius.button)
-                                    .fill(AppColors.receiptBackground)
+                                    .fill(AppColors.transactionCardBackground)
                             )
                     )
             }
@@ -357,8 +371,8 @@ struct EnhancedTransactionCardView: View {
     }
 
     private var divider: some View {
-        AppColors.receiptSeparator
-            .frame(height: 1)
+        AppColors.transactionCardDivider
+            .frame(height: 0.5)
             .padding(.horizontal, Spacing.lg)
             .padding(.vertical, Spacing.sm)
     }
