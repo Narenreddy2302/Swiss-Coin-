@@ -544,4 +544,203 @@ final class TransactionViewModel: ObservableObject {
         let currentUser = CurrentUser.getOrCreate(in: viewContext)
         selectedParticipants.insert(currentUser)
     }
+
+    // MARK: - Load Transaction for Editing
+
+    /// Populates the ViewModel form state from an existing transaction.
+    func loadTransaction(_ transaction: FinancialTransaction) {
+        title = transaction.title ?? ""
+        totalAmount = String(format: "%.2f", transaction.amount)
+        date = transaction.date ?? Date()
+        note = transaction.note ?? ""
+
+        // Split method
+        if let methodStr = transaction.splitMethod,
+           let method = SplitMethod(rawValue: methodStr) {
+            splitMethod = method
+        }
+
+        // Group
+        selectedGroup = transaction.group
+
+        // Load payers from TransactionPayer records
+        selectedPayerPersons = []
+        payerAmounts = [:]
+        let payerRecords = (transaction.payers as? Set<TransactionPayer>) ?? []
+
+        if payerRecords.isEmpty {
+            // Legacy transaction without TransactionPayer records
+            if let legacyPayer = transaction.payer, !CurrentUser.isCurrentUser(legacyPayer.id) {
+                selectedPayerPersons.insert(legacyPayer)
+            }
+        } else {
+            for tp in payerRecords {
+                if let person = tp.paidBy {
+                    selectedPayerPersons.insert(person)
+                    if let personId = person.id {
+                        payerAmounts[personId] = String(format: "%.2f", tp.amount)
+                    }
+                }
+            }
+            // If single payer is the current user, keep empty (default "You" behavior)
+            if selectedPayerPersons.count == 1,
+               let singlePayer = selectedPayerPersons.first,
+               CurrentUser.isCurrentUser(singlePayer.id) {
+                selectedPayerPersons = []
+                payerAmounts = [:]
+            }
+        }
+
+        // Load participants and raw inputs from splits
+        selectedParticipants = []
+        rawInputs = [:]
+        if let splitSet = transaction.splits as? Set<TransactionSplit> {
+            for split in splitSet {
+                if let person = split.owedBy {
+                    selectedParticipants.insert(person)
+                    if let personId = person.id {
+                        loadRawInput(from: split, personId: personId, totalAmount: transaction.amount)
+                    }
+                }
+            }
+        }
+    }
+
+    private func loadRawInput(from split: TransactionSplit, personId: UUID, totalAmount: Double) {
+        switch splitMethod {
+        case .equal:
+            break
+        case .percentage:
+            if split.rawAmount > 0 {
+                rawInputs[personId] = formatRawValue(split.rawAmount, for: .percentage)
+            } else if totalAmount > 0 {
+                let pct = (split.amount / totalAmount) * 100
+                rawInputs[personId] = formatRawValue(pct, for: .percentage)
+            }
+        case .shares:
+            if split.rawAmount > 0 {
+                rawInputs[personId] = formatRawValue(split.rawAmount, for: .shares)
+            } else {
+                rawInputs[personId] = "1"
+            }
+        case .adjustment:
+            rawInputs[personId] = formatRawValue(split.rawAmount, for: .adjustment)
+        case .amount:
+            rawInputs[personId] = String(format: "%.2f", split.amount)
+        }
+    }
+
+    private func formatRawValue(_ value: Double, for method: SplitMethod) -> String {
+        switch method {
+        case .shares:
+            return String(Int(value))
+        case .percentage:
+            if value == value.rounded() {
+                return String(format: "%.0f", value)
+            }
+            return String(format: "%.1f", value)
+        default:
+            if value == 0 { return "0" }
+            return String(format: "%.2f", value)
+        }
+    }
+
+    // MARK: - Update Existing Transaction
+
+    /// Updates an existing transaction with the current form state.
+    func updateTransaction(_ transaction: FinancialTransaction, completion: @escaping (Bool) -> Void = { _ in }) {
+        guard isValid else {
+            HapticManager.error()
+            completion(false)
+            return
+        }
+
+        let cleanTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        do {
+            // Update basic fields
+            transaction.title = cleanTitle
+            transaction.amount = totalAmountDouble
+            transaction.date = date
+            transaction.splitMethod = splitMethod.rawValue
+
+            let trimmedNote = note.trimmingCharacters(in: .whitespacesAndNewlines)
+            transaction.note = trimmedNote.isEmpty ? nil : trimmedNote
+
+            // Delete existing split records
+            if let existingSplits = transaction.splits as? Set<TransactionSplit> {
+                for split in existingSplits {
+                    viewContext.delete(split)
+                }
+            }
+
+            // Delete existing payer records
+            if let existingPayers = transaction.payers as? Set<TransactionPayer> {
+                for payer in existingPayers {
+                    viewContext.delete(payer)
+                }
+            }
+
+            // Set legacy payer field
+            let currentUser = CurrentUser.getOrCreate(in: viewContext)
+            if selectedPayerPersons.isEmpty {
+                transaction.payer = currentUser
+            } else if selectedPayerPersons.count == 1 {
+                transaction.payer = selectedPayerPersons.first
+            } else {
+                if let currentUserPayer = selectedPayerPersons.first(where: { CurrentUser.isCurrentUser($0.id) }) {
+                    transaction.payer = currentUserPayer
+                } else {
+                    transaction.payer = selectedPayerPersons.sorted { ($0.name ?? "") < ($1.name ?? "") }.first
+                }
+            }
+
+            // Create new TransactionPayer records
+            if selectedPayerPersons.isEmpty {
+                let payerRecord = TransactionPayer(context: viewContext)
+                payerRecord.paidBy = currentUser
+                payerRecord.transaction = transaction
+                payerRecord.amount = totalAmountDouble
+            } else if selectedPayerPersons.count == 1, let singlePayer = selectedPayerPersons.first {
+                let payerRecord = TransactionPayer(context: viewContext)
+                payerRecord.paidBy = singlePayer
+                payerRecord.transaction = transaction
+                payerRecord.amount = totalAmountDouble
+            } else {
+                for person in selectedPayerPersons {
+                    let payerRecord = TransactionPayer(context: viewContext)
+                    payerRecord.paidBy = person
+                    payerRecord.transaction = transaction
+                    let amountStr = payerAmounts[person.id ?? UUID()] ?? "0"
+                    payerRecord.amount = Double(amountStr) ?? 0
+                }
+            }
+
+            // Update group
+            transaction.group = selectedGroup
+
+            // Create new split records
+            for person in selectedParticipants {
+                let splitData = TransactionSplit(context: viewContext)
+                splitData.owedBy = person
+                splitData.transaction = transaction
+                splitData.amount = calculateSplit(for: person)
+
+                if let personId = person.id,
+                   let rawString = rawInputs[personId],
+                   let rawVal = Double(rawString) {
+                    splitData.rawAmount = rawVal
+                }
+            }
+
+            try viewContext.save()
+            HapticManager.success()
+            completion(true)
+        } catch {
+            viewContext.rollback()
+            HapticManager.error()
+            AppLogger.transactions.error("Failed to update transaction: \(error.localizedDescription)")
+            completion(false)
+        }
+    }
 }
