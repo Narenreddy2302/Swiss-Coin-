@@ -92,6 +92,10 @@ struct TransactionDetailView: View {
                     }
                     .padding(.vertical, Spacing.lg)
                 }
+
+                // Action Buttons
+                detailActionButtonsSection
+                    .padding(.top, Spacing.xl)
             }
             .padding(.horizontal, Spacing.xl)
             .padding(.vertical, Spacing.xl)
@@ -294,6 +298,46 @@ struct TransactionDetailView: View {
             .stroke(style: StrokeStyle(lineWidth: 1, dash: [4, 4]))
             .foregroundColor(AppColors.separator)
             .frame(height: 1)
+    }
+
+    // MARK: - Action Buttons
+
+    private var detailActionButtonsSection: some View {
+        VStack(spacing: Spacing.sm) {
+            Button {
+                HapticManager.tap()
+                showingEditSheet = true
+            } label: {
+                HStack(spacing: Spacing.sm) {
+                    Image(systemName: "pencil")
+                        .font(.system(size: 14, weight: .medium))
+                    Text("Edit Transaction")
+                        .font(AppTypography.bodyBold())
+                }
+                .foregroundColor(AppColors.textPrimary)
+                .frame(maxWidth: .infinity)
+                .frame(height: ButtonHeight.md)
+                .background(AppColors.backgroundTertiary)
+                .clipShape(RoundedRectangle(cornerRadius: CornerRadius.md))
+            }
+
+            Button {
+                HapticManager.tap()
+                showingDeleteAlert = true
+            } label: {
+                HStack(spacing: Spacing.sm) {
+                    Image(systemName: "trash")
+                        .font(.system(size: 14, weight: .medium))
+                    Text("Delete Transaction")
+                        .font(AppTypography.bodyBold())
+                }
+                .foregroundColor(AppColors.negative)
+                .frame(maxWidth: .infinity)
+                .frame(height: ButtonHeight.md)
+                .background(AppColors.negative.opacity(0.08))
+                .clipShape(RoundedRectangle(cornerRadius: CornerRadius.md))
+            }
+        }
     }
 
     // MARK: - Helpers

@@ -200,10 +200,18 @@ struct GroupConversationView: View {
             .onAppear { HapticManager.sheetPresent() }
         }
         .sheet(item: $showingTransactionDetail) { transaction in
-            NavigationStack {
-                TransactionDetailSheet(transaction: transaction)
-            }
-            .onAppear { HapticManager.sheetPresent() }
+            TransactionDetailSheet(
+                transaction: transaction,
+                person: nil,
+                onEdit: {
+                    transactionToEdit = transaction
+                },
+                onDelete: {
+                    transactionToDelete = transaction
+                    showingDeleteTransaction = true
+                }
+            )
+            .environment(\.managedObjectContext, viewContext)
         }
         .alert("Error", isPresented: $showingError) {
             Button("OK", role: .cancel) {}
