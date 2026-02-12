@@ -11,6 +11,7 @@ struct PersonDetailView: View {
     @State private var showingEditPerson = false
     @State private var showingDeleteConfirmation = false
     @State private var showingSettlement = false
+    @State private var selectedTransaction: FinancialTransaction?
 
     // MARK: - Computed Properties
 
@@ -115,6 +116,15 @@ struct PersonDetailView: View {
                     Image(systemName: "ellipsis.circle")
                         .font(.system(size: IconSize.md))
                 }
+            }
+        }
+        .sheet(isPresented: Binding(
+            get: { selectedTransaction != nil },
+            set: { if !$0 { selectedTransaction = nil } }
+        )) {
+            if let transaction = selectedTransaction {
+                TransactionExpandedView(transaction: transaction)
+                    .environment(\.managedObjectContext, viewContext)
             }
         }
         .sheet(isPresented: $showingAddTransaction) {
@@ -261,28 +271,49 @@ struct PersonDetailView: View {
     // MARK: - Recent Activity
 
     private var recentActivitySection: some View {
-        VStack(alignment: .leading, spacing: Spacing.sm) {
+        VStack(alignment: .leading, spacing: 0) {
             if !combinedTransactions.isEmpty {
-                Text("RECENT ACTIVITY")
-                    .font(AppTypography.footnote())
-                    .foregroundColor(AppColors.textSecondary)
-                    .padding(.horizontal, Spacing.lg)
+                // Section header matching TransactionHistoryView style
+                HStack {
+                    Text("Recent Activity")
+                        .font(AppTypography.labelLarge())
+                        .foregroundColor(AppColors.textSecondary)
 
+                    Spacer()
+
+                    Text("\(combinedTransactions.count)")
+                        .font(AppTypography.caption())
+                        .foregroundColor(AppColors.textTertiary)
+                        .padding(.horizontal, Spacing.sm)
+                        .padding(.vertical, Spacing.xxs)
+                        .background(
+                            Capsule()
+                                .fill(AppColors.backgroundTertiary)
+                        )
+                }
+                .padding(.horizontal, Spacing.lg)
+                .padding(.bottom, Spacing.sm)
+
+                // Transaction rows matching TransactionHistoryView card style
                 VStack(spacing: 0) {
                     ForEach(combinedTransactions) { transaction in
-                        PersonDetailTransactionRow(transaction: transaction, person: person)
+                        TransactionRowView(
+                            transaction: transaction,
+                            onDelete: nil,
+                            selectedTransaction: $selectedTransaction
+                        )
 
                         if transaction.objectID != combinedTransactions.last?.objectID {
                             Divider()
-                                .padding(.leading, Spacing.lg + AvatarSize.md + Spacing.md)
+                                .padding(.leading, Spacing.lg)
                         }
                     }
                 }
                 .background(
-                    RoundedRectangle(cornerRadius: CornerRadius.card)
+                    RoundedRectangle(cornerRadius: CornerRadius.md)
                         .fill(AppColors.cardBackground)
+                        .shadow(color: Color.black.opacity(0.06), radius: 6, x: 0, y: 2)
                 )
-                .clipShape(RoundedRectangle(cornerRadius: CornerRadius.card))
                 .padding(.horizontal, Spacing.lg)
             } else {
                 VStack(spacing: Spacing.md) {
@@ -332,118 +363,3 @@ struct PersonDetailView: View {
     }
 }
 
-// MARK: - Transaction Row
-
-struct PersonDetailTransactionRow: View {
-    let transaction: FinancialTransaction
-    let person: Person
-
-    // MARK: - Computed Properties
-
-    /// Net balance for this transaction: positive = person owes you
-    private var pairwiseResult: Double {
-        guard let currentUserId = CurrentUser.currentUserId,
-              let personId = person.id else { return 0 }
-        return transaction.pairwiseBalance(personA: currentUserId, personB: personId)
-    }
-
-    private var isUserNetCreditor: Bool {
-        pairwiseResult > 0
-    }
-
-    /// The split amount relevant to this transaction (always positive).
-    /// Direction is determined by who paid.
-    private var userPerspectiveAmount: Double {
-        abs(pairwiseResult)
-    }
-
-    private var amountColor: Color {
-        if isUserNetCreditor && userPerspectiveAmount > 0 {
-            return AppColors.positive
-        } else if !isUserNetCreditor && userPerspectiveAmount > 0 {
-            return AppColors.negative
-        }
-        return AppColors.textSecondary
-    }
-
-    private var amountPrefix: String {
-        if isUserNetCreditor && userPerspectiveAmount > 0 {
-            return "+"
-        }
-        return ""
-    }
-
-    private var statusText: String {
-        let payers = transaction.effectivePayers
-        let isUserAPayer = payers.contains { CurrentUser.isCurrentUser($0.personId) }
-        let isPersonAPayer = payers.contains { $0.personId == person.id }
-
-        if payers.count > 1 {
-            if isUserAPayer && isPersonAPayer {
-                return "You & \(person.firstName) paid"
-            } else if isUserAPayer {
-                return "You +\(payers.count - 1) paid"
-            }
-            return "\(payers.count) payers"
-        }
-
-        if isUserAPayer {
-            return "You paid"
-        } else if isPersonAPayer {
-            return "\(person.firstName) paid"
-        } else {
-            return "Paid by \(transaction.payer?.firstName ?? "someone")"
-        }
-    }
-
-    private var statusColor: Color {
-        if isUserNetCreditor {
-            return AppColors.positive
-        }
-        return AppColors.negative
-    }
-
-    var body: some View {
-        HStack(spacing: Spacing.md) {
-            // Direction icon
-            RoundedRectangle(cornerRadius: CornerRadius.sm)
-                .fill(amountColor.opacity(0.1))
-                .frame(width: AvatarSize.md, height: AvatarSize.md)
-                .overlay(
-                    Image(systemName: isUserNetCreditor ? "arrow.up.right" : "arrow.down.left")
-                        .font(.system(size: IconSize.sm, weight: .medium))
-                        .foregroundColor(amountColor)
-                )
-
-            // Title and metadata
-            VStack(alignment: .leading, spacing: Spacing.xxs) {
-                Text(transaction.title ?? "Expense")
-                    .font(AppTypography.body())
-                    .foregroundColor(AppColors.textPrimary)
-                    .lineLimit(1)
-
-                HStack(spacing: Spacing.xxs) {
-                    if let date = transaction.date {
-                        Text(DateFormatter.shortDate.string(from: date))
-                        Text("·")
-                    }
-                    Text(statusText)
-                }
-                .font(AppTypography.caption())
-                .foregroundColor(AppColors.textSecondary)
-            }
-
-            Spacer()
-
-            // Amount
-            Text("\(amountPrefix)\(CurrencyFormatter.format(userPerspectiveAmount))")
-                .font(AppTypography.amountSmall())
-                .foregroundColor(amountColor)
-        }
-        .padding(.vertical, Spacing.md)
-        .padding(.horizontal, Spacing.lg)
-        .contentShape(Rectangle())
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(transaction.title ?? "Expense"), \(amountPrefix)\(CurrencyFormatter.format(userPerspectiveAmount)), \(statusText)")
-    }
-}
