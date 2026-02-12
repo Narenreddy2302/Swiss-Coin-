@@ -151,20 +151,6 @@ struct EnhancedTransactionCardView: View {
         .padding(.vertical, Spacing.lg)
         .background(AppColors.transactionCardBackground)
         .clipShape(RoundedRectangle(cornerRadius: CornerRadius.card))
-        .overlay(
-            // Accent strip at top of card
-            VStack {
-                AppColors.transactionCardAccent
-                    .frame(height: 3)
-                    .clipShape(UnevenRoundedRectangle(
-                        topLeadingRadius: CornerRadius.card,
-                        bottomLeadingRadius: 0,
-                        bottomTrailingRadius: 0,
-                        topTrailingRadius: CornerRadius.card
-                    ))
-                Spacer()
-            }
-        )
         .shadow(
             color: cardShadow.color,
             radius: cardShadow.radius,
@@ -351,7 +337,7 @@ struct EnhancedTransactionCardView: View {
     private func splitRow(name: String, amount: Double, isCurrentUser: Bool) -> some View {
         HStack(spacing: Spacing.xs) {
             Text(name)
-                .font(isCurrentUser ? AppTypography.labelLarge() : AppTypography.bodyDefault())
+                .font(isCurrentUser ? AppTypography.labelDefault() : AppTypography.bodySmall())
                 .foregroundColor(AppColors.textPrimary)
 
             Spacer()
