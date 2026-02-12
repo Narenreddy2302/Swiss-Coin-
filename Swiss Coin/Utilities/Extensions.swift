@@ -57,6 +57,20 @@ extension DateFormatter {
         formatter.pmSymbol = "pm"
         return formatter
     }()
+
+    /// Short month format (e.g. "Feb") — used in receipt-style formatting
+    static let shortMonth: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMM"
+        return formatter
+    }()
+
+    /// Year-only format (e.g. "2026") — used in receipt-style formatting
+    static let yearOnly: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy"
+        return formatter
+    }()
 }
 
 // MARK: - Date Extensions
@@ -67,14 +81,8 @@ extension Date {
         let calendar = Calendar.current
         let day = calendar.component(.day, from: self)
 
-        let monthFmt = DateFormatter()
-        monthFmt.dateFormat = "MMM"
-        let month = monthFmt.string(from: self)
-
-        let yearFmt = DateFormatter()
-        yearFmt.dateFormat = "yyyy"
-        let year = yearFmt.string(from: self)
-
+        let month = DateFormatter.shortMonth.string(from: self)
+        let year = DateFormatter.yearOnly.string(from: self)
         let dayOfWeek = DateFormatter.dayOfWeek.string(from: self)
 
         return "\(month) \(day)\(Self.daySuffix(for: day)), \(year) | \(dayOfWeek)"
