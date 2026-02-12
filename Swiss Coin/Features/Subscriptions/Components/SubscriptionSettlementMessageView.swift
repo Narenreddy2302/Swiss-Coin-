@@ -2,7 +2,7 @@
 //  SubscriptionSettlementMessageView.swift
 //  Swiss Coin
 //
-//  Full-width green notification strip for settlements in subscription conversations.
+//  Centered pill notification for settlements in subscription conversations.
 //
 
 import SwiftUI
@@ -31,11 +31,11 @@ struct SubscriptionSettlementMessageView: View {
     var body: some View {
         SystemMessageView(
             icon: "checkmark.circle.fill",
-            iconColor: AppColors.stripText,
+            iconColor: AppColors.positive,
             messageText: messageText,
             noteText: settlement.note,
             date: settlement.date,
-            backgroundColor: AppColors.settlementStripBackground
+            backgroundColor: AppColors.settlementBackground
         )
         .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: CornerRadius.card))
         .contextMenu {

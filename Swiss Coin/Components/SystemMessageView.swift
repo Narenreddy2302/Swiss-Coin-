@@ -2,15 +2,15 @@
 //  SystemMessageView.swift
 //  Swiss Coin
 //
-//  Full-width notification strip for settlements, reminders, and other
-//  system events across all conversation views. Spans edge to edge with
-//  a colored background — no avatar, no rounded card.
+//  Centered pill-style notification for settlements, reminders, and other
+//  system events across all conversation views. Compact and professional,
+//  matching the design language of date header capsules.
 //
 
 import SwiftUI
 
-/// Displays a system event as a full-width colored notification strip.
-/// Red for reminders, green for settlements.
+/// Displays a system event as a centered rounded pill with a muted background.
+/// Green-tinted for settlements, amber-tinted for reminders.
 struct SystemMessageView: View {
     let icon: String
     let iconColor: Color
@@ -36,33 +36,43 @@ struct SystemMessageView: View {
     }
 
     var body: some View {
-        VStack(spacing: Spacing.xxs) {
-            HStack(spacing: Spacing.sm) {
-                Image(systemName: icon)
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(AppColors.stripText.opacity(0.9))
+        HStack {
+            Spacer()
 
-                Text(messageText)
-                    .font(AppTypography.bodyDefault())
-                    .fontWeight(.medium)
-                    .foregroundColor(AppColors.stripText)
-            }
+            VStack(spacing: Spacing.xxs) {
+                HStack(spacing: Spacing.xs) {
+                    Image(systemName: icon)
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(iconColor)
 
-            if let noteText, !noteText.isEmpty {
-                Text(noteText)
-                    .font(AppTypography.bodySmall())
-                    .foregroundColor(AppColors.stripText.opacity(0.85))
-                    .italic()
-            }
+                    Text(messageText)
+                        .font(AppTypography.bodySmall())
+                        .fontWeight(.medium)
+                        .foregroundColor(AppColors.textPrimary)
+                }
 
-            if let date {
-                Text(date, style: .time)
-                    .font(AppTypography.caption())
-                    .foregroundColor(AppColors.stripText.opacity(0.7))
+                if let noteText, !noteText.isEmpty {
+                    Text(noteText)
+                        .font(AppTypography.caption())
+                        .foregroundColor(AppColors.textSecondary)
+                        .italic()
+                }
+
+                if let date {
+                    Text(date, style: .time)
+                        .font(AppTypography.caption())
+                        .foregroundColor(AppColors.textTertiary)
+                }
             }
+            .padding(.horizontal, Spacing.lg)
+            .padding(.vertical, Spacing.sm)
+            .background(
+                RoundedRectangle(cornerRadius: CornerRadius.card)
+                    .fill(backgroundColor)
+            )
+
+            Spacer()
         }
-        .padding(.vertical, Spacing.md)
-        .frame(maxWidth: .infinity)
-        .background(backgroundColor)
+        .padding(.horizontal, Spacing.lg)
     }
 }

@@ -217,7 +217,7 @@ struct SharedSubscriptionConversationView: View {
     @ViewBuilder
     private func timelineRow(item: SubscriptionConversationItem, isLastItem: Bool) -> some View {
         if item.isSystemStrip {
-            // Reminders & settlements render as full-width notification strips — no avatar
+            // Reminders & settlements render as centered pill notifications — no avatar
             conversationItemView(for: item)
                 .padding(.bottom, isLastItem ? 0 : Spacing.lg)
         } else {

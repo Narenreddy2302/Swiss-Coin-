@@ -2,7 +2,7 @@
 //  GroupReminderMessageView.swift
 //  Swiss Coin
 //
-//  Full-width red notification strip for reminders in group conversations.
+//  Centered pill notification for reminders in group conversations.
 //
 
 import SwiftUI
@@ -19,11 +19,11 @@ struct GroupReminderMessageView: View {
     var body: some View {
         SystemMessageView(
             icon: "bell.fill",
-            iconColor: AppColors.stripText,
+            iconColor: AppColors.warning,
             messageText: messageText,
             noteText: reminder.message.flatMap { $0.isEmpty ? nil : "\"\($0)\"" },
             date: reminder.createdDate,
-            backgroundColor: AppColors.reminderStripBackground
+            backgroundColor: AppColors.reminderBackground
         )
         .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: CornerRadius.card))
         .contextMenu {
