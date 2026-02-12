@@ -25,7 +25,7 @@ struct SubscriptionReminderMessageView: View {
             date: reminder.createdDate,
             backgroundColor: AppColors.reminderStripBackground
         )
-        .contentShape(Rectangle())
+        .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: CornerRadius.card))
         .contextMenu {
             Button {
                 UIPasteboard.general.string = messageText

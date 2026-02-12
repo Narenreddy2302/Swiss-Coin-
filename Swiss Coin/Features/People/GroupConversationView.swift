@@ -450,10 +450,54 @@ struct GroupConversationView: View {
             )
 
         case .settlement(let settlement):
-            GroupSettlementMessageView(settlement: settlement)
+            feedContentHeader(
+                name: "Settlement",
+                timestamp: settlement.date
+            ) {
+                FeedSystemContent(
+                    icon: "checkmark.circle.fill",
+                    iconColor: AppColors.positive,
+                    messageText: settlementMessageText(settlement),
+                    noteText: settlement.note
+                )
+                .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: CornerRadius.card))
+                .contextMenu {
+                    Button {
+                        UIPasteboard.general.string = settlementMessageText(settlement)
+                        HapticManager.copyAction()
+                    } label: {
+                        Label("Copy", systemImage: "doc.on.doc")
+                    }
+                    Button {
+                        UIPasteboard.general.string = CurrencyFormatter.format(settlement.amount)
+                        HapticManager.copyAction()
+                    } label: {
+                        Label("Copy Amount", systemImage: "dollarsign.circle")
+                    }
+                }
+            }
 
         case .reminder(let reminder):
-            GroupReminderMessageView(reminder: reminder)
+            feedContentHeader(
+                name: "Reminder",
+                timestamp: reminder.createdDate
+            ) {
+                FeedSystemContent(
+                    icon: "bell.fill",
+                    iconColor: AppColors.warning,
+                    messageText: reminderMessageText(reminder),
+                    noteText: reminder.message.flatMap { $0.isEmpty ? nil : "\"\($0)\"" }
+                )
+                .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: CornerRadius.card))
+                .contextMenu {
+                    Button {
+                        UIPasteboard.general.string = CurrencyFormatter.format(reminder.amount)
+                        HapticManager.copyAction()
+                    } label: {
+                        Label("Copy Amount", systemImage: "dollarsign.circle")
+                    }
+                }
+            }
 
         case .message(let chatMessage):
             feedContentHeader(
