@@ -129,13 +129,7 @@ struct AddTransactionView: View {
     // MARK: - Step 3: Review
 
     private var step3Content: some View {
-        Group {
-            if viewModel.isTwoPartySplit {
-                TwoPartySplitView(viewModel: viewModel)
-            } else {
-                multiPartySplitContent
-            }
-        }
+        multiPartySplitContent
     }
 
     private var multiPartySplitContent: some View {
@@ -329,9 +323,7 @@ struct AddTransactionView: View {
         case 1: return .fraction(0.50)
         case 2: return .fraction(0.58)
         case 3:
-            if viewModel.isTwoPartySplit {
-                return .fraction(0.50)
-            } else if viewModel.selectedPayerPersons.count > 1 {
+            if viewModel.selectedPayerPersons.count > 1 {
                 return .large
             } else {
                 return .fraction(0.72)
