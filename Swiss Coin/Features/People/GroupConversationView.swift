@@ -450,54 +450,10 @@ struct GroupConversationView: View {
             )
 
         case .settlement(let settlement):
-            feedContentHeader(
-                name: "Settlement",
-                timestamp: settlement.date
-            ) {
-                FeedSystemContent(
-                    icon: "checkmark.circle.fill",
-                    iconColor: AppColors.positive,
-                    messageText: settlementMessageText(settlement),
-                    noteText: settlement.note
-                )
-                .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: CornerRadius.card))
-                .contextMenu {
-                    Button {
-                        UIPasteboard.general.string = settlementMessageText(settlement)
-                        HapticManager.copyAction()
-                    } label: {
-                        Label("Copy", systemImage: "doc.on.doc")
-                    }
-                    Button {
-                        UIPasteboard.general.string = CurrencyFormatter.format(settlement.amount)
-                        HapticManager.copyAction()
-                    } label: {
-                        Label("Copy Amount", systemImage: "dollarsign.circle")
-                    }
-                }
-            }
+            GroupSettlementMessageView(settlement: settlement)
 
         case .reminder(let reminder):
-            feedContentHeader(
-                name: "Reminder",
-                timestamp: reminder.createdDate
-            ) {
-                FeedSystemContent(
-                    icon: "bell.fill",
-                    iconColor: AppColors.warning,
-                    messageText: reminderMessageText(reminder),
-                    noteText: reminder.message.flatMap { $0.isEmpty ? nil : "\"\($0)\"" }
-                )
-                .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: CornerRadius.card))
-                .contextMenu {
-                    Button {
-                        UIPasteboard.general.string = CurrencyFormatter.format(reminder.amount)
-                        HapticManager.copyAction()
-                    } label: {
-                        Label("Copy Amount", systemImage: "dollarsign.circle")
-                    }
-                }
-            }
+            GroupReminderMessageView(reminder: reminder)
 
         case .message(let chatMessage):
             feedContentHeader(
@@ -543,24 +499,6 @@ struct GroupConversationView: View {
 
             content()
         }
-    }
-
-    private func settlementMessageText(_ settlement: Settlement) -> String {
-        let formatted = CurrencyFormatter.format(settlement.amount)
-        if CurrentUser.isCurrentUser(settlement.fromPerson?.id) {
-            return "You paid \(settlement.toPerson?.firstName ?? "someone") \(formatted)"
-        } else if CurrentUser.isCurrentUser(settlement.toPerson?.id) {
-            return "\(settlement.fromPerson?.firstName ?? "Someone") paid you \(formatted)"
-        } else {
-            let fromName = settlement.fromPerson?.firstName ?? "Someone"
-            let toName = settlement.toPerson?.firstName ?? "someone"
-            return "\(fromName) paid \(toName) \(formatted)"
-        }
-    }
-
-    private func reminderMessageText(_ reminder: Reminder) -> String {
-        let personName = reminder.toPerson?.firstName ?? "Someone"
-        return "Reminder sent to \(personName) for \(CurrencyFormatter.format(reminder.amount))"
     }
 
     // MARK: - Helpers
