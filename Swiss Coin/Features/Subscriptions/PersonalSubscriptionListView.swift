@@ -30,10 +30,6 @@ struct PersonalSubscriptionListView: View {
         overdueSubscriptions + dueSubscriptions
     }
 
-    private var activeSubscriptions: [Subscription] {
-        subscriptions.filter { $0.isActive }
-    }
-
     private var upcomingSubscriptions: [Subscription] {
         subscriptions.filter { $0.billingStatus == .upcoming && $0.isActive }
     }
@@ -42,31 +38,12 @@ struct PersonalSubscriptionListView: View {
         subscriptions.filter { !$0.isActive }
     }
 
-    private var monthlyTotal: Double {
-        activeSubscriptions.reduce(0) { $0 + $1.monthlyEquivalent }
-    }
-
-    private var nextDueDate: Date? {
-        activeSubscriptions
-            .compactMap { $0.nextBillingDate }
-            .filter { $0 >= Date() }
-            .min()
-    }
-
     var body: some View {
         if subscriptions.isEmpty {
             EmptySubscriptionView(isShared: false)
         } else {
             ScrollView {
                 VStack(spacing: Spacing.xl) {
-                    // Summary Card
-                    PersonalSubscriptionSummaryCard(
-                        monthlyTotal: monthlyTotal,
-                        activeCount: activeSubscriptions.count,
-                        nextDueDate: nextDueDate
-                    )
-                    .padding(.horizontal, Spacing.lg)
-
                     // Attention Required Section (Overdue + Due)
                     if !attentionSubscriptions.isEmpty {
                         VStack(alignment: .leading, spacing: Spacing.sm) {
