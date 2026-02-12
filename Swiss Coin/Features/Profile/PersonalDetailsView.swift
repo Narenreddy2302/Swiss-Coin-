@@ -30,7 +30,6 @@ struct PersonalDetailsView: View {
                     avatarSection
                     nameSection
                     contactSection
-                    colorSection
                     memberSection
                     saveButton
                 }
@@ -336,67 +335,6 @@ struct PersonalDetailsView: View {
         }
     }
 
-    // MARK: - Color Section
-
-    private var colorSection: some View {
-        VStack(alignment: .leading, spacing: Spacing.sm) {
-            sectionHeader("PROFILE COLOR")
-
-            VStack(spacing: Spacing.md) {
-                HStack(spacing: Spacing.md) {
-                    Circle()
-                        .fill(Color(hex: viewModel.profileColor))
-                        .frame(width: 22, height: 22)
-
-                    Text("Your accent color across the app")
-                        .font(AppTypography.bodySmall())
-                        .foregroundColor(AppColors.textSecondary)
-
-                    Spacer()
-                }
-
-                LazyVGrid(
-                    columns: Array(repeating: GridItem(.flexible(), spacing: Spacing.md), count: 6),
-                    spacing: Spacing.md
-                ) {
-                    ForEach(PersonalDetailsViewModel.colorOptions, id: \.self) { color in
-                        Button {
-                            HapticManager.selectionChanged()
-                            withAnimation(AppAnimation.spring) {
-                                viewModel.profileColor = color
-                                viewModel.hasChanges = true
-                            }
-                        } label: {
-                            Circle()
-                                .fill(Color(hex: color))
-                                .frame(width: 36, height: 36)
-                                .overlay(
-                                    Circle()
-                                        .stroke(AppColors.textPrimary, lineWidth: 2.5)
-                                        .opacity(viewModel.profileColor == color ? 1 : 0)
-                                )
-                                .overlay(
-                                    Image(systemName: "checkmark")
-                                        .font(.system(size: 13, weight: .bold))
-                                        .foregroundColor(.white)
-                                        .opacity(viewModel.profileColor == color ? 1 : 0)
-                                )
-                                .scaleEffect(viewModel.profileColor == color ? 1.1 : 1.0)
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-            }
-            .padding(Spacing.lg)
-            .background(
-                RoundedRectangle(cornerRadius: CornerRadius.card)
-                    .fill(AppColors.cardBackground)
-            )
-            .padding(.horizontal, Spacing.lg)
-            .animation(AppAnimation.spring, value: viewModel.profileColor)
-        }
-    }
-
     // MARK: - Member Section
 
     private var memberSection: some View {
@@ -475,13 +413,6 @@ struct PersonalDetailsView: View {
 
 @MainActor
 class PersonalDetailsViewModel: ObservableObject {
-    // Color options
-    static let colorOptions = [
-        "#34C759", "#007AFF", "#FF9500", "#FF2D55",
-        "#AF52DE", "#5856D6", "#00C7BE", "#FF3B30",
-        "#32ADE6", "#BF5AF2", "#FFD60A", "#64D2FF",
-    ]
-
     // Form fields
     @Published var displayName: String = ""
     @Published var fullName: String = ""
