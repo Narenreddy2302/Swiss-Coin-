@@ -12,6 +12,7 @@ import CoreData
 struct Swiss_CoinApp: App {
     let persistenceController = PersistenceController.shared
     @AppStorage("theme_mode") private var themeMode = "system"
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some Scene {
         WindowGroup {
@@ -20,8 +21,18 @@ struct Swiss_CoinApp: App {
                 .preferredColorScheme(colorScheme)
                 .tint(AppColors.accent)
         }
+        .onChange(of: scenePhase) { _, newPhase in
+            switch newPhase {
+            case .background:
+                AppLockManager.shared.appDidEnterBackground()
+            case .active:
+                AppLockManager.shared.appDidEnterForeground()
+            default:
+                break
+            }
+        }
     }
-    
+
     /// Returns the appropriate color scheme based on user preference
     private var colorScheme: ColorScheme? {
         switch themeMode {
