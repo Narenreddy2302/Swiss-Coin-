@@ -167,6 +167,7 @@ struct GroupConversationView: View {
         .toolbar(.hidden, for: .tabBar)
         .tint(AppColors.textSecondary)
         .navigationBarBackButtonHidden(true)
+        .enableSwipeBack()
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 toolbarLeadingContent
