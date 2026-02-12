@@ -12,9 +12,12 @@ struct EmptySubscriptionView: View {
 
     var body: some View {
         VStack(spacing: Spacing.lg) {
+            Spacer()
+
             Image(systemName: isShared ? "person.2.circle" : "creditcard")
                 .font(.system(size: IconSize.xxl))
-                .foregroundColor(AppColors.textSecondary.opacity(0.5))
+                .foregroundColor(AppColors.textSecondary)
+                .accessibilityHidden(true)
 
             Text(isShared ? "No Shared Subscriptions" : "No Subscriptions")
                 .font(AppTypography.headingLarge())
@@ -37,6 +40,8 @@ struct EmptySubscriptionView: View {
             }
             .foregroundColor(AppColors.accent)
             .padding(.top, Spacing.md)
+
+            Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(AppColors.backgroundSecondary)

@@ -12,7 +12,6 @@ import SwiftUI
 struct SubscriptionListRowView: View {
     @ObservedObject var subscription: Subscription
     @Environment(\.managedObjectContext) private var viewContext
-    @State private var isPressed = false
     @State private var showingEditSheet = false
     @State private var showingDeleteAlert = false
 
@@ -43,6 +42,13 @@ struct SubscriptionListRowView: View {
         }
     }
 
+    private var accessibilityDescription: String {
+        let name = subscription.name ?? "Unknown"
+        let amount = CurrencyFormatter.format(subscription.amount)
+        let cycle = subscription.cycle ?? "Monthly"
+        return "\(name), \(amount) per \(cycle), \(statusText)"
+    }
+
     var body: some View {
         HStack(spacing: Spacing.md) {
             // Subscription Icon (like Person avatar)
@@ -68,7 +74,7 @@ struct SubscriptionListRowView: View {
                         .font(AppTypography.bodySmall())
                         .foregroundColor(AppColors.textSecondary)
 
-                    Text("•")
+                    Text("\u{2022}")
                         .font(AppTypography.bodySmall())
                         .foregroundColor(AppColors.textSecondary)
 
@@ -92,11 +98,11 @@ struct SubscriptionListRowView: View {
                     .foregroundColor(AppColors.textSecondary)
             }
         }
-        .padding(.vertical, Spacing.lg)
+        .padding(.vertical, Spacing.md)
         .padding(.horizontal, Spacing.lg)
-        .scaleEffect(isPressed ? 0.98 : 1.0)
-        .animation(AppAnimation.quick, value: isPressed)
         .contentShape(Rectangle())
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(accessibilityDescription)
         .contextMenu {
             Button {
                 HapticManager.lightTap()

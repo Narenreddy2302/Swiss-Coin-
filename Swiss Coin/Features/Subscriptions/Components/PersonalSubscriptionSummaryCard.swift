@@ -14,48 +14,53 @@ struct PersonalSubscriptionSummaryCard: View {
 
     var body: some View {
         VStack(spacing: Spacing.md) {
-            HStack {
-                VStack(alignment: .leading, spacing: Spacing.xs) {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: Spacing.xxs) {
                     Text("Monthly Total")
-                        .font(AppTypography.subheadline())
+                        .font(AppTypography.bodyDefault())
                         .foregroundColor(AppColors.textSecondary)
 
                     Text(CurrencyFormatter.format(monthlyTotal))
-                        .font(AppTypography.amountLarge())
+                        .font(AppTypography.financialLarge())
                         .foregroundColor(AppColors.textPrimary)
                 }
 
                 Spacer()
 
-                VStack(alignment: .trailing, spacing: Spacing.xs) {
+                VStack(alignment: .trailing, spacing: Spacing.xxs) {
                     Text("\(activeCount) active")
-                        .font(AppTypography.subheadline())
-                        .foregroundColor(AppColors.textSecondary)
+                        .font(AppTypography.labelLarge())
+                        .foregroundColor(AppColors.accent)
+                        .padding(.horizontal, Spacing.sm)
+                        .padding(.vertical, Spacing.xxs)
+                        .background(
+                            Capsule()
+                                .fill(AppColors.accent.opacity(0.12))
+                        )
 
                     if let nextDue = nextDueDate {
                         Text("Next: \(nextDue.formatted(.dateTime.month(.abbreviated).day()))")
-                            .font(AppTypography.subheadlineMedium())
-                            .foregroundColor(AppColors.accent)
+                            .font(AppTypography.labelDefault())
+                            .foregroundColor(AppColors.textSecondary)
                     }
                 }
             }
 
-            // Progress indicator (optional visual enhancement)
             if monthlyTotal > 0 {
                 HStack(spacing: Spacing.xs) {
                     Image(systemName: "chart.line.uptrend.xyaxis")
-                        .font(.system(size: 12))
-                        .foregroundColor(AppColors.accent)
+                        .font(.system(size: IconSize.xs))
+                        .foregroundColor(AppColors.textTertiary)
 
                     (Text("Yearly: ") + Text(CurrencyFormatter.format(monthlyTotal * 12)).fontWeight(.bold))
                         .font(AppTypography.caption())
-                        .foregroundColor(AppColors.textSecondary)
+                        .foregroundColor(AppColors.textTertiary)
                 }
             }
         }
         .padding(Spacing.lg)
         .background(
-            RoundedRectangle(cornerRadius: CornerRadius.md)
+            RoundedRectangle(cornerRadius: CornerRadius.card)
                 .fill(AppColors.cardBackground)
         )
     }
