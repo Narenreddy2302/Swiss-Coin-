@@ -28,6 +28,7 @@ extension FinancialTransaction {
     @NSManaged public var group: UserGroup?
     @NSManaged public var splits: NSSet?
     @NSManaged public var payers: NSSet?
+    @NSManaged public var comments: NSSet?
 
 }
 
@@ -59,6 +60,21 @@ extension FinancialTransaction {
 
     @objc(removePayers:)
     @NSManaged public func removeFromPayers(_ values: NSSet)
+}
+
+// MARK: Generated accessors for comments
+extension FinancialTransaction {
+    @objc(addCommentsObject:)
+    @NSManaged public func addToComments(_ value: ChatMessage)
+
+    @objc(removeCommentsObject:)
+    @NSManaged public func removeFromComments(_ value: ChatMessage)
+
+    @objc(addComments:)
+    @NSManaged public func addToComments(_ values: NSSet)
+
+    @objc(removeComments:)
+    @NSManaged public func removeFromComments(_ values: NSSet)
 }
 
 extension FinancialTransaction: Identifiable {

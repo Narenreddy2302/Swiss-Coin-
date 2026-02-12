@@ -85,6 +85,10 @@ struct EnhancedTransactionCardView: View {
         }
     }
 
+    private var commentCount: Int {
+        (transaction.comments as? Set<ChatMessage>)?.count ?? 0
+    }
+
     private var splitCount: Int {
         (transaction.splits as? Set<TransactionSplit>)?.count ?? 0
     }
@@ -280,15 +284,21 @@ struct EnhancedTransactionCardView: View {
                 HapticManager.selectionChanged()
                 onComment?()
             } label: {
-                Text("Comment")
-                    .font(AppTypography.buttonDefault())
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: ButtonHeight.sm)
-                    .background(
-                        RoundedRectangle(cornerRadius: CornerRadius.button)
-                            .fill(AppColors.accent)
-                    )
+                HStack(spacing: Spacing.xs) {
+                    Text("Comment")
+                    if commentCount > 0 {
+                        Text("\(commentCount)")
+                            .font(AppTypography.labelSmall())
+                    }
+                }
+                .font(AppTypography.buttonDefault())
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .frame(height: ButtonHeight.sm)
+                .background(
+                    RoundedRectangle(cornerRadius: CornerRadius.button)
+                        .fill(AppColors.accent)
+                )
             }
 
             // Edit Button - Outlined
