@@ -151,8 +151,8 @@ struct TransactionDetailView: View {
             Text(errorMessage)
         }
         .onAppear { recomputeCachedState() }
-        .onChange(of: transaction.amount) { _ in recomputeCachedState() }
-        .onChange(of: transaction.title) { _ in recomputeCachedState() }
+        .onChange(of: transaction.amount) { recomputeCachedState() }
+        .onChange(of: transaction.title) { recomputeCachedState() }
     }
 
     // MARK: - Receipt Header
@@ -411,8 +411,8 @@ struct TransactionExpandedView: View {
             recomputeCachedState()
             HapticManager.lightTap()
         }
-        .onChange(of: transaction.amount) { _ in recomputeCachedState() }
-        .onChange(of: transaction.title) { _ in recomputeCachedState() }
+        .onChange(of: transaction.amount) { recomputeCachedState() }
+        .onChange(of: transaction.title) { recomputeCachedState() }
         .sheet(isPresented: $showingEditSheet) {
             TransactionEditView(transaction: transaction)
                 .environment(\.managedObjectContext, viewContext)
