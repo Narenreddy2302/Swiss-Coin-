@@ -2,109 +2,73 @@
 //  TransactionEditView.swift
 //  Swiss Coin
 //
-//  Edit view for modifying an existing transaction's basic details.
+//  Full edit view for modifying an existing transaction.
+//  Mirrors the AddTransactionView 3-step wizard with all fields pre-filled.
 //
 
 import CoreData
 import SwiftUI
 
+// MARK: - Edit Transaction View
+// 3-step wizard: Details -> Split -> Review (pre-filled from existing transaction)
+
 struct TransactionEditView: View {
-    @ObservedObject var transaction: FinancialTransaction
+    private let transaction: FinancialTransaction
+    @StateObject private var viewModel: TransactionViewModel
+    @Environment(\.dismiss) private var dismiss
     @Environment(\.managedObjectContext) private var viewContext
-    @Environment(\.dismiss) var dismiss
+    @FocusState private var focusedField: FocusField?
 
-    // Editable fields — initialized from the transaction
-    @State private var title: String
-    @State private var amount: String
-    @State private var date: Date
-    @State private var note: String
-    @State private var selectedPayer: Person?
+    @AppStorage("default_currency") private var selectedCurrency: String = "USD"
+    @State private var currentStep: Int = 1
+    @State private var selectedDetent: PresentationDetent = .fraction(0.42)
+    @State private var keyboardVisible: Bool = false
 
-    @State private var showingError = false
-    @State private var errorMessage = ""
-    @State private var isSaving = false
-
-    // Fetch all people for the payer picker
-    @FetchRequest(
-        sortDescriptors: [NSSortDescriptor(keyPath: \Person.name, ascending: true)],
-        animation: .default)
-    private var people: FetchedResults<Person>
-
-    private var otherPeople: [Person] {
-        people.filter { !CurrentUser.isCurrentUser($0.id) }
+    private enum FocusField: Hashable {
+        case title
+        case amount
+        case note
+        case paidBySearch
+        case splitWithSearch
     }
-
-    // MARK: - Init
 
     init(transaction: FinancialTransaction) {
         self.transaction = transaction
-        _title = State(initialValue: transaction.title ?? "")
-        _amount = State(initialValue: String(format: "%.2f", transaction.amount))
-        _date = State(initialValue: transaction.date ?? Date())
-        _note = State(initialValue: transaction.note ?? "")
-        _selectedPayer = State(initialValue: transaction.payer)
+        let ctx = transaction.managedObjectContext
+            ?? PersistenceController.shared.container.viewContext
+        let vm = TransactionViewModel(context: ctx)
+        vm.loadTransaction(transaction)
+        _viewModel = StateObject(wrappedValue: vm)
     }
-
-    // MARK: - Validation
-
-    private var trimmedTitle: String {
-        title.trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-
-    private var amountDouble: Double {
-        Double(amount) ?? 0.0
-    }
-
-    private var isValid: Bool {
-        !trimmedTitle.isEmpty && amountDouble > 0.001
-    }
-
-    private var validationMessage: String? {
-        if trimmedTitle.isEmpty {
-            return "Please enter a title"
-        }
-        if amountDouble <= 0 {
-            return "Amount must be greater than zero"
-        }
-        return nil
-    }
-
-    // MARK: - Body
 
     var body: some View {
         NavigationStack {
-            ZStack(alignment: .bottom) {
+            VStack(spacing: 0) {
+                // MARK: - Step Content
                 ScrollView {
                     VStack(spacing: Spacing.xl) {
-                        // MARK: - Hero Amount Section
-                        amountSection
-
-                        // MARK: - Transaction Info Card
-                        transactionInfoCard
-
-                        // MARK: - Payer Card
-                        payerCard
-
-                        // MARK: - Current Splits Card (read-only)
-                        currentSplitsCard
-
-                        // MARK: - Validation
-                        validationSection
-
-                        // Bottom padding for save button
-                        Spacer()
-                            .frame(height: ButtonHeight.xl + Spacing.section)
+                        switch currentStep {
+                        case 1:
+                            step1Content
+                        case 2:
+                            step2Content
+                        case 3:
+                            step3Content
+                        default:
+                            EmptyView()
+                        }
                     }
                     .padding(.horizontal, Spacing.lg)
-                    .padding(.top, Spacing.lg)
+                    .padding(.top, Spacing.sm)
+                    .padding(.bottom, Spacing.lg)
                 }
                 .scrollDismissesKeyboard(.interactively)
 
-                // MARK: - Floating Save Button
-                saveButton
+                // MARK: - Bottom Navigation Bar
+                bottomNavigationBar
             }
             .background(AppColors.backgroundSecondary)
-            .navigationTitle("Edit Transaction")
+            .navigationTitle(currentStep == 1 ? "Edit Transaction" : currentStep == 2 ? "Split Options" : "Split Details")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -117,321 +81,851 @@ struct TransactionEditView: View {
                             .foregroundColor(AppColors.textPrimary)
                     }
                 }
-            }
-            .alert("Error", isPresented: $showingError) {
-                Button("OK", role: .cancel) {
-                    HapticManager.tap()
+
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Done") {
+                        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                        focusedField = nil
+                    }
+                    .font(AppTypography.bodyBold())
+                    .foregroundColor(AppColors.accent)
                 }
-            } message: {
-                Text(errorMessage)
+            }
+            .presentationDetents(availableDetents, selection: $selectedDetent)
+            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
+                withAnimation(AppAnimation.standard) {
+                    keyboardVisible = true
+                    selectedDetent = detentForCurrentState()
+                }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+                withAnimation(AppAnimation.standard) {
+                    keyboardVisible = false
+                    selectedDetent = detentForCurrentState()
+                }
+            }
+            .onChange(of: currentStep) { _, _ in
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                    withAnimation(AppAnimation.standard) {
+                        selectedDetent = detentForCurrentState()
+                    }
+                }
             }
         }
     }
 
-    // MARK: - Amount Section
+    // MARK: - Step 1: Details
 
-    private var amountSection: some View {
-        VStack(spacing: Spacing.md) {
-            Text("Total Amount")
+    private var step1Content: some View {
+        VStack(spacing: Spacing.xl) {
+            transactionNameSection
+            dateAndAmountSection
+            noteSection
+        }
+    }
+
+    // MARK: - Step 2: Split
+
+    private var step2Content: some View {
+        VStack(alignment: .leading, spacing: Spacing.md) {
+            paidBySection
+            splitWithSection
+        }
+    }
+
+    // MARK: - Step 3: Review
+
+    private var step3Content: some View {
+        Group {
+            if viewModel.isTwoPartySplit {
+                TwoPartySplitView(viewModel: viewModel)
+            } else {
+                multiPartySplitContent
+            }
+        }
+    }
+
+    private var multiPartySplitContent: some View {
+        VStack(alignment: .leading, spacing: Spacing.md) {
+            splitMethodSection
+            if viewModel.selectedPayerPersons.count > 1 {
+                paidByBreakdownSection
+            }
+            breakdownSection
+            validationSection
+        }
+    }
+
+    // MARK: - Paid By Breakdown Section (Step 3)
+
+    private var paidByBreakdownSection: some View {
+        VStack(alignment: .leading, spacing: Spacing.md) {
+            Text("Paid By:")
+                .font(AppTypography.subheadlineMedium())
+                .foregroundColor(AppColors.textPrimary)
+
+            let sortedPayers: [Person] = {
+                if viewModel.selectedPayerPersons.isEmpty {
+                    if let currentUser = try? viewContext.fetch(Person.fetchRequest()).first(where: { CurrentUser.isCurrentUser($0.id) }) {
+                        return [currentUser]
+                    }
+                    return []
+                }
+                return Array(viewModel.selectedPayerPersons).sorted { p1, p2 in
+                    let isCurrentUser1 = CurrentUser.isCurrentUser(p1.id)
+                    let isCurrentUser2 = CurrentUser.isCurrentUser(p2.id)
+                    if isCurrentUser1 && !isCurrentUser2 { return true }
+                    if !isCurrentUser1 && isCurrentUser2 { return false }
+                    return (p1.name ?? "") < (p2.name ?? "")
+                }
+            }()
+
+            ForEach(sortedPayers, id: \.self) { person in
+                payerAmountRow(person: person)
+            }
+        }
+    }
+
+    private func payerAmountRow(person: Person) -> some View {
+        let name = CurrentUser.isCurrentUser(person.id) ? "You" : (person.name ?? "Unknown")
+        let isSinglePayer = viewModel.selectedPayerPersons.count <= 1
+
+        return HStack {
+            Text(name)
                 .font(AppTypography.subheadline())
-                .foregroundColor(AppColors.textSecondary)
+                .foregroundColor(AppColors.textPrimary)
+                .lineLimit(1)
 
-            HStack(alignment: .firstTextBaseline, spacing: Spacing.xxs) {
+            Spacer()
+
+            HStack(spacing: Spacing.xs) {
                 Text(CurrencyFormatter.currencySymbol)
-                    .font(.system(size: 36, weight: .bold, design: .rounded))
-                    .foregroundColor(amount.isEmpty ? AppColors.textTertiary : AppColors.textPrimary)
+                    .font(AppTypography.subheadline())
+                    .foregroundColor(AppColors.textSecondary)
 
-                TextField("0.00", text: $amount)
-                    .font(.system(size: 48, weight: .bold, design: .rounded))
-                    .foregroundColor(AppColors.textPrimary)
-                    .keyboardType(.decimalPad)
-                    .multilineTextAlignment(.center)
-                    .limitTextLength(to: 12, text: $amount)
-                    .minimumScaleFactor(0.5)
+                if isSinglePayer {
+                    Text(String(format: "%.2f", viewModel.totalAmountDouble))
+                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                        .foregroundColor(AppColors.textPrimary)
+                        .frame(minWidth: 50, alignment: .trailing)
+                } else {
+                    TextField("0.00", text: payerAmountBinding(for: person))
+                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                        .keyboardType(.decimalPad)
+                        .multilineTextAlignment(.trailing)
+                        .foregroundColor(AppColors.textPrimary)
+                        .frame(minWidth: 50, alignment: .trailing)
+                }
             }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, Spacing.xxl)
-            .padding(.horizontal, Spacing.lg)
-            .background(
-                RoundedRectangle(cornerRadius: CornerRadius.lg)
-                    .fill(AppColors.cardBackground)
-            )
         }
     }
 
-    // MARK: - Transaction Info Card
-
-    private var transactionInfoCard: some View {
-        VStack(spacing: 0) {
-            // Title Field
-            VStack(alignment: .leading, spacing: Spacing.xs) {
-                Text("Title")
-                    .font(AppTypography.caption())
-                    .foregroundColor(AppColors.textSecondary)
-
-                TextField("Transaction title", text: $title)
-                    .font(AppTypography.body())
-                    .foregroundColor(AppColors.textPrimary)
-                    .limitTextLength(to: ValidationLimits.maxTransactionTitleLength, text: $title)
-            }
-            .padding(.horizontal, Spacing.lg)
-            .padding(.vertical, Spacing.md)
-
-            Divider()
-                .padding(.leading, Spacing.lg)
-
-            // Date Picker
-            HStack {
-                Text("Date")
-                    .font(AppTypography.body())
-                    .foregroundColor(AppColors.textPrimary)
-                Spacer()
-                DatePicker("", selection: $date, displayedComponents: .date)
-                    .labelsHidden()
-                    .tint(AppColors.accent)
-            }
-            .padding(.horizontal, Spacing.lg)
-            .padding(.vertical, Spacing.md)
-
-            Divider()
-                .padding(.leading, Spacing.lg)
-
-            // Note Field
-            VStack(alignment: .leading, spacing: Spacing.xs) {
-                Text("Note")
-                    .font(AppTypography.caption())
-                    .foregroundColor(AppColors.textSecondary)
-
-                TextField("Add a note...", text: $note, axis: .vertical)
-                    .font(AppTypography.body())
-                    .foregroundColor(AppColors.textPrimary)
-                    .lineLimit(3...5)
-                    .limitTextLength(to: ValidationLimits.maxNoteLength, text: $note)
-            }
-            .padding(.horizontal, Spacing.lg)
-            .padding(.vertical, Spacing.md)
-        }
-        .background(
-            RoundedRectangle(cornerRadius: CornerRadius.md)
-                .fill(AppColors.cardBackground)
+    private func payerAmountBinding(for person: Person) -> Binding<String> {
+        let personId = person.id ?? UUID()
+        return Binding(
+            get: { viewModel.payerAmounts[personId] ?? "" },
+            set: { viewModel.payerAmounts[personId] = $0 }
         )
     }
 
-    // MARK: - Payer Card
+    // MARK: - Bottom Navigation Bar
 
-    private var payerCard: some View {
+    private var bottomNavigationBar: some View {
         VStack(spacing: 0) {
-            if transaction.isMultiPayer, let payerSet = transaction.payers as? Set<TransactionPayer> {
-                // Multi-payer: read-only list
-                VStack(alignment: .leading, spacing: 0) {
-                    Text("Paid By")
-                        .font(AppTypography.headline())
-                        .foregroundColor(AppColors.textPrimary)
-                        .padding(.horizontal, Spacing.lg)
-                        .padding(.top, Spacing.md)
-                        .padding(.bottom, Spacing.sm)
+            Divider()
 
-                    Divider().padding(.leading, Spacing.lg)
+            HStack(spacing: Spacing.md) {
+                // Back button (Steps 2 & 3)
+                if currentStep > 1 {
+                    Button {
+                        goToPreviousStep()
+                    } label: {
+                        Text("Back")
+                    }
+                    .buttonStyle(SecondaryButtonStyle())
+                }
 
-                    let sortedPayers = payerSet.sorted { tp1, tp2 in
-                        if CurrentUser.isCurrentUser(tp1.paidBy?.id) { return true }
-                        if CurrentUser.isCurrentUser(tp2.paidBy?.id) { return false }
-                        return (tp1.paidBy?.displayName ?? "") < (tp2.paidBy?.displayName ?? "")
+                // Next / Update button
+                if currentStep < 3 {
+                    Button {
+                        goToNextStep()
+                    } label: {
+                        Text("Next")
+                    }
+                    .disabled(!isCurrentStepValid)
+                    .buttonStyle(PrimaryButtonStyle(isEnabled: isCurrentStepValid))
+                } else {
+                    Button {
+                        HapticManager.tap()
+                        viewModel.updateTransaction(transaction) { success in
+                            if success {
+                                dismiss()
+                            }
+                        }
+                    } label: {
+                        Text("Update Transaction")
+                    }
+                    .disabled(!viewModel.isValid)
+                    .buttonStyle(PrimaryButtonStyle(isEnabled: viewModel.isValid))
+                }
+            }
+            .padding(.horizontal, Spacing.lg)
+            .padding(.vertical, Spacing.md)
+            .background(AppColors.backgroundSecondary)
+        }
+    }
+
+    // MARK: - Navigation Helpers
+
+    private var isCurrentStepValid: Bool {
+        switch currentStep {
+        case 1: return viewModel.isStep1Valid
+        case 2: return viewModel.isStep2Valid
+        default: return true
+        }
+    }
+
+    private func goToNextStep() {
+        focusedField = nil
+        withAnimation(AppAnimation.standard) {
+            currentStep = min(currentStep + 1, 3)
+        }
+        HapticManager.selectionChanged()
+    }
+
+    private func goToPreviousStep() {
+        focusedField = nil
+        withAnimation(AppAnimation.standard) {
+            currentStep = max(currentStep - 1, 1)
+        }
+        HapticManager.selectionChanged()
+    }
+
+    // MARK: - Dynamic Sheet Height
+
+    private var availableDetents: Set<PresentationDetent> {
+        [.fraction(0.42), .fraction(0.50), .fraction(0.58), .fraction(0.65), .fraction(0.72), .large]
+    }
+
+    private func detentForCurrentState() -> PresentationDetent {
+        if keyboardVisible {
+            switch currentStep {
+            case 1: return .large
+            default: return .large
+            }
+        }
+        switch currentStep {
+        case 1: return .fraction(0.50)
+        case 2: return .fraction(0.58)
+        case 3:
+            if viewModel.isTwoPartySplit {
+                return .fraction(0.50)
+            } else if viewModel.selectedPayerPersons.count > 1 {
+                return .large
+            } else {
+                return .fraction(0.72)
+            }
+        default: return .fraction(0.50)
+        }
+    }
+
+    // MARK: - Transaction Name Section
+
+    private var transactionNameSection: some View {
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            TextField("Transaction Name", text: $viewModel.title)
+                .font(AppTypography.body())
+                .foregroundColor(AppColors.textPrimary)
+                .focused($focusedField, equals: .title)
+                .submitLabel(.next)
+                .onSubmit { focusedField = .amount }
+                .limitTextLength(to: ValidationLimits.maxTransactionTitleLength, text: $viewModel.title)
+                .padding(.horizontal, Spacing.lg)
+                .padding(.vertical, Spacing.md)
+                .background(AppColors.cardBackgroundElevated)
+                .cornerRadius(CornerRadius.sm)
+        }
+    }
+
+    // MARK: - Date & Amount Section
+
+    private var dateAndAmountSection: some View {
+        HStack(spacing: Spacing.md) {
+            DatePicker(
+                "",
+                selection: $viewModel.date,
+                displayedComponents: .date
+            )
+            .labelsHidden()
+            .datePickerStyle(.compact)
+            .tint(AppColors.textPrimary)
+            .fixedSize()
+
+            Spacer()
+
+            Menu {
+                ForEach(Currency.all) { currency in
+                    Button {
+                        selectedCurrency = currency.code
+                        HapticManager.selectionChanged()
+                    } label: {
+                        HStack {
+                            Text("\(currency.flag) \(currency.symbol)")
+                            if currency.code == selectedCurrency {
+                                Image(systemName: "checkmark")
+                            }
+                        }
+                    }
+                }
+            } label: {
+                HStack(spacing: Spacing.xxs) {
+                    Text(Currency.fromCode(selectedCurrency).symbol)
+                        .font(AppTypography.body())
+                        .foregroundColor(AppColors.textSecondary)
+
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundColor(AppColors.textTertiary)
+                }
+                .padding(.horizontal, Spacing.md)
+                .padding(.vertical, Spacing.xs)
+                .background(AppColors.backgroundTertiary)
+                .cornerRadius(CornerRadius.xs)
+            }
+
+            TextField("0.00", text: $viewModel.totalAmount)
+                .font(.system(size: 22, weight: .bold, design: .rounded))
+                .keyboardType(.decimalPad)
+                .multilineTextAlignment(.trailing)
+                .foregroundColor(AppColors.textPrimary)
+                .focused($focusedField, equals: .amount)
+                .limitTextLength(to: 12, text: $viewModel.totalAmount)
+                .frame(minWidth: 80)
+        }
+        .padding(.horizontal, Spacing.lg)
+        .padding(.vertical, Spacing.md)
+        .background(AppColors.cardBackgroundElevated)
+        .cornerRadius(CornerRadius.sm)
+    }
+
+    // MARK: - Note Section
+
+    private var noteSection: some View {
+        TextField("Add a note...", text: $viewModel.note, axis: .vertical)
+            .font(AppTypography.body())
+            .foregroundColor(AppColors.textPrimary)
+            .focused($focusedField, equals: .note)
+            .lineLimit(3...5)
+            .limitTextLength(to: ValidationLimits.maxNoteLength, text: $viewModel.note)
+            .padding(.horizontal, Spacing.lg)
+            .padding(.vertical, Spacing.md)
+            .background(AppColors.cardBackgroundElevated)
+            .cornerRadius(CornerRadius.sm)
+    }
+
+    // MARK: - Paid By Section (Multi-Select)
+
+    private var paidBySection: some View {
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            Text("Paid By:")
+                .font(AppTypography.subheadlineMedium())
+                .foregroundColor(AppColors.textPrimary)
+
+            HStack {
+                TextField("Search Contact...", text: $viewModel.paidBySearchText)
+                    .font(AppTypography.body())
+                    .foregroundColor(AppColors.textPrimary)
+                    .focused($focusedField, equals: .paidBySearch)
+
+                Image(systemName: "magnifyingglass")
+                    .font(.system(size: 18, weight: .medium))
+                    .foregroundColor(AppColors.textSecondary)
+            }
+            .padding(.horizontal, Spacing.lg)
+            .padding(.vertical, Spacing.md)
+            .background(AppColors.cardBackgroundElevated)
+            .cornerRadius(CornerRadius.sm)
+
+            if viewModel.paidBySearchText.isEmpty {
+                payerChipsScroll
+            } else {
+                paidBySearchResults
+            }
+        }
+    }
+
+    private var payerChipsScroll: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: Spacing.sm) {
+                if viewModel.selectedPayerPersons.isEmpty {
+                    Text("You")
+                        .font(AppTypography.caption())
+                        .foregroundColor(AppColors.buttonForeground)
+                        .lineLimit(1)
+                        .padding(.horizontal, Spacing.md)
+                        .padding(.vertical, Spacing.sm)
+                        .background(AppColors.buttonBackground)
+                        .cornerRadius(CornerRadius.md)
+                } else {
+                    let sortedPayers = Array(viewModel.selectedPayerPersons).sorted { p1, p2 in
+                        let isCurrentUser1 = CurrentUser.isCurrentUser(p1.id)
+                        let isCurrentUser2 = CurrentUser.isCurrentUser(p2.id)
+                        if isCurrentUser1 && !isCurrentUser2 { return true }
+                        if !isCurrentUser1 && isCurrentUser2 { return false }
+                        return (p1.name ?? "") < (p2.name ?? "")
                     }
 
-                    ForEach(sortedPayers, id: \.objectID) { tp in
-                        HStack(spacing: Spacing.md) {
-                            if let person = tp.paidBy {
-                                Circle()
-                                    .fill(person.avatarBackgroundColor)
-                                    .frame(width: AvatarSize.sm, height: AvatarSize.sm)
-                                    .overlay(
-                                        Text(CurrentUser.isCurrentUser(person.id) ? CurrentUser.initials : person.initials)
-                                            .font(.system(size: 12, weight: .medium))
-                                            .foregroundColor(person.avatarTextColor)
-                                    )
-                            }
+                    ForEach(sortedPayers, id: \.self) { person in
+                        removablePayerChip(person)
+                    }
+                }
+            }
+            .padding(.vertical, Spacing.xs)
+        }
+    }
 
-                            Text(CurrentUser.isCurrentUser(tp.paidBy?.id) ? "You" : (tp.paidBy?.displayName ?? "Unknown"))
+    private func removablePayerChip(_ person: Person) -> some View {
+        let name = CurrentUser.isCurrentUser(person.id) ? "You" : person.firstName
+
+        return Button {
+            withAnimation(AppAnimation.quick) {
+                viewModel.togglePayer(person)
+            }
+            HapticManager.tap()
+        } label: {
+            Text(name)
+                .font(AppTypography.caption())
+                .foregroundColor(AppColors.buttonForeground)
+                .lineLimit(1)
+                .padding(.horizontal, Spacing.md)
+                .padding(.vertical, Spacing.sm)
+                .background(AppColors.buttonBackground)
+                .cornerRadius(CornerRadius.md)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var paidBySearchResults: some View {
+        ScrollView {
+            VStack(spacing: 0) {
+                // "You" option
+                Button {
+                    withAnimation(AppAnimation.quick) {
+                        viewModel.toggleCurrentUserAsPayer(in: viewContext)
+                        viewModel.paidBySearchText = ""
+                    }
+                    HapticManager.selectionChanged()
+                    focusedField = .paidBySearch
+                } label: {
+                    searchResultRow(name: "You", isSelected: viewModel.isCurrentUserPayer && !viewModel.selectedPayerPersons.isEmpty)
+                }
+                .buttonStyle(.plain)
+
+                ForEach(viewModel.filteredPaidByContacts, id: \.objectID) { person in
+                    Divider().padding(.leading, Spacing.lg)
+
+                    Button {
+                        withAnimation(AppAnimation.quick) {
+                            viewModel.togglePayer(person)
+                            viewModel.paidBySearchText = ""
+                        }
+                        HapticManager.selectionChanged()
+                        focusedField = .paidBySearch
+                    } label: {
+                        searchResultRow(
+                            name: person.displayName,
+                            isSelected: viewModel.selectedPayerPersons.contains(person)
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+        .frame(maxHeight: 200)
+        .background(AppColors.cardBackgroundElevated)
+        .cornerRadius(CornerRadius.sm)
+        .padding(.top, Spacing.xs)
+    }
+
+    // MARK: - Split With Section
+
+    private var splitWithSection: some View {
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            Text("Split with:")
+                .font(AppTypography.subheadlineMedium())
+                .foregroundColor(AppColors.textPrimary)
+
+            HStack {
+                TextField("Search Contact...", text: $viewModel.splitWithSearchText)
+                    .font(AppTypography.body())
+                    .foregroundColor(AppColors.textPrimary)
+                    .focused($focusedField, equals: .splitWithSearch)
+
+                Image(systemName: "magnifyingglass")
+                    .font(.system(size: 18, weight: .medium))
+                    .foregroundColor(AppColors.textSecondary)
+            }
+            .padding(.horizontal, Spacing.lg)
+            .padding(.vertical, Spacing.md)
+            .background(AppColors.cardBackgroundElevated)
+            .cornerRadius(CornerRadius.sm)
+
+            if viewModel.splitWithSearchText.isEmpty {
+                participantChipsScroll
+            } else {
+                splitWithSearchResults
+            }
+        }
+    }
+
+    private var participantChipsScroll: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: Spacing.sm) {
+                let sortedParticipants = Array(viewModel.selectedParticipants).sorted { p1, p2 in
+                    let isCurrentUser1 = CurrentUser.isCurrentUser(p1.id)
+                    let isCurrentUser2 = CurrentUser.isCurrentUser(p2.id)
+                    if isCurrentUser1 && !isCurrentUser2 { return true }
+                    if !isCurrentUser1 && isCurrentUser2 { return false }
+                    return (p1.name ?? "") < (p2.name ?? "")
+                }
+
+                ForEach(sortedParticipants, id: \.self) { person in
+                    removableParticipantChip(person)
+                }
+            }
+            .padding(.vertical, Spacing.xs)
+        }
+    }
+
+    private func removableParticipantChip(_ person: Person) -> some View {
+        let name = CurrentUser.isCurrentUser(person.id) ? "You" : person.firstName
+
+        return Button {
+            withAnimation(AppAnimation.quick) {
+                _ = viewModel.selectedParticipants.remove(person)
+            }
+            HapticManager.tap()
+        } label: {
+            Text(name)
+                .font(AppTypography.caption())
+                .foregroundColor(AppColors.buttonForeground)
+                .lineLimit(1)
+                .padding(.horizontal, Spacing.md)
+                .padding(.vertical, Spacing.sm)
+                .background(AppColors.buttonBackground)
+                .cornerRadius(CornerRadius.md)
+                .overlay(
+                    RoundedRectangle(cornerRadius: CornerRadius.md)
+                        .stroke(Color.clear, lineWidth: 1)
+                )
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var splitWithSearchResults: some View {
+        ScrollView {
+            VStack(spacing: 0) {
+                ForEach(viewModel.filteredSplitWithGroups, id: \.objectID) { group in
+                    Button {
+                        withAnimation(AppAnimation.quick) {
+                            viewModel.selectGroup(group)
+                            viewModel.splitWithSearchText = ""
+                        }
+                        HapticManager.selectionChanged()
+                        focusedField = .splitWithSearch
+                    } label: {
+                        HStack {
+                            Image(systemName: "person.2.fill")
+                                .font(.system(size: 16))
+                                .foregroundColor(AppColors.accent)
+
+                            Text(group.name ?? "Unnamed Group")
                                 .font(AppTypography.body())
                                 .foregroundColor(AppColors.textPrimary)
 
                             Spacer()
 
-                            Text(CurrencyFormatter.format(tp.amount))
-                                .font(AppTypography.amountSmall())
-                                .foregroundColor(AppColors.textSecondary)
+                            Text("Add All")
+                                .font(AppTypography.caption())
+                                .foregroundColor(AppColors.accent)
                         }
                         .padding(.horizontal, Spacing.lg)
                         .padding(.vertical, Spacing.md)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
 
-                        if tp != sortedPayers.last {
-                            Divider().padding(.leading, Spacing.lg + AvatarSize.sm + Spacing.md)
+                    Divider().padding(.leading, Spacing.lg)
+                }
+
+                let validContacts = viewModel.filteredSplitWithContacts.filter { $0.id != nil }
+
+                ForEach(Array(validContacts.enumerated()), id: \.element.objectID) { index, person in
+                    Button {
+                        withAnimation(AppAnimation.quick) {
+                            viewModel.toggleParticipant(person)
+                            viewModel.splitWithSearchText = ""
                         }
+                        HapticManager.selectionChanged()
+                        focusedField = .splitWithSearch
+                    } label: {
+                        searchResultRow(
+                            name: person.displayName,
+                            isSelected: viewModel.selectedParticipants.contains(person)
+                        )
                     }
+                    .buttonStyle(.plain)
 
-                    // Note about multi-payer editing
-                    Divider()
-                    HStack(spacing: Spacing.sm) {
-                        Image(systemName: "info.circle.fill")
-                            .font(.system(size: IconSize.sm))
-                            .foregroundColor(AppColors.accent)
-                        Text("Multi-payer amounts can be edited when creating a new transaction.")
-                            .font(AppTypography.footnote())
-                            .foregroundColor(AppColors.textSecondary)
-                    }
-                    .padding(.horizontal, Spacing.lg)
-                    .padding(.vertical, Spacing.md)
-                }
-            } else {
-                // Single payer: existing Picker
-                Picker("Who Paid?", selection: $selectedPayer) {
-                    Text("Me").tag(nil as Person?)
-                    ForEach(otherPeople) { person in
-                        Text(person.displayName).tag(person as Person?)
+                    if index < validContacts.count - 1 {
+                        Divider().padding(.leading, Spacing.lg)
                     }
                 }
-                .padding(.horizontal, Spacing.lg)
-                .padding(.vertical, Spacing.md)
+
+                if validContacts.isEmpty && viewModel.filteredSplitWithGroups.isEmpty {
+                    Text("No results found")
+                        .font(AppTypography.subheadline())
+                        .foregroundColor(AppColors.textSecondary)
+                        .padding(.vertical, Spacing.md)
+                        .frame(maxWidth: .infinity)
+                }
             }
         }
-        .background(
-            RoundedRectangle(cornerRadius: CornerRadius.md)
-                .fill(AppColors.cardBackground)
-        )
+        .frame(maxHeight: 200)
+        .background(AppColors.cardBackgroundElevated)
+        .cornerRadius(CornerRadius.sm)
+        .padding(.top, Spacing.xs)
     }
 
-    // MARK: - Current Splits Card
+    // MARK: - Search Result Row
 
-    private var currentSplitsCard: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            // Header
+    private func searchResultRow(name: String, isSelected: Bool) -> some View {
+        HStack {
+            Text(name)
+                .font(AppTypography.body())
+                .foregroundColor(AppColors.textPrimary)
+                .lineLimit(1)
+
+            Spacer()
+
+            if isSelected {
+                Image(systemName: "checkmark")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundColor(AppColors.accent)
+            }
+        }
+        .padding(.horizontal, Spacing.lg)
+        .padding(.vertical, Spacing.md)
+        .contentShape(Rectangle())
+    }
+
+    // MARK: - Split Method Section
+
+    private var splitMethodSection: some View {
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            Text("Split Method:")
+                .font(AppTypography.subheadlineMedium())
+                .foregroundColor(AppColors.textPrimary)
+
+            HStack(spacing: Spacing.sm) {
+                ForEach(SplitMethod.allCases) { method in
+                    methodChip(method)
+                }
+            }
+        }
+    }
+
+    private func methodChip(_ method: SplitMethod) -> some View {
+        let isSelected = viewModel.splitMethod == method
+
+        return Button {
+            withAnimation(AppAnimation.standard) {
+                viewModel.splitMethod = method
+                viewModel.rawInputs = [:]
+            }
+            HapticManager.selectionChanged()
+        } label: {
+            VStack(spacing: Spacing.xxs) {
+                Text(method.icon)
+                    .font(.system(size: 20, weight: .bold))
+                    .foregroundColor(isSelected ? AppColors.buttonForeground : AppColors.textPrimary)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 44)
+                    .background(
+                        RoundedRectangle(cornerRadius: CornerRadius.md)
+                            .fill(isSelected ? AppColors.buttonBackground : AppColors.cardBackground)
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: CornerRadius.md)
+                            .stroke(isSelected ? Color.clear : AppColors.buttonBackground.opacity(0.2), lineWidth: 1)
+                    )
+
+                Text(method.displayName)
+                    .font(AppTypography.caption())
+                    .foregroundColor(isSelected ? AppColors.textPrimary : AppColors.textSecondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+            }
+        }
+        .buttonStyle(.plain)
+    }
+
+    // MARK: - Breakdown Section
+
+    private var breakdownSection: some View {
+        VStack(alignment: .leading, spacing: Spacing.md) {
+            Text("Breakdown:")
+                .font(AppTypography.subheadlineMedium())
+                .foregroundColor(AppColors.textPrimary)
+
+            if viewModel.selectedParticipants.isEmpty {
+                emptyBreakdownState
+            } else {
+                participantBreakdownList
+            }
+        }
+    }
+
+    private var emptyBreakdownState: some View {
+        HStack {
+            Spacer()
+            Text("Select participants to see breakdown")
+                .font(AppTypography.subheadline())
+                .foregroundColor(AppColors.textSecondary)
+            Spacer()
+        }
+        .padding(.vertical, Spacing.lg)
+    }
+
+    private var participantBreakdownList: some View {
+        VStack(spacing: Spacing.sm) {
+            let sortedParticipants = Array(viewModel.selectedParticipants).sorted { p1, p2 in
+                let isCurrentUser1 = CurrentUser.isCurrentUser(p1.id)
+                let isCurrentUser2 = CurrentUser.isCurrentUser(p2.id)
+                if isCurrentUser1 && !isCurrentUser2 { return true }
+                if !isCurrentUser1 && isCurrentUser2 { return false }
+                return (p1.name ?? "") < (p2.name ?? "")
+            }
+
+            ForEach(sortedParticipants, id: \.self) { person in
+                breakdownRow(person: person)
+                    .id("\(person.id?.uuidString ?? "unknown")-\(viewModel.splitMethod.rawValue)")
+            }
+
             HStack {
-                Text("Current Splits")
-                    .font(AppTypography.headline())
+                Spacer()
+                Rectangle()
+                    .fill(AppColors.separator)
+                    .frame(width: 200, height: 1)
+            }
+            .padding(.top, Spacing.sm)
+
+            HStack {
+                Text("Total Balance")
+                    .font(AppTypography.subheadlineMedium())
                     .foregroundColor(AppColors.textPrimary)
 
                 Spacer()
 
-                let method = SplitMethod(rawValue: transaction.splitMethod ?? "equal")
-                if let method = method {
-                    HStack(spacing: Spacing.xs) {
-                        Image(systemName: method.systemImage)
-                            .font(.system(size: IconSize.sm))
-                        Text(method.displayName)
-                            .font(AppTypography.caption())
-                    }
-                    .foregroundColor(AppColors.textSecondary)
-                    .padding(.horizontal, Spacing.sm)
-                    .padding(.vertical, Spacing.xxs)
-                    .background(
-                        Capsule()
-                            .fill(AppColors.backgroundTertiary)
-                    )
-                }
-            }
-            .padding(.horizontal, Spacing.lg)
-            .padding(.vertical, Spacing.lg)
-
-            Divider()
-                .padding(.leading, Spacing.lg)
-
-            // Splits
-            let splits = (transaction.splits as? Set<TransactionSplit> ?? [])
-                .sorted { ($0.owedBy?.displayName ?? "") < ($1.owedBy?.displayName ?? "") }
-
-            if !splits.isEmpty {
-                ForEach(splits, id: \.objectID) { split in
-                    HStack(spacing: Spacing.md) {
-                        // Avatar
-                        if let person = split.owedBy {
-                            Circle()
-                                .fill(person.avatarBackgroundColor)
-                                .frame(width: AvatarSize.sm, height: AvatarSize.sm)
-                                .overlay(
-                                    Text(CurrentUser.isCurrentUser(person.id) ? CurrentUser.initials : person.initials)
-                                        .font(.system(size: 12, weight: .medium))
-                                        .foregroundColor(person.avatarTextColor)
-                                )
-                        } else {
-                            Circle()
-                                .fill(AppColors.backgroundTertiary)
-                                .frame(width: AvatarSize.sm, height: AvatarSize.sm)
-                                .overlay(
-                                    Text("?")
-                                        .font(.system(size: 12, weight: .medium))
-                                        .foregroundColor(AppColors.textSecondary)
-                                )
-                        }
-
-                        // Name
-                        if let person = split.owedBy {
-                            Text(CurrentUser.isCurrentUser(person.id) ? "You" : person.displayName)
-                                .font(AppTypography.body())
-                                .foregroundColor(AppColors.textPrimary)
-                        } else {
-                            Text("Unknown")
-                                .font(AppTypography.body())
-                                .foregroundColor(AppColors.textSecondary)
-                        }
-
-                        Spacer()
-
-                        // Amount
-                        Text(CurrencyFormatter.format(split.amount))
-                            .font(AppTypography.amountSmall())
-                            .foregroundColor(AppColors.textSecondary)
-                    }
-                    .padding(.horizontal, Spacing.lg)
-                    .padding(.vertical, Spacing.md)
-
-                    if split != splits.last {
-                        Divider()
-                            .padding(.leading, Spacing.lg + AvatarSize.sm + Spacing.md)
-                    }
-                }
-            } else {
-                Text("No splits configured")
+                Text(CurrencyFormatter.currencySymbol)
                     .font(AppTypography.subheadline())
                     .foregroundColor(AppColors.textSecondary)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, Spacing.xxl)
+
+                let balance = viewModel.totalBalance
+                Text(String(format: "%.2f", abs(balance)))
+                    .font(.system(size: 16, weight: .bold, design: .rounded))
+                    .foregroundColor(abs(balance) < 0.01 ? AppColors.textPrimary : AppColors.negative)
+                    .frame(minWidth: 50, alignment: .trailing)
             }
 
-            // Recalculation notice
-            if amountDouble != transaction.amount && amountDouble > 0 {
-                Divider()
-
-                HStack(spacing: Spacing.sm) {
-                    Image(systemName: "info.circle.fill")
-                        .font(.system(size: IconSize.sm))
-                        .foregroundColor(AppColors.warning)
-
-                    Text("Changing the total will proportionally recalculate all splits.")
-                        .font(AppTypography.footnote())
-                        .foregroundColor(AppColors.textSecondary)
-                }
-                .padding(.horizontal, Spacing.lg)
-                .padding(.vertical, Spacing.md)
+            HStack {
+                Spacer()
+                Rectangle()
+                    .fill(AppColors.separator)
+                    .frame(width: 200, height: 1)
             }
         }
-        .background(
-            RoundedRectangle(cornerRadius: CornerRadius.md)
-                .fill(AppColors.cardBackground)
+    }
+
+    private func breakdownRow(person: Person) -> some View {
+        let name = CurrentUser.isCurrentUser(person.id) ? "You" : (person.name ?? "Unknown")
+        let splitAmount = viewModel.calculateSplit(for: person)
+
+        return HStack {
+            Text(name)
+                .font(AppTypography.subheadline())
+                .foregroundColor(AppColors.textPrimary)
+                .lineLimit(1)
+
+            Spacer()
+
+            // Input control (only for percentage, shares, adjustment)
+            if viewModel.splitMethod == .percentage
+                || viewModel.splitMethod == .shares
+                || viewModel.splitMethod == .adjustment {
+                SplitInputView(viewModel: viewModel, person: person)
+            }
+
+            // Dollar amount (ALWAYS rightmost, aligns with Total Balance)
+            if viewModel.splitMethod == .amount {
+                HStack(spacing: Spacing.xs) {
+                    Text(CurrencyFormatter.currencySymbol)
+                        .font(AppTypography.subheadline())
+                        .foregroundColor(AppColors.textSecondary)
+
+                    TextField("0.00", text: rawInputBinding(for: person))
+                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                        .keyboardType(.decimalPad)
+                        .multilineTextAlignment(.trailing)
+                        .foregroundColor(AppColors.textPrimary)
+                        .frame(minWidth: 50, alignment: .trailing)
+                }
+                .onAppear { initializeAmountDefault(for: person) }
+            } else {
+                HStack(spacing: Spacing.xs) {
+                    Text(CurrencyFormatter.currencySymbol)
+                        .font(AppTypography.subheadline())
+                        .foregroundColor(AppColors.textSecondary)
+
+                    Text(String(format: "%.2f", splitAmount))
+                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                        .foregroundColor(AppColors.textPrimary)
+                        .frame(minWidth: 50, alignment: .trailing)
+                }
+            }
+        }
+    }
+
+    // MARK: - Breakdown Helpers
+
+    private func rawInputBinding(for person: Person) -> Binding<String> {
+        let personId = person.id ?? UUID()
+        return Binding(
+            get: { viewModel.rawInputs[personId] ?? "" },
+            set: { viewModel.rawInputs[personId] = $0 }
         )
+    }
+
+    private func initializeAmountDefault(for person: Person) {
+        let personId = person.id ?? UUID()
+        if (viewModel.rawInputs[personId] ?? "").isEmpty {
+            let count = max(1, viewModel.selectedParticipants.count)
+            let defaultAmount = viewModel.totalAmountDouble / Double(count)
+            viewModel.rawInputs[personId] = String(format: "%.2f", defaultAmount)
+        }
     }
 
     // MARK: - Validation Section
 
     @ViewBuilder
     private var validationSection: some View {
-        if let message = validationMessage {
+        if let validationMessage = viewModel.validationMessage {
             HStack(spacing: Spacing.sm) {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .font(.system(size: IconSize.sm))
                     .foregroundColor(AppColors.warning)
 
-                Text(message)
+                Text(validationMessage)
                     .font(AppTypography.footnote())
                     .foregroundColor(AppColors.textSecondary)
             }
@@ -444,103 +938,22 @@ struct TransactionEditView: View {
             )
         }
     }
+}
 
-    // MARK: - Save Button
+// MARK: - Preview
 
-    private var saveButton: some View {
-        VStack(spacing: 0) {
-            LinearGradient(
-                colors: [AppColors.backgroundSecondary.opacity(0), AppColors.backgroundSecondary],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .frame(height: Spacing.xxl)
+#Preview {
+    let context = PersistenceController.preview.container.viewContext
+    let transaction: FinancialTransaction = {
+        let t = FinancialTransaction(context: context)
+        t.id = UUID()
+        t.title = "Test Transaction"
+        t.amount = 100.00
+        t.date = Date()
+        t.splitMethod = "equal"
+        return t
+    }()
 
-            Button {
-                saveChanges()
-            } label: {
-                if isSaving {
-                    ProgressView()
-                        .tint(AppColors.buttonForeground)
-                } else {
-                    Text("Save Changes")
-                }
-            }
-            .disabled(!isValid || isSaving)
-            .buttonStyle(PrimaryButtonStyle(isEnabled: isValid && !isSaving))
-            .padding(.horizontal, Spacing.lg)
-            .padding(.bottom, Spacing.lg)
-            .background(AppColors.backgroundSecondary)
-        }
-    }
-
-    // MARK: - Save Logic
-
-    private func saveChanges() {
-        guard isValid else {
-            HapticManager.error()
-            return
-        }
-
-        isSaving = true
-        let newAmount = amountDouble
-        let oldAmount = transaction.amount
-
-        do {
-            // Update basic fields
-            transaction.title = trimmedTitle
-            transaction.amount = newAmount
-            transaction.date = date
-            let trimmedNote = note.trimmingCharacters(in: .whitespacesAndNewlines)
-            transaction.note = trimmedNote.isEmpty ? nil : trimmedNote
-
-            // Update payer (single-payer transactions only; multi-payer is read-only)
-            if !transaction.isMultiPayer {
-                let newPayer: Person
-                if let payer = selectedPayer {
-                    newPayer = payer
-                } else {
-                    newPayer = CurrentUser.getOrCreate(in: viewContext)
-                }
-                transaction.payer = newPayer
-
-                // Update the single TransactionPayer record if it exists
-                if let payerSet = transaction.payers as? Set<TransactionPayer>, let tp = payerSet.first {
-                    tp.paidBy = newPayer
-                    tp.amount = newAmount
-                }
-            } else {
-                // Multi-payer: proportionally recalculate payer amounts if total changed
-                if abs(newAmount - oldAmount) > 0.001 && oldAmount > 0.001 {
-                    let ratio = newAmount / oldAmount
-                    if let payerSet = transaction.payers as? Set<TransactionPayer> {
-                        for tp in payerSet {
-                            tp.amount = (tp.amount * ratio * 100).rounded() / 100.0
-                        }
-                    }
-                }
-            }
-
-            // Proportionally recalculate splits if amount changed
-            if abs(newAmount - oldAmount) > 0.001 && oldAmount > 0.001 {
-                let ratio = newAmount / oldAmount
-                if let splits = transaction.splits as? Set<TransactionSplit> {
-                    for split in splits {
-                        split.amount = (split.amount * ratio * 100).rounded() / 100.0
-                    }
-                }
-            }
-
-            try viewContext.save()
-            HapticManager.success()
-            isSaving = false
-            dismiss()
-        } catch {
-            viewContext.rollback()
-            isSaving = false
-            HapticManager.error()
-            errorMessage = "Failed to save changes: \(error.localizedDescription)"
-            showingError = true
-        }
-    }
+    TransactionEditView(transaction: transaction)
+        .environment(\.managedObjectContext, context)
 }
