@@ -3,7 +3,7 @@
 //  Swiss Coin
 //
 //  Reusable header button component for segmented-style navigation.
-//  Used in SubscriptionView and other views for consistent styling.
+//  Reusable across views for consistent styling.
 //
 
 import SwiftUI

@@ -2,7 +2,7 @@
 //  NotificationManager.swift
 //  Swiss Coin
 //
-//  Manages local push notifications for subscription billing reminders
+//  Manages local push notifications for payment reminders
 //  and reminder follow-ups using UNUserNotificationCenter.
 //
 
@@ -31,7 +31,6 @@ final class NotificationManager: NSObject, ObservableObject {
     // MARK: - Notification Identifiers
 
     private enum IdentifierPrefix {
-        static let subscriptionReminder = "subscription-reminder-"
         static let reminderFollowUp = "reminder-followup-"
     }
 
@@ -70,116 +69,6 @@ final class NotificationManager: NSObject, ObservableObject {
     /// Whether notifications are currently authorized at the system level.
     var isAuthorized: Bool {
         permissionStatus == .authorized
-    }
-
-    // MARK: - Subscription Reminders
-
-    /// Schedules a local notification reminder for a subscription's upcoming billing date.
-    ///
-    /// The notification fires `notificationDaysBefore` days before `nextBillingDate`.
-    /// If notifications are disabled on the subscription or globally, this is a no-op.
-    ///
-    /// - Parameter subscription: The subscription to schedule a reminder for.
-    func scheduleSubscriptionReminder(for subscription: Subscription) {
-        // Guard: notification must be enabled on the subscription
-        guard subscription.notificationEnabled else { return }
-
-        // Guard: must have a valid ID and billing date
-        guard let subscriptionId = subscription.id,
-              let nextBillingDate = subscription.nextBillingDate else { return }
-
-        // Guard: subscription must be active
-        guard subscription.isActive else { return }
-
-        // Check global notification preference
-        let globalEnabled = UserDefaults.standard.object(forKey: "notifications_enabled") == nil
-            ? true
-            : UserDefaults.standard.bool(forKey: "notifications_enabled")
-
-        let subscriptionNotifyEnabled = UserDefaults.standard.object(forKey: "notify_subscription_due") == nil
-            ? true
-            : UserDefaults.standard.bool(forKey: "notify_subscription_due")
-
-        guard globalEnabled && subscriptionNotifyEnabled else { return }
-
-        // Cancel any existing reminder for this subscription first
-        cancelSubscriptionReminder(for: subscription)
-
-        // Calculate the reminder date
-        let daysBefore = max(1, Int(subscription.notificationDaysBefore))
-        let calendar = Calendar.current
-        guard let reminderDate = calendar.date(byAdding: .day, value: -daysBefore, to: nextBillingDate) else { return }
-
-        // Don't schedule if the reminder date is in the past
-        guard reminderDate > Date() else { return }
-
-        // Build notification content
-        let content = UNMutableNotificationContent()
-        content.title = "Subscription Due Soon"
-        content.body = "\(subscription.name ?? "A subscription") (\(CurrencyFormatter.format(subscription.amount))) is due in \(daysBefore) day\(daysBefore == 1 ? "" : "s")."
-        content.sound = .default
-        content.categoryIdentifier = "SUBSCRIPTION_REMINDER"
-        content.userInfo = [
-            "subscriptionId": subscriptionId.uuidString,
-            "type": "subscription_reminder"
-        ]
-
-        // Create a calendar-based trigger
-        let components = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: reminderDate)
-        let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
-
-        // Create and schedule the request
-        let identifier = "\(IdentifierPrefix.subscriptionReminder)\(subscriptionId.uuidString)"
-        let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
-
-        center.add(request) { error in
-            if let error = error {
-                AppLogger.notifications.error("Failed to schedule subscription reminder: \(error.localizedDescription)")
-            }
-        }
-    }
-
-    /// Cancels a pending notification reminder for a subscription.
-    ///
-    /// - Parameter subscription: The subscription whose reminder should be cancelled.
-    func cancelSubscriptionReminder(for subscription: Subscription) {
-        guard let subscriptionId = subscription.id else { return }
-        let identifier = "\(IdentifierPrefix.subscriptionReminder)\(subscriptionId.uuidString)"
-        center.removePendingNotificationRequests(withIdentifiers: [identifier])
-    }
-
-    /// Recalculates and reschedules all pending subscription reminders.
-    ///
-    /// Cancels all existing subscription reminders and re-schedules based on current data.
-    /// Call this after bulk changes or when notification settings change globally.
-    ///
-    /// - Parameter context: The Core Data context to fetch subscriptions from.
-    func rescheduleAllSubscriptionReminders(in context: NSManagedObjectContext) {
-        // Remove all existing subscription reminders
-        // Capture center reference before the closure to avoid Sendable capture issues
-        let notificationCenter = self.center
-        notificationCenter.getPendingNotificationRequests { requests in
-            let subscriptionIds = requests
-                .filter { $0.identifier.hasPrefix(IdentifierPrefix.subscriptionReminder) }
-                .map { $0.identifier }
-
-            notificationCenter.removePendingNotificationRequests(withIdentifiers: subscriptionIds)
-
-            // Fetch all active subscriptions with notifications enabled
-            Task { @MainActor in
-                let fetchRequest: NSFetchRequest<Subscription> = Subscription.fetchRequest()
-                fetchRequest.predicate = NSPredicate(format: "isActive == YES AND notificationEnabled == YES")
-
-                do {
-                    let subscriptions = try context.fetch(fetchRequest)
-                    for subscription in subscriptions {
-                        NotificationManager.shared.scheduleSubscriptionReminder(for: subscription)
-                    }
-                } catch {
-                    AppLogger.notifications.error("Failed to fetch subscriptions for rescheduling: \(error.localizedDescription)")
-                }
-            }
-        }
     }
 
     // MARK: - Reminder Follow-Ups

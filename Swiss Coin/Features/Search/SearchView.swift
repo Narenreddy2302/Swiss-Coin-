@@ -2,7 +2,7 @@
 //  SearchView.swift
 //  Swiss Coin
 //
-//  Global search view for finding transactions, people, groups, and subscriptions.
+//  Global search view for finding transactions, people, and groups.
 //
 
 import CoreData
@@ -14,7 +14,6 @@ private enum TransactionFilter: String, CaseIterable {
     case all = "All"
     case incoming = "Incoming"
     case outgoing = "Outgoing"
-    case subscriptions = "Subscriptions"
 }
 
 struct SearchView: View {
@@ -52,14 +51,6 @@ struct SearchView: View {
     }(), animation: .default)
     private var allGroups: FetchedResults<UserGroup>
 
-    @FetchRequest(fetchRequest: {
-        let request: NSFetchRequest<Subscription> = Subscription.fetchRequest()
-        request.sortDescriptors = [NSSortDescriptor(keyPath: \Subscription.name, ascending: true)]
-        request.fetchBatchSize = 50
-        return request
-    }(), animation: .default)
-    private var allSubscriptions: FetchedResults<Subscription>
-
     // MARK: - Search Filtered Results
 
     private var isSearching: Bool {
@@ -80,14 +71,6 @@ struct SearchView: View {
         let query = searchText.lowercased()
         return allGroups.filter { group in
             group.name?.lowercased().contains(query) == true
-        }
-    }
-
-    private var filteredSubscriptions: [Subscription] {
-        guard isSearching else { return [] }
-        let query = searchText.lowercased()
-        return allSubscriptions.filter { subscription in
-            subscription.name?.lowercased().contains(query) == true
         }
     }
 
@@ -113,7 +96,7 @@ struct SearchView: View {
         }
 
         switch selectedFilter {
-        case .all, .subscriptions:
+        case .all:
             return base
         case .incoming:
             return base.filter { userNetPosition(for: $0) > 0.01 }
@@ -122,19 +105,10 @@ struct SearchView: View {
         }
     }
 
-    private var displayedSubscriptions: [Subscription] {
-        if isSearching {
-            let query = searchText.lowercased()
-            return allSubscriptions.filter { $0.name?.lowercased().contains(query) == true }
-        }
-        return Array(allSubscriptions)
-    }
-
     private var hasSearchResults: Bool {
         !displayedTransactions.isEmpty ||
         !filteredPeople.isEmpty ||
-        !filteredGroups.isEmpty ||
-        !filteredSubscriptions.isEmpty
+        !filteredGroups.isEmpty
     }
 
     // MARK: - Body
@@ -149,9 +123,7 @@ struct SearchView: View {
                     filterChipsBar
 
                     Group {
-                        if selectedFilter == .subscriptions {
-                            subscriptionsListView
-                        } else if isSearching {
+                        if isSearching {
                             searchResultsView
                         } else {
                             transactionListView
@@ -241,36 +213,6 @@ struct SearchView: View {
         }
     }
 
-    // MARK: - Subscriptions List View
-
-    private var subscriptionsListView: some View {
-        Group {
-            if displayedSubscriptions.isEmpty {
-                filterEmptyView
-            } else {
-                ScrollView {
-                    LazyVStack(spacing: 0) {
-                        ForEach(displayedSubscriptions) { subscription in
-                            NavigationLink(destination: SubscriptionDetailView(subscription: subscription)) {
-                                SearchSubscriptionRow(subscription: subscription)
-                            }
-                            .buttonStyle(PlainButtonStyle())
-                            .simultaneousGesture(TapGesture().onEnded {
-                                HapticManager.selectionChanged()
-                            })
-
-                            if subscription.id != displayedSubscriptions.last?.id {
-                                Divider()
-                                    .padding(.leading, AvatarSize.lg + Spacing.md + Spacing.lg)
-                            }
-                        }
-                    }
-                    .padding(.bottom, Spacing.section)
-                }
-            }
-        }
-    }
-
     // MARK: - Search Results View
 
     private var searchResultsView: some View {
@@ -344,37 +286,12 @@ struct SearchView: View {
                                 }
                             }
                         }
-
-                        // Subscriptions Results (only when not in subscriptions filter)
-                        if !filteredSubscriptions.isEmpty {
-                            SearchResultSection(
-                                title: "Subscriptions",
-                                icon: "creditcard.fill",
-                                count: filteredSubscriptions.count
-                            ) {
-                                ForEach(filteredSubscriptions) { subscription in
-                                    NavigationLink(destination: SubscriptionDetailView(subscription: subscription)) {
-                                        SearchSubscriptionRow(subscription: subscription)
-                                    }
-                                    .buttonStyle(PlainButtonStyle())
-                                    .simultaneousGesture(TapGesture().onEnded {
-                                        HapticManager.selectionChanged()
-                                    })
-
-                                    if subscription.id != filteredSubscriptions.last?.id {
-                                        Divider()
-                                            .padding(.leading, AvatarSize.lg + Spacing.md + Spacing.lg)
-                                    }
-                                }
-                            }
-                        }
                     }
                     .padding(.top, Spacing.lg)
                     .padding(.bottom, Spacing.section)
                     .animation(.easeInOut(duration: 0.2), value: displayedTransactions.count)
                     .animation(.easeInOut(duration: 0.2), value: filteredPeople.count)
                     .animation(.easeInOut(duration: 0.2), value: filteredGroups.count)
-                    .animation(.easeInOut(duration: 0.2), value: filteredSubscriptions.count)
                 }
             } else {
                 SearchNoResultsView(searchText: searchText)
@@ -388,7 +305,7 @@ struct SearchView: View {
         VStack(spacing: Spacing.lg) {
             Spacer()
 
-            Image(systemName: selectedFilter == .subscriptions ? "creditcard" : "arrow.left.arrow.right")
+            Image(systemName: "arrow.left.arrow.right")
                 .font(.system(size: IconSize.xxl))
                 .foregroundColor(AppColors.textSecondary.opacity(0.5))
                 .accessibilityHidden(true)
@@ -523,50 +440,6 @@ private struct SearchGroupRow: View {
                 Text("\(memberCount) member\(memberCount == 1 ? "" : "s")")
                     .font(AppTypography.bodySmall())
                     .foregroundColor(AppColors.textSecondary)
-            }
-
-            Spacer()
-        }
-        .padding(.vertical, Spacing.md)
-        .padding(.horizontal, Spacing.lg)
-        .contentShape(Rectangle())
-    }
-}
-
-// MARK: - Subscription Row for Search
-
-private struct SearchSubscriptionRow: View {
-    @ObservedObject var subscription: Subscription
-
-    var body: some View {
-        HStack(spacing: Spacing.md) {
-            RoundedRectangle(cornerRadius: CornerRadius.sm)
-                .fill(Color(hex: subscription.colorHex ?? "#FF9500").opacity(0.2))
-                .frame(width: AvatarSize.lg, height: AvatarSize.lg)
-                .overlay(
-                    Image(systemName: subscription.iconName ?? "creditcard.fill")
-                        .font(AppTypography.headingMedium())
-                        .foregroundColor(Color(hex: subscription.colorHex ?? "#FF9500"))
-                )
-
-            VStack(alignment: .leading, spacing: Spacing.xs) {
-                Text(subscription.name ?? "Unknown")
-                    .font(AppTypography.headingMedium())
-                    .foregroundColor(AppColors.textPrimary)
-                    .lineLimit(1)
-
-                HStack(spacing: Spacing.xs) {
-                    Text(CurrencyFormatter.format(subscription.amount))
-                        .font(AppTypography.bodySmall())
-                        .fontWeight(.bold)
-                        .foregroundColor(AppColors.textSecondary)
-
-                    if let cycle = subscription.cycle {
-                        Text("• \(cycle)")
-                            .font(AppTypography.bodySmall())
-                            .foregroundColor(AppColors.textSecondary)
-                    }
-                }
             }
 
             Spacer()

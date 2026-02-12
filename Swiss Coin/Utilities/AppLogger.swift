@@ -23,6 +23,5 @@ enum AppLogger {
     static let notifications = Logger(subsystem: "com.swisscoin", category: "notifications")
     static let contacts = Logger(subsystem: "com.swisscoin", category: "contacts")
     static let transactions = Logger(subsystem: "com.swisscoin", category: "transactions")
-    static let subscriptions = Logger(subsystem: "com.swisscoin", category: "subscriptions")
     static let auth = Logger(subsystem: "com.swisscoin", category: "auth")
 }

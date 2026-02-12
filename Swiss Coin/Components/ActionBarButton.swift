@@ -3,7 +3,7 @@
 //  Swiss Coin
 //
 //  Unified action bar button component for consistent styling across the app.
-//  Used in conversation views, group chats, and subscription screens.
+//  Used in conversation views and group chats.
 //
 
 import SwiftUI
@@ -109,7 +109,7 @@ struct ActionBarContainer<Content: View>: View {
 
 // MARK: - Standard Action Bar
 
-/// Standard three-button action bar used across person, group, and subscription conversations
+/// Standard three-button action bar used across person and group conversations
 struct StandardActionBar: View {
     let balance: Double
     let canRemind: Bool
@@ -130,64 +130,6 @@ struct StandardActionBar: View {
                 isPrimary: true,
                 isEnabled: true,
                 action: onAdd
-            )
-
-            // Remind Button
-            ActionBarButton(
-                title: "Remind",
-                icon: "bell.fill",
-                isPrimary: false,
-                isEnabled: canRemind,
-                action: {
-                    if canRemind {
-                        onRemind()
-                    }
-                }
-            )
-
-            // Settle Button
-            ActionBarButton(
-                title: "Settle",
-                icon: "checkmark",
-                isPrimary: false,
-                isEnabled: canSettle,
-                action: {
-                    if canSettle {
-                        onSettle()
-                    }
-                }
-            )
-        }
-    }
-}
-
-// MARK: - Subscription Action Bar
-
-/// Action bar for subscription conversations with Pay instead of Add
-struct SubscriptionActionBarView: View {
-    let balance: Double
-    let membersWhoOwe: [(member: Person, amount: Double)]
-    let onRecordPayment: () -> Void
-    let onSettle: () -> Void
-    let onRemind: () -> Void
-
-    private var canSettle: Bool {
-        abs(balance) > 0.01
-    }
-
-    private var canRemind: Bool {
-        !membersWhoOwe.isEmpty
-    }
-
-    var body: some View {
-        ActionBarContainer {
-            // Record Payment Button (Primary)
-            ActionBarButton(
-                title: "Pay",
-                icon: "dollarsign.circle.fill",
-                isPrimary: true,
-                isEnabled: true,
-                action: onRecordPayment
             )
 
             // Remind Button
@@ -253,14 +195,6 @@ private struct ActionBarPressStyle: ButtonStyle {
             onRemind: {}
         )
         
-        // Subscription Action Bar
-        SubscriptionActionBarView(
-            balance: 100.0,
-            membersWhoOwe: [],
-            onRecordPayment: {},
-            onSettle: {},
-            onRemind: {}
-        )
     }
     .background(AppColors.backgroundSecondary)
 }
@@ -275,21 +209,12 @@ private struct ActionBarPressStyle: ButtonStyle {
             onSettle: {},
             onRemind: {}
         )
-        
+
         // Disabled state
         StandardActionBar(
             balance: 0,
             canRemind: false,
             onAdd: {},
-            onSettle: {},
-            onRemind: {}
-        )
-        
-        // Subscription Action Bar
-        SubscriptionActionBarView(
-            balance: 100.0,
-            membersWhoOwe: [],
-            onRecordPayment: {},
             onSettle: {},
             onRemind: {}
         )

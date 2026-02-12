@@ -1201,7 +1201,6 @@ enum ValidationLimits {
     static let maxNoteLength = 1000
     static let maxMessageLength = 500
     static let maxTransactionAmount: Double = 1_000_000
-    static let maxSubscriptionAmount: Double = 100_000
 }
 
 // MARK: - Card Style Modifier

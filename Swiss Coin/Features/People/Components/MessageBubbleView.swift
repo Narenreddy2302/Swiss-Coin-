@@ -101,7 +101,7 @@ struct MessageBubbleView: View {
             )
     }
 
-    // MARK: - Classic Layout (iMessage-style, for Group/Subscription views)
+    // MARK: - Classic Layout (iMessage-style, for Group views)
 
     @ViewBuilder
     private var classicBody: some View {

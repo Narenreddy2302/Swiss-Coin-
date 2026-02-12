@@ -24,10 +24,6 @@ final class NotificationSettingsViewModel: ObservableObject {
     @Published var paymentReminders: Bool = true
     @Published var reminderDaysBefore: Int = 3
 
-    // Subscription Notifications
-    @Published var subscriptionDueSoon: Bool = true
-    @Published var subscriptionDueDays: Int = 3
-
     // Summary Notifications
     @Published var weeklySummary: Bool = true
 
@@ -44,8 +40,6 @@ final class NotificationSettingsViewModel: ObservableObject {
     @AppStorage("notify_someone_paid") private var storedSomeonePaid = true
     @AppStorage("notify_payment_reminders") private var storedPaymentReminders = true
     @AppStorage("reminder_days_before") private var storedReminderDays = 3
-    @AppStorage("notify_subscription_due") private var storedSubscriptionDue = true
-    @AppStorage("subscription_due_days") private var storedSubscriptionDays = 3
     @AppStorage("notify_weekly_summary") private var storedWeeklySummary = true
 
     init() {
@@ -85,8 +79,6 @@ final class NotificationSettingsViewModel: ObservableObject {
         someonePaidYou = storedSomeonePaid
         paymentReminders = storedPaymentReminders
         reminderDaysBefore = storedReminderDays
-        subscriptionDueSoon = storedSubscriptionDue
-        subscriptionDueDays = storedSubscriptionDays
         weeklySummary = storedWeeklySummary
     }
 
@@ -96,8 +88,6 @@ final class NotificationSettingsViewModel: ObservableObject {
         storedSomeonePaid = someonePaidYou
         storedPaymentReminders = paymentReminders
         storedReminderDays = reminderDaysBefore
-        storedSubscriptionDue = subscriptionDueSoon
-        storedSubscriptionDays = subscriptionDueDays
         storedWeeklySummary = weeklySummary
     }
 
@@ -107,10 +97,8 @@ final class NotificationSettingsViewModel: ObservableObject {
             $newExpenseAdded.map { _ in () }.eraseToAnyPublisher(),
             $someonePaidYou.map { _ in () }.eraseToAnyPublisher(),
             $paymentReminders.map { _ in () }.eraseToAnyPublisher(),
-            $subscriptionDueSoon.map { _ in () }.eraseToAnyPublisher(),
             $weeklySummary.map { _ in () }.eraseToAnyPublisher(),
-            $reminderDaysBefore.map { _ in () }.eraseToAnyPublisher(),
-            $subscriptionDueDays.map { _ in () }.eraseToAnyPublisher()
+            $reminderDaysBefore.map { _ in () }.eraseToAnyPublisher()
         ])
 
         publishers
@@ -231,33 +219,6 @@ struct NotificationSettingsView: View {
                                         .font(AppTypography.body())
                                     Spacer()
                                     Picker("", selection: $viewModel.reminderDaysBefore) {
-                                        ForEach(1...7, id: \.self) { day in
-                                            Text("\(day) days before").tag(day)
-                                        }
-                                    }
-                                    .pickerStyle(.menu)
-                                }
-                                .padding(.horizontal, Spacing.lg)
-                                .padding(.vertical, Spacing.md)
-                            }
-                        }
-
-                        // Subscription Notifications
-                        SettingsGroup(title: "Subscriptions") {
-                            NotificationToggle(
-                                title: "Subscription due soon",
-                                icon: "calendar.badge.clock",
-                                isOn: $viewModel.subscriptionDueSoon
-                            )
-
-                            if viewModel.subscriptionDueSoon {
-                                Divider().padding(.leading, 50)
-
-                                HStack {
-                                    Text("Notify me")
-                                        .font(AppTypography.body())
-                                    Spacer()
-                                    Picker("", selection: $viewModel.subscriptionDueDays) {
                                         ForEach(1...7, id: \.self) { day in
                                             Text("\(day) days before").tag(day)
                                         }

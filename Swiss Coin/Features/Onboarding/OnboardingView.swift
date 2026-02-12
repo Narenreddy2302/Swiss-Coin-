@@ -25,12 +25,6 @@ struct OnboardingView: View {
             description: "Easily split bills and track who owes what.\nNo more awkward money conversations.",
             color: .blue
         ),
-        OnboardingPage(
-            icon: "creditcard.circle.fill",
-            title: "Manage Subscriptions",
-            description: "Track personal and shared subscriptions.\nNever miss a payment or overpay.",
-            color: .orange
-        ),
     ]
 
     var body: some View {
@@ -184,7 +178,7 @@ struct OnboardingView: View {
                     .foregroundColor(AppColors.textPrimary)
                     .multilineTextAlignment(.center)
 
-                Text("Start tracking your expenses,\nsplitting bills, and managing subscriptions.")
+                Text("Start tracking your expenses\nand splitting bills with friends.")
                     .font(AppTypography.subheadline())
                     .foregroundColor(AppColors.textSecondary)
                     .multilineTextAlignment(.center)

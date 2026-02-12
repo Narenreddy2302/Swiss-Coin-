@@ -24,7 +24,6 @@ extension ChatMessage {
     @NSManaged public var isEdited: Bool
     @NSManaged public var withPerson: Person?
     @NSManaged public var withGroup: UserGroup?
-    @NSManaged public var withSubscription: Subscription?
 
 }
 

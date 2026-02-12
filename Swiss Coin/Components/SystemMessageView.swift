@@ -9,7 +9,7 @@
 import SwiftUI
 
 /// Displays a system event message (settlement, reminder, etc.) with consistent
-/// capsule styling across person, group, and subscription conversation views.
+/// capsule styling across person and group conversation views.
 struct SystemMessageView: View {
     let icon: String
     let iconColor: Color

@@ -41,7 +41,6 @@ struct MockDataGenerator {
         createSettlements(context: context, people: people, currentUser: currentUser)
         createReminders(context: context, people: people, currentUser: currentUser)
         createChatMessages(context: context, people: people, groups: groups, currentUser: currentUser)
-        createSubscriptions(context: context, people: people, currentUser: currentUser)
 
         saveContext(context)
     }
@@ -57,7 +56,6 @@ struct MockDataGenerator {
         deleteAll(entityName: "Settlement", context: context)
         deleteAll(entityName: "Reminder", context: context)
         deleteAll(entityName: "ChatMessage", context: context)
-        deleteAll(entityName: "Subscription", context: context)
         deleteAll(entityName: "UserGroup", context: context)
         deleteAll(entityName: "Person", context: context)
         saveContext(context)
@@ -829,128 +827,5 @@ struct MockDataGenerator {
         message.withGroup = withGroup
         message.isFromUser = isFromUser
         message.timestamp = date(daysAgo: daysAgo, hoursAgo: hoursAgo)
-    }
-
-    // MARK: - Subscriptions Creation
-
-    private static func createSubscriptions(
-        context: NSManagedObjectContext,
-        people: [String: Person],
-        currentUser: Person
-    ) {
-        let sarah = people["Sarah Chen"]!
-        let alex = people["Alex Johnson"]!
-
-        // Personal subscriptions
-        createSubscription(
-            context: context,
-            name: "Spotify Premium",
-            amount: 10.99,
-            cycle: "Monthly",
-            startDate: date(daysAgo: 45),
-            isShared: false,
-            subscribers: [currentUser]
-        )
-
-        createSubscription(
-            context: context,
-            name: "iCloud Storage",
-            amount: 2.99,
-            cycle: "Monthly",
-            startDate: date(daysAgo: 60),
-            isShared: false,
-            subscribers: [currentUser]
-        )
-
-        createSubscription(
-            context: context,
-            name: "Gym Membership",
-            amount: 49.99,
-            cycle: "Monthly",
-            startDate: date(daysAgo: 30),
-            isShared: false,
-            subscribers: [currentUser]
-        )
-
-        // Shared subscriptions
-        createSubscription(
-            context: context,
-            name: "Netflix",
-            amount: 22.99,
-            cycle: "Monthly",
-            startDate: date(daysAgo: 90),
-            isShared: true,
-            subscribers: [currentUser, sarah, alex]
-        )
-
-        createSubscription(
-            context: context,
-            name: "Disney+",
-            amount: 13.99,
-            cycle: "Monthly",
-            startDate: date(daysAgo: 75),
-            isShared: true,
-            subscribers: [currentUser, sarah]
-        )
-
-        createSubscription(
-            context: context,
-            name: "HBO Max",
-            amount: 15.99,
-            cycle: "Monthly",
-            startDate: date(daysAgo: 50),
-            isShared: true,
-            subscribers: [currentUser, alex]
-        )
-    }
-
-    private static func createSubscription(
-        context: NSManagedObjectContext,
-        name: String,
-        amount: Double,
-        cycle: String,
-        startDate: Date,
-        isShared: Bool,
-        subscribers: [Person]
-    ) {
-        let subscription = Subscription(context: context)
-        subscription.id = UUID()
-        subscription.name = name
-        subscription.amount = amount
-        subscription.cycle = cycle
-        subscription.startDate = startDate
-        subscription.isActive = true
-        subscription.isShared = isShared
-
-        // Calculate a proper nextBillingDate by advancing from startDate until it's in the future
-        subscription.nextBillingDate = calculateFutureNextBillingDate(startDate: startDate, cycle: cycle)
-
-        for subscriber in subscribers {
-            subscription.addToSubscribers(subscriber)
-        }
-    }
-
-    /// Advances the billing date from startDate forward until it is in the future
-    private static func calculateFutureNextBillingDate(startDate: Date, cycle: String, customDays: Int = 30) -> Date {
-        let calendar = Calendar.current
-        var nextDate = startDate
-        let now = Date()
-
-        while nextDate <= now {
-            switch cycle {
-            case "Weekly":
-                nextDate = calendar.date(byAdding: .day, value: 7, to: nextDate) ?? nextDate
-            case "Monthly":
-                nextDate = calendar.date(byAdding: .month, value: 1, to: nextDate) ?? nextDate
-            case "Yearly":
-                nextDate = calendar.date(byAdding: .year, value: 1, to: nextDate) ?? nextDate
-            case "Custom":
-                nextDate = calendar.date(byAdding: .day, value: customDays, to: nextDate) ?? nextDate
-            default:
-                nextDate = calendar.date(byAdding: .month, value: 1, to: nextDate) ?? nextDate
-            }
-        }
-
-        return nextDate
     }
 }
