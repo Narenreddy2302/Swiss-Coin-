@@ -873,17 +873,17 @@ enum AppColors {
 
 // MARK: - Typography
 
-/// Standardized typography styles with dual-font system
-/// Display: Serif for headings and hero financial numbers
-/// UI: System sans-serif for all other text
+/// Standardized typography styles
+/// Display: System default (San Francisco) for headings and hero financial numbers
+/// UI: System default (San Francisco) for all other text
 ///
 /// TYPE SCALE REFERENCE:
 /// ───────────────────────────────────────────────────────────────────
 ///   TOKEN                SIZE   WEIGHT      LINE-H   TRACKING   FONT
 /// ───────────────────────────────────────────────────────────────────
-///   display.hero         34pt   Semibold    40pt     -0.4pt     Serif
-///   display.large        28pt   Semibold    34pt     -0.3pt     Serif
-///   display.medium       22pt   Medium      28pt     -0.2pt     Serif
+///   display.hero         34pt   Semibold    40pt     -0.4pt     Sans
+///   display.large        28pt   Semibold    34pt     -0.3pt     Sans
+///   display.medium       22pt   Medium      28pt     -0.2pt     Sans
 /// ───────────────────────────────────────────────────────────────────
 ///   heading.large        20pt   Semibold    25pt      0         Sans
 ///   heading.medium       17pt   Semibold    22pt      0         Sans
@@ -960,21 +960,21 @@ enum AppTypography {
         static let buttonSmall: CGFloat = 0
     }
 
-    // MARK: - Display (Serif)
+    // MARK: - Display (Sans)
 
-    /// Display hero - 34pt semibold serif (line: 40pt, tracking: -0.4pt)
+    /// Display hero - 34pt semibold (line: 40pt, tracking: -0.4pt)
     static func displayHero() -> Font {
-        .system(size: 34, weight: .semibold, design: .serif)
+        .system(size: 34, weight: .semibold, design: .default)
     }
 
-    /// Display large - 28pt semibold serif (line: 34pt, tracking: -0.3pt)
+    /// Display large - 28pt semibold (line: 34pt, tracking: -0.3pt)
     static func displayLarge() -> Font {
-        .system(size: 28, weight: .semibold, design: .serif)
+        .system(size: 28, weight: .semibold, design: .default)
     }
 
-    /// Display medium - 22pt medium serif (line: 28pt, tracking: -0.2pt)
+    /// Display medium - 22pt medium (line: 28pt, tracking: -0.2pt)
     static func displayMedium() -> Font {
-        .system(size: 22, weight: .medium, design: .serif)
+        .system(size: 22, weight: .medium, design: .default)
     }
 
     // MARK: - Headings (Sans)
