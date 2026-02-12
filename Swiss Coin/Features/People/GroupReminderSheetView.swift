@@ -48,6 +48,7 @@ struct GroupReminderSheetView: View {
 
                     Text("Send Reminders")
                         .font(AppTypography.title2())
+                        .foregroundColor(AppColors.textPrimary)
 
                     Text("Select members to remind in \(group.name ?? "the group")")
                         .font(AppTypography.subheadline())

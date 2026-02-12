@@ -32,6 +32,7 @@ struct ReminderSheetView: View {
 
                     Text("Send Reminder")
                         .font(AppTypography.title2())
+                        .foregroundColor(AppColors.textPrimary)
 
                     Text("\(person.name?.components(separatedBy: " ").first ?? "They") owe you \(formattedAmount)")
                         .font(AppTypography.headline())
