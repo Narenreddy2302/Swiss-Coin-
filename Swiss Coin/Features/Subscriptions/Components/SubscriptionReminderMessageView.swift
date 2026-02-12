@@ -2,7 +2,7 @@
 //  SubscriptionReminderMessageView.swift
 //  Swiss Coin
 //
-//  Message view for displaying a reminder in the subscription conversation.
+//  Full-width red notification strip for reminders in subscription conversations.
 //
 
 import SwiftUI
@@ -19,12 +19,13 @@ struct SubscriptionReminderMessageView: View {
     var body: some View {
         SystemMessageView(
             icon: "bell.fill",
-            iconColor: AppColors.warning,
+            iconColor: AppColors.stripText,
             messageText: messageText,
             noteText: reminder.message.flatMap { $0.isEmpty ? nil : "\"\($0)\"" },
             date: reminder.createdDate,
-            backgroundColor: AppColors.reminderBackground
+            backgroundColor: AppColors.reminderStripBackground
         )
+        .contentShape(Rectangle())
         .contextMenu {
             Button {
                 UIPasteboard.general.string = messageText

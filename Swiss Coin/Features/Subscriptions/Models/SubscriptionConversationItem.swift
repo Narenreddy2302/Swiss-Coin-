@@ -32,6 +32,14 @@ enum SubscriptionConversationItem: Identifiable {
         case .message(let m): return m.timestamp ?? Date.distantPast
         }
     }
+
+    /// True for settlements and reminders — rendered as full-width notification strips
+    var isSystemStrip: Bool {
+        switch self {
+        case .settlement, .reminder: return true
+        default: return false
+        }
+    }
 }
 
 // MARK: - Subscription Conversation Date Group

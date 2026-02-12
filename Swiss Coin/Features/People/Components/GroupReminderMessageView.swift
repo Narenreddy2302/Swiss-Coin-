@@ -2,7 +2,7 @@
 //  GroupReminderMessageView.swift
 //  Swiss Coin
 //
-//  System message for reminders in group conversations.
+//  Full-width red notification strip for reminders in group conversations.
 //
 
 import SwiftUI
@@ -19,12 +19,13 @@ struct GroupReminderMessageView: View {
     var body: some View {
         SystemMessageView(
             icon: "bell.fill",
-            iconColor: AppColors.warning,
+            iconColor: AppColors.stripText,
             messageText: messageText,
             noteText: reminder.message.flatMap { $0.isEmpty ? nil : "\"\($0)\"" },
             date: reminder.createdDate,
-            backgroundColor: AppColors.reminderBackground
+            backgroundColor: AppColors.reminderStripBackground
         )
+        .contentShape(Rectangle())
         .contextMenu {
             Button {
                 UIPasteboard.general.string = messageText

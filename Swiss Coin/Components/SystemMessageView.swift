@@ -2,14 +2,15 @@
 //  SystemMessageView.swift
 //  Swiss Coin
 //
-//  Unified system message component for consistent styling of settlements,
-//  reminders, and other system events across all conversation views.
+//  Full-width notification strip for settlements, reminders, and other
+//  system events across all conversation views. Spans edge to edge with
+//  a colored background — no avatar, no rounded card.
 //
 
 import SwiftUI
 
-/// Displays a system event message (settlement, reminder, etc.) as a full-width
-/// message bubble across person, group, and subscription conversation views.
+/// Displays a system event as a full-width colored notification strip.
+/// Red for reminders, green for settlements.
 struct SystemMessageView: View {
     let icon: String
     let iconColor: Color
@@ -35,36 +36,33 @@ struct SystemMessageView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: Spacing.xxs) {
-            Text(messageText)
-                .font(AppTypography.bodyLarge())
-                .foregroundColor(AppColors.textPrimary)
+        VStack(spacing: Spacing.xxs) {
+            HStack(spacing: Spacing.sm) {
+                Image(systemName: icon)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(AppColors.stripText.opacity(0.9))
+
+                Text(messageText)
+                    .font(AppTypography.bodyDefault())
+                    .fontWeight(.medium)
+                    .foregroundColor(AppColors.stripText)
+            }
 
             if let noteText, !noteText.isEmpty {
                 Text(noteText)
                     .font(AppTypography.bodySmall())
-                    .foregroundColor(AppColors.textSecondary)
+                    .foregroundColor(AppColors.stripText.opacity(0.85))
                     .italic()
             }
 
             if let date {
                 Text(date, style: .time)
-                    .labelSmallStyle()
-                    .foregroundColor(AppColors.textSecondary)
+                    .font(AppTypography.caption())
+                    .foregroundColor(AppColors.stripText.opacity(0.7))
             }
         }
-        .padding(.horizontal, Spacing.lg)
         .padding(.vertical, Spacing.md)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: CornerRadius.card)
-                .fill(backgroundColor)
-                .shadow(
-                    color: Color.black.opacity(0.05),
-                    radius: 2,
-                    x: 0,
-                    y: 1
-                )
-        )
+        .frame(maxWidth: .infinity)
+        .background(backgroundColor)
     }
 }
