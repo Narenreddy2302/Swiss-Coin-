@@ -8,8 +8,8 @@
 
 import SwiftUI
 
-/// Displays a system event message (settlement, reminder, etc.) with consistent
-/// capsule styling across person, group, and subscription conversation views.
+/// Displays a system event message (settlement, reminder, etc.) as a full-width
+/// message bubble across person, group, and subscription conversation views.
 struct SystemMessageView: View {
     let icon: String
     let iconColor: Color
@@ -35,37 +35,36 @@ struct SystemMessageView: View {
     }
 
     var body: some View {
-        VStack(spacing: Spacing.xxs) {
-            HStack(spacing: Spacing.xs) {
-                Image(systemName: icon)
-                    .font(.system(size: IconSize.xs))
-                    .foregroundColor(iconColor)
-
-                Text(messageText)
-                    .font(AppTypography.labelDefault())
-                    .foregroundColor(AppColors.textPrimary)
-            }
-            .padding(.horizontal, Spacing.md)
-            .padding(.vertical, Spacing.sm)
-            .background(
-                Capsule()
-                    .fill(backgroundColor)
-            )
+        VStack(alignment: .leading, spacing: Spacing.xxs) {
+            Text(messageText)
+                .font(AppTypography.bodyLarge())
+                .foregroundColor(AppColors.textPrimary)
 
             if let noteText, !noteText.isEmpty {
                 Text(noteText)
-                    .captionStyle()
-                    .foregroundColor(AppColors.textTertiary)
+                    .font(AppTypography.bodySmall())
+                    .foregroundColor(AppColors.textSecondary)
                     .italic()
             }
 
             if let date {
-                Text(date, style: .date)
-                    .captionStyle()
-                    .foregroundColor(AppColors.textTertiary)
+                Text(date, style: .time)
+                    .labelSmallStyle()
+                    .foregroundColor(AppColors.textSecondary)
             }
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, Spacing.sm)
+        .padding(.horizontal, Spacing.lg)
+        .padding(.vertical, Spacing.md)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: CornerRadius.card)
+                .fill(backgroundColor)
+                .shadow(
+                    color: Color.black.opacity(0.05),
+                    radius: 2,
+                    x: 0,
+                    y: 1
+                )
+        )
     }
 }
