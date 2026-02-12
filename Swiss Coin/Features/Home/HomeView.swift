@@ -42,33 +42,15 @@ struct HomeView: View {
     @State private var lastRefreshDate = Date.distantPast
     @State private var isRefreshing = false
 
+    /// Cached balance totals computed asynchronously to avoid blocking the main thread
+    @State private var cachedYouOwe: Double = 0
+    @State private var cachedOwedToYou: Double = 0
+
     // MARK: - Computed Properties
 
     /// Recent transactions (already limited to 5 by fetchLimit, filtered for validity)
     private var recentTransactions: [FinancialTransaction] {
         Array(allTransactions).filter { !$0.isDeleted && $0.managedObjectContext != nil }
-    }
-
-    /// Calculate total amount the current user owes to others
-    private var totalYouOwe: Double {
-        allPeople
-            .filter { !CurrentUser.isCurrentUser($0.id) }
-            .compactMap { person in
-                let balance = person.calculateBalance()
-                return balance < 0 ? abs(balance) : nil
-            }
-            .reduce(0, +)
-    }
-
-    /// Calculate total amount others owe to the current user
-    private var totalOwedToYou: Double {
-        allPeople
-            .filter { !CurrentUser.isCurrentUser($0.id) }
-            .compactMap { person in
-                let balance = person.calculateBalance()
-                return balance > 0 ? balance : nil
-            }
-            .reduce(0, +)
     }
 
     /// Calculate total monthly cost of all active subscriptions
@@ -95,12 +77,12 @@ struct HomeView: View {
                                 HStack(spacing: Spacing.lg) {
                                     SummaryCard(
                                         title: "You Owe",
-                                        amount: totalYouOwe,
+                                        amount: cachedYouOwe,
                                         color: AppColors.negative,
                                         icon: "arrow.down.left.circle.fill")
                                     SummaryCard(
                                         title: "You are Owed",
-                                        amount: totalOwedToYou,
+                                        amount: cachedOwedToYou,
                                         color: AppColors.positive,
                                         icon: "arrow.up.right.circle.fill")
                                     SummaryCard(
@@ -205,6 +187,9 @@ struct HomeView: View {
                         .environment(\.managedObjectContext, viewContext)
                 }
             }
+            .task {
+                await recalculateBalances()
+            }
             .onAppear {
                 refreshIfStale()
             }
@@ -217,6 +202,7 @@ struct HomeView: View {
                 NotificationCenter.default.publisher(for: .NSManagedObjectContextDidSave)
             ) { _ in
                 refreshIfStale()
+                Task { await recalculateBalances() }
             }
         }
     }
@@ -247,6 +233,36 @@ struct HomeView: View {
     private func refreshData() {
         viewContext.refreshAllObjects()
         lastRefreshDate = Date()
+    }
+
+    /// Compute balance totals on a background Core Data context to avoid blocking the main thread.
+    private func recalculateBalances() async {
+        let container = PersistenceController.shared.container
+        let backgroundContext = container.newBackgroundContext()
+
+        let result: (owe: Double, owed: Double) = await backgroundContext.perform {
+            let fetchRequest: NSFetchRequest<Person> = Person.fetchRequest()
+            fetchRequest.sortDescriptors = [NSSortDescriptor(keyPath: \Person.name, ascending: true)]
+            let people = (try? backgroundContext.fetch(fetchRequest)) ?? []
+
+            var totalOwe: Double = 0
+            var totalOwed: Double = 0
+
+            for person in people {
+                guard !CurrentUser.isCurrentUser(person.id) else { continue }
+                let balance = person.calculateBalance()
+                if balance < 0 {
+                    totalOwe += abs(balance)
+                } else if balance > 0 {
+                    totalOwed += balance
+                }
+            }
+
+            return (totalOwe, totalOwed)
+        }
+
+        cachedYouOwe = result.owe
+        cachedOwedToYou = result.owed
     }
 }
 

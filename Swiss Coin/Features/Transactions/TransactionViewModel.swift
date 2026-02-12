@@ -39,76 +39,103 @@ final class TransactionViewModel: ObservableObject {
     @Published var paidBySearchText: String = ""
     @Published var splitWithSearchText: String = ""
 
+    // Cached contact/group lists to avoid fetching on every property access
+    @Published private(set) var cachedPaidByContacts: [Person] = []
+    @Published private(set) var cachedSplitWithContacts: [Person] = []
+    @Published private(set) var cachedSplitWithGroups: [UserGroup] = []
+
     private var viewContext: NSManagedObjectContext
     private var cancellables = Set<AnyCancellable>()
 
     init(context: NSManagedObjectContext) {
         self.viewContext = context
-        setupSearchListeners()
 
         // Default payer ("You") should be in the split by default
         let currentUser = CurrentUser.getOrCreate(in: context)
         selectedParticipants.insert(currentUser)
+
+        // Initial fetch
+        refreshAllContacts()
+        refreshAllGroups()
+
+        setupSearchListeners()
     }
 
     // MARK: - Search Functionality
 
     private func setupSearchListeners() {
-        // Clear search when fields are not in focus
         $paidBySearchText
-            .debounce(for: .milliseconds(100), scheduler: DispatchQueue.main)
-            .sink { [weak self] _ in
-                self?.objectWillChange.send()
+            .debounce(for: .milliseconds(200), scheduler: DispatchQueue.main)
+            .removeDuplicates()
+            .sink { [weak self] text in
+                self?.refreshPaidByContacts(query: text)
+            }
+            .store(in: &cancellables)
+
+        $splitWithSearchText
+            .debounce(for: .milliseconds(200), scheduler: DispatchQueue.main)
+            .removeDuplicates()
+            .sink { [weak self] text in
+                self?.refreshSplitWithContacts(query: text)
+                self?.refreshSplitWithGroups(query: text)
             }
             .store(in: &cancellables)
     }
 
-    /// Filtered contacts for "Paid By" search
-    var filteredPaidByContacts: [Person] {
+    private func refreshAllContacts() {
         let fetchRequest: NSFetchRequest<Person> = Person.fetchRequest()
         fetchRequest.sortDescriptors = [NSSortDescriptor(keyPath: \Person.name, ascending: true)]
+        let all = (try? viewContext.fetch(fetchRequest)) ?? []
+        cachedPaidByContacts = all
+        cachedSplitWithContacts = all
+    }
 
-        if paidBySearchText.isEmpty {
-            return (try? viewContext.fetch(fetchRequest)) ?? []
-        } else {
-            fetchRequest.predicate = NSPredicate(
-                format: "name CONTAINS[cd] %@",
-                paidBySearchText
-            )
-            return (try? viewContext.fetch(fetchRequest)) ?? []
+    private func refreshAllGroups() {
+        let fetchRequest: NSFetchRequest<UserGroup> = UserGroup.fetchRequest()
+        fetchRequest.sortDescriptors = [NSSortDescriptor(keyPath: \UserGroup.name, ascending: true)]
+        cachedSplitWithGroups = (try? viewContext.fetch(fetchRequest)) ?? []
+    }
+
+    private func refreshPaidByContacts(query: String) {
+        let fetchRequest: NSFetchRequest<Person> = Person.fetchRequest()
+        fetchRequest.sortDescriptors = [NSSortDescriptor(keyPath: \Person.name, ascending: true)]
+        if !query.isEmpty {
+            fetchRequest.predicate = NSPredicate(format: "name CONTAINS[cd] %@", query)
         }
+        cachedPaidByContacts = (try? viewContext.fetch(fetchRequest)) ?? []
+    }
+
+    private func refreshSplitWithContacts(query: String) {
+        let fetchRequest: NSFetchRequest<Person> = Person.fetchRequest()
+        fetchRequest.sortDescriptors = [NSSortDescriptor(keyPath: \Person.name, ascending: true)]
+        if !query.isEmpty {
+            fetchRequest.predicate = NSPredicate(format: "name CONTAINS[cd] %@", query)
+        }
+        cachedSplitWithContacts = (try? viewContext.fetch(fetchRequest)) ?? []
+    }
+
+    private func refreshSplitWithGroups(query: String) {
+        let fetchRequest: NSFetchRequest<UserGroup> = UserGroup.fetchRequest()
+        fetchRequest.sortDescriptors = [NSSortDescriptor(keyPath: \UserGroup.name, ascending: true)]
+        if !query.isEmpty {
+            fetchRequest.predicate = NSPredicate(format: "name CONTAINS[cd] %@", query)
+        }
+        cachedSplitWithGroups = (try? viewContext.fetch(fetchRequest)) ?? []
+    }
+
+    /// Filtered contacts for "Paid By" search
+    var filteredPaidByContacts: [Person] {
+        cachedPaidByContacts
     }
 
     /// Filtered contacts for "Split With" search
     var filteredSplitWithContacts: [Person] {
-        let fetchRequest: NSFetchRequest<Person> = Person.fetchRequest()
-        fetchRequest.sortDescriptors = [NSSortDescriptor(keyPath: \Person.name, ascending: true)]
-
-        if splitWithSearchText.isEmpty {
-            return (try? viewContext.fetch(fetchRequest)) ?? []
-        } else {
-            fetchRequest.predicate = NSPredicate(
-                format: "name CONTAINS[cd] %@",
-                splitWithSearchText
-            )
-            return (try? viewContext.fetch(fetchRequest)) ?? []
-        }
+        cachedSplitWithContacts
     }
 
     /// Filtered groups for "Split With" search
     var filteredSplitWithGroups: [UserGroup] {
-        let fetchRequest: NSFetchRequest<UserGroup> = UserGroup.fetchRequest()
-        fetchRequest.sortDescriptors = [NSSortDescriptor(keyPath: \UserGroup.name, ascending: true)]
-
-        if splitWithSearchText.isEmpty {
-            return (try? viewContext.fetch(fetchRequest)) ?? []
-        } else {
-            fetchRequest.predicate = NSPredicate(
-                format: "name CONTAINS[cd] %@",
-                splitWithSearchText
-            )
-            return (try? viewContext.fetch(fetchRequest)) ?? []
-        }
+        cachedSplitWithGroups
     }
 
     // MARK: - Computed Properties

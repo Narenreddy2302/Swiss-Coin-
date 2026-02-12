@@ -21,6 +21,8 @@ struct SearchView: View {
     @Environment(\.managedObjectContext) private var viewContext
 
     @State private var searchText = ""
+    @State private var debouncedSearchText = ""
+    @State private var searchDebounceTask: Task<Void, Never>?
     @State private var selectedFilter: TransactionFilter = .all
 
     @State private var selectedTransaction: FinancialTransaction?
@@ -63,12 +65,12 @@ struct SearchView: View {
     // MARK: - Search Filtered Results
 
     private var isSearching: Bool {
-        !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        !debouncedSearchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     private var filteredPeople: [Person] {
         guard isSearching else { return [] }
-        let query = searchText.lowercased()
+        let query = debouncedSearchText.lowercased()
         return allPeople.filter { person in
             !CurrentUser.isCurrentUser(person.id) &&
             person.name?.lowercased().contains(query) == true
@@ -77,7 +79,7 @@ struct SearchView: View {
 
     private var filteredGroups: [UserGroup] {
         guard isSearching else { return [] }
-        let query = searchText.lowercased()
+        let query = debouncedSearchText.lowercased()
         return allGroups.filter { group in
             group.name?.lowercased().contains(query) == true
         }
@@ -85,7 +87,7 @@ struct SearchView: View {
 
     private var filteredSubscriptions: [Subscription] {
         guard isSearching else { return [] }
-        let query = searchText.lowercased()
+        let query = debouncedSearchText.lowercased()
         return allSubscriptions.filter { subscription in
             subscription.name?.lowercased().contains(query) == true
         }
@@ -106,7 +108,7 @@ struct SearchView: View {
     private var displayedTransactions: [FinancialTransaction] {
         let base: [FinancialTransaction]
         if isSearching {
-            let query = searchText.lowercased()
+            let query = debouncedSearchText.lowercased()
             base = allTransactions.filter { $0.title?.lowercased().contains(query) == true }
         } else {
             base = Array(allTransactions)
@@ -124,7 +126,7 @@ struct SearchView: View {
 
     private var displayedSubscriptions: [Subscription] {
         if isSearching {
-            let query = searchText.lowercased()
+            let query = debouncedSearchText.lowercased()
             return allSubscriptions.filter { $0.name?.lowercased().contains(query) == true }
         }
         return Array(allSubscriptions)
@@ -180,6 +182,14 @@ struct SearchView: View {
         )
         .onAppear {
             HapticManager.prepare()
+        }
+        .onChange(of: searchText) { _, newValue in
+            searchDebounceTask?.cancel()
+            searchDebounceTask = Task {
+                try? await Task.sleep(nanoseconds: 250_000_000)
+                guard !Task.isCancelled else { return }
+                debouncedSearchText = newValue
+            }
         }
     }
 
@@ -446,9 +456,7 @@ private struct SearchResultSection<Content: View>: View {
 private struct SearchPersonRow: View {
     @ObservedObject var person: Person
 
-    private var balance: Double {
-        person.calculateBalance()
-    }
+    @State private var balance: Double = 0
 
     private var balanceColor: Color {
         if balance > 0.01 { return AppColors.positive }
@@ -491,6 +499,9 @@ private struct SearchPersonRow: View {
         .padding(.vertical, Spacing.md)
         .padding(.horizontal, Spacing.lg)
         .contentShape(Rectangle())
+        .task {
+            balance = person.calculateBalance()
+        }
     }
 }
 

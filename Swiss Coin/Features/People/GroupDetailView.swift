@@ -12,13 +12,8 @@ struct GroupDetailView: View {
     @State private var showingDeleteConfirmation = false
     @State private var showingConversation = false
 
-    private var balance: Double {
-        group.calculateBalance()
-    }
-
-    private var memberBalances: [(member: Person, balance: Double)] {
-        group.getMemberBalances()
-    }
+    @State private var balance: Double = 0
+    @State private var memberBalances: [(member: Person, balance: Double)] = []
 
     /// Enable settle if ANY member has a non-zero balance (not just net group total)
     private var canSettle: Bool {
@@ -108,6 +103,14 @@ struct GroupDetailView: View {
         }
         .onAppear {
             HapticManager.prepare()
+        }
+        .task {
+            balance = group.calculateBalance()
+            memberBalances = group.getMemberBalances()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .NSManagedObjectContextDidSave)) { _ in
+            balance = group.calculateBalance()
+            memberBalances = group.getMemberBalances()
         }
     }
 

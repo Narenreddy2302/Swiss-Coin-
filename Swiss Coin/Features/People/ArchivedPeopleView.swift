@@ -110,10 +110,7 @@ private struct ArchivedPersonRow: View {
     let onDelete: () -> Void
 
     @State private var showingDeleteAlert = false
-
-    private var balance: Double {
-        person.calculateBalance()
-    }
+    @State private var balance: Double = 0
 
     var body: some View {
         HStack(spacing: Spacing.md) {
@@ -180,6 +177,9 @@ private struct ArchivedPersonRow: View {
             }
         } message: {
             Text("Are you sure you want to permanently delete \"\(person.name ?? "this person")\"? This will remove all their transactions, payment history, and shared expenses. This action cannot be undone.")
+        }
+        .task {
+            balance = person.calculateBalance()
         }
     }
 }
