@@ -20,6 +20,10 @@ struct TransactionCardView: View {
 
     // MARK: - Computed Properties
 
+    private var cardShadow: (color: Color, radius: CGFloat, x: CGFloat, y: CGFloat) {
+        AppShadow.card(for: colorScheme)
+    }
+
     /// Net balance for this transaction: positive = person owes you
     private var pairwiseResult: Double {
         guard let currentUserId = CurrentUser.currentUserId,
@@ -64,7 +68,7 @@ struct TransactionCardView: View {
         return isUserPayer ? AppColors.positive : AppColors.negative
     }
 
-    private var splits: [TransactionSplit] {
+    private var sortedSplits: [TransactionSplit] {
         let splitsSet = transaction.splits as? Set<TransactionSplit> ?? []
         return splitsSet.sorted { s1, s2 in
             let isMe1 = CurrentUser.isCurrentUser(s1.owedBy?.id)
@@ -75,7 +79,7 @@ struct TransactionCardView: View {
     }
 
     private var splitCount: Int {
-        splits.count
+        (transaction.splits as? Set<TransactionSplit>)?.count ?? 0
     }
 
     private var splitCountText: String {
@@ -115,7 +119,7 @@ struct TransactionCardView: View {
 
     /// Total balance remaining for this transaction (sum of all splits minus total should be 0)
     private var totalBalance: Double {
-        let splitsTotal = splits.reduce(0.0) { $0 + $1.amount }
+        let splitsTotal = (transaction.splits as? Set<TransactionSplit> ?? []).reduce(0.0) { $0 + $1.amount }
         return transaction.amount - splitsTotal
     }
 
@@ -149,7 +153,12 @@ struct TransactionCardView: View {
         .padding(.vertical, Spacing.lg)
         .background(AppColors.receiptBackground)
         .clipShape(RoundedRectangle(cornerRadius: CornerRadius.card))
-        .shadow(color: AppShadow.card(for: colorScheme).color, radius: AppShadow.card(for: colorScheme).radius, x: AppShadow.card(for: colorScheme).x, y: AppShadow.card(for: colorScheme).y)
+        .shadow(
+            color: cardShadow.color,
+            radius: cardShadow.radius,
+            x: cardShadow.x,
+            y: cardShadow.y
+        )
         .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: CornerRadius.card))
         .contextMenu {
             Button {
@@ -249,7 +258,7 @@ struct TransactionCardView: View {
                 .foregroundColor(AppColors.textTertiary)
                 .padding(.bottom, Spacing.xxs)
 
-            ForEach(splits, id: \.self) { split in
+            ForEach(sortedSplits, id: \.self) { split in
                 let owedBy = split.owedBy
                 let isMe = CurrentUser.isCurrentUser(owedBy?.id)
                 let name = isMe ? "You" : (owedBy?.name ?? "Unknown")
@@ -388,18 +397,9 @@ struct DottedLeaderLine: View {
     var color: Color = AppColors.receiptLeader
 
     var body: some View {
-        GeometryReader { geometry in
-            Path { path in
-                let spacing: CGFloat = 4
-                var x: CGFloat = 0
-                while x < geometry.size.width {
-                    path.move(to: CGPoint(x: x, y: geometry.size.height / 2))
-                    path.addLine(to: CGPoint(x: min(x + 1.5, geometry.size.width), y: geometry.size.height / 2))
-                    x += spacing
-                }
-            }
-            .stroke(color, lineWidth: 1)
-        }
+        Line()
+            .stroke(style: StrokeStyle(lineWidth: 1, dash: [1.5, 2.5]))
+            .foregroundColor(color)
     }
 }
 
@@ -411,24 +411,24 @@ struct DotGridPattern: View {
     var color: Color = AppColors.receiptDot
 
     var body: some View {
-        Canvas { context, size in
+        Canvas(opaque: false, rendersAsynchronously: true) { context, size in
+            let dotDiameter = dotRadius * 2
             let cols = Int(size.width / dotSpacing) + 1
             let rows = Int(size.height / dotSpacing) + 1
+            let shading = GraphicsContext.Shading.color(color)
 
             for row in 0...rows {
+                let y = CGFloat(row) * dotSpacing - dotRadius
                 for col in 0...cols {
-                    let x = CGFloat(col) * dotSpacing
-                    let y = CGFloat(row) * dotSpacing
-                    let rect = CGRect(
-                        x: x - dotRadius,
-                        y: y - dotRadius,
-                        width: dotRadius * 2,
-                        height: dotRadius * 2
+                    let x = CGFloat(col) * dotSpacing - dotRadius
+                    context.fill(
+                        Path(ellipseIn: CGRect(x: x, y: y, width: dotDiameter, height: dotDiameter)),
+                        with: shading
                     )
-                    context.fill(Path(ellipseIn: rect), with: .color(color))
                 }
             }
         }
+        .drawingGroup()
         .allowsHitTesting(false)
     }
 }
