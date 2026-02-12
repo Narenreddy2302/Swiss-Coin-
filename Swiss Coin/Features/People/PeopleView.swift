@@ -262,9 +262,7 @@ struct PersonListRowView: View {
     @State private var showingEditPerson = false
     @State private var showingDeleteConfirmation = false
 
-    private var balance: Double {
-        person.calculateBalance()
-    }
+    @State private var balance: Double = 0
 
     private var balanceText: String {
         let formatted = CurrencyFormatter.formatAbsolute(balance)
@@ -416,6 +414,12 @@ struct PersonListRowView: View {
         } message: {
             Text("This will permanently delete \(person.name ?? "this person") and ALL their transactions, payment history, and shared expenses. Other people's balances will be affected. This action cannot be undone.")
         }
+        .task {
+            balance = person.calculateBalance()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .NSManagedObjectContextDidSave)) { _ in
+            balance = person.calculateBalance()
+        }
     }
 
     private func archivePerson() {
@@ -551,9 +555,7 @@ struct GroupListRowView: View {
     @State private var showingEditGroup = false
     @State private var showingDeleteConfirmation = false
 
-    private var balance: Double {
-        group.calculateBalance()
-    }
+    @State private var balance: Double = 0
 
     private var balanceText: String {
         let formatted = CurrencyFormatter.formatAbsolute(balance)
@@ -711,6 +713,12 @@ struct GroupListRowView: View {
             }
         } message: {
             Text("Are you sure you want to delete \"\(group.name ?? "this group")\"? This will remove the group and its data.")
+        }
+        .task {
+            balance = group.calculateBalance()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .NSManagedObjectContextDidSave)) { _ in
+            balance = group.calculateBalance()
         }
     }
 

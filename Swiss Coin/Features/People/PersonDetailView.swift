@@ -13,11 +13,10 @@ struct PersonDetailView: View {
     @State private var showingSettlement = false
     @State private var selectedTransaction: FinancialTransaction?
 
-    // MARK: - Computed Properties
+    // MARK: - Cached Data (computed asynchronously to avoid blocking main thread)
 
-    private var balance: Double {
-        person.calculateBalance()
-    }
+    @State private var balance: Double = 0
+    @State private var combinedTransactions: [FinancialTransaction] = []
 
     private var balanceText: String {
         let formatted = CurrencyFormatter.formatAbsolute(balance)
@@ -63,11 +62,6 @@ struct PersonDetailView: View {
 
     private var canSettle: Bool {
         abs(balance) > 0.01
-    }
-
-    /// Mutual transactions sorted by most recent first, capped at 10 for performance.
-    private var combinedTransactions: [FinancialTransaction] {
-        return Array(person.getMutualTransactions().prefix(10))
     }
 
     // MARK: - Body
@@ -159,6 +153,18 @@ struct PersonDetailView: View {
         } message: {
             Text("This will permanently delete \(person.name ?? "this person") and ALL their transactions, payment history, and shared expenses. Other people's balances will be affected. This action cannot be undone.")
         }
+        .task {
+            loadPersonDetailData()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .NSManagedObjectContextDidSave)) { _ in
+            loadPersonDetailData()
+        }
+    }
+
+    /// Recompute balance and transactions outside of body evaluation.
+    private func loadPersonDetailData() {
+        balance = person.calculateBalance()
+        combinedTransactions = Array(person.getMutualTransactions().prefix(10))
     }
 
     // MARK: - Profile Header

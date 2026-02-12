@@ -59,15 +59,10 @@ struct PersonConversationView: View {
     private let timelineLeadingPad: CGFloat = Spacing.lg
     private let timelineToContent: CGFloat = Spacing.md
 
-    // MARK: - Computed Properties
+    // MARK: - Cached Data (computed asynchronously to avoid blocking main thread)
 
-    private var balance: Double {
-        person.calculateBalance()
-    }
-
-    private var groupedItems: [ConversationDateGroup] {
-        person.getGroupedConversationItems()
-    }
+    @State private var balance: Double = 0
+    @State private var groupedItems: [ConversationDateGroup] = []
 
     private var allItems: [ConversationItem] {
         groupedItems.flatMap { $0.items }
@@ -251,6 +246,19 @@ struct PersonConversationView: View {
             message: "Transaction undone",
             onUndo: restoreUndoneTransaction
         )
+        .task {
+            loadConversationData()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .NSManagedObjectContextDidSave)) { _ in
+            loadConversationData()
+        }
+    }
+
+    /// Recompute balance and conversation items. Called outside of body evaluation
+    /// so the main run loop can process gestures between UI updates.
+    private func loadConversationData() {
+        balance = person.calculateBalance()
+        groupedItems = person.getGroupedConversationItems()
     }
 
     // MARK: - Timeline Row

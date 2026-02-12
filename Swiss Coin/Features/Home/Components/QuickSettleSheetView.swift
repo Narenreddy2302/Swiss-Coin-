@@ -14,18 +14,7 @@ struct QuickSettleSheetView: View {
 
     @State private var selectedPerson: Person?
     @State private var selectedBalance: Double = 0
-
-    /// People the current user owes money to (negative balance)
-    private var peopleYouOwe: [(person: Person, amount: Double)] {
-        people
-            .filter { !CurrentUser.isCurrentUser($0.id) }
-            .compactMap { person in
-                let balance = person.calculateBalance()
-                guard balance < -0.01 else { return nil }
-                return (person: person, amount: balance)
-            }
-            .sorted { abs($0.amount) > abs($1.amount) }
-    }
+    @State private var peopleYouOwe: [(person: Person, amount: Double)] = []
 
     var body: some View {
         NavigationStack {
@@ -115,6 +104,16 @@ struct QuickSettleSheetView: View {
             }
             .sheet(item: $selectedPerson) { person in
                 SettlementView(person: person, currentBalance: selectedBalance)
+            }
+            .task {
+                peopleYouOwe = people
+                    .filter { !CurrentUser.isCurrentUser($0.id) }
+                    .compactMap { person in
+                        let balance = person.calculateBalance()
+                        guard balance < -0.01 else { return nil }
+                        return (person: person, amount: balance)
+                    }
+                    .sorted { abs($0.amount) > abs($1.amount) }
             }
         }
     }

@@ -55,15 +55,12 @@ struct GroupConversationView: View {
     private let timelineLeadingPad: CGFloat = Spacing.lg
     private let timelineToContent: CGFloat = Spacing.md
 
-    // MARK: - Computed Properties
+    // MARK: - Cached Data (computed asynchronously to avoid blocking main thread)
 
-    private var balance: Double {
-        group.calculateBalance()
-    }
-
-    private var groupedItems: [GroupConversationDateGroup] {
-        group.getGroupedConversationItems()
-    }
+    @State private var balance: Double = 0
+    @State private var groupedItems: [GroupConversationDateGroup] = []
+    @State private var cachedMemberBalances: [(member: Person, balance: Double)] = []
+    @State private var cachedMembersWhoOweYou: [(member: Person, amount: Double)] = []
 
     private var totalItemCount: Int {
         groupedItems.reduce(0) { $0 + $1.items.count }
@@ -146,8 +143,8 @@ struct GroupConversationView: View {
             // Action Bar
             GroupConversationActionBar(
                 balance: balance,
-                memberBalances: group.getMemberBalances(),
-                membersWhoOweYou: group.getMembersWhoOweYou(),
+                memberBalances: cachedMemberBalances,
+                membersWhoOweYou: cachedMembersWhoOweYou,
                 onAdd: { showingAddTransaction = true },
                 onSettle: { showingSettlement = true },
                 onRemind: { showingReminder = true }
@@ -240,6 +237,21 @@ struct GroupConversationView: View {
             message: "Transaction undone",
             onUndo: restoreUndoneTransaction
         )
+        .task {
+            loadGroupConversationData()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .NSManagedObjectContextDidSave)) { _ in
+            loadGroupConversationData()
+        }
+    }
+
+    /// Recompute balance, conversation items, and member balances. Called outside of body
+    /// evaluation so the main run loop can process gestures between UI updates.
+    private func loadGroupConversationData() {
+        balance = group.calculateBalance()
+        groupedItems = group.getGroupedConversationItems()
+        cachedMemberBalances = group.getMemberBalances()
+        cachedMembersWhoOweYou = group.getMembersWhoOweYou()
     }
 
     // MARK: - Toolbar Content
