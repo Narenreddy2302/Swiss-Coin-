@@ -881,9 +881,9 @@ enum AppColors {
 /// ───────────────────────────────────────────────────────────────────
 ///   TOKEN                SIZE   WEIGHT      LINE-H   TRACKING   FONT
 /// ───────────────────────────────────────────────────────────────────
-///   display.hero         34pt   Semibold    40pt     -0.4pt     Sans
-///   display.large        28pt   Semibold    34pt     -0.3pt     Sans
-///   display.medium       22pt   Medium      28pt     -0.2pt     Sans
+///   display.hero         34pt   Bold        40pt     -0.4pt     Sans
+///   display.large        28pt   Bold        34pt     -0.3pt     Sans
+///   display.medium       22pt   Bold        28pt     -0.2pt     Sans
 /// ───────────────────────────────────────────────────────────────────
 ///   heading.large        20pt   Semibold    25pt      0         Sans
 ///   heading.medium       17pt   Semibold    22pt      0         Sans
@@ -962,19 +962,19 @@ enum AppTypography {
 
     // MARK: - Display (Sans)
 
-    /// Display hero - 34pt semibold (line: 40pt, tracking: -0.4pt)
+    /// Display hero - 34pt bold (line: 40pt, tracking: -0.4pt)
     static func displayHero() -> Font {
-        .system(size: 34, weight: .semibold, design: .default)
+        .system(size: 34, weight: .bold, design: .default)
     }
 
-    /// Display large - 28pt semibold (line: 34pt, tracking: -0.3pt)
+    /// Display large - 28pt bold (line: 34pt, tracking: -0.3pt)
     static func displayLarge() -> Font {
-        .system(size: 28, weight: .semibold, design: .default)
+        .system(size: 28, weight: .bold, design: .default)
     }
 
-    /// Display medium - 22pt medium (line: 28pt, tracking: -0.2pt)
+    /// Display medium - 22pt bold (line: 28pt, tracking: -0.2pt)
     static func displayMedium() -> Font {
-        .system(size: 22, weight: .medium, design: .default)
+        .system(size: 22, weight: .bold, design: .default)
     }
 
     // MARK: - Headings (Sans)
