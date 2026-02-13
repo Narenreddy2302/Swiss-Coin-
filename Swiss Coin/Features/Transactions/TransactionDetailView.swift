@@ -137,12 +137,6 @@ struct TransactionExpandedView: View {
     @State private var errorMessage = ""
     @State private var copiedAmount = false
 
-    // Staggered entrance animation
-    @State private var heroVisible = false
-    @State private var detailsVisible = false
-    @State private var splitsVisible = false
-    @State private var actionsVisible = false
-
     var body: some View {
         ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: 0) {
@@ -160,14 +154,13 @@ struct TransactionExpandedView: View {
             .padding(.bottom, Spacing.section)
         }
         .scrollBounceBehavior(.basedOnSize)
-        .presentationDetents([.medium, .large])
+        .presentationDetents([.large])
         .presentationDragIndicator(.visible)
         .presentationCornerRadius(CornerRadius.xl)
         .presentationBackground(AppColors.cardBackground)
         .onAppear {
             recompute()
             HapticManager.lightTap()
-            triggerEntranceAnimations()
         }
         .onChange(of: transaction.amount) { recompute() }
         .onChange(of: transaction.title) { recompute() }
@@ -191,26 +184,6 @@ struct TransactionExpandedView: View {
     private func recompute() {
         guard !transaction.isDeleted, transaction.managedObjectContext != nil else { return }
         snap = TransactionSnapshot.build(from: transaction)
-    }
-
-    // MARK: - Entrance Animations
-
-    private func triggerEntranceAnimations() {
-        let base = AppAnimation.staggerBaseDelay
-        let interval = AppAnimation.staggerInterval
-
-        withAnimation(AppAnimation.contentReveal.delay(base)) {
-            heroVisible = true
-        }
-        withAnimation(AppAnimation.contentReveal.delay(base + interval)) {
-            detailsVisible = true
-        }
-        withAnimation(AppAnimation.contentReveal.delay(base + interval * 2)) {
-            splitsVisible = true
-        }
-        withAnimation(AppAnimation.contentReveal.delay(base + interval * 3)) {
-            actionsVisible = true
-        }
     }
 
     // MARK: - Hero Section (Cash App style)
@@ -283,8 +256,6 @@ struct TransactionExpandedView: View {
             Spacer().frame(height: Spacing.sm)
         }
         .frame(maxWidth: .infinity)
-        .opacity(heroVisible ? 1 : 0)
-        .offset(y: heroVisible ? 0 : 12)
     }
 
     // MARK: - Details Section
@@ -335,8 +306,6 @@ struct TransactionExpandedView: View {
             }
             .padding(.vertical, Spacing.lg)
         }
-        .opacity(detailsVisible ? 1 : 0)
-        .offset(y: detailsVisible ? 0 : 8)
     }
 
     // MARK: - Split Breakdown Section
@@ -366,8 +335,6 @@ struct TransactionExpandedView: View {
             }
             .padding(.vertical, Spacing.lg)
         }
-        .opacity(splitsVisible ? 1 : 0)
-        .offset(y: splitsVisible ? 0 : 8)
     }
 
     // MARK: - Note Section
@@ -386,8 +353,6 @@ struct TransactionExpandedView: View {
             }
             .padding(.vertical, Spacing.lg)
         }
-        .opacity(splitsVisible ? 1 : 0)
-        .offset(y: splitsVisible ? 0 : 8)
     }
 
     // MARK: - Actions Section
@@ -452,8 +417,6 @@ struct TransactionExpandedView: View {
                 .clipShape(RoundedRectangle(cornerRadius: CornerRadius.button))
             }
         }
-        .opacity(actionsVisible ? 1 : 0)
-        .offset(y: actionsVisible ? 0 : 8)
     }
 
     // MARK: - Reusable Components
@@ -593,11 +556,6 @@ struct TransactionDetailView: View {
     @State private var errorMessage = ""
     @State private var copiedAmount = false
 
-    @State private var heroVisible = false
-    @State private var detailsVisible = false
-    @State private var splitsVisible = false
-    @State private var actionsVisible = false
-
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
@@ -664,7 +622,6 @@ struct TransactionDetailView: View {
         }
         .onAppear {
             recompute()
-            triggerEntranceAnimations()
         }
         .onChange(of: transaction.amount) { recompute() }
         .onChange(of: transaction.title) { recompute() }
@@ -673,15 +630,6 @@ struct TransactionDetailView: View {
     private func recompute() {
         guard !transaction.isDeleted, transaction.managedObjectContext != nil else { return }
         snap = TransactionSnapshot.build(from: transaction)
-    }
-
-    private func triggerEntranceAnimations() {
-        let base = AppAnimation.staggerBaseDelay
-        let interval = AppAnimation.staggerInterval
-        withAnimation(AppAnimation.contentReveal.delay(base)) { heroVisible = true }
-        withAnimation(AppAnimation.contentReveal.delay(base + interval)) { detailsVisible = true }
-        withAnimation(AppAnimation.contentReveal.delay(base + interval * 2)) { splitsVisible = true }
-        withAnimation(AppAnimation.contentReveal.delay(base + interval * 3)) { actionsVisible = true }
     }
 
     // The sections below reuse the exact same layout as TransactionExpandedView.
@@ -749,8 +697,6 @@ struct TransactionDetailView: View {
             Spacer().frame(height: Spacing.sm)
         }
         .frame(maxWidth: .infinity)
-        .opacity(heroVisible ? 1 : 0)
-        .offset(y: heroVisible ? 0 : 12)
     }
 
     private var sectionDivider: some View {
@@ -795,8 +741,6 @@ struct TransactionDetailView: View {
             }
             .padding(.vertical, Spacing.lg)
         }
-        .opacity(detailsVisible ? 1 : 0)
-        .offset(y: detailsVisible ? 0 : 8)
     }
 
     private var splitBreakdownSection: some View {
@@ -833,8 +777,6 @@ struct TransactionDetailView: View {
             }
             .padding(.vertical, Spacing.lg)
         }
-        .opacity(splitsVisible ? 1 : 0)
-        .offset(y: splitsVisible ? 0 : 8)
     }
 
     private var noteSection: some View {
@@ -849,8 +791,6 @@ struct TransactionDetailView: View {
             }
             .padding(.vertical, Spacing.lg)
         }
-        .opacity(splitsVisible ? 1 : 0)
-        .offset(y: splitsVisible ? 0 : 8)
     }
 
     private var actionsSection: some View {
@@ -886,8 +826,6 @@ struct TransactionDetailView: View {
                 .clipShape(RoundedRectangle(cornerRadius: CornerRadius.button))
             }
         }
-        .opacity(actionsVisible ? 1 : 0)
-        .offset(y: actionsVisible ? 0 : 8)
     }
 
     private func performDelete() {

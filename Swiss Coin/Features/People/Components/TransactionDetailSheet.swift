@@ -98,7 +98,7 @@ struct TransactionDetailSheet: View {
             .padding(.bottom, Spacing.section)
         }
         .scrollBounceBehavior(.basedOnSize)
-        .presentationDetents([.medium, .large])
+        .presentationDetents([.large])
         .presentationDragIndicator(.visible)
         .presentationCornerRadius(CornerRadius.xl)
         .presentationBackground(AppColors.cardBackground)
