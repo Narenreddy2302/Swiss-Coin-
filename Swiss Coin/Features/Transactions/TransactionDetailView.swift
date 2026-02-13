@@ -135,29 +135,39 @@ struct TransactionExpandedView: View {
     @State private var showingDeleteAlert = false
     @State private var showingError = false
     @State private var errorMessage = ""
-    @State private var copiedAmount = false
 
     var body: some View {
         ScrollView(showsIndicators: false) {
-            VStack(alignment: .leading, spacing: 0) {
-                heroSection
-                detailsSection
+            VStack(spacing: Spacing.md) {
+                // Hero amount
+                sheetHeroSection
+
+                // Transaction Info card
+                sheetTransactionInfoCard
+
+                // Paid By card
+                sheetPaidByCard
+
+                // Split Between card
                 if !snap.sortedSplits.isEmpty {
-                    splitBreakdownSection
+                    sheetSplitBetweenCard
                 }
-                if snap.note != nil {
-                    noteSection
-                }
-                actionsSection
+
+                // Your Summary card
+                sheetYourSummaryCard
+
+                // Action buttons
+                sheetActionsSection
             }
-            .padding(.horizontal, Spacing.xl)
+            .padding(.horizontal, Spacing.screenHorizontal)
+            .padding(.top, Spacing.sm)
             .padding(.bottom, Spacing.section)
         }
         .scrollBounceBehavior(.basedOnSize)
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
         .presentationCornerRadius(CornerRadius.xl)
-        .presentationBackground(AppColors.cardBackground)
+        .presentationBackground(AppColors.backgroundSecondary)
         .onAppear {
             recompute()
             HapticManager.lightTap()
@@ -186,201 +196,246 @@ struct TransactionExpandedView: View {
         snap = TransactionSnapshot.build(from: transaction)
     }
 
-    // MARK: - Hero Section (Cash App style)
+    // MARK: - Hero Section
 
-    private var heroSection: some View {
-        VStack(spacing: Spacing.md) {
-            Spacer().frame(height: Spacing.lg)
+    private var sheetHeroSection: some View {
+        VStack(spacing: Spacing.xs) {
+            Text(CurrencyFormatter.format(snap.totalAmount))
+                .font(.system(size: 40, weight: .bold, design: .rounded))
+                .monospacedDigit()
+                .tracking(-0.5)
+                .foregroundColor(AppColors.textPrimary)
 
-            // Direction icon circle
+            Text("Total Amount")
+                .font(AppTypography.bodySmall())
+                .foregroundColor(AppColors.textTertiary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, Spacing.lg)
+    }
+
+    // MARK: - Transaction Info Card
+
+    private var sheetTransactionInfoCard: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text("Transaction Info")
+                .font(AppTypography.headingSmall())
+                .foregroundColor(AppColors.textSecondary)
+                .padding(.bottom, Spacing.lg)
+
+            sheetInfoRow(icon: "tag.fill", label: "Title", value: snap.title)
+            sheetCardDivider
+            sheetInfoRow(icon: "calendar", label: "Date", value: sheetFormattedShortDate)
+
+            if let note = snap.note {
+                sheetCardDivider
+                sheetInfoRow(icon: "note.text", label: "Note", value: note)
+            }
+
+            if let group = snap.groupName {
+                sheetCardDivider
+                sheetInfoRow(icon: "person.2.fill", label: "Group", value: group)
+            }
+
+            sheetCardDivider
+            sheetInfoRow(icon: "arrow.triangle.branch", label: "Split Method", value: "Split \(snap.splitMethodName)")
+        }
+        .padding(Spacing.cardPadding)
+        .background(
+            RoundedRectangle(cornerRadius: CornerRadius.card)
+                .fill(AppColors.cardBackground)
+                .shadow(color: AppColors.shadow, radius: 4, x: 0, y: 1)
+        )
+    }
+
+    private var sheetFormattedShortDate: String {
+        guard let date = transaction.date else { return "Unknown" }
+        return DateFormatter.mediumDate.string(from: date)
+    }
+
+    private func sheetInfoRow(icon: String, label: String, value: String) -> some View {
+        HStack(spacing: Spacing.md) {
             ZStack {
                 Circle()
-                    .fill(snap.netAmountColor.opacity(0.12))
-                    .frame(width: 56, height: 56)
-                Image(systemName: snap.directionIcon)
-                    .font(.system(size: 24, weight: .semibold))
-                    .foregroundColor(snap.netAmountColor)
+                    .fill(AppColors.accent.opacity(0.12))
+                    .frame(width: 32, height: 32)
+                Image(systemName: icon)
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(AppColors.accent)
             }
 
-            // Hero amount (tap to copy)
-            Button {
-                copyAmount()
-            } label: {
-                VStack(spacing: Spacing.xs) {
-                    Text(CurrencyFormatter.formatAbsolute(snap.userNetAmount))
-                        .font(AppTypography.financialHero())
-                        .tracking(AppTypography.Tracking.financialHero)
-                        .foregroundColor(snap.netAmountColor)
+            Text(label)
+                .font(AppTypography.bodyDefault())
+                .foregroundColor(AppColors.textSecondary)
 
-                    if copiedAmount {
-                        Text("Copied!")
-                            .font(AppTypography.labelSmall())
-                            .foregroundColor(AppColors.accent)
-                            .transition(.opacity.combined(with: .scale(scale: 0.8)))
-                    }
+            Spacer()
+
+            Text(value)
+                .font(AppTypography.labelLarge())
+                .foregroundColor(AppColors.textPrimary)
+                .lineLimit(1)
+        }
+        .padding(.vertical, Spacing.sm)
+    }
+
+    private var sheetCardDivider: some View {
+        Rectangle()
+            .fill(AppColors.divider)
+            .frame(height: 0.5)
+    }
+
+    // MARK: - Paid By Card
+
+    private var sheetPaidByCard: some View {
+        VStack(alignment: .leading, spacing: Spacing.md) {
+            Text("Paid By")
+                .font(AppTypography.headingSmall())
+                .foregroundColor(AppColors.textSecondary)
+
+            if snap.isMultiPayer {
+                ForEach(Array(snap.sortedPayers.enumerated()), id: \.offset) { _, payer in
+                    sheetPayerRow(name: payer.name, amount: payer.amount, isUser: payer.isUser)
                 }
+            } else {
+                sheetPayerRow(name: snap.payerName, amount: snap.totalAmount, isUser: snap.payerName == "You")
             }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Your share: \(CurrencyFormatter.formatAbsolute(snap.userNetAmount)). Tap to copy.")
+        }
+        .padding(Spacing.cardPadding)
+        .background(
+            RoundedRectangle(cornerRadius: CornerRadius.card)
+                .fill(AppColors.cardBackground)
+                .shadow(color: AppColors.shadow, radius: 4, x: 0, y: 1)
+        )
+    }
 
-            // Status pill
-            Text(snap.statusText)
+    private func sheetPayerRow(name: String, amount: Double, isUser: Bool) -> some View {
+        HStack(spacing: Spacing.md) {
+            Circle()
+                .fill(AppColors.accent.opacity(0.15))
+                .frame(width: 36, height: 36)
+                .overlay(
+                    Text(isUser ? "Y" : String(name.prefix(1)).uppercased())
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(AppColors.accent)
+                )
+
+            Text(name)
+                .font(AppTypography.headingSmall())
+                .foregroundColor(AppColors.textPrimary)
+
+            Spacer()
+
+            Text(CurrencyFormatter.format(amount))
                 .font(AppTypography.labelDefault())
-                .foregroundColor(snap.netAmountColor)
-                .padding(.horizontal, Spacing.md)
+                .foregroundColor(AppColors.accent)
+                .padding(.horizontal, Spacing.sm)
                 .padding(.vertical, Spacing.xs)
                 .background(
                     Capsule()
-                        .fill(snap.netAmountColor.opacity(0.1))
+                        .fill(AppColors.accent.opacity(0.12))
                 )
+        }
+    }
 
-            // Title + date
-            VStack(spacing: Spacing.xxs) {
-                Text(snap.title)
-                    .font(AppTypography.headingLarge())
-                    .foregroundColor(AppColors.textPrimary)
-                    .multilineTextAlignment(.center)
-                    .lineLimit(3)
+    // MARK: - Split Between Card
 
-                HStack(spacing: Spacing.xs) {
-                    Text(snap.formattedDate)
-                    if !snap.formattedTime.isEmpty {
-                        Text("·")
-                        Text(snap.formattedTime)
-                    }
-                }
-                .font(AppTypography.bodySmall())
+    private var sheetSplitBetweenCard: some View {
+        VStack(alignment: .leading, spacing: Spacing.md) {
+            Text("Split Between")
+                .font(AppTypography.headingSmall())
                 .foregroundColor(AppColors.textSecondary)
-            }
 
-            Spacer().frame(height: Spacing.sm)
+            ForEach(Array(snap.sortedSplits.enumerated()), id: \.element.objectID) { index, split in
+                if index > 0 {
+                    sheetCardDivider
+                }
+                sheetSplitPersonRow(split)
+            }
         }
-        .frame(maxWidth: .infinity)
+        .padding(Spacing.cardPadding)
+        .background(
+            RoundedRectangle(cornerRadius: CornerRadius.card)
+                .fill(AppColors.cardBackground)
+                .shadow(color: AppColors.shadow, radius: 4, x: 0, y: 1)
+        )
     }
 
-    // MARK: - Details Section
-
-    private var detailsSection: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            sectionDivider
-
-            VStack(alignment: .leading, spacing: Spacing.md) {
-                sectionHeader("Details")
-
-                // Payer(s)
-                if snap.isMultiPayer {
-                    ForEach(Array(snap.sortedPayers.enumerated()), id: \.offset) { _, payer in
-                        detailRow(
-                            icon: "creditcard.fill",
-                            label: "Paid by",
-                            value: "\(payer.name) · \(CurrencyFormatter.format(payer.amount))"
-                        )
-                    }
-                } else {
-                    detailRow(icon: "creditcard.fill", label: "Paid by", value: snap.payerName)
-                }
-
-                detailRow(icon: "person.fill", label: "Created by", value: snap.creatorName)
-
-                detailRow(
-                    icon: "person.2.fill",
-                    label: "Participants",
-                    value: "\(snap.participantCount) \(snap.participantCount == 1 ? "person" : "people")"
+    private func sheetSplitPersonRow(_ split: (objectID: NSManagedObjectID, name: String, initials: String, colorHex: String, amount: Double, isUser: Bool)) -> some View {
+        HStack(spacing: Spacing.md) {
+            Circle()
+                .fill(Color(hex: split.colorHex).opacity(0.15))
+                .frame(width: 36, height: 36)
+                .overlay(
+                    Text(split.isUser ? "Y" : String(split.initials.prefix(1)))
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(Color(hex: split.colorHex))
                 )
 
-                detailRow(
-                    icon: "arrow.triangle.branch",
-                    label: "Split",
-                    value: snap.splitMethodIcon.isEmpty ? snap.splitMethodName : "\(snap.splitMethodIcon) \(snap.splitMethodName)"
-                )
+            Text(split.name)
+                .font(AppTypography.bodyDefault())
+                .foregroundColor(AppColors.textPrimary)
 
-                detailRow(
-                    icon: "banknote.fill",
-                    label: "Total",
-                    value: CurrencyFormatter.format(snap.totalAmount)
-                )
+            Spacer()
 
-                if let group = snap.groupName {
-                    detailRow(icon: "person.3.fill", label: "Group", value: group)
-                }
-            }
-            .padding(.vertical, Spacing.lg)
+            Text(CurrencyFormatter.format(split.amount))
+                .font(AppTypography.labelLarge())
+                .foregroundColor(AppColors.textPrimary)
         }
+        .padding(.vertical, Spacing.xs)
     }
 
-    // MARK: - Split Breakdown Section
+    // MARK: - Your Summary Card
 
-    private var splitBreakdownSection: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            sectionDivider
+    private var sheetYourSummaryCard: some View {
+        let userPaid = snap.isMultiPayer
+            ? snap.sortedPayers.filter { $0.isUser }.reduce(0) { $0 + $1.amount }
+            : (snap.payerName == "You" ? snap.totalAmount : 0)
+        let userShare = snap.sortedSplits.filter { $0.isUser }.reduce(0) { $0 + $1.amount }
+        let netAmount = snap.userNetAmount
 
-            VStack(alignment: .leading, spacing: Spacing.md) {
-                sectionHeader("Split Breakdown")
+        return VStack(alignment: .leading, spacing: Spacing.md) {
+            Text("Your Summary")
+                .font(AppTypography.headingSmall())
+                .foregroundColor(AppColors.textSecondary)
 
-                ForEach(snap.sortedSplits, id: \.objectID) { split in
-                    splitRow(split)
-                }
+            sheetSummaryRow(label: "You paid", value: CurrencyFormatter.format(userPaid), color: AppColors.textPrimary)
+            sheetSummaryRow(label: "Your share", value: CurrencyFormatter.format(userShare), color: AppColors.textPrimary)
 
-                // Total row
-                HStack {
-                    Text("Total")
-                        .font(AppTypography.headingSmall())
-                        .foregroundColor(AppColors.textPrimary)
-                    Spacer()
-                    Text(CurrencyFormatter.format(snap.totalAmount))
-                        .font(AppTypography.financialDefault())
-                        .foregroundColor(AppColors.textPrimary)
-                }
-                .padding(.top, Spacing.xs)
+            sheetCardDivider
+
+            if netAmount > 0.01 {
+                sheetSummaryRow(label: "You are owed", value: CurrencyFormatter.format(netAmount), color: AppColors.positive)
+            } else if netAmount < -0.01 {
+                sheetSummaryRow(label: "You owe", value: CurrencyFormatter.format(abs(netAmount)), color: AppColors.negative)
+            } else {
+                sheetSummaryRow(label: "Settled up", value: CurrencyFormatter.format(0), color: AppColors.neutral)
             }
-            .padding(.vertical, Spacing.lg)
         }
+        .padding(Spacing.cardPadding)
+        .background(
+            RoundedRectangle(cornerRadius: CornerRadius.card)
+                .fill(AppColors.cardBackground)
+                .shadow(color: AppColors.shadow, radius: 4, x: 0, y: 1)
+        )
     }
 
-    // MARK: - Note Section
-
-    private var noteSection: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            sectionDivider
-
-            VStack(alignment: .leading, spacing: Spacing.sm) {
-                sectionHeader("Note")
-
-                Text(snap.note ?? "")
-                    .font(AppTypography.bodyDefault())
-                    .foregroundColor(AppColors.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .padding(.vertical, Spacing.lg)
+    private func sheetSummaryRow(label: String, value: String, color: Color) -> some View {
+        HStack {
+            Text(label)
+                .font(AppTypography.bodyDefault())
+                .foregroundColor(AppColors.textSecondary)
+            Spacer()
+            Text(value)
+                .font(AppTypography.financialDefault())
+                .foregroundColor(color)
         }
+        .padding(.vertical, Spacing.xxs)
     }
 
     // MARK: - Actions Section
 
-    private var actionsSection: some View {
+    private var sheetActionsSection: some View {
         VStack(spacing: Spacing.sm) {
-            sectionDivider
-
-            Spacer().frame(height: Spacing.md)
-
-            // Share button
-            Button {
-                HapticManager.tap()
-                shareTransaction()
-            } label: {
-                HStack(spacing: Spacing.sm) {
-                    Image(systemName: "square.and.arrow.up")
-                        .font(.system(size: 14, weight: .medium))
-                    Text("Share")
-                        .font(AppTypography.buttonDefault())
-                }
-                .foregroundColor(AppColors.accent)
-                .frame(maxWidth: .infinity)
-                .frame(height: ButtonHeight.md)
-                .background(AppColors.accentMuted)
-                .clipShape(RoundedRectangle(cornerRadius: CornerRadius.button))
-            }
-
             // Edit button
             Button {
                 HapticManager.tap()
@@ -417,106 +472,10 @@ struct TransactionExpandedView: View {
                 .clipShape(RoundedRectangle(cornerRadius: CornerRadius.button))
             }
         }
-    }
-
-    // MARK: - Reusable Components
-
-    private func sectionHeader(_ title: String) -> some View {
-        Text(title)
-            .font(AppTypography.headingSmall())
-            .foregroundColor(AppColors.textTertiary)
-    }
-
-    private var sectionDivider: some View {
-        Rectangle()
-            .fill(AppColors.separator)
-            .frame(height: 0.5)
-    }
-
-    private func detailRow(icon: String, label: String, value: String) -> some View {
-        HStack(spacing: Spacing.md) {
-            Image(systemName: icon)
-                .font(.system(size: 14))
-                .foregroundColor(AppColors.textTertiary)
-                .frame(width: 20, alignment: .center)
-
-            Text(label)
-                .font(AppTypography.bodyDefault())
-                .foregroundColor(AppColors.textSecondary)
-
-            Spacer()
-
-            Text(value)
-                .font(AppTypography.labelLarge())
-                .foregroundColor(AppColors.textPrimary)
-                .lineLimit(1)
-        }
-    }
-
-    private func splitRow(_ split: (objectID: NSManagedObjectID, name: String, initials: String, colorHex: String, amount: Double, isUser: Bool)) -> some View {
-        HStack(spacing: Spacing.md) {
-            // Avatar
-            Circle()
-                .fill(Color(hex: split.colorHex).opacity(split.isUser ? 0.15 : 0.12))
-                .frame(width: 32, height: 32)
-                .overlay(
-                    Text(split.initials)
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(Color(hex: split.colorHex))
-                )
-
-            Text(split.name)
-                .font(split.isUser ? AppTypography.headingSmall() : AppTypography.bodyDefault())
-                .foregroundColor(AppColors.textPrimary)
-
-            Spacer()
-
-            Text(CurrencyFormatter.format(split.amount))
-                .font(AppTypography.financialDefault())
-                .foregroundColor(split.isUser ? snap.netAmountColor : AppColors.textPrimary)
-        }
-        .padding(.vertical, Spacing.xxs)
-        .background(
-            split.isUser
-                ? RoundedRectangle(cornerRadius: CornerRadius.small)
-                    .fill(snap.netAmountColor.opacity(0.04))
-                    .padding(.horizontal, -Spacing.sm)
-                : nil
-        )
+        .padding(.top, Spacing.sm)
     }
 
     // MARK: - Actions
-
-    private func copyAmount() {
-        UIPasteboard.general.string = CurrencyFormatter.formatAbsolute(snap.userNetAmount)
-        HapticManager.copyAction()
-        withAnimation(AppAnimation.fast) { copiedAmount = true }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-            withAnimation(AppAnimation.fast) { copiedAmount = false }
-        }
-    }
-
-    private func shareTransaction() {
-        let shareText = """
-        \(snap.title)
-        Amount: \(CurrencyFormatter.format(snap.totalAmount))
-        Your share: \(CurrencyFormatter.formatAbsolute(snap.userNetAmount))
-        Date: \(snap.formattedDate)
-        Participants: \(snap.participantCount) people
-        — Shared from Swiss Coin
-        """
-
-        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-              let root = windowScene.windows.first?.rootViewController else { return }
-
-        let ac = UIActivityViewController(activityItems: [shareText], applicationActivities: nil)
-        if let popover = ac.popoverPresentationController {
-            popover.sourceView = root.view
-            popover.sourceRect = CGRect(x: root.view.bounds.midX, y: root.view.bounds.midY, width: 0, height: 0)
-            popover.permittedArrowDirections = []
-        }
-        root.present(ac, animated: true)
-    }
 
     private func performDelete() {
         HapticManager.delete()
@@ -524,6 +483,9 @@ struct TransactionExpandedView: View {
 
         if let splits = transaction.splits as? Set<TransactionSplit> {
             splits.forEach { ctx.delete($0) }
+        }
+        if let payerSet = transaction.payers as? Set<TransactionPayer> {
+            payerSet.forEach { ctx.delete($0) }
         }
         ctx.delete(transaction)
 
@@ -540,13 +502,15 @@ struct TransactionExpandedView: View {
     }
 }
 
-// MARK: - NavigationLink Detail (legacy push destination)
+// MARK: - NavigationLink Detail (Card-based design)
 
-/// Thin wrapper that presents the same unified detail as a full-screen
-/// navigation destination (used by TransactionRowView NavigationLink path).
+/// Full-screen transaction detail page with card-based layout.
+/// Designed with separate white cards for each section: hero amount,
+/// transaction info, paid by, split between, and your summary.
 struct TransactionDetailView: View {
     @ObservedObject var transaction: FinancialTransaction
     @Environment(\.managedObjectContext) private var viewContext
+    @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dismiss) var dismiss
 
     @State private var snap = TransactionSnapshot()
@@ -554,54 +518,43 @@ struct TransactionDetailView: View {
     @State private var showingDeleteAlert = false
     @State private var showingError = false
     @State private var errorMessage = ""
-    @State private var copiedAmount = false
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
-                heroSection
-                detailsSection
+        ScrollView(showsIndicators: false) {
+            VStack(spacing: Spacing.md) {
+                // Hero amount
+                heroAmountSection
+
+                // Transaction Info card
+                transactionInfoCard
+
+                // Paid By card
+                paidByCard
+
+                // Split Between card
                 if !snap.sortedSplits.isEmpty {
-                    splitBreakdownSection
+                    splitBetweenCard
                 }
-                if snap.note != nil {
-                    noteSection
-                }
-                actionsSection
+
+                // Your Summary card
+                yourSummaryCard
             }
-            .padding(.horizontal, Spacing.xl)
-            .padding(.vertical, Spacing.xl)
-            .background(
-                RoundedRectangle(cornerRadius: CornerRadius.lg)
-                    .fill(AppColors.cardBackground)
-            )
-            .padding(.horizontal, Spacing.lg)
-            .padding(.top, Spacing.sm)
+            .padding(.horizontal, Spacing.screenHorizontal)
+            .padding(.top, Spacing.md)
             .padding(.bottom, Spacing.section)
         }
         .background(AppColors.backgroundSecondary)
-        .navigationTitle("Transaction")
+        .navigationTitle("Transaction Details")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
-                Menu {
-                    Button {
-                        HapticManager.tap()
-                        showingEditSheet = true
-                    } label: {
-                        Label("Edit", systemImage: "pencil")
-                    }
-                    Divider()
-                    Button(role: .destructive) {
-                        HapticManager.warning()
-                        showingDeleteAlert = true
-                    } label: {
-                        Label("Delete", systemImage: "trash")
-                    }
+                Button {
+                    HapticManager.warning()
+                    showingDeleteAlert = true
                 } label: {
-                    Image(systemName: "ellipsis.circle")
-                        .font(.system(size: IconSize.md, weight: .medium))
-                        .foregroundColor(AppColors.textPrimary)
+                    Image(systemName: "trash")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(AppColors.negative)
                 }
             }
         }
@@ -632,207 +585,277 @@ struct TransactionDetailView: View {
         snap = TransactionSnapshot.build(from: transaction)
     }
 
-    // The sections below reuse the exact same layout as TransactionExpandedView.
-    // They are inlined here to avoid passing 10+ bindings through a shared component,
-    // which would actually be slower due to SwiftUI's dependency tracking overhead.
+    // MARK: - Hero Amount Section
 
-    private var heroSection: some View {
-        VStack(spacing: Spacing.md) {
-            ZStack {
-                Circle()
-                    .fill(snap.netAmountColor.opacity(0.12))
-                    .frame(width: 56, height: 56)
-                Image(systemName: snap.directionIcon)
-                    .font(.system(size: 24, weight: .semibold))
-                    .foregroundColor(snap.netAmountColor)
-            }
+    private var heroAmountSection: some View {
+        VStack(spacing: Spacing.xs) {
+            Text(CurrencyFormatter.format(snap.totalAmount))
+                .font(.system(size: 40, weight: .bold, design: .rounded))
+                .monospacedDigit()
+                .tracking(-0.5)
+                .foregroundColor(AppColors.textPrimary)
 
-            Button {
-                UIPasteboard.general.string = CurrencyFormatter.formatAbsolute(snap.userNetAmount)
-                HapticManager.copyAction()
-                withAnimation(AppAnimation.fast) { copiedAmount = true }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                    withAnimation(AppAnimation.fast) { copiedAmount = false }
-                }
-            } label: {
-                VStack(spacing: Spacing.xs) {
-                    Text(CurrencyFormatter.formatAbsolute(snap.userNetAmount))
-                        .font(AppTypography.financialHero())
-                        .tracking(AppTypography.Tracking.financialHero)
-                        .foregroundColor(snap.netAmountColor)
-                    if copiedAmount {
-                        Text("Copied!")
-                            .font(AppTypography.labelSmall())
-                            .foregroundColor(AppColors.accent)
-                            .transition(.opacity.combined(with: .scale(scale: 0.8)))
-                    }
-                }
-            }
-            .buttonStyle(.plain)
-
-            Text(snap.statusText)
-                .font(AppTypography.labelDefault())
-                .foregroundColor(snap.netAmountColor)
-                .padding(.horizontal, Spacing.md)
-                .padding(.vertical, Spacing.xs)
-                .background(Capsule().fill(snap.netAmountColor.opacity(0.1)))
-
-            VStack(spacing: Spacing.xxs) {
-                Text(snap.title)
-                    .font(AppTypography.headingLarge())
-                    .foregroundColor(AppColors.textPrimary)
-                    .multilineTextAlignment(.center)
-                    .lineLimit(3)
-                HStack(spacing: Spacing.xs) {
-                    Text(snap.formattedDate)
-                    if !snap.formattedTime.isEmpty {
-                        Text("·")
-                        Text(snap.formattedTime)
-                    }
-                }
+            Text("Total Amount")
                 .font(AppTypography.bodySmall())
-                .foregroundColor(AppColors.textSecondary)
-            }
-
-            Spacer().frame(height: Spacing.sm)
+                .foregroundColor(AppColors.textTertiary)
         }
         .frame(maxWidth: .infinity)
+        .padding(.vertical, Spacing.xl)
     }
 
-    private var sectionDivider: some View {
-        Rectangle().fill(AppColors.separator).frame(height: 0.5)
+    // MARK: - Transaction Info Card
+
+    private var transactionInfoCard: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            // Section header
+            Text("Transaction Info")
+                .font(AppTypography.headingSmall())
+                .foregroundColor(AppColors.textSecondary)
+                .padding(.bottom, Spacing.lg)
+
+            // Title row
+            infoRow(icon: "tag.fill", label: "Title", value: snap.title)
+
+            cardDivider
+
+            // Date row
+            infoRow(icon: "calendar", label: "Date", value: formattedShortDate)
+
+            // Note row (if present)
+            if let note = snap.note {
+                cardDivider
+                infoRow(icon: "note.text", label: "Note", value: note)
+            }
+
+            // Group row (if present)
+            if let group = snap.groupName {
+                cardDivider
+                infoRow(icon: "person.2.fill", label: "Group", value: group)
+            }
+
+            cardDivider
+
+            // Split method row
+            infoRow(icon: "arrow.triangle.branch", label: "Split Method", value: "Split \(snap.splitMethodName)")
+        }
+        .padding(Spacing.cardPadding)
+        .background(
+            RoundedRectangle(cornerRadius: CornerRadius.card)
+                .fill(AppColors.cardBackground)
+                .shadow(color: AppColors.shadow, radius: 4, x: 0, y: 1)
+        )
     }
 
-    private func sectionHeader(_ title: String) -> some View {
-        Text(title).font(AppTypography.headingSmall()).foregroundColor(AppColors.textTertiary)
+    /// Formatted short date (e.g., "Jan 15, 2025")
+    private var formattedShortDate: String {
+        guard let date = transaction.date else { return "Unknown" }
+        return DateFormatter.mediumDate.string(from: date)
     }
 
-    private func detailRow(icon: String, label: String, value: String) -> some View {
+    /// A single info row with an icon in an orange-tinted circle, a label, and a value
+    private func infoRow(icon: String, label: String, value: String) -> some View {
         HStack(spacing: Spacing.md) {
-            Image(systemName: icon)
-                .font(.system(size: 14))
-                .foregroundColor(AppColors.textTertiary)
-                .frame(width: 20, alignment: .center)
-            Text(label).font(AppTypography.bodyDefault()).foregroundColor(AppColors.textSecondary)
+            // Orange-tinted circle background for icon
+            ZStack {
+                Circle()
+                    .fill(AppColors.accent.opacity(0.12))
+                    .frame(width: 32, height: 32)
+                Image(systemName: icon)
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(AppColors.accent)
+            }
+
+            Text(label)
+                .font(AppTypography.bodyDefault())
+                .foregroundColor(AppColors.textSecondary)
+
             Spacer()
-            Text(value).font(AppTypography.labelLarge()).foregroundColor(AppColors.textPrimary).lineLimit(1)
-        }
-    }
 
-    private var detailsSection: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            sectionDivider
-            VStack(alignment: .leading, spacing: Spacing.md) {
-                sectionHeader("Details")
-                if snap.isMultiPayer {
-                    ForEach(Array(snap.sortedPayers.enumerated()), id: \.offset) { _, payer in
-                        detailRow(icon: "creditcard.fill", label: "Paid by", value: "\(payer.name) · \(CurrencyFormatter.format(payer.amount))")
-                    }
-                } else {
-                    detailRow(icon: "creditcard.fill", label: "Paid by", value: snap.payerName)
-                }
-                detailRow(icon: "person.fill", label: "Created by", value: snap.creatorName)
-                detailRow(icon: "person.2.fill", label: "Participants", value: "\(snap.participantCount) \(snap.participantCount == 1 ? "person" : "people")")
-                detailRow(icon: "arrow.triangle.branch", label: "Split", value: snap.splitMethodIcon.isEmpty ? snap.splitMethodName : "\(snap.splitMethodIcon) \(snap.splitMethodName)")
-                detailRow(icon: "banknote.fill", label: "Total", value: CurrencyFormatter.format(snap.totalAmount))
-                if let group = snap.groupName {
-                    detailRow(icon: "person.3.fill", label: "Group", value: group)
-                }
-            }
-            .padding(.vertical, Spacing.lg)
-        }
-    }
-
-    private var splitBreakdownSection: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            sectionDivider
-            VStack(alignment: .leading, spacing: Spacing.md) {
-                sectionHeader("Split Breakdown")
-                ForEach(snap.sortedSplits, id: \.objectID) { split in
-                    HStack(spacing: Spacing.md) {
-                        Circle()
-                            .fill(Color(hex: split.colorHex).opacity(split.isUser ? 0.15 : 0.12))
-                            .frame(width: 32, height: 32)
-                            .overlay(
-                                Text(split.initials)
-                                    .font(.system(size: 12, weight: .semibold))
-                                    .foregroundColor(Color(hex: split.colorHex))
-                            )
-                        Text(split.name)
-                            .font(split.isUser ? AppTypography.headingSmall() : AppTypography.bodyDefault())
-                            .foregroundColor(AppColors.textPrimary)
-                        Spacer()
-                        Text(CurrencyFormatter.format(split.amount))
-                            .font(AppTypography.financialDefault())
-                            .foregroundColor(split.isUser ? snap.netAmountColor : AppColors.textPrimary)
-                    }
-                    .padding(.vertical, Spacing.xxs)
-                }
-                HStack {
-                    Text("Total").font(AppTypography.headingSmall()).foregroundColor(AppColors.textPrimary)
-                    Spacer()
-                    Text(CurrencyFormatter.format(snap.totalAmount)).font(AppTypography.financialDefault()).foregroundColor(AppColors.textPrimary)
-                }
-                .padding(.top, Spacing.xs)
-            }
-            .padding(.vertical, Spacing.lg)
-        }
-    }
-
-    private var noteSection: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            sectionDivider
-            VStack(alignment: .leading, spacing: Spacing.sm) {
-                sectionHeader("Note")
-                Text(snap.note ?? "")
-                    .font(AppTypography.bodyDefault())
-                    .foregroundColor(AppColors.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .padding(.vertical, Spacing.lg)
-        }
-    }
-
-    private var actionsSection: some View {
-        VStack(spacing: Spacing.sm) {
-            sectionDivider
-            Spacer().frame(height: Spacing.md)
-
-            Button {
-                HapticManager.tap()
-                showingEditSheet = true
-            } label: {
-                HStack(spacing: Spacing.sm) {
-                    Image(systemName: "pencil").font(.system(size: 14, weight: .medium))
-                    Text("Edit Transaction").font(AppTypography.buttonDefault())
-                }
+            Text(value)
+                .font(AppTypography.labelLarge())
                 .foregroundColor(AppColors.textPrimary)
-                .frame(maxWidth: .infinity).frame(height: ButtonHeight.md)
-                .background(AppColors.backgroundTertiary)
-                .clipShape(RoundedRectangle(cornerRadius: CornerRadius.button))
-            }
+                .lineLimit(1)
+        }
+        .padding(.vertical, Spacing.sm)
+    }
 
-            Button {
-                HapticManager.warning()
-                showingDeleteAlert = true
-            } label: {
-                HStack(spacing: Spacing.sm) {
-                    Image(systemName: "trash").font(.system(size: 14, weight: .medium))
-                    Text("Delete Transaction").font(AppTypography.buttonDefault())
+    /// Thin divider used within cards
+    private var cardDivider: some View {
+        Rectangle()
+            .fill(AppColors.divider)
+            .frame(height: 0.5)
+    }
+
+    // MARK: - Paid By Card
+
+    private var paidByCard: some View {
+        VStack(alignment: .leading, spacing: Spacing.md) {
+            Text("Paid By")
+                .font(AppTypography.headingSmall())
+                .foregroundColor(AppColors.textSecondary)
+
+            if snap.isMultiPayer {
+                ForEach(Array(snap.sortedPayers.enumerated()), id: \.offset) { _, payer in
+                    payerRow(name: payer.name, amount: payer.amount, isUser: payer.isUser)
                 }
-                .foregroundColor(AppColors.negative)
-                .frame(maxWidth: .infinity).frame(height: ButtonHeight.md)
-                .background(AppColors.negative.opacity(0.08))
-                .clipShape(RoundedRectangle(cornerRadius: CornerRadius.button))
+            } else {
+                payerRow(name: snap.payerName, amount: snap.totalAmount, isUser: snap.payerName == "You")
             }
         }
+        .padding(Spacing.cardPadding)
+        .background(
+            RoundedRectangle(cornerRadius: CornerRadius.card)
+                .fill(AppColors.cardBackground)
+                .shadow(color: AppColors.shadow, radius: 4, x: 0, y: 1)
+        )
     }
+
+    /// A payer row with avatar circle and orange amount badge
+    private func payerRow(name: String, amount: Double, isUser: Bool) -> some View {
+        HStack(spacing: Spacing.md) {
+            // Avatar
+            Circle()
+                .fill(AppColors.accent.opacity(0.15))
+                .frame(width: 36, height: 36)
+                .overlay(
+                    Text(isUser ? "Y" : String(name.prefix(1)).uppercased())
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(AppColors.accent)
+                )
+
+            Text(name)
+                .font(AppTypography.headingSmall())
+                .foregroundColor(AppColors.textPrimary)
+
+            Spacer()
+
+            // Orange amount badge
+            Text(CurrencyFormatter.format(amount))
+                .font(AppTypography.labelDefault())
+                .foregroundColor(AppColors.accent)
+                .padding(.horizontal, Spacing.sm)
+                .padding(.vertical, Spacing.xs)
+                .background(
+                    Capsule()
+                        .fill(AppColors.accent.opacity(0.12))
+                )
+        }
+    }
+
+    // MARK: - Split Between Card
+
+    private var splitBetweenCard: some View {
+        VStack(alignment: .leading, spacing: Spacing.md) {
+            Text("Split Between")
+                .font(AppTypography.headingSmall())
+                .foregroundColor(AppColors.textSecondary)
+
+            ForEach(Array(snap.sortedSplits.enumerated()), id: \.element.objectID) { index, split in
+                if index > 0 {
+                    cardDivider
+                }
+                splitPersonRow(split)
+            }
+        }
+        .padding(Spacing.cardPadding)
+        .background(
+            RoundedRectangle(cornerRadius: CornerRadius.card)
+                .fill(AppColors.cardBackground)
+                .shadow(color: AppColors.shadow, radius: 4, x: 0, y: 1)
+        )
+    }
+
+    /// A split person row with colored avatar and amount
+    private func splitPersonRow(_ split: (objectID: NSManagedObjectID, name: String, initials: String, colorHex: String, amount: Double, isUser: Bool)) -> some View {
+        HStack(spacing: Spacing.md) {
+            // Avatar circle
+            Circle()
+                .fill(Color(hex: split.colorHex).opacity(0.15))
+                .frame(width: 36, height: 36)
+                .overlay(
+                    Text(split.isUser ? "Y" : String(split.initials.prefix(1)))
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(Color(hex: split.colorHex))
+                )
+
+            Text(split.name)
+                .font(AppTypography.bodyDefault())
+                .foregroundColor(AppColors.textPrimary)
+
+            Spacer()
+
+            Text(CurrencyFormatter.format(split.amount))
+                .font(AppTypography.labelLarge())
+                .foregroundColor(AppColors.textPrimary)
+        }
+        .padding(.vertical, Spacing.xs)
+    }
+
+    // MARK: - Your Summary Card
+
+    private var yourSummaryCard: some View {
+        let userPaid = snap.isMultiPayer
+            ? snap.sortedPayers.filter { $0.isUser }.reduce(0) { $0 + $1.amount }
+            : (snap.payerName == "You" ? snap.totalAmount : 0)
+        let userShare = snap.sortedSplits.filter { $0.isUser }.reduce(0) { $0 + $1.amount }
+        let netAmount = snap.userNetAmount
+
+        return VStack(alignment: .leading, spacing: Spacing.md) {
+            Text("Your Summary")
+                .font(AppTypography.headingSmall())
+                .foregroundColor(AppColors.textSecondary)
+
+            // You paid
+            summaryRow(label: "You paid", value: CurrencyFormatter.format(userPaid), color: AppColors.textPrimary)
+
+            // Your share
+            summaryRow(label: "Your share", value: CurrencyFormatter.format(userShare), color: AppColors.textPrimary)
+
+            cardDivider
+
+            // Net result
+            if netAmount > 0.01 {
+                summaryRow(label: "You are owed", value: CurrencyFormatter.format(netAmount), color: AppColors.positive)
+            } else if netAmount < -0.01 {
+                summaryRow(label: "You owe", value: CurrencyFormatter.format(abs(netAmount)), color: AppColors.negative)
+            } else {
+                summaryRow(label: "Settled up", value: CurrencyFormatter.format(0), color: AppColors.neutral)
+            }
+        }
+        .padding(Spacing.cardPadding)
+        .background(
+            RoundedRectangle(cornerRadius: CornerRadius.card)
+                .fill(AppColors.cardBackground)
+                .shadow(color: AppColors.shadow, radius: 4, x: 0, y: 1)
+        )
+    }
+
+    /// A summary row with label on the left and colored value on the right
+    private func summaryRow(label: String, value: String, color: Color) -> some View {
+        HStack {
+            Text(label)
+                .font(AppTypography.bodyDefault())
+                .foregroundColor(AppColors.textSecondary)
+
+            Spacer()
+
+            Text(value)
+                .font(AppTypography.financialDefault())
+                .foregroundColor(color)
+        }
+        .padding(.vertical, Spacing.xxs)
+    }
+
+    // MARK: - Actions
 
     private func performDelete() {
         HapticManager.delete()
         guard !transaction.isDeleted, let ctx = transaction.managedObjectContext else { return }
         if let splits = transaction.splits as? Set<TransactionSplit> {
             splits.forEach { ctx.delete($0) }
+        }
+        if let payerSet = transaction.payers as? Set<TransactionPayer> {
+            payerSet.forEach { ctx.delete($0) }
         }
         ctx.delete(transaction)
         do {
