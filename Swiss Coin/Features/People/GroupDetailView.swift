@@ -124,7 +124,7 @@ struct GroupDetailView: View {
                 .overlay(
                     Image(systemName: "person.3.fill")
                         .font(.system(size: IconSize.xl))
-                        .foregroundColor(.white)
+                        .foregroundColor(AppColors.onAccent)
                 )
 
             Text(group.name ?? "Unnamed Group")

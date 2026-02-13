@@ -171,7 +171,7 @@ struct GroupReminderSheetView: View {
                             Text(selectedCount == 1 ? "Send Reminder" : "Send \(selectedCount) Reminders")
                                 .font(AppTypography.headingMedium())
                         }
-                        .foregroundColor(.white)
+                        .foregroundColor(AppColors.onAccent)
                         .frame(maxWidth: .infinity)
                         .frame(height: ButtonHeight.lg)
                         .background(selectedCount > 0 ? AppColors.warning : AppColors.disabled)

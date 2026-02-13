@@ -410,7 +410,7 @@ struct ProfileView: View {
                 Text("Log Out")
                     .font(AppTypography.labelLarge())
             }
-            .foregroundColor(.white)
+            .foregroundColor(AppColors.onAccent)
             .frame(height: ButtonHeight.md)
             .frame(maxWidth: .infinity)
             .background(AppColors.negative)

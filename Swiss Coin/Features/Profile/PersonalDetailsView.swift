@@ -135,9 +135,9 @@ struct PersonalDetailsView: View {
                         .overlay(
                             Image(systemName: "camera.fill")
                                 .font(.system(size: IconSize.xs, weight: .semibold))
-                                .foregroundColor(.white)
+                                .foregroundColor(AppColors.onAccent)
                         )
-                        .shadow(color: Color.black.opacity(0.15), radius: 4, x: 0, y: 2)
+                        .shadow(color: AppColors.shadow, radius: 4, x: 0, y: 2)
                         .offset(x: -2, y: -2)
                 }
             }
@@ -378,13 +378,13 @@ struct PersonalDetailsView: View {
                 if viewModel.isSaving {
                     ProgressView()
                         .scaleEffect(0.8)
-                        .tint(.white)
+                        .tint(AppColors.onAccent)
                 } else {
                     Text("Save Changes")
                         .font(AppTypography.buttonLarge())
                 }
             }
-            .foregroundColor(.white)
+            .foregroundColor(AppColors.onAccent)
             .frame(maxWidth: .infinity)
             .frame(height: ButtonHeight.lg)
             .background(

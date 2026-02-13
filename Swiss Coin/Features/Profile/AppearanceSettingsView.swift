@@ -358,15 +358,15 @@ private struct ThemePreview: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             RoundedRectangle(cornerRadius: CornerRadius.sm)
-                .fill(isDark ? Color.black : Color.white)
+                .fill(isDark ? Color(UIColor(hex: "#1C1C1E")) : Color.white)
                 .frame(height: 60)
                 .overlay(
                     VStack(alignment: .leading, spacing: 4) {
                         RoundedRectangle(cornerRadius: 2)
-                            .fill(isDark ? Color.gray.opacity(0.5) : Color.gray.opacity(0.3))
+                            .fill(isDark ? AppColors.textTertiary : AppColors.borderSubtle)
                             .frame(width: 60, height: 8)
                         RoundedRectangle(cornerRadius: 2)
-                            .fill(isDark ? Color.gray.opacity(0.3) : Color.gray.opacity(0.2))
+                            .fill(isDark ? AppColors.borderStrong : AppColors.border)
                             .frame(width: 100, height: 6)
                     }
                     .padding(8),
@@ -403,7 +403,7 @@ private struct ColorButton: View {
                     .overlay(
                         Image(systemName: "checkmark")
                             .font(.system(size: IconSize.sm, weight: .bold))
-                            .foregroundColor(.white)
+                            .foregroundColor(AppColors.onAccent)
                             .opacity(isSelected ? 1 : 0)
                     )
 

@@ -157,8 +157,8 @@ struct FeedTransactionContent: View {
         }
         .background(AppColors.transactionCardBackground)
         .clipShape(RoundedRectangle(cornerRadius: CornerRadius.card))
-        .shadow(color: Color.black.opacity(0.04), radius: 6, x: 0, y: 2)
-        .shadow(color: Color.black.opacity(0.02), radius: 2, x: 0, y: 1)
+        .shadow(color: AppColors.shadowSubtle, radius: 6, x: 0, y: 2)
+        .shadow(color: AppColors.shadowMicro, radius: 2, x: 0, y: 1)
         .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: CornerRadius.card))
         .contextMenu { contextMenuContent }
         .padding(.horizontal, Spacing.screenHorizontal)

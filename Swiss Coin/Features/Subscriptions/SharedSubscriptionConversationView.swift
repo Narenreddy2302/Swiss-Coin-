@@ -323,7 +323,7 @@ struct SharedSubscriptionConversationView: View {
                 .overlay(
                     Image(systemName: subscription.iconName ?? "person.2.circle.fill")
                         .font(.system(size: IconSize.sm, weight: .semibold))
-                        .foregroundColor(.white)
+                        .foregroundColor(AppColors.onAccent)
                 )
 
             VStack(alignment: .leading, spacing: 1) {

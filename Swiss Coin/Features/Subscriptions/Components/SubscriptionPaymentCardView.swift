@@ -71,8 +71,8 @@ struct SubscriptionPaymentCardView: View {
         .background(
             RoundedRectangle(cornerRadius: CornerRadius.card)
                 .fill(AppColors.cardBackground)
-                .shadow(color: Color.black.opacity(0.04), radius: 4, x: 0, y: 2)
-                .shadow(color: Color.black.opacity(0.02), radius: 1, x: 0, y: 1)
+                .shadow(color: AppColors.shadowSubtle, radius: 4, x: 0, y: 2)
+                .shadow(color: AppColors.shadowMicro, radius: 1, x: 0, y: 1)
         )
         .overlay(
             RoundedRectangle(cornerRadius: CornerRadius.card)

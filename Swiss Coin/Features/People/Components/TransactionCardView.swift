@@ -309,7 +309,7 @@ struct TransactionCardView: View {
             } label: {
                 Text("Comment")
                     .font(AppTypography.buttonSmall())
-                    .foregroundColor(.white)
+                    .foregroundColor(AppColors.onAccent)
                     .frame(maxWidth: .infinity)
                     .frame(height: ButtonHeight.sm)
                     .background(
