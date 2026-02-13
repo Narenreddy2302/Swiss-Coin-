@@ -178,6 +178,10 @@ struct TransactionHistoryView: View {
             .padding(.horizontal, Spacing.lg)
             .padding(.top, Spacing.lg)
         }
+        .refreshable {
+            HapticManager.lightTap()
+            recomputeGroupedTransactions()
+        }
     }
 
     // MARK: - Summary Header
