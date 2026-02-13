@@ -80,7 +80,7 @@ struct Step1BasicDetailsView: View {
 
                 // Amount input
                 TextField("0.00", text: $viewModel.amountString)
-                    .font(.system(size: 22, weight: .bold, design: .rounded))
+                    .font(.system(size: 22, weight: .bold, design: .default))
                     .keyboardType(.decimalPad)
                     .multilineTextAlignment(.trailing)
                     .foregroundColor(AppColors.textPrimary)
