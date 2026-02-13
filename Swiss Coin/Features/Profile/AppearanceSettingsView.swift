@@ -82,7 +82,7 @@ struct AppearanceSettingsView: View {
                     // Theme Section
                     VStack(alignment: .leading, spacing: Spacing.md) {
                         Text("Theme")
-                            .font(AppTypography.headline())
+                            .font(AppTypography.headingMedium())
                             .foregroundColor(AppColors.textPrimary)
                             .padding(.horizontal, Spacing.sm)
 
@@ -144,7 +144,7 @@ struct AppearanceSettingsView: View {
                     // Accent Color Section
                     VStack(alignment: .leading, spacing: Spacing.md) {
                         Text("Accent Color")
-                            .font(AppTypography.headline())
+                            .font(AppTypography.headingMedium())
                             .foregroundColor(AppColors.textPrimary)
                             .padding(.horizontal, Spacing.sm)
 
@@ -176,7 +176,7 @@ struct AppearanceSettingsView: View {
                     // Text Size Section
                     VStack(alignment: .leading, spacing: Spacing.md) {
                         Text("Text Size")
-                            .font(AppTypography.headline())
+                            .font(AppTypography.headingMedium())
                             .foregroundColor(AppColors.textPrimary)
                             .padding(.horizontal, Spacing.sm)
 
@@ -195,7 +195,7 @@ struct AppearanceSettingsView: View {
 
                                         if viewModel.fontSize == key {
                                             Image(systemName: "checkmark.circle.fill")
-                                                .font(.system(size: 22))
+                                                .font(.system(size: IconSize.lg))
                                                 .foregroundColor(AppColors.accent)
                                         } else {
                                             Circle()
@@ -229,19 +229,19 @@ struct AppearanceSettingsView: View {
                     // Accessibility Section
                     VStack(alignment: .leading, spacing: Spacing.md) {
                         Text("Accessibility")
-                            .font(AppTypography.headline())
+                            .font(AppTypography.headingMedium())
                             .foregroundColor(AppColors.textPrimary)
                             .padding(.horizontal, Spacing.sm)
 
                         VStack(spacing: 0) {
                             HStack {
                                 Image(systemName: "waveform")
-                                    .font(.system(size: 16))
+                                    .font(.system(size: IconSize.sm))
                                     .foregroundColor(AppColors.accent)
                                     .frame(width: 28)
 
                                 Text("Haptic Feedback")
-                                    .font(AppTypography.body())
+                                    .font(AppTypography.bodyLarge())
                                     .foregroundColor(AppColors.textPrimary)
 
                                 Spacer()
@@ -260,12 +260,12 @@ struct AppearanceSettingsView: View {
 
                             HStack {
                                 Image(systemName: "figure.walk.motion")
-                                    .font(.system(size: 16))
+                                    .font(.system(size: IconSize.sm))
                                     .foregroundColor(AppColors.accent)
                                     .frame(width: 28)
 
                                 Text("Reduce Motion")
-                                    .font(AppTypography.body())
+                                    .font(AppTypography.bodyLarge())
                                     .foregroundColor(AppColors.textPrimary)
 
                                 Spacer()
@@ -303,11 +303,11 @@ struct AppearanceSettingsView: View {
 
     private func fontSize(for key: String) -> Font {
         switch key {
-        case "small": return .system(size: 14)
-        case "medium": return .system(size: 16)
-        case "large": return .system(size: 18)
-        case "extra_large": return .system(size: 20)
-        default: return .system(size: 16)
+        case "small": return AppTypography.bodySmall()
+        case "medium": return AppTypography.bodyDefault()
+        case "large": return AppTypography.bodyLarge()
+        case "extra_large": return AppTypography.headingLarge()
+        default: return AppTypography.bodyDefault()
         }
     }
 
@@ -330,7 +330,7 @@ private struct ThemeButton: View {
         Button(action: action) {
             VStack(spacing: Spacing.sm) {
                 Image(systemName: icon)
-                    .font(.system(size: 24))
+                    .font(.system(size: IconSize.lg))
                     .foregroundColor(isSelected ? AppColors.textPrimary : AppColors.textSecondary)
 
                 Text(title)
@@ -402,13 +402,13 @@ private struct ColorButton: View {
                     )
                     .overlay(
                         Image(systemName: "checkmark")
-                            .font(.system(size: 16, weight: .bold))
+                            .font(.system(size: IconSize.sm, weight: .bold))
                             .foregroundColor(.white)
                             .opacity(isSelected ? 1 : 0)
                     )
 
                 Text(name)
-                    .font(AppTypography.caption2())
+                    .font(AppTypography.labelSmall())
                     .foregroundColor(isSelected ? AppColors.textPrimary : AppColors.textSecondary)
             }
         }

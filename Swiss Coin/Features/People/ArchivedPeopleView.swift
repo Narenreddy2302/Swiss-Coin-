@@ -120,24 +120,24 @@ private struct ArchivedPersonRow: View {
                 .frame(width: AvatarSize.lg, height: AvatarSize.lg)
                 .overlay(
                     Text(person.initials)
-                        .font(AppTypography.title3())
+                        .font(AppTypography.headingLarge())
                         .foregroundColor(Color(hex: person.colorHex ?? CurrentUser.defaultColorHex))
                 )
 
             // Info
             VStack(alignment: .leading, spacing: 2) {
                 Text(person.name ?? "Unknown")
-                    .font(AppTypography.body())
+                    .font(AppTypography.bodyLarge())
                     .foregroundColor(AppColors.textPrimary)
                     .lineLimit(1)
 
                 if abs(balance) > 0.01 {
                     Text(CurrencyFormatter.formatAbsolute(balance))
-                        .font(AppTypography.subheadline())
+                        .font(AppTypography.bodyDefault())
                         .foregroundColor(balance > 0 ? AppColors.positive : AppColors.negative)
                 } else {
                     Text("settled up")
-                        .font(AppTypography.subheadline())
+                        .font(AppTypography.bodyDefault())
                         .foregroundColor(AppColors.neutral)
                 }
             }
@@ -197,11 +197,11 @@ private struct EmptyArchivedPeopleView: View {
                 .accessibilityHidden(true)
 
             Text("No Archived People")
-                .font(AppTypography.title2())
+                .font(AppTypography.displayMedium())
                 .foregroundColor(AppColors.textPrimary)
 
             Text("People you archive will appear here. You can restore them at any time.")
-                .font(AppTypography.subheadline())
+                .font(AppTypography.bodyDefault())
                 .foregroundColor(AppColors.textSecondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, Spacing.xxl)

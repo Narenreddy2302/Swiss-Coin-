@@ -48,11 +48,11 @@ struct PhoneLoginView: View {
                     )
 
                     Text("Swiss Coin")
-                        .font(AppTypography.largeTitle())
+                        .font(AppTypography.displayHero())
                         .foregroundStyle(AppColors.textPrimary)
 
                     Text("Split expenses effortlessly\nwith friends and groups")
-                        .font(AppTypography.subheadline())
+                        .font(AppTypography.bodyDefault())
                         .foregroundStyle(AppColors.textSecondary)
                         .multilineTextAlignment(.center)
                         .lineSpacing(4)
@@ -89,7 +89,7 @@ struct PhoneLoginView: View {
                     authManager.authenticate()
                 } label: {
                     Text("Get Started")
-                        .font(AppTypography.bodyBold())
+                        .font(AppTypography.headingMedium())
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, Spacing.lg)
                         .background(AppColors.buttonBackground)
@@ -124,7 +124,7 @@ private struct FeatureRow: View {
     var body: some View {
         HStack(spacing: Spacing.md) {
             Image(systemName: icon)
-                .font(.system(size: 20, weight: .semibold))
+                .font(.system(size: IconSize.md, weight: .semibold))
                 .foregroundColor(AppColors.accent)
                 .frame(width: 44, height: 44)
                 .background(AppColors.accent.opacity(0.12))
@@ -132,7 +132,7 @@ private struct FeatureRow: View {
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
-                    .font(AppTypography.subheadlineMedium())
+                    .font(AppTypography.labelLarge())
                     .foregroundColor(AppColors.textPrimary)
 
                 Text(subtitle)

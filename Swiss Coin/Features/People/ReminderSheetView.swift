@@ -31,10 +31,10 @@ struct ReminderSheetView: View {
                         .foregroundColor(AppColors.warning)
 
                     Text("Send Reminder")
-                        .font(AppTypography.title2())
+                        .font(AppTypography.displayMedium())
 
                     Text("\(person.name?.components(separatedBy: " ").first ?? "They") owe you \(formattedAmount)")
-                        .font(AppTypography.headline())
+                        .font(AppTypography.headingMedium())
                         .foregroundColor(AppColors.textSecondary)
                 }
                 .padding(.top, Spacing.section)
@@ -42,12 +42,12 @@ struct ReminderSheetView: View {
                 // Message Field
                 VStack(alignment: .leading, spacing: Spacing.md) {
                     Text("Message (optional)")
-                        .font(AppTypography.subheadlineMedium())
+                        .font(AppTypography.labelLarge())
                         .foregroundColor(AppColors.textSecondary)
 
                     TextField("Add a friendly reminder message...", text: $message, axis: .vertical)
                         .limitTextLength(to: ValidationLimits.maxMessageLength, text: $message)
-                        .font(AppTypography.body())
+                        .font(AppTypography.bodyLarge())
                         .lineLimit(3...6)
                         .padding(Spacing.lg)
                         .background(
@@ -68,7 +68,7 @@ struct ReminderSheetView: View {
                         Image(systemName: "bell.fill")
                             .font(.system(size: IconSize.sm))
                         Text("Send Reminder")
-                            .font(AppTypography.bodyBold())
+                            .font(AppTypography.headingMedium())
                     }
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)

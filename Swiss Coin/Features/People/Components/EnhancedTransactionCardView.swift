@@ -211,7 +211,7 @@ struct EnhancedTransactionCardView: View {
             Text("PAYMENT")
                 .font(AppTypography.labelSmall())
                 .foregroundColor(AppColors.textTertiary)
-                .tracking(0.5)
+                .tracking(AppTypography.Tracking.caption)
                 .padding(.bottom, Spacing.xxs)
 
             VStack(spacing: Spacing.sm) {
@@ -233,7 +233,7 @@ struct EnhancedTransactionCardView: View {
             Text("SPLIT BREAKDOWN")
                 .font(AppTypography.labelSmall())
                 .foregroundColor(AppColors.textTertiary)
-                .tracking(0.5)
+                .tracking(AppTypography.Tracking.caption)
                 .padding(.bottom, Spacing.xxs)
 
             VStack(spacing: Spacing.sm) {

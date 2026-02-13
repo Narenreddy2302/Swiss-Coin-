@@ -23,7 +23,7 @@ struct MemberChip: View {
             
             // Name
             Text(person.displayName)
-                .font(AppTypography.subheadline())
+                .font(AppTypography.bodyDefault())
                 .foregroundColor(AppColors.textPrimary)
                 .lineLimit(1)
             
@@ -32,7 +32,7 @@ struct MemberChip: View {
                 onRemove()
             } label: {
                 Image(systemName: "xmark.circle.fill")
-                    .font(.system(size: 16))
+                    .font(.system(size: IconSize.sm))
                     .foregroundColor(AppColors.textSecondary)
             }
         }
@@ -54,16 +54,16 @@ struct MemberChip: View {
                 .frame(width: 28, height: 28)
                 .overlay(
                     Text("JD")
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(AppTypography.labelSmall())
                         .foregroundColor(AppColors.accent)
                 )
             
             Text("John Doe")
-                .font(AppTypography.subheadline())
+                .font(AppTypography.bodyDefault())
                 .foregroundColor(AppColors.textPrimary)
             
             Image(systemName: "xmark.circle.fill")
-                .font(.system(size: 16))
+                .font(.system(size: IconSize.sm))
                 .foregroundColor(AppColors.textSecondary)
         }
         .padding(.leading, Spacing.xs)

@@ -1090,24 +1090,6 @@ enum AppTypography {
         .system(size: 13, weight: .semibold)
     }
 
-    // MARK: - Legacy Methods (backward compatibility)
-
-    static func largeTitle() -> Font { displayHero() }
-    static func title1() -> Font { displayLarge() }
-    static func title2() -> Font { displayMedium() }
-    static func title3() -> Font { headingLarge() }
-    static func headline() -> Font { headingMedium() }
-    static func body() -> Font { bodyLarge() }
-    static func bodyBold() -> Font { .system(size: 17, weight: .semibold) }
-    static func subheadline() -> Font { bodyDefault() }
-    static func subheadlineMedium() -> Font { labelLarge() }
-    static func footnote() -> Font { bodySmall() }
-    static func caption2() -> Font { labelSmall() }
-
-    /// Amount display - monospaced digits (legacy)
-    static func amount() -> Font { financialDefault() }
-    static func amountLarge() -> Font { financialLarge() }
-    static func amountSmall() -> Font { financialSmall() }
 }
 
 // MARK: - Financial Number Formatter

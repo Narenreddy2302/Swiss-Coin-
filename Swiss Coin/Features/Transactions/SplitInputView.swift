@@ -79,14 +79,14 @@ struct SplitInputView: View {
     private var percentageInput: some View {
         HStack(spacing: Spacing.sm) {
             TextField("0", text: inputBinding)
-                .font(.system(size: 16, weight: .bold, design: .default))
+                .font(.system(size: IconSize.sm, weight: .bold, design: .default))
                 .keyboardType(.decimalPad)
                 .multilineTextAlignment(.trailing)
                 .foregroundColor(AppColors.textPrimary)
                 .frame(width: 50)
 
             Text("%")
-                .font(AppTypography.subheadline())
+                .font(AppTypography.bodyDefault())
                 .foregroundColor(AppColors.textSecondary)
         }
     }
@@ -100,11 +100,11 @@ struct SplitInputView: View {
                 .foregroundColor(AppColors.textSecondary)
 
             Text(CurrencyFormatter.currencySymbol)
-                .font(AppTypography.subheadline())
+                .font(AppTypography.bodyDefault())
                 .foregroundColor(AppColors.textSecondary)
 
             TextField("0", text: inputBinding)
-                .font(.system(size: 16, weight: .bold, design: .default))
+                .font(.system(size: IconSize.sm, weight: .bold, design: .default))
                 .keyboardType(.numbersAndPunctuation)
                 .multilineTextAlignment(.trailing)
                 .foregroundColor(AppColors.textPrimary)
@@ -125,7 +125,7 @@ struct SplitInputView: View {
                 HapticManager.selectionChanged()
             } label: {
                 Image(systemName: "minus")
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.system(size: IconSize.sm, weight: .semibold))
                     .foregroundColor(AppColors.textPrimary)
                     .frame(width: 28, height: 28)
                     .background(AppColors.backgroundTertiary)
@@ -135,7 +135,7 @@ struct SplitInputView: View {
 
             // Shares count
             Text("\(currentShares)")
-                .font(.system(size: 16, weight: .bold, design: .default))
+                .font(.system(size: IconSize.sm, weight: .bold, design: .default))
                 .foregroundColor(AppColors.textPrimary)
                 .frame(width: 30)
                 .multilineTextAlignment(.center)
@@ -146,7 +146,7 @@ struct SplitInputView: View {
                 HapticManager.selectionChanged()
             } label: {
                 Image(systemName: "plus")
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.system(size: IconSize.sm, weight: .semibold))
                     .foregroundColor(AppColors.textPrimary)
                     .frame(width: 28, height: 28)
                     .background(AppColors.backgroundTertiary)

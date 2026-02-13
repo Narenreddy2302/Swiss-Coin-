@@ -576,8 +576,7 @@ private struct SearchSubscriptionRow: View {
 
                 HStack(spacing: Spacing.xs) {
                     Text(CurrencyFormatter.format(subscription.amount))
-                        .font(AppTypography.bodySmall())
-                        .fontWeight(.bold)
+                        .font(AppTypography.financialSmall())
                         .foregroundColor(AppColors.textSecondary)
 
                     if let cycle = subscription.cycle {

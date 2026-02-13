@@ -162,7 +162,7 @@ struct AddSubscriptionView: View {
                         Text("\(selectedMembers.count) selected")
                             .foregroundColor(AppColors.textSecondary)
                         Image(systemName: "chevron.right")
-                            .font(.system(size: 14, weight: .semibold))
+                            .font(.system(size: IconSize.sm, weight: .semibold))
                             .foregroundColor(AppColors.textSecondary)
                     }
                 }

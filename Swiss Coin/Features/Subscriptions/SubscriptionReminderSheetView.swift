@@ -34,15 +34,15 @@ struct SubscriptionReminderSheetView: View {
                     if membersWhoOwe.isEmpty {
                         VStack(spacing: Spacing.md) {
                             Image(systemName: "checkmark.circle.fill")
-                                .font(.system(size: 48))
+                                .font(.system(size: IconSize.xxl))
                                 .foregroundColor(AppColors.positive)
 
                             Text("No Reminders Needed")
-                                .font(AppTypography.headline())
+                                .font(AppTypography.headingMedium())
                                 .foregroundColor(AppColors.textPrimary)
 
                             Text("No one owes you for this subscription.")
-                                .font(AppTypography.subheadline())
+                                .font(AppTypography.bodyDefault())
                                 .foregroundColor(AppColors.textSecondary)
                         }
                         .frame(maxWidth: .infinity)
@@ -63,13 +63,13 @@ struct SubscriptionReminderSheetView: View {
                                         .frame(width: 36, height: 36)
                                         .overlay(
                                             Text(item.member.initials)
-                                                .font(.system(size: 14, weight: .medium))
+                                                .font(AppTypography.labelDefault())
                                                 .foregroundColor(Color(hex: item.member.colorHex ?? "#808080"))
                                         )
 
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text(item.member.firstName)
-                                            .font(AppTypography.body())
+                                            .font(AppTypography.bodyLarge())
                                             .foregroundColor(AppColors.textPrimary)
 
                                         (Text("owes ") + Text(CurrencyFormatter.format(item.amount)).fontWeight(.bold))
@@ -88,7 +88,7 @@ struct SubscriptionReminderSheetView: View {
                 } header: {
                     if !membersWhoOwe.isEmpty {
                         Text("Select Members")
-                            .font(AppTypography.subheadlineMedium())
+                            .font(AppTypography.labelLarge())
                     }
                 } footer: {
                     if !membersWhoOwe.isEmpty {
@@ -101,7 +101,7 @@ struct SubscriptionReminderSheetView: View {
                             }
                         } label: {
                             Text(selectedMembers.count == membersWhoOwe.count ? "Deselect All" : "Select All")
-                                .font(AppTypography.subheadline())
+                                .font(AppTypography.bodyDefault())
                                 .foregroundColor(AppColors.accent)
                         }
                         .padding(.top, Spacing.xs)
@@ -115,7 +115,7 @@ struct SubscriptionReminderSheetView: View {
                             .limitTextLength(to: ValidationLimits.maxMessageLength, text: $message)
                     } header: {
                         Text("Message")
-                            .font(AppTypography.subheadlineMedium())
+                            .font(AppTypography.labelLarge())
                     } footer: {
                         Text("This message will be included with the reminder.")
                             .font(AppTypography.caption())
@@ -132,14 +132,14 @@ struct SubscriptionReminderSheetView: View {
                                         .foregroundColor(AppColors.warning)
 
                                     (Text("\(member.firstName) - ") + Text(CurrencyFormatter.format(item.amount)).fontWeight(.bold))
-                                        .font(AppTypography.body())
+                                        .font(AppTypography.bodyLarge())
                                         .foregroundColor(AppColors.textPrimary)
                                 }
                             }
                         }
                     } header: {
                         Text("Reminders to Send")
-                            .font(AppTypography.subheadlineMedium())
+                            .font(AppTypography.labelLarge())
                     }
                 }
             }

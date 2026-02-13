@@ -49,7 +49,7 @@ struct OnboardingView: View {
                             completeOnboarding()
                         } label: {
                             Text("Skip")
-                                .font(AppTypography.subheadlineMedium())
+                                .font(AppTypography.labelLarge())
                                 .foregroundColor(AppColors.textSecondary)
                         }
                         .padding(.trailing, Spacing.xl)
@@ -93,7 +93,7 @@ struct OnboardingView: View {
                             }
                         } label: {
                             Text("Next")
-                                .font(AppTypography.bodyBold())
+                                .font(AppTypography.headingMedium())
                                 .foregroundColor(AppColors.buttonForeground)
                                 .frame(maxWidth: .infinity)
                                 .frame(height: ButtonHeight.lg)
@@ -108,7 +108,7 @@ struct OnboardingView: View {
                             completeOnboarding()
                         } label: {
                             Text("Get Started")
-                                .font(AppTypography.bodyBold())
+                                .font(AppTypography.headingMedium())
                                 .foregroundColor(AppColors.buttonForeground)
                                 .frame(maxWidth: .infinity)
                                 .frame(height: ButtonHeight.lg)
@@ -144,12 +144,12 @@ struct OnboardingView: View {
             // Text
             VStack(spacing: Spacing.md) {
                 Text(page.title)
-                    .font(AppTypography.title1())
+                    .font(AppTypography.displayLarge())
                     .foregroundColor(AppColors.textPrimary)
                     .multilineTextAlignment(.center)
 
                 Text(page.description)
-                    .font(AppTypography.subheadline())
+                    .font(AppTypography.bodyDefault())
                     .foregroundColor(AppColors.textSecondary)
                     .multilineTextAlignment(.center)
                     .lineSpacing(4)
@@ -180,12 +180,12 @@ struct OnboardingView: View {
 
             VStack(spacing: Spacing.md) {
                 Text("You're All Set!")
-                    .font(AppTypography.title1())
+                    .font(AppTypography.displayLarge())
                     .foregroundColor(AppColors.textPrimary)
                     .multilineTextAlignment(.center)
 
                 Text("Start tracking your expenses,\nsplitting bills, and managing subscriptions.")
-                    .font(AppTypography.subheadline())
+                    .font(AppTypography.bodyDefault())
                     .foregroundColor(AppColors.textSecondary)
                     .multilineTextAlignment(.center)
                     .lineSpacing(4)

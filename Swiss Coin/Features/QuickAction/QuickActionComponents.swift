@@ -48,7 +48,7 @@ struct FloatingActionButton: View {
     var body: some View {
         Button(action: action) {
             Image(systemName: "plus")
-                .font(.system(size: 24, weight: .semibold))
+                .font(.system(size: IconSize.lg, weight: .semibold))
                 .foregroundColor(AppColors.buttonForeground)
                 .frame(width: 60, height: 60)
                 .background(
@@ -102,7 +102,7 @@ struct SearchBarView: View {
                     }
                 }
             )
-            .font(AppTypography.body())
+            .font(AppTypography.bodyLarge())
 
             if !text.isEmpty {
                 Button {
@@ -276,10 +276,10 @@ struct CurrencyPickerSheet: View {
                     } label: {
                         HStack(spacing: Spacing.md) {
                             Text(currency.flag)
-                                .font(.system(size: 24))
+                                .font(.system(size: IconSize.lg))
                             VStack(alignment: .leading, spacing: Spacing.xxs) {
                                 Text(currency.name)
-                                    .font(AppTypography.body())
+                                    .font(AppTypography.bodyLarge())
                                     .foregroundColor(AppColors.textPrimary)
                                 Text(currency.code)
                                     .font(AppTypography.caption())
@@ -287,7 +287,7 @@ struct CurrencyPickerSheet: View {
                             }
                             Spacer()
                             Text(currency.symbol)
-                                .font(AppTypography.body())
+                                .font(AppTypography.bodyLarge())
                                 .foregroundColor(AppColors.textSecondary)
                             if selectedCurrency.id == currency.id {
                                 Image(systemName: "checkmark")
@@ -338,9 +338,9 @@ struct CategoryPickerSheet: View {
                         } label: {
                             HStack(spacing: Spacing.md) {
                                 Text(category.icon)
-                                    .font(.system(size: 24))
+                                    .font(.system(size: IconSize.lg))
                                 Text(category.name)
-                                    .font(AppTypography.body())
+                                    .font(AppTypography.bodyLarge())
                                     .foregroundColor(AppColors.textPrimary)
                                 Spacer()
                                 if selectedCategory?.id == category.id {
@@ -362,10 +362,10 @@ struct CategoryPickerSheet: View {
                     } label: {
                         HStack(spacing: Spacing.md) {
                             Image(systemName: "plus.circle.fill")
-                                .font(.system(size: 24))
+                                .font(.system(size: IconSize.lg))
                                 .foregroundColor(AppColors.accent)
                             Text("Create New Category")
-                                .font(AppTypography.body())
+                                .font(AppTypography.bodyLarge())
                                 .foregroundColor(AppColors.accent)
                         }
                     }
@@ -419,7 +419,7 @@ struct NewCategorySheet: View {
                 // Icon picker
                 VStack(alignment: .leading, spacing: Spacing.md) {
                     Text("Icon")
-                        .font(AppTypography.headline())
+                        .font(AppTypography.headingMedium())
                         .foregroundColor(AppColors.textPrimary)
 
                     ScrollView(.horizontal, showsIndicators: false) {
@@ -430,7 +430,7 @@ struct NewCategorySheet: View {
                                     icon = emoji
                                 } label: {
                                     Text(emoji)
-                                        .font(.system(size: 28))
+                                        .font(.system(size: IconSize.category))
                                         .frame(width: 48, height: 48)
                                         .background(
                                             RoundedRectangle(cornerRadius: CornerRadius.sm)
@@ -449,10 +449,10 @@ struct NewCategorySheet: View {
                 // Name field
                 VStack(alignment: .leading, spacing: Spacing.md) {
                     Text("Name")
-                        .font(AppTypography.headline())
+                        .font(AppTypography.headingMedium())
                         .foregroundColor(AppColors.textPrimary)
                     TextField("Category name", text: $name)
-                        .font(AppTypography.body())
+                        .font(AppTypography.bodyLarge())
                         .padding(.horizontal, Spacing.lg)
                         .padding(.vertical, Spacing.md)
                         .background(AppColors.cardBackground)
@@ -462,7 +462,7 @@ struct NewCategorySheet: View {
                 // Color picker
                 VStack(alignment: .leading, spacing: Spacing.md) {
                     Text("Color")
-                        .font(AppTypography.headline())
+                        .font(AppTypography.headingMedium())
                         .foregroundColor(AppColors.textPrimary)
 
                     LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 6), spacing: Spacing.sm) {
@@ -516,7 +516,7 @@ struct NewCategorySheet: View {
                         )
                         onSave(category)
                     }
-                    .font(AppTypography.bodyBold())
+                    .font(AppTypography.headingMedium())
                     .disabled(!canSave)
                 }
             }
@@ -535,7 +535,7 @@ struct SplitMethodChip: View {
         Button(action: action) {
             VStack(spacing: Spacing.xs) {
                 Text(method.icon)
-                    .font(.system(size: 18, weight: .semibold))
+                    .font(.system(size: IconSize.md, weight: .semibold))
                     .foregroundColor(isSelected ? AppColors.buttonForeground : AppColors.textSecondary)
                     .frame(width: 36, height: 36)
                     .background(
@@ -570,7 +570,7 @@ struct SplitOptionRow: View {
         Button(action: action) {
             HStack(spacing: Spacing.md) {
                 Image(systemName: icon)
-                    .font(.system(size: 20, weight: .medium))
+                    .font(.system(size: IconSize.md, weight: .medium))
                     .foregroundColor(isSelected ? AppColors.accent : AppColors.textSecondary)
                     .frame(width: 44, height: 44)
                     .background(AppColors.backgroundTertiary)
@@ -578,7 +578,7 @@ struct SplitOptionRow: View {
 
                 VStack(alignment: .leading, spacing: Spacing.xxs) {
                     Text(title)
-                        .font(AppTypography.body())
+                        .font(AppTypography.bodyLarge())
                         .foregroundColor(AppColors.textPrimary)
                     Text(subtitle)
                         .font(AppTypography.caption())

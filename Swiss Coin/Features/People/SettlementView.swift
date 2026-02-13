@@ -46,11 +46,11 @@ struct SettlementView: View {
                 // Header
                 VStack(spacing: Spacing.sm) {
                     Text(directionText)
-                        .font(AppTypography.headline())
+                        .font(AppTypography.headingMedium())
                         .foregroundColor(AppColors.textPrimary)
 
                     Text("Current balance: \(formattedBalance)")
-                        .font(AppTypography.subheadline())
+                        .font(AppTypography.bodyDefault())
                         .foregroundColor(AppColors.textSecondary)
                 }
                 .padding(.top, Spacing.xl)
@@ -64,7 +64,7 @@ struct SettlementView: View {
                         Image(systemName: "checkmark.circle.fill")
                             .font(.system(size: IconSize.md))
                         Text("Settle Full Amount")
-                            .font(AppTypography.bodyBold())
+                            .font(AppTypography.headingMedium())
                     }
                     .foregroundColor(AppColors.buttonForeground)
                     .frame(maxWidth: .infinity)
@@ -92,12 +92,12 @@ struct SettlementView: View {
                 // Custom Amount Section
                 VStack(alignment: .leading, spacing: Spacing.md) {
                     Text("Custom Amount")
-                        .font(AppTypography.subheadlineMedium())
+                        .font(AppTypography.labelLarge())
                         .foregroundColor(AppColors.textSecondary)
 
                     TextField("$0.00", text: $customAmount)
                         .keyboardType(.decimalPad)
-                        .font(AppTypography.title2())
+                        .font(AppTypography.displayMedium())
                         .multilineTextAlignment(.center)
                         .padding(Spacing.lg)
                         .background(
@@ -123,12 +123,12 @@ struct SettlementView: View {
                 // Note Field
                 VStack(alignment: .leading, spacing: Spacing.md) {
                     Text("Note (optional)")
-                        .font(AppTypography.subheadlineMedium())
+                        .font(AppTypography.labelLarge())
                         .foregroundColor(AppColors.textSecondary)
 
                     TextField("Add a note...", text: $note)
                         .limitTextLength(to: ValidationLimits.maxNoteLength, text: $note)
-                        .font(AppTypography.body())
+                        .font(AppTypography.bodyLarge())
                         .padding(Spacing.lg)
                         .background(
                             RoundedRectangle(cornerRadius: CornerRadius.md)
@@ -145,7 +145,7 @@ struct SettlementView: View {
                     settleCustomAmount()
                 } label: {
                     Text("Confirm Settlement")
-                        .font(AppTypography.bodyBold())
+                        .font(AppTypography.headingMedium())
                         .foregroundColor(AppColors.buttonForeground)
                         .frame(maxWidth: .infinity)
                         .frame(height: ButtonHeight.lg)

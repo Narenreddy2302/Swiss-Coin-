@@ -22,12 +22,12 @@ struct Step1BasicDetailsView: View {
 
             // MARK: - Title
             Text("New Transaction")
-                .font(AppTypography.title2())
+                .font(AppTypography.displayMedium())
                 .foregroundColor(AppColors.textPrimary)
 
             // MARK: - Transaction Name
             TextField("Transaction Name", text: $viewModel.transactionName)
-                .font(AppTypography.body())
+                .font(AppTypography.bodyLarge())
                 .foregroundColor(AppColors.textPrimary)
                 .focused($focusedField, equals: .name)
                 .submitLabel(.next)
@@ -69,7 +69,7 @@ struct Step1BasicDetailsView: View {
                     viewModel.showCurrencyPicker = true
                 } label: {
                     Text(viewModel.selectedCurrency.symbol)
-                        .font(AppTypography.body())
+                        .font(AppTypography.bodyLarge())
                         .foregroundColor(AppColors.textSecondary)
                         .padding(.horizontal, Spacing.md)
                         .padding(.vertical, Spacing.xs)
@@ -80,7 +80,7 @@ struct Step1BasicDetailsView: View {
 
                 // Amount input
                 TextField("0.00", text: $viewModel.amountString)
-                    .font(.system(size: 22, weight: .bold, design: .default))
+                    .font(AppTypography.displayMedium())
                     .keyboardType(.decimalPad)
                     .multilineTextAlignment(.trailing)
                     .foregroundColor(AppColors.textPrimary)
@@ -108,7 +108,7 @@ struct Step1BasicDetailsView: View {
                 }
             } label: {
                 Text("Continue")
-                    .font(AppTypography.bodyBold())
+                    .font(AppTypography.headingMedium())
                     .foregroundColor(AppColors.buttonForeground)
                     .frame(maxWidth: .infinity)
                     .frame(height: ButtonHeight.lg)
@@ -128,7 +128,7 @@ struct Step1BasicDetailsView: View {
                 Button("Done") {
                     focusedField = nil
                 }
-                .font(AppTypography.bodyBold())
+                .font(AppTypography.headingMedium())
             }
         }
         .sheet(isPresented: $viewModel.showCurrencyPicker) {

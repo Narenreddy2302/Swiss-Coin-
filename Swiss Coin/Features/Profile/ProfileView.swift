@@ -108,7 +108,7 @@ struct ProfileView: View {
                         HapticManager.tap()
                         dismiss()
                     }
-                    .fontWeight(.semibold)
+                    .font(AppTypography.buttonDefault())
                 }
             }
             .onAppear {
@@ -172,19 +172,19 @@ struct ProfileView: View {
 
                 VStack(alignment: .leading, spacing: Spacing.xxs) {
                     Text(userName)
-                        .font(AppTypography.headline())
+                        .font(AppTypography.headingMedium())
                         .foregroundColor(AppColors.textPrimary)
                         .lineLimit(1)
 
                     Text("Personal Details")
-                        .font(AppTypography.subheadline())
+                        .font(AppTypography.bodyDefault())
                         .foregroundColor(AppColors.textSecondary)
                 }
 
                 Spacer()
 
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.system(size: IconSize.sm, weight: .semibold))
                     .foregroundColor(AppColors.textTertiary)
             }
             .padding(.horizontal, Spacing.lg)
@@ -197,14 +197,14 @@ struct ProfileView: View {
     private var generalSection: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             Text("GENERAL")
-                .font(AppTypography.footnote())
+                .font(AppTypography.bodySmall())
                 .foregroundColor(AppColors.textSecondary)
                 .padding(.horizontal, Spacing.lg)
 
             VStack(spacing: 0) {
                 HStack {
                     Text("Currency")
-                        .font(AppTypography.body())
+                        .font(AppTypography.bodyLarge())
                         .foregroundColor(AppColors.textPrimary)
 
                     Spacer()
@@ -226,7 +226,7 @@ struct ProfileView: View {
 
                 HStack {
                     Text("Dark Mode")
-                        .font(AppTypography.body())
+                        .font(AppTypography.bodyLarge())
                         .foregroundColor(AppColors.textPrimary)
 
                     Spacer()
@@ -250,13 +250,13 @@ struct ProfileView: View {
     private var notificationsSection: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             Text("NOTIFICATIONS")
-                .font(AppTypography.footnote())
+                .font(AppTypography.bodySmall())
                 .foregroundColor(AppColors.textSecondary)
                 .padding(.horizontal, Spacing.lg)
 
             HStack {
                 Text("Notifications")
-                    .font(AppTypography.body())
+                    .font(AppTypography.bodyLarge())
                     .foregroundColor(AppColors.textPrimary)
 
                 Spacer()
@@ -276,7 +276,7 @@ struct ProfileView: View {
     private var securitySection: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             Text("SECURITY")
-                .font(AppTypography.footnote())
+                .font(AppTypography.bodySmall())
                 .foregroundColor(AppColors.textSecondary)
                 .padding(.horizontal, Spacing.lg)
 
@@ -284,7 +284,7 @@ struct ProfileView: View {
                 if biometricType != .none {
                     HStack {
                         Text(biometricLabel)
-                            .font(AppTypography.body())
+                            .font(AppTypography.bodyLarge())
                             .foregroundColor(AppColors.textPrimary)
 
                         Spacer()
@@ -308,7 +308,7 @@ struct ProfileView: View {
 
                 HStack {
                     Text("PIN Lock")
-                        .font(AppTypography.body())
+                        .font(AppTypography.bodyLarge())
                         .foregroundColor(AppColors.textPrimary)
 
                     Spacer()
@@ -334,18 +334,18 @@ struct ProfileView: View {
     private var aboutSection: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             Text("ABOUT")
-                .font(AppTypography.footnote())
+                .font(AppTypography.bodySmall())
                 .foregroundColor(AppColors.textSecondary)
                 .padding(.horizontal, Spacing.lg)
 
             VStack(spacing: 0) {
                 HStack {
                     Text("Version")
-                        .font(AppTypography.body())
+                        .font(AppTypography.bodyLarge())
                         .foregroundColor(AppColors.textPrimary)
                     Spacer()
                     Text(appVersion)
-                        .font(AppTypography.body())
+                        .font(AppTypography.bodyLarge())
                         .foregroundColor(AppColors.textSecondary)
                 }
                 .padding(.horizontal, Spacing.lg)
@@ -360,11 +360,11 @@ struct ProfileView: View {
                 } label: {
                     HStack {
                         Text("Help Center")
-                            .font(AppTypography.body())
+                            .font(AppTypography.bodyLarge())
                             .foregroundColor(AppColors.textPrimary)
                         Spacer()
                         Image(systemName: "arrow.up.right")
-                            .font(.system(size: 14))
+                            .font(.system(size: IconSize.sm))
                             .foregroundColor(AppColors.textSecondary)
                     }
                     .padding(.horizontal, Spacing.lg)
@@ -382,11 +382,11 @@ struct ProfileView: View {
                 } label: {
                     HStack {
                         Text("Share Swiss Coin")
-                            .font(AppTypography.body())
+                            .font(AppTypography.bodyLarge())
                             .foregroundColor(AppColors.textPrimary)
                         Spacer()
                         Image(systemName: "arrow.up.right")
-                            .font(.system(size: 14))
+                            .font(.system(size: IconSize.sm))
                             .foregroundColor(AppColors.textSecondary)
                     }
                     .padding(.horizontal, Spacing.lg)
@@ -408,7 +408,7 @@ struct ProfileView: View {
                 Image(systemName: "rectangle.portrait.and.arrow.right")
                     .font(.system(size: IconSize.sm))
                 Text("Log Out")
-                    .font(AppTypography.subheadlineMedium())
+                    .font(AppTypography.labelLarge())
             }
             .foregroundColor(.white)
             .frame(height: ButtonHeight.md)

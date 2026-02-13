@@ -38,7 +38,7 @@ struct ParticipantSelectorView: View {
                         .foregroundColor(AppColors.positive)
 
                     Text("\(selectedParticipants.count) selected")
-                        .font(AppTypography.subheadlineMedium())
+                        .font(AppTypography.labelLarge())
                         .foregroundColor(AppColors.textPrimary)
 
                     Spacer()
@@ -50,7 +50,7 @@ struct ParticipantSelectorView: View {
                         }
                     } label: {
                         Text("Clear All")
-                            .font(AppTypography.subheadlineMedium())
+                            .font(AppTypography.labelLarge())
                             .foregroundColor(AppColors.textSecondary)
                     }
                 }
@@ -124,7 +124,7 @@ struct ParticipantSelectorView: View {
                     .frame(width: AvatarSize.md, height: AvatarSize.md)
                     .overlay(
                         Text(CurrentUser.isCurrentUser(person.id) ? CurrentUser.initials : person.initials)
-                            .font(.system(size: 14, weight: .medium))
+                            .font(AppTypography.labelDefault())
                             .foregroundColor(person.avatarTextColor)
                     )
 
@@ -132,11 +132,11 @@ struct ParticipantSelectorView: View {
                 VStack(alignment: .leading, spacing: Spacing.xxs) {
                     if CurrentUser.isCurrentUser(person.id) {
                         Text("Me")
-                            .font(AppTypography.bodyBold())
+                            .font(AppTypography.headingMedium())
                             .foregroundColor(AppColors.textPrimary)
                     } else {
                         Text(person.name ?? "Unknown")
-                            .font(AppTypography.body())
+                            .font(AppTypography.bodyLarge())
                             .foregroundColor(AppColors.textPrimary)
                             .lineLimit(1)
                     }
@@ -184,7 +184,7 @@ struct ParticipantSelectorView: View {
 
                 VStack(alignment: .leading, spacing: Spacing.xxs) {
                     Text(group.name ?? "Unknown Group")
-                        .font(AppTypography.body())
+                        .font(AppTypography.bodyLarge())
                         .foregroundColor(AppColors.textPrimary)
                         .lineLimit(1)
 
@@ -199,7 +199,7 @@ struct ParticipantSelectorView: View {
                 // Add all indicator
                 HStack(spacing: Spacing.xs) {
                     Text("Add All")
-                        .font(AppTypography.subheadlineMedium())
+                        .font(AppTypography.labelLarge())
                     Image(systemName: "plus.circle.fill")
                         .font(.system(size: IconSize.md))
                 }
