@@ -147,7 +147,7 @@ struct Step3SplitMethodView: View {
                 .cornerRadius(CornerRadius.xs)
 
             Text(String(format: "%.2f", viewModel.amount))
-                .font(.system(size: 22, weight: .bold, design: .rounded))
+                .font(.system(size: 22, weight: .bold, design: .default))
                 .foregroundColor(AppColors.textPrimary)
         }
         .padding(.horizontal, Spacing.lg)
@@ -239,13 +239,13 @@ struct Step3SplitMethodView: View {
             if isSinglePayer {
                 // Single payer: show read-only amount (auto-filled to total)
                 Text(String(format: "%.2f", viewModel.amount))
-                    .font(.system(size: 20, weight: .bold, design: .rounded))
+                    .font(.system(size: 20, weight: .bold, design: .default))
                     .foregroundColor(AppColors.textPrimary)
                     .frame(minWidth: 60, alignment: .trailing)
             } else {
                 // Multi-payer: editable amount field
                 TextField("0.00", text: payerAmountBinding(for: personId))
-                    .font(.system(size: 20, weight: .bold, design: .rounded))
+                    .font(.system(size: 20, weight: .bold, design: .default))
                     .keyboardType(.decimalPad)
                     .multilineTextAlignment(.trailing)
                     .foregroundColor(AppColors.textPrimary)
@@ -304,7 +304,7 @@ struct Step3SplitMethodView: View {
                     .foregroundColor(AppColors.textSecondary)
 
                 Text(String(format: "%.2f", abs(totalBalance)))
-                    .font(.system(size: 20, weight: .bold, design: .rounded))
+                    .font(.system(size: 20, weight: .bold, design: .default))
                     .foregroundColor(
                         abs(totalBalance) < 0.01
                             ? AppColors.textPrimary : AppColors.negative
@@ -431,7 +431,7 @@ struct BreakdownPersonRow: View {
                     .font(AppTypography.body())
                     .foregroundColor(AppColors.textSecondary)
                 TextField("0.00", text: $inputText)
-                    .font(.system(size: 20, weight: .bold, design: .rounded))
+                    .font(.system(size: 20, weight: .bold, design: .default))
                     .keyboardType(.decimalPad)
                     .multilineTextAlignment(.trailing)
                     .foregroundColor(AppColors.textPrimary)
@@ -446,7 +446,7 @@ struct BreakdownPersonRow: View {
         case .percentage:
             HStack(spacing: Spacing.sm) {
                 TextField("0", text: $inputText)
-                    .font(.system(size: 20, weight: .bold, design: .rounded))
+                    .font(.system(size: 20, weight: .bold, design: .default))
                     .keyboardType(.decimalPad)
                     .multilineTextAlignment(.trailing)
                     .foregroundColor(AppColors.textPrimary)
@@ -480,7 +480,7 @@ struct BreakdownPersonRow: View {
                 }
 
                 Text("\(shares)")
-                    .font(.system(size: 20, weight: .bold, design: .rounded))
+                    .font(.system(size: 20, weight: .bold, design: .default))
                     .foregroundColor(AppColors.textPrimary)
                     .frame(width: 30)
                     .multilineTextAlignment(.center)
@@ -507,7 +507,7 @@ struct BreakdownPersonRow: View {
                     .font(AppTypography.body())
                     .foregroundColor(AppColors.textSecondary)
                 TextField("0", text: $inputText)
-                    .font(.system(size: 20, weight: .bold, design: .rounded))
+                    .font(.system(size: 20, weight: .bold, design: .default))
                     .keyboardType(.numbersAndPunctuation)
                     .multilineTextAlignment(.trailing)
                     .foregroundColor(AppColors.textPrimary)
@@ -527,7 +527,7 @@ struct BreakdownPersonRow: View {
                 .font(AppTypography.body())
                 .foregroundColor(AppColors.textSecondary)
             Text(String(format: "%.2f", amount))
-                .font(.system(size: 20, weight: .bold, design: .rounded))
+                .font(.system(size: 20, weight: .bold, design: .default))
                 .foregroundColor(AppColors.textPrimary)
                 .frame(minWidth: 60, alignment: .trailing)
         }

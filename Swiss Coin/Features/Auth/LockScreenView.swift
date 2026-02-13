@@ -411,7 +411,7 @@ private struct NumberPadButton: View {
         case .digit(let number):
             VStack(spacing: 1) {
                 Text("\(number)")
-                    .font(.system(size: 28, weight: .medium, design: .rounded))
+                    .font(.system(size: 28, weight: .medium, design: .default))
                     .foregroundColor(AppColors.textPrimary)
 
                 Text(subtitleForDigit(number))

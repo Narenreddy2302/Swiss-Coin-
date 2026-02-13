@@ -79,7 +79,7 @@ struct SplitInputView: View {
     private var percentageInput: some View {
         HStack(spacing: Spacing.sm) {
             TextField("0", text: inputBinding)
-                .font(.system(size: 16, weight: .bold, design: .rounded))
+                .font(.system(size: 16, weight: .bold, design: .default))
                 .keyboardType(.decimalPad)
                 .multilineTextAlignment(.trailing)
                 .foregroundColor(AppColors.textPrimary)
@@ -104,7 +104,7 @@ struct SplitInputView: View {
                 .foregroundColor(AppColors.textSecondary)
 
             TextField("0", text: inputBinding)
-                .font(.system(size: 16, weight: .bold, design: .rounded))
+                .font(.system(size: 16, weight: .bold, design: .default))
                 .keyboardType(.numbersAndPunctuation)
                 .multilineTextAlignment(.trailing)
                 .foregroundColor(AppColors.textPrimary)
@@ -135,7 +135,7 @@ struct SplitInputView: View {
 
             // Shares count
             Text("\(currentShares)")
-                .font(.system(size: 16, weight: .bold, design: .rounded))
+                .font(.system(size: 16, weight: .bold, design: .default))
                 .foregroundColor(AppColors.textPrimary)
                 .frame(width: 30)
                 .multilineTextAlignment(.center)
