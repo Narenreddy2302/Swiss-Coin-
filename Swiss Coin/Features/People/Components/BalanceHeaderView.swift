@@ -65,7 +65,7 @@ struct BalanceHeaderView: View {
                         .overlay(
                             Text(person.initials)
                                 .font(AppTypography.displayLarge())
-                                .foregroundColor(.white)
+                                .foregroundColor(AppColors.onAccent)
                         )
                         .shadow(color: AppColors.shadow, radius: 8, x: 0, y: 4)
 

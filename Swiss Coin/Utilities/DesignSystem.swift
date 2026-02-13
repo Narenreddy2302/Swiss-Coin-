@@ -727,6 +727,20 @@ enum AppColors {
             : UIColor(white: 0.0, alpha: 0.08)
     })
 
+    /// Subtle shadow — lighter card shadows that remain visible in dark mode
+    static let shadowSubtle = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(white: 0.0, alpha: 0.16)
+            : UIColor(white: 0.0, alpha: 0.04)
+    })
+
+    /// Micro shadow — barely-there secondary shadow for layered depth
+    static let shadowMicro = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(white: 0.0, alpha: 0.12)
+            : UIColor(white: 0.0, alpha: 0.02)
+    })
+
     // MARK: - Overlay Colors
 
     /// Scrim/overlay background - dimmed background for modals and sheets

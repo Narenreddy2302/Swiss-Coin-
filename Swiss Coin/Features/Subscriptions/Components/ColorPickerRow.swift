@@ -68,7 +68,7 @@ struct ColorPickerRow: View {
                                     .overlay(
                                         Image(systemName: "checkmark")
                                             .font(.system(size: IconSize.md, weight: .bold))
-                                            .foregroundColor(.white)
+                                            .foregroundColor(AppColors.onAccent)
                                             .opacity(selectedColor == color ? 1 : 0)
                                     )
                             }

@@ -292,7 +292,7 @@ struct EnhancedTransactionCardView: View {
                     }
                 }
                 .font(AppTypography.buttonDefault())
-                .foregroundColor(.white)
+                .foregroundColor(AppColors.onAccent)
                 .frame(maxWidth: .infinity)
                 .frame(height: ButtonHeight.sm)
                 .background(

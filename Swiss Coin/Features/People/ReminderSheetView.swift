@@ -70,7 +70,7 @@ struct ReminderSheetView: View {
                         Text("Send Reminder")
                             .font(AppTypography.headingMedium())
                     }
-                    .foregroundColor(.white)
+                    .foregroundColor(AppColors.onAccent)
                     .frame(maxWidth: .infinity)
                     .frame(height: ButtonHeight.lg)
                     .background(AppColors.warning)

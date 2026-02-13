@@ -180,7 +180,7 @@ struct PersonDetailView: View {
                 .overlay(
                     Text(person.initials)
                         .font(AppTypography.displayHero())
-                        .foregroundColor(.white)
+                        .foregroundColor(AppColors.onAccent)
                 )
 
             // Name
@@ -320,7 +320,7 @@ struct PersonDetailView: View {
                 .background(
                     RoundedRectangle(cornerRadius: CornerRadius.card)
                         .fill(AppColors.cardBackground)
-                        .shadow(color: Color.black.opacity(0.04), radius: 8, x: 0, y: 2)
+                        .shadow(color: AppColors.shadowSubtle, radius: 8, x: 0, y: 2)
                 )
                 .padding(.horizontal, Spacing.lg)
             } else {
