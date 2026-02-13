@@ -8,6 +8,7 @@
 //
 
 import Combine
+import CoreData
 import CryptoKit
 import LocalAuthentication
 import SwiftUI
@@ -180,8 +181,8 @@ final class AppLockManager: ObservableObject {
     private func startBackgroundPreload() {
         isPreloadComplete = false
 
+        let container = PersistenceController.shared.container
         Task.detached(priority: .userInitiated) {
-            let container = PersistenceController.shared.container
             let bgContext = container.newBackgroundContext()
 
             await bgContext.perform {

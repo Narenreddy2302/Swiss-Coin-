@@ -117,8 +117,10 @@ struct PersonDetailView: View {
             set: { if !$0 { selectedTransaction = nil } }
         )) {
             if let transaction = selectedTransaction {
-                TransactionExpandedView(transaction: transaction)
-                    .environment(\.managedObjectContext, viewContext)
+                NavigationStack {
+                    TransactionDetailView(transaction: transaction)
+                }
+                .environment(\.managedObjectContext, viewContext)
             }
         }
         .sheet(isPresented: $showingAddTransaction) {
@@ -316,9 +318,9 @@ struct PersonDetailView: View {
                     }
                 }
                 .background(
-                    RoundedRectangle(cornerRadius: CornerRadius.md)
+                    RoundedRectangle(cornerRadius: CornerRadius.card)
                         .fill(AppColors.cardBackground)
-                        .shadow(color: Color.black.opacity(0.06), radius: 6, x: 0, y: 2)
+                        .shadow(color: Color.black.opacity(0.04), radius: 8, x: 0, y: 2)
                 )
                 .padding(.horizontal, Spacing.lg)
             } else {

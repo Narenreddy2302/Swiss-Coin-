@@ -2,68 +2,25 @@
 //  TransactionDetailView.swift
 //  Swiss Coin
 //
-//  Redesigned transaction detail page — matches the clean, card-based
-//  design with hero amount, settled badge, details card, split breakdown,
-//  and action buttons.
+//  Transaction detail page matching the reference design: hero card,
+//  unified split details list, comments section, and action buttons.
 //
 
 import CoreData
 import SwiftUI
 
-// MARK: - Unified Transaction Detail Sheet
-
-struct TransactionExpandedView: View {
-    @ObservedObject var transaction: FinancialTransaction
-    @Environment(\.managedObjectContext) private var viewContext
-    @Environment(\.dismiss) private var dismiss
-
-    var body: some View {
-        TransactionDetailContent(transaction: transaction)
-            .presentationDetents([.large])
-            .presentationDragIndicator(.visible)
-            .presentationCornerRadius(CornerRadius.xl)
-            .presentationBackground(AppColors.backgroundSecondary)
-    }
-}
-
-// MARK: - NavigationLink Detail
+// MARK: - Transaction Detail View
 
 struct TransactionDetailView: View {
     @ObservedObject var transaction: FinancialTransaction
     @Environment(\.managedObjectContext) private var viewContext
-    @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dismiss) var dismiss
+    @Environment(\.colorScheme) var colorScheme
+
     @State private var showEditSheet = false
-
-    var body: some View {
-        TransactionDetailContent(transaction: transaction)
-            .background(AppColors.backgroundSecondary)
-            .navigationTitle("Transaction Details")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .primaryAction) {
-                    Button {
-                        showEditSheet = true
-                    } label: {
-                        Text("Edit")
-                            .font(AppTypography.bodyDefault())
-                            .foregroundColor(AppColors.accent)
-                    }
-                }
-            }
-            .sheet(isPresented: $showEditSheet) {
-                TransactionEditView(transaction: transaction)
-                    .environment(\.managedObjectContext, viewContext)
-            }
-    }
-}
-
-// MARK: - Shared Transaction Detail Content
-
-private struct TransactionDetailContent: View {
-    @ObservedObject var transaction: FinancialTransaction
-    @Environment(\.managedObjectContext) private var viewContext
     @State private var showDeleteConfirmation = false
+    @State private var newCommentText = ""
+    @State private var sortedComments: [ChatMessage] = []
 
     private var snapshot: TransactionSnapshot {
         TransactionSnapshot.build(from: transaction)
@@ -71,22 +28,62 @@ private struct TransactionDetailContent: View {
 
     var body: some View {
         ScrollView(showsIndicators: false) {
-            VStack(spacing: Spacing.lg) {
-                heroSection
+            VStack(spacing: 0) {
+                heroHeader
+                    .padding(.horizontal, Spacing.screenHorizontal)
+                    .padding(.top, Spacing.lg)
 
-                settledBadge
+                if !snapshot.sortedPayers.isEmpty || !snapshot.sortedSplits.isEmpty {
+                    splitDetailsSection
+                        .padding(.horizontal, Spacing.screenHorizontal)
+                        .padding(.top, Spacing.xl)
+                }
 
-                detailsCard
-
-                splitBreakdownCard
+                commentsSection
+                    .padding(.horizontal, Spacing.screenHorizontal)
+                    .padding(.top, Spacing.xl)
 
                 actionButtons
+                    .padding(.horizontal, Spacing.screenHorizontal)
+                    .padding(.top, Spacing.xl)
+                    .padding(.bottom, Spacing.xxl)
             }
-            .padding(.horizontal, Spacing.screenHorizontal)
-            .padding(.top, Spacing.sm)
-            .padding(.bottom, Spacing.section)
         }
-        .scrollBounceBehavior(.basedOnSize)
+        .background(AppColors.groupedBackground)
+        .navigationTitle("Transaction Details")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Menu {
+                    Button {
+                        showEditSheet = true
+                    } label: {
+                        Label("Edit Transaction", systemImage: "pencil")
+                    }
+
+                    Divider()
+
+                    Button(role: .destructive) {
+                        showDeleteConfirmation = true
+                    } label: {
+                        Label("Delete Transaction", systemImage: "trash")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                        .foregroundColor(AppColors.accent)
+                }
+            }
+        }
+        .onAppear {
+            refreshComments()
+        }
+        .onChange(of: transaction.comments) {
+            refreshComments()
+        }
+        .sheet(isPresented: $showEditSheet) {
+            TransactionEditView(transaction: transaction)
+                .environment(\.managedObjectContext, viewContext)
+        }
         .alert("Delete Transaction", isPresented: $showDeleteConfirmation) {
             Button("Cancel", role: .cancel) {}
             Button("Delete", role: .destructive) {
@@ -97,300 +94,314 @@ private struct TransactionDetailContent: View {
         }
     }
 
-    // MARK: - Hero Section
+    // MARK: - Hero Header
 
-    private var heroSection: some View {
-        VStack(spacing: 6) {
-            Text(CurrencyFormatter.format(snapshot.totalAmount))
-                .font(.system(size: 42, weight: .bold, design: .rounded))
-                .monospacedDigit()
-                .tracking(-0.5)
-                .foregroundColor(AppColors.textPrimary)
+    private var heroHeader: some View {
+        VStack(spacing: 0) {
+            // Icon + Title + Date cluster
+            Circle()
+                .fill(AppColors.accentMuted)
+                .frame(width: AvatarSize.sm, height: AvatarSize.sm)
+                .overlay(
+                    Image(systemName: "list.bullet.rectangle.portrait.fill")
+                        .font(.system(size: IconSize.md))
+                        .foregroundColor(AppColors.accent)
+                )
+                .padding(.bottom, Spacing.md)
 
             Text(snapshot.title)
-                .font(AppTypography.bodyLarge())
-                .foregroundColor(AppColors.textSecondary)
+                .font(AppTypography.headingMedium())
+                .foregroundColor(AppColors.textPrimary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, Spacing.lg)
+                .padding(.bottom, Spacing.xs)
 
-            Text(formattedDateOnly)
+            Text(snapshot.formattedDate)
                 .font(AppTypography.bodySmall())
                 .foregroundColor(AppColors.textTertiary)
+
+            // Amount hero zone
+            Text(FinancialFormatter.signedCurrency(snapshot.userNetAmount))
+                .financialHeroStyle()
+                .foregroundColor(snapshot.netAmountColor)
+                .padding(.top, Spacing.xl)
+                .padding(.bottom, Spacing.xs)
+
+            Text(snapshot.paymentSummaryText)
+                .font(AppTypography.bodySmall())
+                .foregroundColor(AppColors.textSecondary)
         }
+        .padding(.vertical, Spacing.xxxl)
         .frame(maxWidth: .infinity)
-        .padding(.vertical, Spacing.xl)
-    }
-
-    private var formattedDateOnly: String {
-        guard let date = transaction.date else { return "Unknown date" }
-        let formatter = DateFormatter()
-        formatter.dateFormat = "MMM d, yyyy"
-        return formatter.string(from: date)
-    }
-
-    // MARK: - Settled Badge
-
-    private var settledBadge: some View {
-        let isSettled = abs(snapshot.userNetAmount) < 0.01
-
-        return HStack(spacing: 6) {
-            Circle()
-                .fill(isSettled ? AppColors.positive : AppColors.warning)
-                .frame(width: 8, height: 8)
-
-            Text(isSettled ? "Settled" : snapshot.statusText)
-                .font(AppTypography.labelLarge())
-                .foregroundColor(isSettled ? AppColors.positive : AppColors.warning)
-        }
-        .padding(.horizontal, Spacing.lg)
-        .padding(.vertical, Spacing.sm)
         .background(
-            Capsule()
-                .fill((isSettled ? AppColors.positive : AppColors.warning).opacity(0.12))
-        )
-        .padding(.bottom, Spacing.xs)
-    }
-
-    // MARK: - Details Card
-
-    private var detailsCard: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text("Details")
-                .font(AppTypography.headingSmall())
-                .foregroundColor(AppColors.textSecondary)
-                .padding(.bottom, Spacing.lg)
-
-            // Paid by
-            detailRow(
-                icon: "person.fill",
-                iconColor: AppColors.accent,
-                label: "Paid by",
-                value: snapshot.payerName
-            )
-            cardDivider
-
-            // Split method
-            detailRow(
-                icon: "equal.circle.fill",
-                iconColor: .blue,
-                label: "Split method",
-                value: snapshot.splitMethodName
-            )
-            cardDivider
-
-            // Category
-            detailRow(
-                icon: "fork.knife",
-                iconColor: .orange,
-                label: "Category",
-                value: "Food & Dining"
-            )
-
-            // Group (if exists)
-            if let groupName = snapshot.groupName {
-                cardDivider
-                detailRow(
-                    icon: "person.3.fill",
-                    iconColor: .purple,
-                    label: "Group",
-                    value: groupName
-                )
-            }
-
-            // Note (if exists)
-            if let note = snapshot.note {
-                cardDivider
-                detailRow(
-                    icon: "note.text",
-                    iconColor: AppColors.textTertiary,
-                    label: "Note",
-                    value: note
-                )
-            }
-        }
-        .padding(Spacing.cardPadding)
-        .background(
-            RoundedRectangle(cornerRadius: CornerRadius.card)
+            RoundedRectangle(cornerRadius: CornerRadius.large)
                 .fill(AppColors.cardBackground)
-                .shadow(color: AppColors.shadow, radius: 4, x: 0, y: 1)
+                .shadow(
+                    color: AppShadow.card(for: colorScheme).color,
+                    radius: AppShadow.card(for: colorScheme).radius,
+                    x: AppShadow.card(for: colorScheme).x,
+                    y: AppShadow.card(for: colorScheme).y
+                )
         )
     }
 
-    private func detailRow(icon: String, iconColor: Color, label: String, value: String) -> some View {
-        HStack(spacing: Spacing.md) {
-            Image(systemName: icon)
-                .font(.system(size: 14, weight: .medium))
-                .foregroundColor(iconColor)
-                .frame(width: 20, alignment: .center)
+    // MARK: - Split Details Section
 
-            Text(label)
-                .font(AppTypography.bodyDefault())
-                .foregroundColor(AppColors.textSecondary)
+    private var splitDetailsSection: some View {
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            Text("SPLIT DETAILS")
+                .font(AppTypography.labelSmall())
+                .foregroundColor(AppColors.textTertiary)
 
-            Spacer()
+            VStack(spacing: 0) {
+                let participants = snapshot.unifiedParticipants
+                ForEach(Array(participants.enumerated()), id: \.element.id) { index, participant in
+                    UnifiedParticipantRow(participant: participant)
 
-            Text(value)
-                .font(AppTypography.labelLarge())
-                .foregroundColor(AppColors.textPrimary)
-                .multilineTextAlignment(.trailing)
-        }
-        .padding(.vertical, Spacing.sm + 2)
-    }
-
-    private var cardDivider: some View {
-        Rectangle()
-            .fill(AppColors.divider)
-            .frame(height: 0.5)
-    }
-
-    // MARK: - Split Breakdown Card
-
-    private var splitBreakdownCard: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text("Split Breakdown")
-                .font(AppTypography.headingSmall())
-                .foregroundColor(AppColors.textSecondary)
-                .padding(.bottom, Spacing.lg)
-
-            let splits = snapshot.sortedSplits
-            ForEach(Array(splits.enumerated()), id: \.offset) { index, split in
-                splitRow(
-                    initials: split.initials,
-                    name: split.name,
-                    amount: CurrencyFormatter.format(split.amount),
-                    colorHex: split.colorHex,
-                    isUser: split.isUser,
-                    isSettled: abs(snapshot.userNetAmount) < 0.01
-                )
-                if index < splits.count - 1 {
-                    cardDivider
+                    if index < participants.count - 1 {
+                        CardDivider()
+                    }
                 }
             }
+            .cardStyle()
         }
-        .padding(Spacing.cardPadding)
-        .background(
-            RoundedRectangle(cornerRadius: CornerRadius.card)
-                .fill(AppColors.cardBackground)
-                .shadow(color: AppColors.shadow, radius: 4, x: 0, y: 1)
-        )
     }
 
-    private func splitRow(initials: String, name: String, amount: String, colorHex: String, isUser: Bool, isSettled: Bool) -> some View {
-        let avatarColor = Color(hex: colorHex)
+    // MARK: - Comments Section
 
-        return HStack(spacing: Spacing.md) {
-            // Avatar circle
-            Circle()
-                .fill(avatarColor.opacity(0.15))
-                .frame(width: 40, height: 40)
-                .overlay(
-                    Text(initials)
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(avatarColor)
-                )
+    private var commentsSection: some View {
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            Text("COMMENTS")
+                .font(AppTypography.labelSmall())
+                .foregroundColor(AppColors.textTertiary)
 
-            Text(name)
-                .font(AppTypography.bodyDefault())
-                .foregroundColor(AppColors.textPrimary)
+            VStack(alignment: .leading, spacing: Spacing.md) {
+                if sortedComments.isEmpty {
+                    VStack(spacing: Spacing.xs) {
+                        Image(systemName: "bubble.left.and.bubble.right")
+                            .font(.system(size: IconSize.lg))
+                            .foregroundColor(AppColors.textTertiary)
 
-            Spacer()
+                        Text("No comments yet")
+                            .font(AppTypography.bodySmall())
+                            .foregroundColor(AppColors.textTertiary)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, Spacing.md)
+                } else {
+                    VStack(spacing: Spacing.sm) {
+                        ForEach(sortedComments) { comment in
+                            CommentRow(comment: comment)
+                        }
+                    }
+                }
 
-            HStack(spacing: Spacing.sm) {
-                Text(amount)
-                    .font(AppTypography.labelLarge())
-                    .foregroundColor(AppColors.textPrimary)
+                HStack(spacing: Spacing.sm) {
+                    ConversationAvatarView(
+                        initials: CurrentUser.initials,
+                        colorHex: CurrentUser.defaultColorHex,
+                        size: AvatarSize.xs
+                    )
 
-                // Show "Settled" badge for non-user participants when settled
-                if !isUser && isSettled {
-                    Text("Settled")
-                        .font(AppTypography.labelSmall())
-                        .foregroundColor(AppColors.positive)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 3)
-                        .background(
-                            Capsule()
-                                .fill(AppColors.positive.opacity(0.12))
-                        )
+                    HStack(spacing: Spacing.sm) {
+                        TextField("Add a comment...", text: $newCommentText)
+                            .font(AppTypography.bodySmall())
+
+                        if !newCommentText.isEmpty {
+                            Button {
+                                HapticManager.tap()
+                                sendComment()
+                            } label: {
+                                Image(systemName: "arrow.up.circle.fill")
+                                    .font(.system(size: IconSize.lg))
+                                    .foregroundColor(AppColors.accent)
+                            }
+                            .transition(.scale.combined(with: .opacity))
+                        }
+                    }
+                    .padding(.horizontal, Spacing.md)
+                    .padding(.vertical, Spacing.sm)
+                    .background(AppColors.surface)
+                    .cornerRadius(CornerRadius.button)
                 }
             }
+            .cardStyle()
         }
-        .padding(.vertical, Spacing.sm)
     }
 
     // MARK: - Action Buttons
 
     private var actionButtons: some View {
-        let isSettled = abs(snapshot.userNetAmount) < 0.01
-
-        return VStack(spacing: Spacing.sm) {
-            // Mark as Settled / Unsettled button
+        VStack(spacing: Spacing.sm) {
             Button {
-                // Toggle settlement status
+                HapticManager.tap()
             } label: {
                 HStack(spacing: Spacing.sm) {
-                    Image(systemName: isSettled ? "arrow.uturn.backward" : "checkmark.circle")
-                        .font(.system(size: 14, weight: .medium))
-                    Text(isSettled ? "Mark as Unsettled" : "Mark as Settled")
-                        .font(AppTypography.buttonDefault())
+                    Image(systemName: "bell.fill")
+                        .font(.system(size: IconSize.sm))
+                    Text("Send Reminder")
                 }
-                .foregroundColor(AppColors.accent)
-                .frame(maxWidth: .infinity)
-                .frame(height: ButtonHeight.md)
-                .background(
-                    RoundedRectangle(cornerRadius: CornerRadius.button)
-                        .strokeBorder(AppColors.accent.opacity(0.3), lineWidth: 1)
-                        .background(
-                            RoundedRectangle(cornerRadius: CornerRadius.button)
-                                .fill(AppColors.accent.opacity(0.06))
-                        )
-                )
             }
+            .buttonStyle(PrimaryButtonStyle())
 
-            // Delete Transaction button
             Button {
-                showDeleteConfirmation = true
+                HapticManager.tap()
             } label: {
                 HStack(spacing: Spacing.sm) {
-                    Image(systemName: "trash")
-                        .font(.system(size: 14, weight: .medium))
-                    Text("Delete Transaction")
-                        .font(AppTypography.buttonDefault())
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: IconSize.sm))
+                    Text("Mark as Settled")
                 }
-                .foregroundColor(AppColors.negative)
-                .frame(maxWidth: .infinity)
-                .frame(height: ButtonHeight.md)
-                .background(
-                    RoundedRectangle(cornerRadius: CornerRadius.button)
-                        .fill(AppColors.negative.opacity(0.08))
-                )
             }
+            .buttonStyle(SecondaryButtonStyle())
         }
-        .padding(.top, Spacing.sm)
     }
 
-    // MARK: - Actions
+    // MARK: - Logic Functions
+
+    private func refreshComments() {
+        if let comments = transaction.comments as? Set<ChatMessage> {
+            sortedComments = comments.sorted { ($0.timestamp ?? Date()) < ($1.timestamp ?? Date()) }
+        } else {
+            sortedComments = []
+        }
+    }
+
+    private func sendComment() {
+        guard !newCommentText.isEmpty else { return }
+
+        let comment = ChatMessage(context: viewContext)
+        comment.id = UUID()
+        comment.content = newCommentText
+        comment.timestamp = Date()
+        comment.isFromUser = true
+        comment.onTransaction = transaction
+
+        do {
+            try viewContext.save()
+            newCommentText = ""
+            refreshComments()
+        } catch {
+            print("Error saving comment: \(error)")
+        }
+    }
 
     private func deleteTransaction() {
         viewContext.delete(transaction)
         do {
             try viewContext.save()
+            dismiss()
         } catch {
             viewContext.rollback()
         }
     }
 }
 
-// MARK: - Line Shape (used by other files)
+// MARK: - Supporting View Components
 
-struct Line: Shape {
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        path.move(to: CGPoint(x: 0, y: rect.midY))
-        path.addLine(to: CGPoint(x: rect.width, y: rect.midY))
-        return path
+/// Unified participant row for the split details card
+struct UnifiedParticipantRow: View {
+    let participant: TransactionSnapshot.UnifiedParticipant
+
+    var body: some View {
+        HStack(spacing: Spacing.md) {
+            ConversationAvatarView(
+                initials: participant.initials,
+                colorHex: participant.colorHex,
+                size: AvatarSize.sm
+            )
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text(participant.name)
+                    .font(AppTypography.labelLarge())
+                    .foregroundColor(AppColors.textPrimary)
+
+                Text(participant.subtitle)
+                    .font(AppTypography.caption())
+                    .foregroundColor(AppColors.textTertiary)
+            }
+
+            Spacer()
+
+            VStack(alignment: .trailing, spacing: 1) {
+                Text(FinancialFormatter.currency(participant.displayAmount))
+                    .font(AppTypography.financialSmall())
+                    .foregroundColor(AppColors.textPrimary)
+
+                if participant.isPaid {
+                    HStack(spacing: Spacing.xxs) {
+                        Text("Paid")
+                            .font(AppTypography.caption())
+                            .foregroundColor(AppColors.positive)
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: IconSize.xs))
+                            .foregroundColor(AppColors.positive)
+                    }
+                } else {
+                    Text(participant.statusText)
+                        .font(AppTypography.caption())
+                        .foregroundColor(participant.statusColor)
+                }
+            }
+        }
+        .padding(.vertical, Spacing.sm)
     }
 }
 
-// MARK: - Precomputed Transaction State (used by other files)
+/// Comment row in activity feed
+private struct CommentRow: View {
+    let comment: ChatMessage
 
+    var body: some View {
+        HStack(alignment: .top, spacing: Spacing.sm) {
+            ConversationAvatarView(
+                initials: comment.isFromUser
+                    ? CurrentUser.initials
+                    : (comment.withPerson?.initials ?? "?"),
+                colorHex: comment.isFromUser
+                    ? CurrentUser.defaultColorHex
+                    : (comment.withPerson?.colorHex ?? AppColors.defaultAvatarColorHex),
+                size: AvatarSize.xs
+            )
+
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
+                HStack(alignment: .firstTextBaseline) {
+                    Text(comment.isFromUser ? "You" : (comment.withPerson?.displayName ?? "Unknown"))
+                        .font(AppTypography.labelDefault())
+                        .foregroundColor(AppColors.textPrimary)
+
+                    Spacer()
+
+                    if let date = comment.timestamp {
+                        Text(date.relativeShort)
+                            .font(AppTypography.caption())
+                            .foregroundColor(AppColors.textTertiary)
+                    }
+                }
+
+                Text(comment.content ?? "")
+                    .font(AppTypography.bodySmall())
+                    .foregroundColor(AppColors.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(.horizontal, Spacing.md)
+        .padding(.vertical, Spacing.sm)
+    }
+}
+
+/// Card divider
+struct CardDivider: View {
+    var body: some View {
+        Rectangle()
+            .fill(AppColors.divider.opacity(0.6))
+            .frame(height: 0.5)
+    }
+}
+
+// MARK: - Transaction Snapshot
+
+/// Immutable snapshot of transaction data for view rendering
 struct TransactionSnapshot {
     var title: String = "Unknown"
     var totalAmount: Double = 0
@@ -405,7 +416,7 @@ struct TransactionSnapshot {
     var groupName: String? = nil
     var note: String? = nil
     var isMultiPayer: Bool = false
-    var sortedPayers: [(name: String, amount: Double, isUser: Bool)] = []
+    var sortedPayers: [(name: String, initials: String, colorHex: String, amount: Double, isUser: Bool)] = []
     var sortedSplits: [(objectID: NSManagedObjectID, name: String, initials: String, colorHex: String, amount: Double, isUser: Bool)] = []
 
     var netAmountColor: Color {
@@ -415,7 +426,7 @@ struct TransactionSnapshot {
     }
 
     var directionIcon: String {
-        userNetAmount > 0.01 ? "arrow.up.right" : "arrow.down.left"
+        userNetAmount > 0.01 ? "arrow.up.right.circle.fill" : "arrow.down.left.circle.fill"
     }
 
     var statusText: String {
@@ -424,18 +435,101 @@ struct TransactionSnapshot {
         return "Settled"
     }
 
+    var paymentSummaryText: String {
+        if userNetAmount < -0.01 {
+            let nonUserPayers = sortedPayers.filter { !$0.isUser }
+            if nonUserPayers.count == 1 {
+                return "You paid \(nonUserPayers[0].name)"
+            }
+            return "You owe"
+        } else if userNetAmount > 0.01 {
+            let nonUserSplits = sortedSplits.filter { !$0.isUser }
+            if nonUserSplits.count == 1 {
+                return "\(nonUserSplits[0].name) owes you"
+            }
+            return "You are owed"
+        }
+        return "Settled up"
+    }
+
+    // MARK: - Unified Participant
+
+    struct UnifiedParticipant: Identifiable {
+        let id: String
+        let name: String
+        let initials: String
+        let colorHex: String
+        let displayAmount: Double
+        let subtitle: String
+        let statusText: String
+        let statusColor: Color
+        let isPaid: Bool
+        let isUser: Bool
+    }
+
+    var unifiedParticipants: [UnifiedParticipant] {
+        var result: [UnifiedParticipant] = []
+        let primaryPayerName = sortedPayers.first?.name ?? "payer"
+        var addedNames = Set<String>()
+
+        for (index, payer) in sortedPayers.enumerated() {
+            let splitAmount = sortedSplits.first(where: { $0.name == payer.name })?.amount ?? 0
+            result.append(UnifiedParticipant(
+                id: "payer-\(index)",
+                name: payer.name,
+                initials: payer.initials,
+                colorHex: payer.colorHex,
+                displayAmount: splitAmount > 0 ? splitAmount : payer.amount,
+                subtitle: "Paid \(FinancialFormatter.currency(payer.amount))",
+                statusText: "Your share",
+                statusColor: AppColors.textTertiary,
+                isPaid: false,
+                isUser: payer.isUser
+            ))
+            addedNames.insert(payer.name)
+        }
+
+        for (index, split) in sortedSplits.enumerated() {
+            if addedNames.contains(split.name) { continue }
+
+            result.append(UnifiedParticipant(
+                id: "split-\(index)",
+                name: split.name,
+                initials: split.initials,
+                colorHex: split.colorHex,
+                displayAmount: split.amount,
+                subtitle: "Owes \(primaryPayerName)",
+                statusText: "Pending",
+                statusColor: AppColors.warning,
+                isPaid: false,
+                isUser: split.isUser
+            ))
+        }
+
+        return result
+    }
+
     static func build(from tx: FinancialTransaction) -> TransactionSnapshot {
         var s = TransactionSnapshot()
-        s.title = tx.title ?? "Unknown"
+        s.title = tx.title ?? "Unknown Transaction"
         s.totalAmount = tx.amount
 
         if let date = tx.date {
-            s.formattedDate = date.receiptFormatted
-            let tf = DateFormatter()
-            tf.dateFormat = "h:mm a"
-            s.formattedTime = tf.string(from: date)
+            let calendar = Calendar.current
+            if calendar.isDateInToday(date) {
+                s.formattedDate = "Today, \(DateFormatter.timeOnly.string(from: date))"
+            } else if calendar.isDateInYesterday(date) {
+                s.formattedDate = "Yesterday, \(DateFormatter.timeOnly.string(from: date))"
+            } else if calendar.isDate(date, equalTo: Date(), toGranularity: .weekOfYear) {
+                let dayOfWeek = DateFormatter.dayOfWeek.string(from: date)
+                s.formattedDate = "\(dayOfWeek), \(DateFormatter.timeOnly.string(from: date))"
+            } else {
+                s.formattedDate = DateFormatter.mediumDate.string(from: date)
+            }
+            s.formattedTime = DateFormatter.timeOnly.string(from: date)
         } else {
             s.formattedDate = "Unknown date"
+            s.formattedTime = ""
         }
 
         let effectivePayers = tx.effectivePayers
@@ -451,9 +545,18 @@ struct TransactionSnapshot {
                 .map { tp in
                     let isUser = CurrentUser.isCurrentUser(tp.paidBy?.id)
                     return (name: isUser ? "You" : (tp.paidBy?.displayName ?? "Unknown"),
+                            initials: isUser ? "ME" : (tp.paidBy?.initials ?? "?"),
+                            colorHex: isUser ? AppColors.defaultAvatarColorHex : (tp.paidBy?.colorHex ?? AppColors.defaultAvatarColorHex),
                             amount: tp.amount,
                             isUser: isUser)
                 }
+        } else if let payer = tx.payer {
+            let isUser = CurrentUser.isCurrentUser(payer.id)
+            s.sortedPayers = [(name: isUser ? "You" : payer.displayName,
+                              initials: isUser ? "ME" : payer.initials,
+                              colorHex: isUser ? AppColors.defaultAvatarColorHex : (payer.colorHex ?? AppColors.defaultAvatarColorHex),
+                              amount: tx.amount,
+                              isUser: isUser)]
         }
 
         s.payerName = TransactionDetailHelpers.payerName(effectivePayers: effectivePayers, payer: tx.payer)
@@ -490,9 +593,11 @@ struct TransactionSnapshot {
     }
 }
 
-// MARK: - Shared Transaction Detail Helpers (used by other files)
+// MARK: - Transaction Detail Helpers
 
+/// Helper utilities for transaction detail calculations
 enum TransactionDetailHelpers {
+
     static func personDisplayName(for split: TransactionSplit) -> String {
         guard let person = split.owedBy else { return "Unknown" }
         if CurrentUser.isCurrentUser(person.id) { return "You" }

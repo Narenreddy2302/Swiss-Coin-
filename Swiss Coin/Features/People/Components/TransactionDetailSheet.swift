@@ -2,10 +2,11 @@
 //  TransactionDetailSheet.swift
 //  Swiss Coin
 //
-//  Receipt-style transaction detail sheet matching the app's design language.
-//  Shows full transaction breakdown with Edit and Delete action buttons.
+//  Card-based transaction detail sheet matching the redesigned TransactionDetailView.
+//  Shows hero header, unified split details, note, and Edit/Delete action buttons.
 //
 
+import CoreData
 import SwiftUI
 
 struct TransactionDetailSheet: View {
@@ -16,21 +17,12 @@ struct TransactionDetailSheet: View {
 
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
 
     @State private var showingEditSheet = false
     @State private var showingDeleteAlert = false
     @State private var showingError = false
     @State private var errorMessage = ""
-
-    // MARK: - Cached State
-
-    @State private var cachedEffectivePayers: [(personId: UUID?, amount: Double)] = []
-    @State private var cachedSplits: [TransactionSplit] = []
-    @State private var payerName = ""
-    @State private var creatorName = ""
-    @State private var participantCount = 1
-    @State private var userNetAmount: Double = 0
-    @State private var formattedReceiptDate = ""
 
     init(transaction: FinancialTransaction, person: Person? = nil, onEdit: (() -> Void)? = nil, onDelete: (() -> Void)? = nil) {
         self.transaction = transaction
@@ -39,75 +31,46 @@ struct TransactionDetailSheet: View {
         self.onDelete = onDelete
     }
 
-    private var splitMethod: SplitMethod? {
-        guard let raw = transaction.splitMethod else { return nil }
-        return SplitMethod(rawValue: raw)
-    }
-
-    private var isCurrentUserAPayer: Bool {
-        cachedEffectivePayers.contains { CurrentUser.isCurrentUser($0.personId) }
-    }
-
-    private var netAmountColor: Color {
-        TransactionDetailHelpers.netAmountColor(for: userNetAmount)
-    }
-
-    private var headerSubtitle: String {
-        "\(CurrencyFormatter.format(transaction.amount)) / \(participantCount) People"
-    }
-
-    private func recomputeCachedState() {
-        let payers = transaction.effectivePayers
-        cachedEffectivePayers = payers
-        let splitSet = transaction.splits as? Set<TransactionSplit> ?? []
-        cachedSplits = splitSet.sorted { ($0.owedBy?.displayName ?? "") < ($1.owedBy?.displayName ?? "") }
-        payerName = TransactionDetailHelpers.payerName(effectivePayers: payers, payer: transaction.payer)
-        creatorName = TransactionDetailHelpers.creatorName(transaction: transaction)
-        participantCount = TransactionDetailHelpers.participantCount(effectivePayers: payers, splits: cachedSplits)
-        userNetAmount = TransactionDetailHelpers.userNetAmount(effectivePayers: payers, splits: cachedSplits)
-        formattedReceiptDate = transaction.date?.receiptFormatted ?? "Unknown date"
+    private var snapshot: TransactionSnapshot {
+        TransactionSnapshot.build(from: transaction)
     }
 
     // MARK: - Body
 
     var body: some View {
         ScrollView(showsIndicators: false) {
-            VStack(alignment: .leading, spacing: 0) {
-                receiptHeroHeader
+            VStack(spacing: 0) {
+                heroHeader
+                    .padding(.horizontal, Spacing.screenHorizontal)
+                    .padding(.top, Spacing.lg)
 
-                sheetDottedSeparator
-
-                receiptPaymentSection
-                    .padding(.vertical, Spacing.lg)
-
-                if !cachedSplits.isEmpty {
-                    sheetDottedSeparator
-                    receiptSplitBreakdown
-                        .padding(.vertical, Spacing.lg)
+                if !snapshot.sortedPayers.isEmpty || !snapshot.sortedSplits.isEmpty {
+                    splitDetailsSection
+                        .padding(.horizontal, Spacing.screenHorizontal)
+                        .padding(.top, Spacing.xl)
                 }
 
-                if let note = transaction.note, !note.isEmpty {
-                    sheetDottedSeparator
+                if let note = snapshot.note {
                     noteSection(note: note)
+                        .padding(.horizontal, Spacing.screenHorizontal)
+                        .padding(.top, Spacing.xl)
                 }
 
                 actionButtonsSection
+                    .padding(.horizontal, Spacing.screenHorizontal)
                     .padding(.top, Spacing.xl)
+                    .padding(.bottom, Spacing.xxl)
             }
-            .padding(.horizontal, Spacing.xl)
-            .padding(.bottom, Spacing.section)
         }
         .scrollBounceBehavior(.basedOnSize)
+        .background(AppColors.groupedBackground)
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
         .presentationCornerRadius(CornerRadius.xl)
-        .presentationBackground(AppColors.cardBackground)
+        .presentationBackground(AppColors.groupedBackground)
         .onAppear {
-            recomputeCachedState()
             HapticManager.lightTap()
         }
-        .onChange(of: transaction.amount) { recomputeCachedState() }
-        .onChange(of: transaction.title) { recomputeCachedState() }
         .sheet(isPresented: $showingEditSheet) {
             TransactionEditView(transaction: transaction)
                 .environment(\.managedObjectContext, viewContext)
@@ -125,139 +88,77 @@ struct TransactionDetailSheet: View {
         }
     }
 
-    // MARK: - Receipt Hero Header
+    // MARK: - Hero Header
 
-    private var receiptHeroHeader: some View {
-        VStack(alignment: .leading, spacing: Spacing.lg) {
-            VStack(alignment: .leading, spacing: Spacing.xs) {
-                HStack(alignment: .firstTextBaseline) {
-                    Text(transaction.title ?? "Unknown")
-                        .font(AppTypography.headingLarge())
-                        .foregroundColor(AppColors.textPrimary)
-                        .lineLimit(3)
+    private var heroHeader: some View {
+        VStack(spacing: Spacing.md) {
+            Circle()
+                .fill(AppColors.info.opacity(0.15))
+                .frame(width: 64, height: 64)
+                .overlay(
+                    Image(systemName: "list.bullet.rectangle.portrait.fill")
+                        .font(.system(size: IconSize.category, weight: .medium))
+                        .foregroundColor(AppColors.info)
+                )
+                .padding(.top, Spacing.xl)
 
-                    Spacer(minLength: Spacing.md)
+            Text(snapshot.title)
+                .font(AppTypography.title2())
+                .foregroundColor(AppColors.textPrimary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, Spacing.lg)
 
-                    Text(CurrencyFormatter.formatAbsolute(userNetAmount))
-                        .font(AppTypography.financialLarge())
-                        .foregroundColor(netAmountColor)
-                }
+            Text(snapshot.formattedDate)
+                .font(AppTypography.subheadline())
+                .foregroundColor(AppColors.textSecondary)
 
-                HStack(alignment: .firstTextBaseline) {
-                    Text(formattedReceiptDate)
-                        .font(AppTypography.bodySmall())
-                        .foregroundColor(AppColors.textSecondary)
+            Text(FinancialFormatter.signedCurrency(snapshot.userNetAmount))
+                .font(AppTypography.financialHero())
+                .foregroundColor(snapshot.netAmountColor)
 
-                    Spacer(minLength: Spacing.md)
-
-                    Text(headerSubtitle)
-                        .font(AppTypography.bodySmall())
-                        .foregroundColor(AppColors.textSecondary)
-                }
-            }
+            Text(snapshot.paymentSummaryText)
+                .font(AppTypography.subheadline())
+                .foregroundColor(AppColors.textSecondary)
+                .padding(.bottom, Spacing.xl)
         }
-        .padding(.top, Spacing.lg)
-        .padding(.bottom, Spacing.lg)
+        .frame(maxWidth: .infinity)
+        .background(AppColors.cardBackground)
+        .cornerRadius(CornerRadius.card)
+        .shadow(
+            color: AppShadow.card(for: colorScheme).color,
+            radius: AppShadow.card(for: colorScheme).radius,
+            x: AppShadow.card(for: colorScheme).x,
+            y: AppShadow.card(for: colorScheme).y
+        )
     }
 
-    // MARK: - Receipt Payment Section
+    // MARK: - Split Details Section
 
-    private var receiptPaymentSection: some View {
-        VStack(alignment: .leading, spacing: Spacing.md) {
-            Text("PAYMENT")
-                .font(AppTypography.caption())
-                .foregroundColor(AppColors.textTertiary)
+    private var splitDetailsSection: some View {
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            Text("Split Details")
+                .font(AppTypography.headline())
+                .foregroundColor(AppColors.textPrimary)
 
-            if transaction.isMultiPayer, let payerSet = transaction.payers as? Set<TransactionPayer> {
-                let sortedPayers = payerSet.sorted { tp1, tp2 in
-                    if CurrentUser.isCurrentUser(tp1.paidBy?.id) { return true }
-                    if CurrentUser.isCurrentUser(tp2.paidBy?.id) { return false }
-                    return (tp1.paidBy?.displayName ?? "") < (tp2.paidBy?.displayName ?? "")
-                }
-                ForEach(sortedPayers, id: \.objectID) { tp in
-                    sheetKeyValueRow(
-                        label: "Paid by",
-                        value: CurrentUser.isCurrentUser(tp.paidBy?.id)
-                            ? "You" : (tp.paidBy?.displayName ?? "Unknown")
-                    )
-                }
-            } else {
-                sheetKeyValueRow(label: "Paid by", value: payerName)
-            }
+            VStack(spacing: 0) {
+                let participants = snapshot.unifiedParticipants
+                ForEach(Array(participants.enumerated()), id: \.element.id) { index, participant in
+                    UnifiedParticipantRow(participant: participant)
 
-            sheetKeyValueRow(label: "Created by", value: creatorName)
-            sheetKeyValueRow(label: "Participants", value: "\(participantCount) People")
-
-            HStack {
-                Text("Split method")
-                    .font(AppTypography.subheadline())
-                    .foregroundColor(AppColors.textSecondary)
-                Spacer()
-                HStack(spacing: Spacing.xs) {
-                    if let method = splitMethod {
-                        Text(method.icon)
-                            .font(AppTypography.subheadlineMedium())
-                            .foregroundColor(AppColors.textPrimary)
-                    }
-                    Text(splitMethod?.displayName ?? "Equally")
-                        .font(AppTypography.subheadlineMedium())
-                        .foregroundColor(AppColors.textPrimary)
-                }
-            }
-
-            if let group = transaction.group {
-                sheetKeyValueRow(label: "Group", value: group.name ?? "Unknown Group")
-            }
-        }
-    }
-
-    // MARK: - Receipt Split Breakdown
-
-    private var receiptSplitBreakdown: some View {
-        VStack(alignment: .leading, spacing: Spacing.md) {
-            Text("SPLIT BREAKDOWN")
-                .font(AppTypography.caption())
-                .foregroundColor(AppColors.textTertiary)
-
-            ForEach(cachedSplits, id: \.objectID) { split in
-                HStack {
-                    Text(TransactionDetailHelpers.personDisplayName(for: split))
-                        .font(AppTypography.subheadline())
-                        .foregroundColor(AppColors.textPrimary)
-
-                    Spacer()
-
-                    HStack(spacing: Spacing.xs) {
-                        Text(CurrencyFormatter.currencySymbol)
-                            .font(AppTypography.subheadline())
-                            .foregroundColor(AppColors.textSecondary)
-                        Text(CurrencyFormatter.formatDecimal(split.amount))
-                            .font(AppTypography.financialDefault())
-                            .foregroundColor(AppColors.textPrimary)
+                    if index < participants.count - 1 {
+                        CardDivider()
                     }
                 }
             }
-
-            sheetDottedSeparator
-
-            HStack {
-                Text("Total Balance")
-                    .font(AppTypography.subheadlineMedium())
-                    .foregroundColor(AppColors.textPrimary)
-
-                Spacer()
-
-                HStack(spacing: Spacing.xs) {
-                    Text(CurrencyFormatter.currencySymbol)
-                        .font(AppTypography.subheadline())
-                        .foregroundColor(AppColors.textSecondary)
-                    Text(CurrencyFormatter.formatDecimal(transaction.amount))
-                        .font(AppTypography.financialDefault())
-                        .foregroundColor(AppColors.textPrimary)
-                }
-            }
-
-            sheetDottedSeparator
+            .padding(Spacing.cardPadding)
+            .background(AppColors.cardBackground)
+            .cornerRadius(CornerRadius.card)
+            .shadow(
+                color: AppShadow.card(for: colorScheme).color,
+                radius: AppShadow.card(for: colorScheme).radius,
+                x: AppShadow.card(for: colorScheme).x,
+                y: AppShadow.card(for: colorScheme).y
+            )
         }
     }
 
@@ -265,23 +166,33 @@ struct TransactionDetailSheet: View {
 
     private func noteSection(note: String) -> some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
-            Text("NOTE")
-                .font(AppTypography.caption())
-                .foregroundColor(AppColors.textTertiary)
-                .padding(.top, Spacing.md)
+            Text("Note")
+                .font(AppTypography.headline())
+                .foregroundColor(AppColors.textPrimary)
 
-            Text(note)
-                .font(AppTypography.body())
-                .foregroundColor(AppColors.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
+            VStack(alignment: .leading) {
+                Text(note)
+                    .font(AppTypography.body())
+                    .foregroundColor(AppColors.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(Spacing.cardPadding)
+            .background(AppColors.cardBackground)
+            .cornerRadius(CornerRadius.card)
+            .shadow(
+                color: AppShadow.card(for: colorScheme).color,
+                radius: AppShadow.card(for: colorScheme).radius,
+                x: AppShadow.card(for: colorScheme).x,
+                y: AppShadow.card(for: colorScheme).y
+            )
         }
-        .padding(.bottom, Spacing.lg)
     }
 
     // MARK: - Action Buttons
 
     private var actionButtonsSection: some View {
-        VStack(spacing: Spacing.sm) {
+        VStack(spacing: Spacing.md) {
             Button {
                 HapticManager.tap()
                 if let onEdit {
@@ -295,60 +206,37 @@ struct TransactionDetailSheet: View {
             } label: {
                 HStack(spacing: Spacing.sm) {
                     Image(systemName: "pencil")
-                        .font(.system(size: 14, weight: .medium))
+                        .font(.system(size: IconSize.sm))
                     Text("Edit Transaction")
-                        .font(AppTypography.bodyBold())
+                        .font(AppTypography.buttonLarge())
                 }
-                .foregroundColor(AppColors.textPrimary)
                 .frame(maxWidth: .infinity)
-                .frame(height: ButtonHeight.md)
-                .background(AppColors.backgroundTertiary)
-                .clipShape(RoundedRectangle(cornerRadius: CornerRadius.md))
+                .frame(height: ButtonHeight.lg)
+                .background(AppColors.accent)
+                .foregroundColor(AppColors.buttonForeground)
+                .cornerRadius(CornerRadius.button)
             }
 
             Button {
                 HapticManager.tap()
-                if onDelete != nil {
-                    showingDeleteAlert = true
-                } else {
-                    showingDeleteAlert = true
-                }
+                showingDeleteAlert = true
             } label: {
                 HStack(spacing: Spacing.sm) {
                     Image(systemName: "trash")
-                        .font(.system(size: 14, weight: .medium))
+                        .font(.system(size: IconSize.sm))
                     Text("Delete Transaction")
-                        .font(AppTypography.bodyBold())
+                        .font(AppTypography.buttonLarge())
                 }
-                .foregroundColor(AppColors.negative)
                 .frame(maxWidth: .infinity)
-                .frame(height: ButtonHeight.md)
-                .background(AppColors.negative.opacity(0.08))
-                .clipShape(RoundedRectangle(cornerRadius: CornerRadius.md))
+                .frame(height: ButtonHeight.lg)
+                .background(AppColors.cardBackground)
+                .foregroundColor(AppColors.negative)
+                .cornerRadius(CornerRadius.button)
+                .overlay(
+                    RoundedRectangle(cornerRadius: CornerRadius.button)
+                        .strokeBorder(AppColors.negative.opacity(0.3), lineWidth: 1)
+                )
             }
-        }
-    }
-
-    // MARK: - Dotted Separator
-
-    private var sheetDottedSeparator: some View {
-        Line()
-            .stroke(style: StrokeStyle(lineWidth: 1, dash: [4, 4]))
-            .foregroundColor(AppColors.separator)
-            .frame(height: 1)
-    }
-
-    // MARK: - Helpers
-
-    private func sheetKeyValueRow(label: String, value: String) -> some View {
-        HStack {
-            Text(label)
-                .font(AppTypography.subheadline())
-                .foregroundColor(AppColors.textSecondary)
-            Spacer()
-            Text(value)
-                .font(AppTypography.subheadlineMedium())
-                .foregroundColor(AppColors.textPrimary)
         }
     }
 

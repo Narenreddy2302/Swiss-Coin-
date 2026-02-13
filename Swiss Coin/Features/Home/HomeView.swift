@@ -110,7 +110,7 @@ struct HomeView: View {
                                 .frame(maxWidth: .infinity)
                                 .frame(height: ButtonHeight.md)
                                 .background(AppColors.buttonBackground)
-                                .cornerRadius(CornerRadius.md)
+                                .cornerRadius(CornerRadius.button)
                             }
                             .buttonStyle(AppButtonStyle(haptic: .none))
                             .padding(.horizontal)
@@ -183,8 +183,10 @@ struct HomeView: View {
                 set: { if !$0 { selectedTransaction = nil } }
             )) {
                 if let transaction = selectedTransaction {
-                    TransactionExpandedView(transaction: transaction)
-                        .environment(\.managedObjectContext, viewContext)
+                    NavigationStack {
+                        TransactionDetailView(transaction: transaction)
+                    }
+                    .environment(\.managedObjectContext, viewContext)
                 }
             }
             .task {
@@ -295,9 +297,7 @@ struct EmptyStateView: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, Spacing.section)
-        .background(AppColors.cardBackground)
-        .cornerRadius(CornerRadius.card)
-        .shadow(color: AppColors.shadow, radius: 8, x: 0, y: 2)
+        .cardStyle()
         .padding(.horizontal)
     }
 }
@@ -330,9 +330,7 @@ struct SummaryCard: View {
         }
         .frame(width: 160)
         .padding(Spacing.cardPadding)
-        .background(AppColors.cardBackground)
-        .cornerRadius(CornerRadius.card)
-        .shadow(color: AppColors.shadow, radius: 8, x: 0, y: 2)
+        .cardStyle()
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(title): \(CurrencyFormatter.format(amount))")
     }
