@@ -103,7 +103,7 @@ struct ContactPickerView: View {
                         ProgressView()
                             .scaleEffect(1.2)
                         Text("Adding contact...")
-                            .font(AppTypography.subheadline())
+                            .font(AppTypography.bodyDefault())
                             .foregroundColor(AppColors.textPrimary)
                     }
                     .padding(Spacing.xl)
@@ -141,7 +141,7 @@ struct ContactPickerView: View {
                                     .clipShape(Circle())
 
                                 Text("Add Manually")
-                                    .font(AppTypography.body())
+                                    .font(AppTypography.bodyLarge())
                                     .foregroundColor(AppColors.accent)
 
                                 Spacer()
@@ -165,7 +165,7 @@ struct ContactPickerView: View {
                         VStack(alignment: .leading, spacing: Spacing.sm) {
                             HStack(spacing: Spacing.sm) {
                                 Text("PHONE CONTACTS")
-                                    .font(AppTypography.footnote())
+                                    .font(AppTypography.bodySmall())
                                     .foregroundColor(AppColors.textSecondary)
 
                                 Spacer()
@@ -218,7 +218,7 @@ struct ContactPickerView: View {
             ProgressView()
                 .scaleEffect(1.2)
             Text("Loading contacts...")
-                .font(AppTypography.subheadline())
+                .font(AppTypography.bodyDefault())
                 .foregroundColor(AppColors.textSecondary)
         }
     }
@@ -230,11 +230,11 @@ struct ContactPickerView: View {
                 .foregroundColor(AppColors.textSecondary)
             
             Text("No Contacts Found")
-                .font(AppTypography.title3())
+                .font(AppTypography.headingLarge())
                 .foregroundColor(AppColors.textPrimary)
             
             Text("Your phone contacts will appear here")
-                .font(AppTypography.subheadline())
+                .font(AppTypography.bodyDefault())
                 .foregroundColor(AppColors.textSecondary)
                 .multilineTextAlignment(.center)
             
@@ -243,7 +243,7 @@ struct ContactPickerView: View {
                 showingManualEntry()
             } label: {
                 Text("Add Contact Manually")
-                    .font(AppTypography.bodyBold())
+                    .font(AppTypography.headingMedium())
             }
             .buttonStyle(PrimaryButtonStyle())
             .padding(.top, Spacing.lg)
@@ -260,11 +260,11 @@ struct ContactPickerView: View {
                 .foregroundColor(AppColors.accent)
             
             Text("Access Your Contacts")
-                .font(AppTypography.title2())
+                .font(AppTypography.displayMedium())
                 .foregroundColor(AppColors.textPrimary)
             
             Text("Allow access to your phone contacts to easily add people you know.")
-                .font(AppTypography.subheadline())
+                .font(AppTypography.bodyDefault())
                 .foregroundColor(AppColors.textSecondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, Spacing.xl)
@@ -280,7 +280,7 @@ struct ContactPickerView: View {
                     }
                 } label: {
                     Text("Allow Access")
-                        .font(AppTypography.bodyBold())
+                        .font(AppTypography.headingMedium())
                 }
                 .buttonStyle(PrimaryButtonStyle())
                 
@@ -289,7 +289,7 @@ struct ContactPickerView: View {
                     showingManualEntry()
                 } label: {
                     Text("Add Manually")
-                        .font(AppTypography.body())
+                        .font(AppTypography.bodyLarge())
                 }
                 .buttonStyle(SecondaryButtonStyle())
             }
@@ -309,11 +309,11 @@ struct ContactPickerView: View {
                 .foregroundColor(AppColors.warning)
             
             Text("Access Denied")
-                .font(AppTypography.title2())
+                .font(AppTypography.displayMedium())
                 .foregroundColor(AppColors.textPrimary)
             
             Text("Please enable contact access in Settings to import people from your phone.")
-                .font(AppTypography.subheadline())
+                .font(AppTypography.bodyDefault())
                 .foregroundColor(AppColors.textSecondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, Spacing.xl)
@@ -326,7 +326,7 @@ struct ContactPickerView: View {
                     }
                 } label: {
                     Text("Open Settings")
-                        .font(AppTypography.bodyBold())
+                        .font(AppTypography.headingMedium())
                 }
                 .buttonStyle(PrimaryButtonStyle())
                 
@@ -335,7 +335,7 @@ struct ContactPickerView: View {
                     showingManualEntry()
                 } label: {
                     Text("Add Manually")
-                        .font(AppTypography.body())
+                        .font(AppTypography.bodyLarge())
                 }
                 .buttonStyle(SecondaryButtonStyle())
             }
@@ -526,7 +526,7 @@ struct ContactRowView: View {
                     .frame(width: AvatarSize.md, height: AvatarSize.md)
                     .overlay(
                         Text(contact.initials)
-                            .font(AppTypography.headline())
+                            .font(AppTypography.headingMedium())
                             .foregroundColor(isExisting ? AppColors.textSecondary : AppColors.accent)
                     )
             }
@@ -534,7 +534,7 @@ struct ContactRowView: View {
             // Info
             VStack(alignment: .leading, spacing: Spacing.xs) {
                 Text(contact.fullName)
-                    .font(AppTypography.body())
+                    .font(AppTypography.bodyLarge())
                     .foregroundColor(isExisting ? AppColors.textSecondary : AppColors.textPrimary)
                     .lineLimit(1)
 

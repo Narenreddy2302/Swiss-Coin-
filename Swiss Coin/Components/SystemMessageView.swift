@@ -42,12 +42,11 @@ struct SystemMessageView: View {
             VStack(spacing: Spacing.xxs) {
                 HStack(spacing: Spacing.xs) {
                     Image(systemName: icon)
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(.system(size: IconSize.xs, weight: .semibold))
                         .foregroundColor(iconColor)
 
                     Text(messageText)
-                        .font(AppTypography.bodySmall())
-                        .fontWeight(.medium)
+                        .font(AppTypography.labelDefault())
                         .foregroundColor(AppColors.textPrimary)
                 }
 

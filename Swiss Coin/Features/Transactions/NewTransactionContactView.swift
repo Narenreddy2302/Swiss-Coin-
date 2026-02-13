@@ -41,7 +41,7 @@ struct NewTransactionContactView: View {
                                             .background(AppColors.accent.opacity(0.1))
                                             .clipShape(Circle())
                                         Text("New Group")
-                                            .font(AppTypography.headline())
+                                            .font(AppTypography.headingMedium())
                                             .foregroundColor(AppColors.accent)
                                         Spacer()
                                         Image(systemName: "chevron.right")
@@ -64,7 +64,7 @@ struct NewTransactionContactView: View {
                                             .background(AppColors.accent.opacity(0.1))
                                             .clipShape(Circle())
                                         Text("New Contact")
-                                            .font(AppTypography.headline())
+                                            .font(AppTypography.headingMedium())
                                             .foregroundColor(AppColors.accent)
                                         Spacer()
                                         Image(systemName: "chevron.right")
@@ -89,7 +89,7 @@ struct NewTransactionContactView: View {
                                             .foregroundColor(AppColors.accent)
 
                                         Text("Contacts")
-                                            .font(AppTypography.headline())
+                                            .font(AppTypography.headingMedium())
                                             .foregroundColor(AppColors.textPrimary)
 
                                         Spacer()
@@ -126,14 +126,14 @@ struct NewTransactionContactView: View {
                                                             .frame(width: AvatarSize.md, height: AvatarSize.md)
                                                             .overlay(
                                                                 Text(contact.initials)
-                                                                    .font(AppTypography.headline())
+                                                                    .font(AppTypography.headingMedium())
                                                                     .foregroundColor(AppColors.accent)
                                                             )
                                                     }
 
                                                     VStack(alignment: .leading, spacing: Spacing.xs) {
                                                         Text(contact.fullName)
-                                                            .font(AppTypography.body())
+                                                            .font(AppTypography.bodyLarge())
                                                             .foregroundColor(AppColors.textPrimary)
                                                             .lineLimit(1)
                                                         if let phone = contact.phoneNumbers.first {
@@ -176,10 +176,10 @@ struct NewTransactionContactView: View {
                             .font(.system(size: IconSize.xxl))
                             .foregroundColor(AppColors.warning)
                         Text("Access Denied")
-                            .font(AppTypography.title2())
+                            .font(AppTypography.displayMedium())
                             .foregroundColor(AppColors.textPrimary)
                         Text("Please enable contact access in Settings.")
-                            .font(AppTypography.subheadline())
+                            .font(AppTypography.bodyDefault())
                             .multilineTextAlignment(.center)
                             .foregroundColor(AppColors.textSecondary)
                         Button("Open Settings") {
@@ -196,7 +196,7 @@ struct NewTransactionContactView: View {
                             .font(.system(size: IconSize.xxl))
                             .foregroundColor(AppColors.accent)
                         Text("Load Contacts")
-                            .font(AppTypography.title2())
+                            .font(AppTypography.displayMedium())
                             .foregroundColor(AppColors.textPrimary)
                         Button("Continue") {
                             Task {

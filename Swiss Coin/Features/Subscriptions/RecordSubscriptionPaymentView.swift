@@ -110,7 +110,7 @@ struct RecordSubscriptionPaymentView: View {
                                         .frame(width: 24, height: 24)
                                         .overlay(
                                             Text(payer.initials)
-                                                .font(.system(size: 10, weight: .medium))
+                                                .font(AppTypography.labelSmall())
                                                 .foregroundColor(Color(hex: payer.colorHex ?? "#808080"))
                                         )
 
@@ -123,13 +123,13 @@ struct RecordSubscriptionPaymentView: View {
                             }
 
                             Image(systemName: "chevron.right")
-                                .font(.system(size: 14, weight: .semibold))
+                                .font(.system(size: IconSize.sm, weight: .semibold))
                                 .foregroundColor(AppColors.textSecondary)
                         }
                     }
                 } header: {
                     Text("Payment Details")
-                        .font(AppTypography.subheadlineMedium())
+                        .font(AppTypography.labelLarge())
                 }
 
                 // Amount
@@ -155,7 +155,7 @@ struct RecordSubscriptionPaymentView: View {
                         if !isAmountValid && !amount.isEmpty {
                             HStack(spacing: Spacing.xs) {
                                 Image(systemName: "exclamationmark.circle.fill")
-                                    .font(.system(size: 12))
+                                    .font(.system(size: IconSize.xs))
                                 Text("Please enter a valid amount")
                                     .font(AppTypography.caption())
                             }
@@ -166,7 +166,7 @@ struct RecordSubscriptionPaymentView: View {
                     DatePicker("Date", selection: $date, displayedComponents: .date)
                 } header: {
                     Text("Amount")
-                        .font(AppTypography.subheadlineMedium())
+                        .font(AppTypography.labelLarge())
                 }
 
                 // Note
@@ -175,7 +175,7 @@ struct RecordSubscriptionPaymentView: View {
                         .limitTextLength(to: ValidationLimits.maxNoteLength, text: $note)
                 } header: {
                     Text("Note")
-                        .font(AppTypography.subheadlineMedium())
+                        .font(AppTypography.labelLarge())
                 }
 
                 // Split Preview
@@ -200,7 +200,7 @@ struct RecordSubscriptionPaymentView: View {
                     }
                 } header: {
                     Text("Split Preview")
-                        .font(AppTypography.subheadlineMedium())
+                        .font(AppTypography.labelLarge())
                 }
             }
             .navigationTitle("Record Payment")
@@ -303,12 +303,12 @@ struct PayerPickerView: View {
                                 .frame(width: 36, height: 36)
                                 .overlay(
                                     Text(CurrentUser.initials)
-                                        .font(.system(size: 14, weight: .medium))
+                                        .font(AppTypography.labelDefault())
                                         .foregroundColor(Color(hex: CurrentUser.defaultColorHex))
                                 )
 
                             Text("You")
-                                .font(AppTypography.body())
+                                .font(AppTypography.bodyLarge())
                                 .foregroundColor(AppColors.textPrimary)
 
                             Spacer()
@@ -335,12 +335,12 @@ struct PayerPickerView: View {
                                     .frame(width: 36, height: 36)
                                     .overlay(
                                         Text(member.initials)
-                                            .font(.system(size: 14, weight: .medium))
+                                            .font(AppTypography.labelDefault())
                                             .foregroundColor(Color(hex: member.colorHex ?? "#808080"))
                                     )
 
                                 Text(member.displayName)
-                                    .font(AppTypography.body())
+                                    .font(AppTypography.bodyLarge())
                                     .foregroundColor(AppColors.textPrimary)
 
                                 Spacer()
@@ -354,7 +354,7 @@ struct PayerPickerView: View {
                     }
                 } header: {
                     Text("Members")
-                        .font(AppTypography.subheadlineMedium())
+                        .font(AppTypography.labelLarge())
                 }
             }
             .navigationTitle("Who Paid?")

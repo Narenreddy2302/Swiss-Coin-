@@ -47,7 +47,7 @@ struct TwoPartySplitView: View {
 
     private var equalSplitPill: some View {
         Text("Equal Split")
-            .font(AppTypography.bodyBold())
+            .font(AppTypography.headingMedium())
             .foregroundColor(AppColors.textPrimary)
             .frame(maxWidth: .infinity)
             .frame(height: ButtonHeight.lg)
@@ -125,12 +125,12 @@ struct DirectionalFlowRow: View {
                 // Label + amount overlay
                 VStack(spacing: Spacing.xxs) {
                     Text(labelText)
-                        .font(AppTypography.subheadlineMedium())
+                        .font(AppTypography.labelLarge())
                         .foregroundColor(isActive ? accentColor : AppColors.textTertiary)
 
                     if isActive && amount > 0.01 {
                         Text(CurrencyFormatter.formatAbsolute(amount))
-                            .font(AppTypography.amount())
+                            .font(AppTypography.financialDefault())
                             .foregroundColor(accentColor)
                     }
                 }

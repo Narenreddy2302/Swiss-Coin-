@@ -101,7 +101,7 @@ struct LockScreenView: View {
                     .frame(width: 80, height: 80)
 
                 Image(systemName: "dollarsign.circle.fill")
-                    .font(.system(size: 44, weight: .medium))
+                    .font(.system(size: IconSize.xxl))
                     .foregroundColor(AppColors.accent)
             }
 
@@ -199,7 +199,7 @@ struct LockScreenView: View {
                 } label: {
                     HStack(spacing: Spacing.sm) {
                         Image(systemName: biometricIcon)
-                            .font(.system(size: 20))
+                            .font(.system(size: IconSize.md))
                         Text("Use \(biometricLabel)")
                             .font(AppTypography.labelLarge())
                     }
@@ -411,18 +411,18 @@ private struct NumberPadButton: View {
         case .digit(let number):
             VStack(spacing: 1) {
                 Text("\(number)")
-                    .font(.system(size: 28, weight: .medium, design: .default))
+                    .font(AppTypography.displayLarge())
                     .foregroundColor(AppColors.textPrimary)
 
                 Text(subtitleForDigit(number))
-                    .font(.system(size: 9, weight: .regular))
+                    .font(AppTypography.caption())
                     .foregroundColor(AppColors.textTertiary)
                     .opacity(subtitleForDigit(number).isEmpty ? 0 : 1)
             }
 
         case .delete:
             Image(systemName: "delete.backward.fill")
-                .font(.system(size: 20, weight: .medium))
+                .font(.system(size: IconSize.md, weight: .medium))
                 .foregroundColor(AppColors.textPrimary)
 
         case .blank:

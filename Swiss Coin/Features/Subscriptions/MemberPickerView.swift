@@ -54,12 +54,12 @@ struct MemberPickerView: View {
                                     .frame(width: 36, height: 36)
                                     .overlay(
                                         Text(member.initials)
-                                            .font(.system(size: 14, weight: .medium))
+                                            .font(AppTypography.labelDefault())
                                             .foregroundColor(Color(hex: member.colorHex ?? "#808080"))
                                     )
 
                                 Text(member.displayName)
-                                    .font(AppTypography.body())
+                                    .font(AppTypography.bodyLarge())
                                     .foregroundColor(AppColors.textPrimary)
                                     .lineLimit(1)
 
@@ -85,15 +85,15 @@ struct MemberPickerView: View {
                     if filteredPeople.isEmpty {
                         VStack(spacing: Spacing.md) {
                             Image(systemName: "person.crop.circle.badge.plus")
-                                .font(.system(size: 48))
+                                .font(.system(size: IconSize.xxl))
                                 .foregroundColor(AppColors.textSecondary.opacity(0.5))
 
                             Text("No People Found")
-                                .font(AppTypography.headline())
+                                .font(AppTypography.headingMedium())
                                 .foregroundColor(AppColors.textPrimary)
 
                             Text("Add people in the Library tab first")
-                                .font(AppTypography.subheadline())
+                                .font(AppTypography.bodyDefault())
                                 .foregroundColor(AppColors.textSecondary)
                         }
                         .frame(maxWidth: .infinity)
@@ -111,12 +111,12 @@ struct MemberPickerView: View {
                                             .frame(width: 36, height: 36)
                                             .overlay(
                                                 Text(person.initials)
-                                                    .font(.system(size: 14, weight: .medium))
+                                                    .font(AppTypography.labelDefault())
                                                     .foregroundColor(Color(hex: person.colorHex ?? "#808080"))
                                             )
 
                                         Text(person.displayName)
-                                            .font(AppTypography.body())
+                                            .font(AppTypography.bodyLarge())
                                             .foregroundColor(AppColors.textPrimary)
                                             .lineLimit(1)
 

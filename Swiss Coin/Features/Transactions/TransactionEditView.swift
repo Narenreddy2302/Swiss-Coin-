@@ -60,7 +60,7 @@ struct TransactionEditView: View {
                         dismiss()
                     } label: {
                         Text("Cancel")
-                            .font(AppTypography.body())
+                            .font(AppTypography.bodyLarge())
                             .foregroundColor(AppColors.textPrimary)
                     }
                 }
@@ -71,7 +71,7 @@ struct TransactionEditView: View {
                         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
                         focusedField = nil
                     }
-                    .font(AppTypography.bodyBold())
+                    .font(AppTypography.headingMedium())
                     .foregroundColor(AppColors.accent)
                 }
             }
@@ -83,7 +83,7 @@ struct TransactionEditView: View {
 
     private var transactionNameSection: some View {
         TextField("Transaction Name", text: $viewModel.title)
-            .font(AppTypography.body())
+            .font(AppTypography.bodyLarge())
             .foregroundColor(AppColors.textPrimary)
             .focused($focusedField, equals: .title)
             .submitLabel(.next)
@@ -120,7 +120,7 @@ struct TransactionEditView: View {
                 .padding(.horizontal, Spacing.md)
 
             Text(CurrencyFormatter.currencySymbol)
-                .font(AppTypography.body())
+                .font(AppTypography.bodyLarge())
                 .foregroundColor(AppColors.textSecondary)
 
             TextField("0.00", text: $viewModel.totalAmount)
@@ -147,12 +147,12 @@ struct TransactionEditView: View {
     private var paidBySection: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             Text("Paid By:")
-                .font(AppTypography.subheadlineMedium())
+                .font(AppTypography.labelLarge())
                 .foregroundColor(AppColors.textPrimary)
 
             HStack {
                 TextField("Search Contact...", text: $viewModel.paidBySearchText)
-                    .font(AppTypography.body())
+                    .font(AppTypography.bodyLarge())
                     .foregroundColor(AppColors.textPrimary)
                     .focused($focusedField, equals: .paidBySearch)
 
@@ -278,12 +278,12 @@ struct TransactionEditView: View {
     private var splitWithSection: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             Text("Split with:")
-                .font(AppTypography.subheadlineMedium())
+                .font(AppTypography.labelLarge())
                 .foregroundColor(AppColors.textPrimary)
 
             HStack {
                 TextField("Search Contact...", text: $viewModel.splitWithSearchText)
-                    .font(AppTypography.body())
+                    .font(AppTypography.bodyLarge())
                     .foregroundColor(AppColors.textPrimary)
                     .focused($focusedField, equals: .splitWithSearch)
 
@@ -366,7 +366,7 @@ struct TransactionEditView: View {
                                 .foregroundColor(AppColors.accent)
 
                             Text(group.name ?? "Unnamed Group")
-                                .font(AppTypography.body())
+                                .font(AppTypography.bodyLarge())
                                 .foregroundColor(AppColors.textPrimary)
 
                             Spacer()
@@ -409,7 +409,7 @@ struct TransactionEditView: View {
 
                 if validContacts.isEmpty && viewModel.filteredSplitWithGroups.isEmpty {
                     Text("No results found")
-                        .font(AppTypography.subheadline())
+                        .font(AppTypography.bodyDefault())
                         .foregroundColor(AppColors.textSecondary)
                         .padding(.vertical, Spacing.md)
                         .frame(maxWidth: .infinity)
@@ -431,7 +431,7 @@ struct TransactionEditView: View {
     private func searchResultRow(name: String, isSelected: Bool) -> some View {
         HStack {
             Text(name)
-                .font(AppTypography.body())
+                .font(AppTypography.bodyLarge())
                 .foregroundColor(AppColors.textPrimary)
                 .lineLimit(1)
 
@@ -453,7 +453,7 @@ struct TransactionEditView: View {
     private var splitMethodSection: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             Text("Split Method:")
-                .font(AppTypography.subheadlineMedium())
+                .font(AppTypography.labelLarge())
                 .foregroundColor(AppColors.textPrimary)
 
             HStack(spacing: Spacing.sm) {
@@ -504,7 +504,7 @@ struct TransactionEditView: View {
     private var paidByBreakdownSection: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
             Text("Paid By:")
-                .font(AppTypography.subheadlineMedium())
+                .font(AppTypography.labelLarge())
                 .foregroundColor(AppColors.textPrimary)
 
             let sortedPayers: [Person] = {
@@ -535,7 +535,7 @@ struct TransactionEditView: View {
 
         return HStack {
             Text(name)
-                .font(AppTypography.subheadline())
+                .font(AppTypography.bodyDefault())
                 .foregroundColor(AppColors.textPrimary)
                 .lineLimit(1)
 
@@ -543,7 +543,7 @@ struct TransactionEditView: View {
 
             HStack(spacing: Spacing.xs) {
                 Text(CurrencyFormatter.currencySymbol)
-                    .font(AppTypography.subheadline())
+                    .font(AppTypography.bodyDefault())
                     .foregroundColor(AppColors.textSecondary)
 
                 if isSinglePayer {
@@ -576,7 +576,7 @@ struct TransactionEditView: View {
     private var breakdownSection: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
             Text("Breakdown:")
-                .font(AppTypography.subheadlineMedium())
+                .font(AppTypography.labelLarge())
                 .foregroundColor(AppColors.textPrimary)
 
             if viewModel.selectedParticipants.isEmpty {
@@ -591,7 +591,7 @@ struct TransactionEditView: View {
         HStack {
             Spacer()
             Text("Select participants to see breakdown")
-                .font(AppTypography.subheadline())
+                .font(AppTypography.bodyDefault())
                 .foregroundColor(AppColors.textSecondary)
             Spacer()
         }
@@ -623,13 +623,13 @@ struct TransactionEditView: View {
 
             HStack {
                 Text("Total Balance")
-                    .font(AppTypography.subheadlineMedium())
+                    .font(AppTypography.labelLarge())
                     .foregroundColor(AppColors.textPrimary)
 
                 Spacer()
 
                 Text(CurrencyFormatter.currencySymbol)
-                    .font(AppTypography.subheadline())
+                    .font(AppTypography.bodyDefault())
                     .foregroundColor(AppColors.textSecondary)
 
                 let balance = viewModel.totalBalance
@@ -654,7 +654,7 @@ struct TransactionEditView: View {
 
         return HStack {
             Text(name)
-                .font(AppTypography.subheadline())
+                .font(AppTypography.bodyDefault())
                 .foregroundColor(AppColors.textPrimary)
                 .lineLimit(1)
 
@@ -669,7 +669,7 @@ struct TransactionEditView: View {
             if viewModel.splitMethod == .amount {
                 HStack(spacing: Spacing.xs) {
                     Text(CurrencyFormatter.currencySymbol)
-                        .font(AppTypography.subheadline())
+                        .font(AppTypography.bodyDefault())
                         .foregroundColor(AppColors.textSecondary)
 
                     TextField("0.00", text: rawInputBinding(for: person))
@@ -683,7 +683,7 @@ struct TransactionEditView: View {
             } else {
                 HStack(spacing: Spacing.xs) {
                     Text(CurrencyFormatter.currencySymbol)
-                        .font(AppTypography.subheadline())
+                        .font(AppTypography.bodyDefault())
                         .foregroundColor(AppColors.textSecondary)
 
                     Text(String(format: "%.2f", splitAmount))
@@ -725,7 +725,7 @@ struct TransactionEditView: View {
                     .foregroundColor(AppColors.warning)
 
                 Text(validationMessage)
-                    .font(AppTypography.footnote())
+                    .font(AppTypography.bodySmall())
                     .foregroundColor(AppColors.textSecondary)
             }
             .frame(maxWidth: .infinity, alignment: .leading)

@@ -29,23 +29,23 @@ struct SubscriptionDetailView: View {
                         .frame(width: AvatarSize.xxl, height: AvatarSize.xxl)
                         .overlay(
                             Image(systemName: subscription.iconName ?? "creditcard.fill")
-                                .font(.system(size: 40))
+                                .font(.system(size: IconSize.xl))
                                 .foregroundColor(Color(hex: subscription.colorHex ?? "#007AFF"))
                         )
 
                     // Name
                     Text(subscription.name ?? "Unknown")
-                        .font(AppTypography.title1())
+                        .font(AppTypography.displayLarge())
                         .foregroundColor(AppColors.textPrimary)
 
                     // Amount
                     HStack(alignment: .firstTextBaseline, spacing: 4) {
                         Text(CurrencyFormatter.format(subscription.amount))
-                            .font(AppTypography.amountLarge())
+                            .font(AppTypography.financialLarge())
                             .foregroundColor(AppColors.textPrimary)
 
                         Text("/\(subscription.cycle ?? "month")")
-                            .font(AppTypography.subheadline())
+                            .font(AppTypography.bodyDefault())
                             .foregroundColor(AppColors.textSecondary)
                     }
 
@@ -82,7 +82,7 @@ struct SubscriptionDetailView: View {
                 }
             } header: {
                 Text("Billing")
-                    .font(AppTypography.subheadlineMedium())
+                    .font(AppTypography.labelLarge())
             }
 
             // Cost Breakdown Section
@@ -108,7 +108,7 @@ struct SubscriptionDetailView: View {
                 }
             } header: {
                 Text("Cost Summary")
-                    .font(AppTypography.subheadlineMedium())
+                    .font(AppTypography.labelLarge())
             }
 
             // Members Section (for shared subscriptions)
@@ -122,12 +122,12 @@ struct SubscriptionDetailView: View {
                                 .frame(width: AvatarSize.sm, height: AvatarSize.sm)
                                 .overlay(
                                     Text(member.initials)
-                                        .font(.system(size: 12, weight: .medium))
+                                        .font(AppTypography.labelSmall())
                                         .foregroundColor(Color(hex: member.colorHex ?? "#808080"))
                                 )
 
                             Text(member.displayName)
-                                .font(AppTypography.body())
+                                .font(AppTypography.bodyLarge())
                                 .foregroundColor(AppColors.textPrimary)
 
                             Spacer()
@@ -137,11 +137,11 @@ struct SubscriptionDetailView: View {
                                 (balance > 0
                                     ? Text("owes you ") + Text(CurrencyFormatter.formatAbsolute(balance)).fontWeight(.bold)
                                     : Text("you owe ") + Text(CurrencyFormatter.formatAbsolute(abs(balance))).fontWeight(.bold))
-                                    .font(AppTypography.subheadline())
+                                    .font(AppTypography.bodyDefault())
                                     .foregroundColor(balance > 0 ? AppColors.positive : AppColors.negative)
                             } else {
                                 Text("settled")
-                                    .font(AppTypography.subheadline())
+                                    .font(AppTypography.bodyDefault())
                                     .foregroundColor(AppColors.neutral)
                             }
                         }
@@ -153,7 +153,7 @@ struct SubscriptionDetailView: View {
                     }
                 } header: {
                     Text("Members (\(subscription.memberCount + 1))")
-                        .font(AppTypography.subheadlineMedium())
+                        .font(AppTypography.labelLarge())
                 }
             }
 
@@ -207,7 +207,7 @@ struct SubscriptionDetailView: View {
                 }
             } header: {
                 Text("Notifications")
-                    .font(AppTypography.subheadlineMedium())
+                    .font(AppTypography.labelLarge())
             }
 
             // Payment History Section
@@ -223,18 +223,18 @@ struct SubscriptionDetailView: View {
                 }
             } header: {
                 Text("Recent Payments")
-                    .font(AppTypography.subheadlineMedium())
+                    .font(AppTypography.labelLarge())
             }
 
             // Notes Section
             if let notes = subscription.notes, !notes.isEmpty {
                 Section {
                     Text(notes)
-                        .font(AppTypography.body())
+                        .font(AppTypography.bodyLarge())
                         .foregroundColor(AppColors.textSecondary)
                 } header: {
                     Text("Notes")
-                        .font(AppTypography.subheadlineMedium())
+                        .font(AppTypography.labelLarge())
                 }
             }
 
@@ -409,7 +409,7 @@ struct PaymentHistoryRow: View {
         HStack {
             VStack(alignment: .leading, spacing: 2) {
                 Text(isUserPayer ? "You paid" : "\(payment.payer?.firstName ?? "Someone") paid")
-                    .font(AppTypography.body())
+                    .font(AppTypography.bodyLarge())
                     .foregroundColor(AppColors.textPrimary)
 
                 Text(payment.date?.formatted(.dateTime.month(.abbreviated).day().year()) ?? "")
@@ -420,7 +420,7 @@ struct PaymentHistoryRow: View {
             Spacer()
 
             Text(CurrencyFormatter.format(payment.amount))
-                .font(AppTypography.amountSmall())
+                .font(AppTypography.financialSmall())
                 .foregroundColor(AppColors.textPrimary)
         }
     }

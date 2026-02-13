@@ -31,9 +31,8 @@ struct DateHeaderView: View {
             Spacer()
             Text(dateString)
                 .font(AppTypography.labelSmall())
-                .fontWeight(.semibold)
                 .foregroundColor(AppColors.dateHeaderText)
-                .tracking(0.3)
+                .tracking(AppTypography.Tracking.caption)
                 .padding(.horizontal, Spacing.md)
                 .padding(.vertical, Spacing.xs)
                 .background(

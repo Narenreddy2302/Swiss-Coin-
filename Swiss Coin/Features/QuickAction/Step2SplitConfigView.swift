@@ -22,7 +22,7 @@ struct Step2SplitConfigView: View {
 
             // MARK: - Title
             Text("Split Options")
-                .font(AppTypography.title2())
+                .font(AppTypography.displayMedium())
                 .foregroundColor(AppColors.textPrimary)
                 .frame(maxWidth: .infinity)
 
@@ -45,7 +45,7 @@ struct Step2SplitConfigView: View {
                 Button("Done") {
                     focusedField = nil
                 }
-                .font(AppTypography.bodyBold())
+                .font(AppTypography.headingMedium())
             }
         }
     }
@@ -55,7 +55,7 @@ struct Step2SplitConfigView: View {
     private var paidBySection: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             Text("Paid By:")
-                .font(AppTypography.title3())
+                .font(AppTypography.headingLarge())
                 .foregroundColor(AppColors.textPrimary)
 
             contactSearchField(
@@ -144,7 +144,7 @@ struct Step2SplitConfigView: View {
     private var splitWithSection: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             Text("Split with:")
-                .font(AppTypography.title3())
+                .font(AppTypography.headingLarge())
                 .foregroundColor(AppColors.textPrimary)
 
             contactSearchField(
@@ -229,7 +229,7 @@ struct Step2SplitConfigView: View {
 
             if validContacts.isEmpty && viewModel.filteredSplitWithGroups.isEmpty {
                 Text("No results found")
-                    .font(AppTypography.subheadline())
+                    .font(AppTypography.bodyDefault())
                     .foregroundColor(AppColors.textSecondary)
                     .padding(.vertical, Spacing.md)
                     .frame(maxWidth: .infinity)
@@ -251,14 +251,14 @@ struct Step2SplitConfigView: View {
     ) -> some View {
         HStack {
             TextField("Search Contact...", text: text)
-                .font(AppTypography.body())
+                .font(AppTypography.bodyLarge())
                 .foregroundColor(AppColors.textPrimary)
                 .focused($focusedField, equals: focus)
                 .submitLabel(.done)
                 .onSubmit { focusedField = nil }
 
             Image(systemName: "magnifyingglass")
-                .font(.system(size: 20, weight: .medium))
+                .font(.system(size: IconSize.md, weight: .medium))
                 .foregroundColor(AppColors.textSecondary)
         }
         .padding(.horizontal, Spacing.lg)
@@ -274,7 +274,7 @@ struct Step2SplitConfigView: View {
     private func searchResultRow(name: String, isSelected: Bool) -> some View {
         HStack {
             Text(name)
-                .font(AppTypography.body())
+                .font(AppTypography.bodyLarge())
                 .foregroundColor(AppColors.textPrimary)
                 .lineLimit(1)
 
@@ -282,7 +282,7 @@ struct Step2SplitConfigView: View {
 
             if isSelected {
                 Image(systemName: "checkmark")
-                    .font(.system(size: 17, weight: .semibold))
+                    .font(AppTypography.headingMedium())
                     .foregroundColor(AppColors.accent)
             }
         }
@@ -293,7 +293,7 @@ struct Step2SplitConfigView: View {
 
     private func chipLabel(_ name: String) -> some View {
         Text(name)
-            .font(AppTypography.subheadline())
+            .font(AppTypography.bodyDefault())
             .foregroundColor(AppColors.textPrimary)
             .padding(.horizontal, Spacing.lg)
             .padding(.vertical, Spacing.sm)
@@ -321,11 +321,11 @@ struct Step2SplitConfigView: View {
         } label: {
             HStack(spacing: Spacing.xs) {
                 Text(name)
-                    .font(AppTypography.subheadline())
+                    .font(AppTypography.bodyDefault())
                     .foregroundColor(AppColors.textPrimary)
 
                 Image(systemName: "xmark")
-                    .font(.system(size: 10, weight: .semibold))
+                    .font(AppTypography.labelSmall())
                     .foregroundColor(AppColors.textSecondary)
             }
             .padding(.leading, Spacing.lg)
@@ -348,7 +348,7 @@ struct Step2SplitConfigView: View {
                 viewModel.goToMoreOptions()
             } label: {
                 Text("More Options")
-                    .font(AppTypography.bodyBold())
+                    .font(AppTypography.headingMedium())
                     .foregroundColor(AppColors.textPrimary)
                     .frame(maxWidth: .infinity)
                     .frame(height: ButtonHeight.xl)
@@ -363,7 +363,7 @@ struct Step2SplitConfigView: View {
                 viewModel.splitEqualAndSave()
             } label: {
                 Text("Split Equal")
-                    .font(AppTypography.bodyBold())
+                    .font(AppTypography.headingMedium())
                     .foregroundColor(AppColors.textPrimary)
                     .frame(maxWidth: .infinity)
                     .frame(height: ButtonHeight.xl)

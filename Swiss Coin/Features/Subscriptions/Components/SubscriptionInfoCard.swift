@@ -19,7 +19,7 @@ struct SubscriptionInfoCard: View {
                     .frame(width: 44, height: 44)
                     .overlay(
                         Image(systemName: subscription.iconName ?? "person.2.circle.fill")
-                            .font(.system(size: 20))
+                            .font(.system(size: IconSize.md))
                             .foregroundColor(Color(hex: subscription.colorHex ?? "#007AFF"))
                     )
 

@@ -100,12 +100,12 @@ struct GroupTransactionCardView: View {
 
             VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text(transaction.title ?? "Expense")
-                    .font(AppTypography.body())
+                    .font(AppTypography.bodyLarge())
                     .foregroundColor(AppColors.textPrimary)
                     .lineLimit(1)
 
                 Text(metaText)
-                    .font(AppTypography.footnote())
+                    .font(AppTypography.bodySmall())
                     .foregroundColor(AppColors.textSecondary)
                     .lineLimit(1)
             }
@@ -114,7 +114,7 @@ struct GroupTransactionCardView: View {
 
             VStack(alignment: .trailing, spacing: Spacing.xxs) {
                 Text(amountText)
-                    .font(AppTypography.amount())
+                    .font(AppTypography.financialDefault())
                     .foregroundColor(amountColor)
 
                 (Text(totalAmountText).fontWeight(.bold) + Text(" / \(splitCountText)"))

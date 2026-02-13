@@ -68,7 +68,7 @@ struct GroupSettlementView: View {
                     // Header
                     VStack(spacing: Spacing.sm) {
                         Text("Settle Up in \(group.name ?? "Group")")
-                            .font(AppTypography.headline())
+                            .font(AppTypography.headingMedium())
                             .foregroundColor(AppColors.textPrimary)
                     }
                     .padding(.top, Spacing.xl)
@@ -82,11 +82,11 @@ struct GroupSettlementView: View {
                                 .foregroundColor(AppColors.positive)
 
                             Text("All settled up!")
-                                .font(AppTypography.title2())
+                                .font(AppTypography.displayMedium())
                                 .foregroundColor(AppColors.textPrimary)
 
                             Text("There are no outstanding balances in this group.")
-                                .font(AppTypography.body())
+                                .font(AppTypography.bodyLarge())
                                 .foregroundColor(AppColors.textSecondary)
                                 .multilineTextAlignment(.center)
                                 .padding(.horizontal, Spacing.xxl)
@@ -96,7 +96,7 @@ struct GroupSettlementView: View {
                         // Member Picker
                         VStack(alignment: .leading, spacing: Spacing.md) {
                             Text("Select Member")
-                                .font(AppTypography.subheadlineMedium())
+                                .font(AppTypography.labelLarge())
                                 .foregroundColor(AppColors.textSecondary)
                                 .padding(.horizontal, Spacing.xxl)
 
@@ -127,11 +127,11 @@ struct GroupSettlementView: View {
                                 // Direction and Balance Info
                                 VStack(spacing: Spacing.sm) {
                                     Text(directionText)
-                                        .font(AppTypography.headline())
+                                        .font(AppTypography.headingMedium())
                                         .foregroundColor(AppColors.textPrimary)
 
                                     Text("Current balance: \(formattedBalance)")
-                                        .font(AppTypography.subheadline())
+                                        .font(AppTypography.bodyDefault())
                                         .foregroundColor(AppColors.textSecondary)
                                 }
 
@@ -144,7 +144,7 @@ struct GroupSettlementView: View {
                                         Image(systemName: "checkmark.circle.fill")
                                             .font(.system(size: IconSize.md))
                                         Text("Settle Full Amount")
-                                            .font(AppTypography.bodyBold())
+                                            .font(AppTypography.headingMedium())
                                     }
                                     .foregroundColor(AppColors.buttonForeground)
                                     .frame(maxWidth: .infinity)
@@ -172,12 +172,12 @@ struct GroupSettlementView: View {
                                 // Custom Amount Section
                                 VStack(alignment: .leading, spacing: Spacing.md) {
                                     Text("Custom Amount")
-                                        .font(AppTypography.subheadlineMedium())
+                                        .font(AppTypography.labelLarge())
                                         .foregroundColor(AppColors.textSecondary)
 
                                     TextField("$0.00", text: $customAmount)
                                         .keyboardType(.decimalPad)
-                                        .font(AppTypography.title2())
+                                        .font(AppTypography.displayMedium())
                                         .multilineTextAlignment(.center)
                                         .padding(Spacing.lg)
                                         .background(
@@ -203,12 +203,12 @@ struct GroupSettlementView: View {
                                 // Note Field
                                 VStack(alignment: .leading, spacing: Spacing.md) {
                                     Text("Note (optional)")
-                                        .font(AppTypography.subheadlineMedium())
+                                        .font(AppTypography.labelLarge())
                                         .foregroundColor(AppColors.textSecondary)
 
                                     TextField("Add a note...", text: $note)
                                         .limitTextLength(to: ValidationLimits.maxNoteLength, text: $note)
-                                        .font(AppTypography.body())
+                                        .font(AppTypography.bodyLarge())
                                         .padding(Spacing.lg)
                                         .background(
                                             RoundedRectangle(cornerRadius: CornerRadius.md)
@@ -223,7 +223,7 @@ struct GroupSettlementView: View {
                                     settleCustomAmount()
                                 } label: {
                                     Text("Confirm Settlement")
-                                        .font(AppTypography.bodyBold())
+                                        .font(AppTypography.headingMedium())
                                         .foregroundColor(AppColors.buttonForeground)
                                         .frame(maxWidth: .infinity)
                                         .frame(height: ButtonHeight.lg)
@@ -375,7 +375,7 @@ private struct MemberBalanceChip: View {
                     .frame(width: AvatarSize.lg, height: AvatarSize.lg)
                     .overlay(
                         Text(member.initials)
-                            .font(AppTypography.headline())
+                            .font(AppTypography.headingMedium())
                             .foregroundColor(Color(hex: member.colorHex ?? CurrentUser.defaultColorHex))
                     )
                     .overlay(
@@ -389,7 +389,7 @@ private struct MemberBalanceChip: View {
                     .lineLimit(1)
 
                 balanceTextView
-                    .font(AppTypography.caption2())
+                    .font(AppTypography.labelSmall())
                     .foregroundColor(balanceColor)
                     .lineLimit(1)
             }

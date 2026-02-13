@@ -141,7 +141,7 @@ struct PrivacySecurityView: View {
                     // Security Section
                     VStack(alignment: .leading, spacing: Spacing.md) {
                         Text("Security")
-                            .font(AppTypography.headline())
+                            .font(AppTypography.headingMedium())
                             .foregroundColor(AppColors.textPrimary)
                             .padding(.horizontal, Spacing.sm)
 
@@ -150,12 +150,12 @@ struct PrivacySecurityView: View {
                             if viewModel.biometricType != .none {
                                 HStack(spacing: Spacing.md) {
                                     Image(systemName: viewModel.biometricIcon)
-                                        .font(.system(size: 16))
+                                        .font(.system(size: IconSize.sm))
                                         .foregroundColor(AppColors.accent)
                                         .frame(width: 28)
 
                                     Text(viewModel.biometricLabel)
-                                        .font(AppTypography.body())
+                                        .font(AppTypography.bodyLarge())
                                         .foregroundColor(AppColors.textPrimary)
 
                                     Spacer()
@@ -181,12 +181,12 @@ struct PrivacySecurityView: View {
                             // PIN Toggle
                             HStack(spacing: Spacing.md) {
                                 Image(systemName: "lock.fill")
-                                    .font(.system(size: 16))
+                                    .font(.system(size: IconSize.sm))
                                     .foregroundColor(AppColors.accent)
                                     .frame(width: 28)
 
                                 Text("PIN Lock")
-                                    .font(AppTypography.body())
+                                    .font(AppTypography.bodyLarge())
                                     .foregroundColor(AppColors.textPrimary)
 
                                 Spacer()
@@ -212,12 +212,12 @@ struct PrivacySecurityView: View {
 
                                 HStack(spacing: Spacing.md) {
                                     Image(systemName: "timer")
-                                        .font(.system(size: 16))
+                                        .font(.system(size: IconSize.sm))
                                         .foregroundColor(AppColors.accent)
                                         .frame(width: 28)
 
                                     Text("Auto-Lock")
-                                        .font(AppTypography.body())
+                                        .font(AppTypography.bodyLarge())
                                         .foregroundColor(AppColors.textPrimary)
 
                                     Spacer()
@@ -248,19 +248,19 @@ struct PrivacySecurityView: View {
                     // Privacy Section
                     VStack(alignment: .leading, spacing: Spacing.md) {
                         Text("Privacy")
-                            .font(AppTypography.headline())
+                            .font(AppTypography.headingMedium())
                             .foregroundColor(AppColors.textPrimary)
                             .padding(.horizontal, Spacing.sm)
 
                         VStack(spacing: 0) {
                             HStack(spacing: Spacing.md) {
                                 Image(systemName: "dollarsign.circle")
-                                    .font(.system(size: 16))
+                                    .font(.system(size: IconSize.sm))
                                     .foregroundColor(AppColors.accent)
                                     .frame(width: 28)
 
                                 Text("Show Balance to Contacts")
-                                    .font(AppTypography.body())
+                                    .font(AppTypography.bodyLarge())
                                     .foregroundColor(AppColors.textPrimary)
 
                                 Spacer()
@@ -280,12 +280,12 @@ struct PrivacySecurityView: View {
 
                             HStack(spacing: Spacing.md) {
                                 Image(systemName: "clock")
-                                    .font(.system(size: 16))
+                                    .font(.system(size: IconSize.sm))
                                     .foregroundColor(AppColors.accent)
                                     .frame(width: 28)
 
                                 Text("Show Last Seen")
-                                    .font(AppTypography.body())
+                                    .font(AppTypography.bodyLarge())
                                     .foregroundColor(AppColors.textPrimary)
 
                                 Spacer()
@@ -314,18 +314,18 @@ struct PrivacySecurityView: View {
                     // Data Section
                     VStack(alignment: .leading, spacing: Spacing.md) {
                         Text("Data")
-                            .font(AppTypography.headline())
+                            .font(AppTypography.headingMedium())
                             .foregroundColor(AppColors.textPrimary)
                             .padding(.horizontal, Spacing.sm)
 
                         HStack(spacing: Spacing.md) {
                             Image(systemName: "chart.bar.fill")
-                                .font(.system(size: 16))
+                                .font(.system(size: IconSize.sm))
                                 .foregroundColor(AppColors.accent)
                                 .frame(width: 28)
 
                             Text("Share Analytics")
-                                .font(AppTypography.body())
+                                .font(AppTypography.bodyLarge())
                                 .foregroundColor(AppColors.textPrimary)
 
                             Spacer()
@@ -353,7 +353,7 @@ struct PrivacySecurityView: View {
                     // Danger Zone
                     VStack(alignment: .leading, spacing: Spacing.md) {
                         Text("Danger Zone")
-                            .font(AppTypography.headline())
+                            .font(AppTypography.headingMedium())
                             .foregroundColor(AppColors.negative)
                             .padding(.horizontal, Spacing.sm)
 
@@ -363,18 +363,18 @@ struct PrivacySecurityView: View {
                         } label: {
                             HStack(spacing: Spacing.md) {
                                 Image(systemName: "trash.fill")
-                                    .font(.system(size: 16))
+                                    .font(.system(size: IconSize.sm))
                                     .foregroundColor(AppColors.negative)
                                     .frame(width: 28)
 
                                 Text("Clear All Data")
-                                    .font(AppTypography.body())
+                                    .font(AppTypography.bodyLarge())
                                     .foregroundColor(AppColors.negative)
 
                                 Spacer()
 
                                 Image(systemName: "chevron.right")
-                                    .font(.system(size: 14))
+                                    .font(.system(size: IconSize.sm))
                                     .foregroundColor(AppColors.textTertiary)
                             }
                             .padding(.horizontal, Spacing.lg)
@@ -451,15 +451,15 @@ struct PINSetupView: View {
                 Spacer()
 
                 Image(systemName: "lock.shield.fill")
-                    .font(.system(size: 64))
+                    .font(.system(size: IconSize.xxl))
                     .foregroundColor(AppColors.accent)
 
                 Text(step == .enter ? "Create PIN" : "Confirm PIN")
-                    .font(AppTypography.title2())
+                    .font(AppTypography.displayMedium())
                     .foregroundColor(AppColors.textPrimary)
 
                 Text(step == .enter ? "Enter a 6-digit PIN" : "Re-enter your PIN")
-                    .font(AppTypography.subheadline())
+                    .font(AppTypography.bodyDefault())
                     .foregroundColor(AppColors.textSecondary)
 
                 HStack(spacing: Spacing.md) {

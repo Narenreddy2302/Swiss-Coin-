@@ -45,11 +45,11 @@ struct TransactionBubbleView: View {
                 // Bubble content
                 VStack(alignment: .leading, spacing: 6) {
                     Text(transaction.title ?? "Unknown")
-                        .font(AppTypography.subheadlineMedium())
+                        .font(AppTypography.labelLarge())
                         .foregroundColor(isFromUser ? AppColors.userBubbleText : AppColors.otherBubbleText)
 
                     Text(amountText)
-                        .font(AppTypography.amountSmall())
+                        .font(AppTypography.financialSmall())
                         .foregroundColor(isFromUser ? AppColors.userBubbleText.opacity(0.7) : AppColors.otherBubbleText.opacity(0.7))
                 }
                 .padding(.horizontal, 14)
@@ -62,7 +62,7 @@ struct TransactionBubbleView: View {
                 // Timestamp
                 if showTimestamp {
                     Text(transaction.date ?? Date(), style: .time)
-                        .font(AppTypography.caption2())
+                        .font(AppTypography.labelSmall())
                         .foregroundColor(AppColors.textSecondary)
                         .padding(.horizontal, 4)
                 }

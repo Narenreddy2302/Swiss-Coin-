@@ -136,13 +136,13 @@ private struct ArchivedSubscriptionRow: View {
             // Info
             VStack(alignment: .leading, spacing: 2) {
                 Text(subscription.name ?? "Unknown")
-                    .font(AppTypography.body())
+                    .font(AppTypography.bodyLarge())
                     .foregroundColor(AppColors.textPrimary)
                     .lineLimit(1)
 
                 HStack(spacing: Spacing.xs) {
                     Text(CurrencyFormatter.format(subscription.amount))
-                        .font(AppTypography.subheadline())
+                        .font(AppTypography.bodyDefault())
                         .foregroundColor(AppColors.textSecondary)
 
                     Text("/\(subscription.cycle ?? "month")")
@@ -215,11 +215,11 @@ private struct EmptyArchivedView: View {
                 .accessibilityHidden(true)
 
             Text("No Archived Subscriptions")
-                .font(AppTypography.title2())
+                .font(AppTypography.displayMedium())
                 .foregroundColor(AppColors.textPrimary)
 
             Text("Subscriptions you archive will appear here. You can restore them at any time.")
-                .font(AppTypography.subheadline())
+                .font(AppTypography.bodyDefault())
                 .foregroundColor(AppColors.textSecondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, Spacing.xxl)

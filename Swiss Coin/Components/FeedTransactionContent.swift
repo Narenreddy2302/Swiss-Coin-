@@ -233,7 +233,7 @@ struct FeedTransactionContent: View {
             Text("SPLIT BREAKDOWN")
                 .font(AppTypography.labelSmall())
                 .foregroundColor(AppColors.textTertiary)
-                .tracking(0.5)
+                .tracking(AppTypography.Tracking.labelSmall)
                 .padding(.bottom, Spacing.xxs)
 
             ForEach(sortedSplits, id: \.objectID) { split in
