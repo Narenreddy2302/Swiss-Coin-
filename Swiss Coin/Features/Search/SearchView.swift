@@ -172,8 +172,10 @@ struct SearchView: View {
                 set: { if !$0 { selectedTransaction = nil } }
             )) {
                 if let transaction = selectedTransaction {
-                    TransactionExpandedView(transaction: transaction)
-                        .environment(\.managedObjectContext, viewContext)
+                    NavigationStack {
+                        TransactionDetailView(transaction: transaction)
+                    }
+                    .environment(\.managedObjectContext, viewContext)
                 }
             }
         }
@@ -214,7 +216,7 @@ struct SearchView: View {
                         Text(filter.rawValue)
                             .font(AppTypography.labelLarge())
                             .foregroundColor(selectedFilter == filter ? AppColors.buttonForeground : AppColors.textSecondary)
-                            .frame(height: 34)
+                            .frame(height: ButtonHeight.sm)
                             .padding(.horizontal, Spacing.md)
                             .background(
                                 selectedFilter == filter
@@ -527,7 +529,7 @@ private struct SearchGroupRow: View {
                 .frame(width: AvatarSize.lg, height: AvatarSize.lg)
                 .overlay(
                     Image(systemName: "person.3.fill")
-                        .font(AppTypography.headingMedium())
+                        .font(.system(size: IconSize.md, weight: .medium))
                         .foregroundColor(Color(hex: group.colorHex ?? "#007AFF"))
                 )
 
@@ -562,7 +564,7 @@ private struct SearchSubscriptionRow: View {
                 .frame(width: AvatarSize.lg, height: AvatarSize.lg)
                 .overlay(
                     Image(systemName: subscription.iconName ?? "creditcard.fill")
-                        .font(AppTypography.headingMedium())
+                        .font(.system(size: IconSize.md, weight: .medium))
                         .foregroundColor(Color(hex: subscription.colorHex ?? "#FF9500"))
                 )
 

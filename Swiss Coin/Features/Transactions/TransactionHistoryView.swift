@@ -93,8 +93,10 @@ struct TransactionHistoryView: View {
                 set: { if !$0 { selectedTransaction = nil } }
             )) {
                 if let transaction = selectedTransaction {
-                    TransactionExpandedView(transaction: transaction)
-                        .environment(\.managedObjectContext, viewContext)
+                    NavigationStack {
+                        TransactionDetailView(transaction: transaction)
+                    }
+                    .environment(\.managedObjectContext, viewContext)
                 }
             }
             .navigationTitle("History")
@@ -123,12 +125,12 @@ struct TransactionHistoryView: View {
         VStack(spacing: Spacing.lg) {
             Spacer()
 
-            RoundedRectangle(cornerRadius: CornerRadius.lg)
+            RoundedRectangle(cornerRadius: CornerRadius.card)
                 .fill(AppColors.backgroundTertiary)
                 .frame(width: AvatarSize.xl, height: AvatarSize.xl)
                 .overlay(
                     Image(systemName: "arrow.left.arrow.right.circle")
-                        .font(.system(size: 32, weight: .medium))
+                        .font(.system(size: IconSize.xl, weight: .medium))
                         .foregroundColor(AppColors.textSecondary)
                 )
 
@@ -215,9 +217,9 @@ struct TransactionHistoryView: View {
         .padding(.horizontal, Spacing.lg)
         .padding(.vertical, Spacing.lg)
         .background(
-            RoundedRectangle(cornerRadius: CornerRadius.md)
+            RoundedRectangle(cornerRadius: CornerRadius.card)
                 .fill(AppColors.cardBackground)
-                .shadow(color: Color.black.opacity(0.06), radius: 6, x: 0, y: 2)
+                .shadow(color: Color.black.opacity(0.04), radius: 8, x: 0, y: 2)
         )
     }
 
@@ -266,9 +268,9 @@ struct TransactionHistoryView: View {
                 }
             }
             .background(
-                RoundedRectangle(cornerRadius: CornerRadius.md)
+                RoundedRectangle(cornerRadius: CornerRadius.card)
                     .fill(AppColors.cardBackground)
-                    .shadow(color: Color.black.opacity(0.06), radius: 6, x: 0, y: 2)
+                    .shadow(color: Color.black.opacity(0.04), radius: 8, x: 0, y: 2)
             )
         }
     }
