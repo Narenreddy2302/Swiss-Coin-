@@ -2,8 +2,9 @@
 //  TransactionDetailView.swift
 //  Swiss Coin
 //
-//  Redesigned transaction detail page — clean, modern card-based layout
-//  with hero amount, status badge, details card, and split breakdown.
+//  Redesigned transaction detail page — matches the clean, card-based
+//  design with hero amount, settled badge, details card, split breakdown,
+//  and action buttons.
 //
 
 import CoreData
@@ -17,7 +18,7 @@ struct TransactionExpandedView: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        TransactionDetailContent()
+        TransactionDetailContent(transaction: transaction)
             .presentationDetents([.large])
             .presentationDragIndicator(.visible)
             .presentationCornerRadius(CornerRadius.xl)
@@ -32,21 +33,27 @@ struct TransactionDetailView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dismiss) var dismiss
+    @State private var showEditSheet = false
 
     var body: some View {
-        TransactionDetailContent()
+        TransactionDetailContent(transaction: transaction)
             .background(AppColors.backgroundSecondary)
             .navigationTitle("Transaction Details")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     Button {
+                        showEditSheet = true
                     } label: {
-                        Image(systemName: "pencil")
-                            .font(.system(size: 16, weight: .medium))
-                            .foregroundColor(AppColors.textPrimary)
+                        Text("Edit")
+                            .font(AppTypography.bodyDefault())
+                            .foregroundColor(AppColors.accent)
                     }
                 }
+            }
+            .sheet(isPresented: $showEditSheet) {
+                TransactionEditView(transaction: transaction)
+                    .environment(\.managedObjectContext, viewContext)
             }
     }
 }
@@ -54,12 +61,20 @@ struct TransactionDetailView: View {
 // MARK: - Shared Transaction Detail Content
 
 private struct TransactionDetailContent: View {
+    @ObservedObject var transaction: FinancialTransaction
+    @Environment(\.managedObjectContext) private var viewContext
+    @State private var showDeleteConfirmation = false
+
+    private var snapshot: TransactionSnapshot {
+        TransactionSnapshot.build(from: transaction)
+    }
+
     var body: some View {
         ScrollView(showsIndicators: false) {
             VStack(spacing: Spacing.lg) {
                 heroSection
 
-                statusBadge
+                settledBadge
 
                 detailsCard
 
@@ -72,23 +87,31 @@ private struct TransactionDetailContent: View {
             .padding(.bottom, Spacing.section)
         }
         .scrollBounceBehavior(.basedOnSize)
+        .alert("Delete Transaction", isPresented: $showDeleteConfirmation) {
+            Button("Cancel", role: .cancel) {}
+            Button("Delete", role: .destructive) {
+                deleteTransaction()
+            }
+        } message: {
+            Text("Are you sure you want to delete this transaction? This action cannot be undone.")
+        }
     }
 
     // MARK: - Hero Section
 
     private var heroSection: some View {
         VStack(spacing: 6) {
-            Text("$250.00")
+            Text(CurrencyFormatter.format(snapshot.totalAmount))
                 .font(.system(size: 42, weight: .bold, design: .rounded))
                 .monospacedDigit()
                 .tracking(-0.5)
                 .foregroundColor(AppColors.textPrimary)
 
-            Text("Dinner at Restaurant")
+            Text(snapshot.title)
                 .font(AppTypography.bodyLarge())
                 .foregroundColor(AppColors.textSecondary)
 
-            Text("Jan 15, 2025 • 7:30 PM")
+            Text(formattedDateOnly)
                 .font(AppTypography.bodySmall())
                 .foregroundColor(AppColors.textTertiary)
         }
@@ -96,19 +119,34 @@ private struct TransactionDetailContent: View {
         .padding(.vertical, Spacing.xl)
     }
 
-    // MARK: - Status Badge
+    private var formattedDateOnly: String {
+        guard let date = transaction.date else { return "Unknown date" }
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMM d, yyyy"
+        return formatter.string(from: date)
+    }
 
-    private var statusBadge: some View {
-        Text("You are owed $75.00")
-            .font(AppTypography.labelLarge())
-            .foregroundColor(AppColors.positive)
-            .padding(.horizontal, Spacing.lg)
-            .padding(.vertical, Spacing.sm)
-            .background(
-                Capsule()
-                    .fill(AppColors.positive.opacity(0.12))
-            )
-            .padding(.bottom, Spacing.xs)
+    // MARK: - Settled Badge
+
+    private var settledBadge: some View {
+        let isSettled = abs(snapshot.userNetAmount) < 0.01
+
+        return HStack(spacing: 6) {
+            Circle()
+                .fill(isSettled ? AppColors.positive : AppColors.warning)
+                .frame(width: 8, height: 8)
+
+            Text(isSettled ? "Settled" : snapshot.statusText)
+                .font(AppTypography.labelLarge())
+                .foregroundColor(isSettled ? AppColors.positive : AppColors.warning)
+        }
+        .padding(.horizontal, Spacing.lg)
+        .padding(.vertical, Spacing.sm)
+        .background(
+            Capsule()
+                .fill((isSettled ? AppColors.positive : AppColors.warning).opacity(0.12))
+        )
+        .padding(.bottom, Spacing.xs)
     }
 
     // MARK: - Details Card
@@ -121,19 +159,52 @@ private struct TransactionDetailContent: View {
                 .padding(.bottom, Spacing.lg)
 
             // Paid by
-            detailRow(label: "Paid by", value: "You", trailingBadge: "$250.00")
+            detailRow(
+                icon: "person.fill",
+                iconColor: AppColors.accent,
+                label: "Paid by",
+                value: snapshot.payerName
+            )
             cardDivider
 
             // Split method
-            detailRow(label: "Split method", value: "Equal")
+            detailRow(
+                icon: "equal.circle.fill",
+                iconColor: .blue,
+                label: "Split method",
+                value: snapshot.splitMethodName
+            )
             cardDivider
 
-            // Group
-            detailRow(label: "Group", value: "Weekend Trip")
-            cardDivider
+            // Category
+            detailRow(
+                icon: "fork.knife",
+                iconColor: .orange,
+                label: "Category",
+                value: "Food & Dining"
+            )
 
-            // Note
-            detailRow(label: "Note", value: "Birthday celebration dinner")
+            // Group (if exists)
+            if let groupName = snapshot.groupName {
+                cardDivider
+                detailRow(
+                    icon: "person.3.fill",
+                    iconColor: .purple,
+                    label: "Group",
+                    value: groupName
+                )
+            }
+
+            // Note (if exists)
+            if let note = snapshot.note {
+                cardDivider
+                detailRow(
+                    icon: "note.text",
+                    iconColor: AppColors.textTertiary,
+                    label: "Note",
+                    value: note
+                )
+            }
         }
         .padding(Spacing.cardPadding)
         .background(
@@ -143,33 +214,25 @@ private struct TransactionDetailContent: View {
         )
     }
 
-    private func detailRow(label: String, value: String, trailingBadge: String? = nil) -> some View {
-        HStack {
+    private func detailRow(icon: String, iconColor: Color, label: String, value: String) -> some View {
+        HStack(spacing: Spacing.md) {
+            Image(systemName: icon)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundColor(iconColor)
+                .frame(width: 20, alignment: .center)
+
             Text(label)
                 .font(AppTypography.bodyDefault())
                 .foregroundColor(AppColors.textSecondary)
 
             Spacer()
 
-            HStack(spacing: Spacing.sm) {
-                Text(value)
-                    .font(AppTypography.labelLarge())
-                    .foregroundColor(AppColors.textPrimary)
-
-                if let badge = trailingBadge {
-                    Text(badge)
-                        .font(AppTypography.labelDefault())
-                        .foregroundColor(AppColors.accent)
-                        .padding(.horizontal, Spacing.sm)
-                        .padding(.vertical, Spacing.xs)
-                        .background(
-                            Capsule()
-                                .fill(AppColors.accent.opacity(0.12))
-                        )
-                }
-            }
+            Text(value)
+                .font(AppTypography.labelLarge())
+                .foregroundColor(AppColors.textPrimary)
+                .multilineTextAlignment(.trailing)
         }
-        .padding(.vertical, Spacing.sm)
+        .padding(.vertical, Spacing.sm + 2)
     }
 
     private var cardDivider: some View {
@@ -187,13 +250,20 @@ private struct TransactionDetailContent: View {
                 .foregroundColor(AppColors.textSecondary)
                 .padding(.bottom, Spacing.lg)
 
-            splitRow(initials: "ME", name: "You", amount: "$62.50", color: AppColors.accent)
-            cardDivider
-            splitRow(initials: "AJ", name: "Alex Johnson", amount: "$62.50", color: .blue)
-            cardDivider
-            splitRow(initials: "SW", name: "Sarah Wilson", amount: "$62.50", color: .purple)
-            cardDivider
-            splitRow(initials: "MC", name: "Mike Chen", amount: "$62.50", color: .teal)
+            let splits = snapshot.sortedSplits
+            ForEach(Array(splits.enumerated()), id: \.offset) { index, split in
+                splitRow(
+                    initials: split.initials,
+                    name: split.name,
+                    amount: CurrencyFormatter.format(split.amount),
+                    colorHex: split.colorHex,
+                    isUser: split.isUser,
+                    isSettled: abs(snapshot.userNetAmount) < 0.01
+                )
+                if index < splits.count - 1 {
+                    cardDivider
+                }
+            }
         }
         .padding(Spacing.cardPadding)
         .background(
@@ -203,15 +273,18 @@ private struct TransactionDetailContent: View {
         )
     }
 
-    private func splitRow(initials: String, name: String, amount: String, color: Color) -> some View {
-        HStack(spacing: Spacing.md) {
+    private func splitRow(initials: String, name: String, amount: String, colorHex: String, isUser: Bool, isSettled: Bool) -> some View {
+        let avatarColor = Color(hex: colorHex)
+
+        return HStack(spacing: Spacing.md) {
+            // Avatar circle
             Circle()
-                .fill(color.opacity(0.15))
+                .fill(avatarColor.opacity(0.15))
                 .frame(width: 40, height: 40)
                 .overlay(
                     Text(initials)
                         .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(color)
+                        .foregroundColor(avatarColor)
                 )
 
             Text(name)
@@ -220,9 +293,24 @@ private struct TransactionDetailContent: View {
 
             Spacer()
 
-            Text(amount)
-                .font(AppTypography.labelLarge())
-                .foregroundColor(AppColors.textPrimary)
+            HStack(spacing: Spacing.sm) {
+                Text(amount)
+                    .font(AppTypography.labelLarge())
+                    .foregroundColor(AppColors.textPrimary)
+
+                // Show "Settled" badge for non-user participants when settled
+                if !isUser && isSettled {
+                    Text("Settled")
+                        .font(AppTypography.labelSmall())
+                        .foregroundColor(AppColors.positive)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(
+                            Capsule()
+                                .fill(AppColors.positive.opacity(0.12))
+                        )
+                }
+            }
         }
         .padding(.vertical, Spacing.sm)
     }
@@ -230,23 +318,35 @@ private struct TransactionDetailContent: View {
     // MARK: - Action Buttons
 
     private var actionButtons: some View {
-        VStack(spacing: Spacing.sm) {
+        let isSettled = abs(snapshot.userNetAmount) < 0.01
+
+        return VStack(spacing: Spacing.sm) {
+            // Mark as Settled / Unsettled button
             Button {
+                // Toggle settlement status
             } label: {
                 HStack(spacing: Spacing.sm) {
-                    Image(systemName: "pencil")
+                    Image(systemName: isSettled ? "arrow.uturn.backward" : "checkmark.circle")
                         .font(.system(size: 14, weight: .medium))
-                    Text("Edit Transaction")
+                    Text(isSettled ? "Mark as Unsettled" : "Mark as Settled")
                         .font(AppTypography.buttonDefault())
                 }
-                .foregroundColor(AppColors.textPrimary)
+                .foregroundColor(AppColors.accent)
                 .frame(maxWidth: .infinity)
                 .frame(height: ButtonHeight.md)
-                .background(AppColors.backgroundTertiary)
-                .clipShape(RoundedRectangle(cornerRadius: CornerRadius.button))
+                .background(
+                    RoundedRectangle(cornerRadius: CornerRadius.button)
+                        .strokeBorder(AppColors.accent.opacity(0.3), lineWidth: 1)
+                        .background(
+                            RoundedRectangle(cornerRadius: CornerRadius.button)
+                                .fill(AppColors.accent.opacity(0.06))
+                        )
+                )
             }
 
+            // Delete Transaction button
             Button {
+                showDeleteConfirmation = true
             } label: {
                 HStack(spacing: Spacing.sm) {
                     Image(systemName: "trash")
@@ -257,11 +357,24 @@ private struct TransactionDetailContent: View {
                 .foregroundColor(AppColors.negative)
                 .frame(maxWidth: .infinity)
                 .frame(height: ButtonHeight.md)
-                .background(AppColors.negative.opacity(0.08))
-                .clipShape(RoundedRectangle(cornerRadius: CornerRadius.button))
+                .background(
+                    RoundedRectangle(cornerRadius: CornerRadius.button)
+                        .fill(AppColors.negative.opacity(0.08))
+                )
             }
         }
         .padding(.top, Spacing.sm)
+    }
+
+    // MARK: - Actions
+
+    private func deleteTransaction() {
+        viewContext.delete(transaction)
+        do {
+            try viewContext.save()
+        } catch {
+            viewContext.rollback()
+        }
     }
 }
 
