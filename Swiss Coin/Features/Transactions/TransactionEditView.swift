@@ -797,14 +797,17 @@ struct TransactionEditView: View {
         } label: {
             Text("Update Transaction")
                 .font(AppTypography.buttonLarge())
-                .foregroundColor(AppColors.onAccent)
+                .foregroundColor(viewModel.isValid ? AppColors.buttonForeground : AppColors.textSecondary)
                 .frame(maxWidth: .infinity)
                 .frame(height: ButtonHeight.lg)
-                .background(AppColors.accent)
-                .cornerRadius(CornerRadius.button)
+                .background(
+                    RoundedRectangle(cornerRadius: CornerRadius.button)
+                        .fill(viewModel.isValid ? AppColors.buttonBackground : AppColors.disabled)
+                )
         }
         .disabled(!viewModel.isValid)
-        .opacity(viewModel.isValid ? 1.0 : 0.5)
+        .opacity(viewModel.isValid ? 1.0 : 0.6)
+        .animation(AppAnimation.standard, value: viewModel.isValid)
     }
 }
 
