@@ -112,7 +112,7 @@ struct TransactionDetailSheet: View {
                 .font(AppTypography.bodyDefault())
                 .foregroundColor(AppColors.textSecondary)
 
-            Text(FinancialFormatter.signedCurrency(snapshot.userNetAmount))
+            Text(FinancialFormatter.signedCurrency(snapshot.userNetAmount, currencyCode: snapshot.currencyCode))
                 .font(AppTypography.financialHero())
                 .foregroundColor(snapshot.netAmountColor)
 
