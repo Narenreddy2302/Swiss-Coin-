@@ -287,7 +287,7 @@ final class TransactionViewModel: ObservableObject {
             let totalPercent = selectedParticipants.reduce(0.0) { sum, person in
                 sum + (Double(rawInputs[person.id ?? UUID()] ?? "0") ?? 0)
             }
-            return abs(totalPercent - 100.0) < 0.1
+            return abs(totalPercent - 100.0) < 0.01
 
         case .amount:
             let totalExact = selectedParticipants.reduce(0.0) { sum, person in
@@ -334,7 +334,7 @@ final class TransactionViewModel: ObservableObject {
             let totalPercent = selectedParticipants.reduce(0.0) { sum, person in
                 sum + (Double(rawInputs[person.id ?? UUID()] ?? "0") ?? 0)
             }
-            if abs(totalPercent - 100.0) >= 0.1 {
+            if abs(totalPercent - 100.0) >= 0.01 {
                 return "Percentages must add up to 100%"
             }
         case .amount:
@@ -367,6 +367,28 @@ final class TransactionViewModel: ObservableObject {
 
     // MARK: - Actions
 
+    /// Initialize sensible default raw inputs when switching split methods.
+    /// Prevents empty fields when changing between methods.
+    func initializeDefaultRawInputs(for method: SplitMethod) {
+        rawInputs = [:]
+        let count = max(1, selectedParticipants.count)
+        for person in selectedParticipants {
+            guard let personId = person.id else { continue }
+            switch method {
+            case .equal:
+                break
+            case .percentage:
+                rawInputs[personId] = String(format: "%.1f", 100.0 / Double(count))
+            case .shares:
+                rawInputs[personId] = "1"
+            case .amount:
+                rawInputs[personId] = String(format: "%.2f", totalAmountDouble / Double(count))
+            case .adjustment:
+                rawInputs[personId] = "0"
+            }
+        }
+    }
+
     /// Toggle a participant's selection
     func toggleParticipant(_ person: Person) {
         if selectedParticipants.contains(person) {
@@ -396,6 +418,7 @@ final class TransactionViewModel: ObservableObject {
         let sortedPeople = selectedParticipants.sorted { ($0.name ?? "") < ($1.name ?? "") }
         guard let index = sortedPeople.firstIndex(of: person) else { return 0 }
 
+        guard totalAmountDouble < 10_000_000 else { return 0 }
         let totalCents = Int(totalAmountDouble * 100)
 
         switch splitMethod {

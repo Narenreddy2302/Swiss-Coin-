@@ -11,6 +11,10 @@ struct AddTransactionView: View {
     @FocusState private var focusedField: FocusField?
 
     @AppStorage("default_currency") private var selectedCurrency: String = "USD"
+    @State private var activeCurrency: Currency = Currency.fromGlobalSetting()
+    @State private var showCurrencyPicker = false
+    @State private var showSaveError = false
+    @State private var saveErrorMessage = ""
 
     var initialParticipant: Person?
     var initialGroup: UserGroup?
@@ -46,6 +50,7 @@ struct AddTransactionView: View {
                         paidByBreakdownSection
                     }
                     breakdownSection
+                    noteSection
                     validationSection
                     saveButton
                 }
@@ -75,6 +80,17 @@ struct AddTransactionView: View {
                 }
             }
             .presentationDetents([.large])
+            .sheet(isPresented: $showCurrencyPicker) {
+                CurrencyPickerSheet(selectedCurrency: $activeCurrency, isPresented: $showCurrencyPicker)
+            }
+            .onChange(of: activeCurrency) { newCurrency in
+                selectedCurrency = newCurrency.code
+            }
+            .alert("Save Failed", isPresented: $showSaveError) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(saveErrorMessage)
+            }
         }
     }
 
@@ -169,9 +185,23 @@ struct AddTransactionView: View {
                 .frame(height: 28)
                 .padding(.horizontal, Spacing.md)
 
-            Text(CurrencyFormatter.currencySymbol)
-                .font(AppTypography.bodyLarge())
-                .foregroundColor(AppColors.textSecondary)
+            Button {
+                HapticManager.tap()
+                showCurrencyPicker = true
+            } label: {
+                HStack(spacing: Spacing.xs) {
+                    Text(activeCurrency.flag)
+                        .font(AppTypography.bodyDefault())
+                    Text(activeCurrency.symbol)
+                        .font(AppTypography.bodyLarge())
+                        .foregroundColor(AppColors.textSecondary)
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: IconSize.xs, weight: .medium))
+                        .foregroundColor(AppColors.textTertiary)
+                }
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Select currency")
 
             TextField("0.00", text: $viewModel.totalAmount)
                 .font(AppTypography.financialLarge())
@@ -181,6 +211,17 @@ struct AddTransactionView: View {
                 .focused($focusedField, equals: .amount)
                 .limitTextLength(to: 12, text: $viewModel.totalAmount)
                 .frame(minWidth: 80)
+                .onChange(of: viewModel.totalAmount) { newValue in
+                    var filtered = newValue.filter { "0123456789.".contains($0) }
+                    if let firstDot = filtered.firstIndex(of: ".") {
+                        let afterDot = filtered[filtered.index(after: firstDot)...]
+                        let digitsAfterDot = afterDot.filter { $0 != "." }
+                        filtered = String(filtered[...firstDot]) + String(digitsAfterDot.prefix(2))
+                    }
+                    if filtered != newValue {
+                        viewModel.totalAmount = filtered
+                    }
+                }
         }
         .padding(.horizontal, Spacing.lg)
         .padding(.vertical, Spacing.md)
@@ -248,7 +289,6 @@ struct AddTransactionView: View {
             .padding(.vertical, Spacing.xs)
         }
     }
-
 
     private var paidBySearchResults: some View {
         ScrollView {
@@ -340,7 +380,6 @@ struct AddTransactionView: View {
             .padding(.vertical, Spacing.xs)
         }
     }
-
 
     private var splitWithSearchResults: some View {
         ScrollView {
@@ -462,9 +501,10 @@ struct AddTransactionView: View {
         let isSelected = viewModel.splitMethod == method
 
         return Button {
+            guard viewModel.splitMethod != method else { return }
             withAnimation(AppAnimation.standard) {
                 viewModel.splitMethod = method
-                viewModel.rawInputs = [:]
+                viewModel.initializeDefaultRawInputs(for: method)
             }
             HapticManager.selectionChanged()
         } label: {
@@ -503,10 +543,7 @@ struct AddTransactionView: View {
 
             let sortedPayers: [Person] = {
                 if viewModel.selectedPayerPersons.isEmpty {
-                    if let currentUser = try? viewContext.fetch(Person.fetchRequest()).first(where: { CurrentUser.isCurrentUser($0.id) }) {
-                        return [currentUser]
-                    }
-                    return []
+                    return [CurrentUser.getOrCreate(in: viewContext)]
                 }
                 return sortedByCurrentUser(viewModel.selectedPayerPersons)
             }()
@@ -552,7 +589,9 @@ struct AddTransactionView: View {
     }
 
     private func payerAmountBinding(for person: Person) -> Binding<String> {
-        let personId = person.id ?? UUID()
+        guard let personId = person.id else {
+            return .constant("")
+        }
         return Binding(
             get: { viewModel.payerAmounts[personId] ?? "" },
             set: { viewModel.payerAmounts[personId] = $0 }
@@ -569,6 +608,8 @@ struct AddTransactionView: View {
 
             if viewModel.selectedParticipants.isEmpty {
                 emptyBreakdownState
+            } else if viewModel.isTwoPartySplit && viewModel.splitMethod == .equal {
+                TwoPartySplitView(viewModel: viewModel)
             } else {
                 participantBreakdownList
             }
@@ -670,7 +711,9 @@ struct AddTransactionView: View {
     // MARK: - Breakdown Helpers
 
     private func rawInputBinding(for person: Person) -> Binding<String> {
-        let personId = person.id ?? UUID()
+        guard let personId = person.id else {
+            return .constant("")
+        }
         return Binding(
             get: { viewModel.rawInputs[personId] ?? "" },
             set: { viewModel.rawInputs[personId] = $0 }
@@ -678,11 +721,34 @@ struct AddTransactionView: View {
     }
 
     private func initializeAmountDefault(for person: Person) {
-        let personId = person.id ?? UUID()
+        guard let personId = person.id else { return }
         if (viewModel.rawInputs[personId] ?? "").isEmpty {
             let count = max(1, viewModel.selectedParticipants.count)
             let defaultAmount = viewModel.totalAmountDouble / Double(count)
             viewModel.rawInputs[personId] = String(format: "%.2f", defaultAmount)
+        }
+    }
+
+    // MARK: - Note Section
+
+    private var noteSection: some View {
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            Text("Note:")
+                .font(AppTypography.labelLarge())
+                .foregroundColor(AppColors.textPrimary)
+
+            TextField("Add a note (optional)", text: $viewModel.note, axis: .vertical)
+                .font(AppTypography.bodyDefault())
+                .foregroundColor(AppColors.textPrimary)
+                .lineLimit(1...4)
+                .padding(.horizontal, Spacing.lg)
+                .padding(.vertical, Spacing.md)
+                .background(AppColors.cardBackgroundElevated)
+                .cornerRadius(CornerRadius.sm)
+                .overlay(
+                    RoundedRectangle(cornerRadius: CornerRadius.sm)
+                        .stroke(AppColors.border, lineWidth: 1)
+                )
         }
     }
 
@@ -718,6 +784,9 @@ struct AddTransactionView: View {
             viewModel.saveTransaction { success in
                 if success {
                     dismiss()
+                } else {
+                    saveErrorMessage = viewModel.validationMessage ?? "Failed to save transaction. Please try again."
+                    showSaveError = true
                 }
             }
         } label: {
