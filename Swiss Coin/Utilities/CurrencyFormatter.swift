@@ -26,18 +26,19 @@ final class CurrencyFormatter {
         "USD": CurrencyConfig(code: "USD", locale: "en_US",  symbol: "$",   flag: "🇺🇸"),
         "EUR": CurrencyConfig(code: "EUR", locale: "de_DE",  symbol: "€",   flag: "🇪🇺"),
         "GBP": CurrencyConfig(code: "GBP", locale: "en_GB",  symbol: "£",   flag: "🇬🇧"),
-        "INR": CurrencyConfig(code: "INR", locale: "en_IN",  symbol: "₹",   flag: "🇮🇳"),
-        "CNY": CurrencyConfig(code: "CNY", locale: "zh_CN",  symbol: "¥",   flag: "🇨🇳"),
-        "JPY": CurrencyConfig(code: "JPY", locale: "ja_JP",  symbol: "¥",   flag: "🇯🇵"),
         "CHF": CurrencyConfig(code: "CHF", locale: "de_CH",  symbol: "CHF", flag: "🇨🇭"),
         "CAD": CurrencyConfig(code: "CAD", locale: "en_CA",  symbol: "CA$", flag: "🇨🇦"),
         "AUD": CurrencyConfig(code: "AUD", locale: "en_AU",  symbol: "A$",  flag: "🇦🇺"),
+        "JPY": CurrencyConfig(code: "JPY", locale: "ja_JP",  symbol: "¥",   flag: "🇯🇵"),
+        "INR": CurrencyConfig(code: "INR", locale: "en_IN",  symbol: "₹",   flag: "🇮🇳"),
+        "CNY": CurrencyConfig(code: "CNY", locale: "zh_CN",  symbol: "¥",   flag: "🇨🇳"),
         "KRW": CurrencyConfig(code: "KRW", locale: "ko_KR",  symbol: "₩",   flag: "🇰🇷"),
         "SGD": CurrencyConfig(code: "SGD", locale: "en_SG",  symbol: "S$",  flag: "🇸🇬"),
         "AED": CurrencyConfig(code: "AED", locale: "en_AE",  symbol: "د.إ", flag: "🇦🇪"),
         "BRL": CurrencyConfig(code: "BRL", locale: "pt_BR",  symbol: "R$",  flag: "🇧🇷"),
         "MXN": CurrencyConfig(code: "MXN", locale: "es_MX",  symbol: "MX$", flag: "🇲🇽"),
         "SEK": CurrencyConfig(code: "SEK", locale: "sv_SE",  symbol: "kr",  flag: "🇸🇪"),
+        "NZD": CurrencyConfig(code: "NZD", locale: "en_NZ",  symbol: "NZ$", flag: "🇳🇿"),
     ]
 
     // MARK: - Formatter Cache
@@ -98,6 +99,12 @@ final class CurrencyFormatter {
     /// The ISO 4217 currency code for the currently selected currency (e.g., "USD", "EUR")
     static var currencyCode: String {
         currentConfig.code
+    }
+
+    /// Whether the currently selected currency uses zero decimal places (e.g., JPY, KRW)
+    static var isZeroDecimalCurrency: Bool {
+        let code = selectedCode
+        return code == "JPY" || code == "KRW"
     }
 
     // MARK: - Public Methods

@@ -66,21 +66,22 @@ struct Currency: Identifiable, Hashable {
     let flag: String  // Country flag emoji
 
     static let all: [Currency] = [
-        Currency(id: "USD", code: "USD", symbol: "$",   name: "US Dollar",         flag: "🇺🇸"),
-        Currency(id: "EUR", code: "EUR", symbol: "€",   name: "Euro",              flag: "🇪🇺"),
-        Currency(id: "GBP", code: "GBP", symbol: "£",   name: "British Pound",     flag: "🇬🇧"),
-        Currency(id: "INR", code: "INR", symbol: "₹",   name: "Indian Rupee",      flag: "🇮🇳"),
-        Currency(id: "CNY", code: "CNY", symbol: "¥",   name: "Chinese Yuan",      flag: "🇨🇳"),
-        Currency(id: "JPY", code: "JPY", symbol: "¥",   name: "Japanese Yen",      flag: "🇯🇵"),
-        Currency(id: "CHF", code: "CHF", symbol: "CHF", name: "Swiss Franc",       flag: "🇨🇭"),
-        Currency(id: "CAD", code: "CAD", symbol: "CA$", name: "Canadian Dollar",   flag: "🇨🇦"),
-        Currency(id: "AUD", code: "AUD", symbol: "A$",  name: "Australian Dollar", flag: "🇦🇺"),
-        Currency(id: "KRW", code: "KRW", symbol: "₩",   name: "South Korean Won",  flag: "🇰🇷"),
-        Currency(id: "SGD", code: "SGD", symbol: "S$",  name: "Singapore Dollar",  flag: "🇸🇬"),
-        Currency(id: "AED", code: "AED", symbol: "د.إ", name: "UAE Dirham",        flag: "🇦🇪"),
-        Currency(id: "BRL", code: "BRL", symbol: "R$",  name: "Brazilian Real",    flag: "🇧🇷"),
-        Currency(id: "MXN", code: "MXN", symbol: "MX$", name: "Mexican Peso",      flag: "🇲🇽"),
-        Currency(id: "SEK", code: "SEK", symbol: "kr",  name: "Swedish Krona",     flag: "🇸🇪"),
+        Currency(id: "USD", code: "USD", symbol: "$",   name: "US Dollar",           flag: "🇺🇸"),
+        Currency(id: "EUR", code: "EUR", symbol: "€",   name: "Euro",                flag: "🇪🇺"),
+        Currency(id: "GBP", code: "GBP", symbol: "£",   name: "British Pound",       flag: "🇬🇧"),
+        Currency(id: "CHF", code: "CHF", symbol: "CHF", name: "Swiss Franc",         flag: "🇨🇭"),
+        Currency(id: "CAD", code: "CAD", symbol: "CA$", name: "Canadian Dollar",     flag: "🇨🇦"),
+        Currency(id: "AUD", code: "AUD", symbol: "A$",  name: "Australian Dollar",   flag: "🇦🇺"),
+        Currency(id: "JPY", code: "JPY", symbol: "¥",   name: "Japanese Yen",        flag: "🇯🇵"),
+        Currency(id: "INR", code: "INR", symbol: "₹",   name: "Indian Rupee",        flag: "🇮🇳"),
+        Currency(id: "CNY", code: "CNY", symbol: "¥",   name: "Chinese Yuan",        flag: "🇨🇳"),
+        Currency(id: "KRW", code: "KRW", symbol: "₩",   name: "South Korean Won",    flag: "🇰🇷"),
+        Currency(id: "SGD", code: "SGD", symbol: "S$",  name: "Singapore Dollar",    flag: "🇸🇬"),
+        Currency(id: "AED", code: "AED", symbol: "د.إ", name: "UAE Dirham",          flag: "🇦🇪"),
+        Currency(id: "BRL", code: "BRL", symbol: "R$",  name: "Brazilian Real",      flag: "🇧🇷"),
+        Currency(id: "MXN", code: "MXN", symbol: "MX$", name: "Mexican Peso",        flag: "🇲🇽"),
+        Currency(id: "SEK", code: "SEK", symbol: "kr",  name: "Swedish Krona",       flag: "🇸🇪"),
+        Currency(id: "NZD", code: "NZD", symbol: "NZ$", name: "New Zealand Dollar",  flag: "🇳🇿"),
     ]
 
     /// Returns the Currency matching the given code, or USD as fallback

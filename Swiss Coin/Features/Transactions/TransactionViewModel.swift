@@ -11,6 +11,9 @@ final class TransactionViewModel: ObservableObject {
     @Published var date: Date = Date()
     @Published var note: String = ""
 
+    // MARK: - Category Support
+    @Published var selectedCategory: Category?
+
     // MARK: - Multi-Payer Support
     /// Selected payers (empty means "You" pays the full amount)
     @Published var selectedPayerPersons: Set<Person> = []
@@ -29,13 +32,13 @@ final class TransactionViewModel: ObservableObject {
     @Published var splitMethod: SplitMethod = .equal
 
     // Store raw input for each person (e.g. 50% or +10 adjustment or 2 shares)
-    // Map PersonID -> Double
+    // Map PersonID -> String
     @Published var rawInputs: [UUID: String] = [:]
 
     // Optional group for group transactions
     var selectedGroup: UserGroup?
 
-    // MARK: - Search Fields (for redesigned UI)
+    // MARK: - Search Fields
     @Published var paidBySearchText: String = ""
     @Published var splitWithSearchText: String = ""
 
@@ -43,6 +46,15 @@ final class TransactionViewModel: ObservableObject {
     @Published private(set) var cachedPaidByContacts: [Person] = []
     @Published private(set) var cachedSplitWithContacts: [Person] = []
     @Published private(set) var cachedSplitWithGroups: [UserGroup] = []
+
+    // MARK: - Save State
+    @Published var isSaving: Bool = false
+    @Published var saveCompleted: Bool = false
+
+    // MARK: - Constants
+    static let epsilon: Double = 0.01
+    static let percentageTolerance: Double = 0.01
+    static let maxAmount: Double = 999_999_999.99
 
     private var viewContext: NSManagedObjectContext
     private var cancellables = Set<AnyCancellable>()
@@ -53,6 +65,9 @@ final class TransactionViewModel: ObservableObject {
         // Default payer ("You") should be in the split by default
         let currentUser = CurrentUser.getOrCreate(in: context)
         selectedParticipants.insert(currentUser)
+
+        // Set default category
+        selectedCategory = Category.builtIn.first { $0.id == "other" }
 
         // Initial fetch
         refreshAllContacts()
@@ -85,6 +100,7 @@ final class TransactionViewModel: ObservableObject {
     private func refreshAllContacts() {
         let fetchRequest: NSFetchRequest<Person> = Person.fetchRequest()
         fetchRequest.sortDescriptors = [NSSortDescriptor(keyPath: \Person.name, ascending: true)]
+        fetchRequest.fetchLimit = 20
         let all = (try? viewContext.fetch(fetchRequest)) ?? []
         cachedPaidByContacts = all
         cachedSplitWithContacts = all
@@ -99,6 +115,7 @@ final class TransactionViewModel: ObservableObject {
     private func refreshPaidByContacts(query: String) {
         let fetchRequest: NSFetchRequest<Person> = Person.fetchRequest()
         fetchRequest.sortDescriptors = [NSSortDescriptor(keyPath: \Person.name, ascending: true)]
+        fetchRequest.fetchLimit = 20
         if !query.isEmpty {
             fetchRequest.predicate = NSPredicate(format: "name CONTAINS[cd] %@", query)
         }
@@ -108,6 +125,7 @@ final class TransactionViewModel: ObservableObject {
     private func refreshSplitWithContacts(query: String) {
         let fetchRequest: NSFetchRequest<Person> = Person.fetchRequest()
         fetchRequest.sortDescriptors = [NSSortDescriptor(keyPath: \Person.name, ascending: true)]
+        fetchRequest.fetchLimit = 20
         if !query.isEmpty {
             fetchRequest.predicate = NSPredicate(format: "name CONTAINS[cd] %@", query)
         }
@@ -138,6 +156,39 @@ final class TransactionViewModel: ObservableObject {
         cachedSplitWithGroups
     }
 
+    // MARK: - Amount Sanitization
+
+    /// Sanitizes amount input to allow only valid decimal characters
+    func sanitizeAmountInput(_ input: String) -> String {
+        var result = ""
+        var hasDecimalPoint = false
+        var decimalCount = 0
+        let maxDecimals = CurrencyFormatter.isZeroDecimalCurrency ? 0 : 2
+
+        for char in input {
+            if char.isNumber {
+                if hasDecimalPoint {
+                    if decimalCount < maxDecimals {
+                        result.append(char)
+                        decimalCount += 1
+                    }
+                } else {
+                    result.append(char)
+                }
+            } else if char == "." && !hasDecimalPoint && maxDecimals > 0 {
+                hasDecimalPoint = true
+                result.append(char)
+            }
+        }
+
+        // Cap at max amount
+        if let value = Double(result), value > Self.maxAmount {
+            return String(format: maxDecimals > 0 ? "%.2f" : "%.0f", Self.maxAmount)
+        }
+
+        return result
+    }
+
     // MARK: - Computed Properties
 
     /// Step 1 validation: title non-empty AND amount > 0.001
@@ -156,7 +207,8 @@ final class TransactionViewModel: ObservableObject {
     /// Total amount paid by all selected payers
     var totalPaidByPayers: Double {
         selectedPayerPersons.reduce(0.0) { sum, person in
-            sum + (Double(payerAmounts[person.id ?? UUID()] ?? "0") ?? 0)
+            let personId = person.id ?? UUID()
+            return sum + (Double(payerAmounts[personId] ?? "0") ?? 0)
         }
     }
 
@@ -165,7 +217,7 @@ final class TransactionViewModel: ObservableObject {
         if selectedPayerPersons.count <= 1 {
             return true // Single payer auto-fills to total
         }
-        return abs(totalPaidByPayers - totalAmountDouble) < 0.01
+        return abs(totalPaidByPayers - totalAmountDouble) < Self.epsilon
     }
 
     /// Toggle a payer's selection. Auto-adds them to participants.
@@ -237,132 +289,93 @@ final class TransactionViewModel: ObservableObject {
         return totalAmountDouble - totalSplit
     }
 
-    // Current total calculated based on inputs (for validation)
-    var currentCalculatedTotal: Double {
-        switch splitMethod {
-        case .equal:
-            return totalAmountDouble
-        case .percentage:
-            let totalPercent = selectedParticipants.reduce(0.0) { sum, person in
-                sum + (Double(rawInputs[person.id ?? UUID()] ?? "0") ?? 0)
-            }
-            return totalPercent  // Should be 100
-        case .amount:
-            let totalExact = selectedParticipants.reduce(0.0) { sum, person in
-                sum + (Double(rawInputs[person.id ?? UUID()] ?? "0") ?? 0)
-            }
-            return totalExact  // Should match totalAmountDouble
-        case .adjustment:
-            // Adjustment logic: (Total - Sum(Adjustments)) / N + Adjustment
-            // The math is internal, validation checks if inputs are valid numbers
-            return totalAmountDouble
-        case .shares:
-            // Just shares count
-            return totalAmountDouble
+    /// Remaining or excess amount for display
+    var balanceRemainingText: String? {
+        let balance = totalBalance
+        if abs(balance) < Self.epsilon { return nil }
+        if balance > 0 {
+            return "Remaining: \(CurrencyFormatter.formatAbsolute(balance))"
+        } else {
+            return "Over by: \(CurrencyFormatter.formatAbsolute(balance))"
         }
     }
 
-    var isValid: Bool {
-        // 1. Title validation - trim whitespace
-        let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedTitle.isEmpty else { return false }
+    // MARK: - Validation
 
-        // 2. Amount validation - must be positive (using 0.001 threshold for floating-point safety)
-        guard totalAmountDouble > 0.001 else { return false }
-
-        // 3. Participant validation - at least one person
-        guard !selectedParticipants.isEmpty else { return false }
-
-        // 4. Multi-payer validation: paid amounts must sum to total
-        if selectedPayerPersons.count > 1 {
-            guard isPaidByBalanced else { return false }
-        }
-
-        // 5. Split method specific validation
-        switch splitMethod {
-        case .equal:
-            return true
-
-        case .percentage:
-            let totalPercent = selectedParticipants.reduce(0.0) { sum, person in
-                sum + (Double(rawInputs[person.id ?? UUID()] ?? "0") ?? 0)
-            }
-            return abs(totalPercent - 100.0) < 0.1
-
-        case .amount:
-            let totalExact = selectedParticipants.reduce(0.0) { sum, person in
-                sum + (Double(rawInputs[person.id ?? UUID()] ?? "0") ?? 0)
-            }
-            return abs(totalExact - totalAmountDouble) < 0.01
-
-        case .adjustment:
-            // Ensure total adjustments don't exceed total amount
-            let totalAdjustments = selectedParticipants.reduce(0.0) { sum, person in
-                sum + (Double(rawInputs[person.id ?? UUID()] ?? "0") ?? 0)
-            }
-            return totalAdjustments <= totalAmountDouble
-
-        case .shares:
-            let totalShares = selectedParticipants.reduce(0.0) { sum, person in
-                sum + (Double(rawInputs[person.id ?? UUID()] ?? "0") ?? 0)
-            }
-            return totalShares > 0
-        }
+    struct ValidationResult {
+        let isValid: Bool
+        let message: String?
     }
 
-    /// User-facing validation message for when isValid is false
-    var validationMessage: String? {
+    /// Centralized validation logic — single source of truth
+    func validate() -> ValidationResult {
         let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
 
         if trimmedTitle.isEmpty {
-            return "Please enter a title"
+            return ValidationResult(isValid: false, message: "Please enter a title")
         }
         if totalAmountDouble <= 0 {
-            return "Amount must be greater than zero"
+            return ValidationResult(isValid: false, message: "Amount must be greater than zero")
+        }
+        if totalAmountDouble > Self.maxAmount {
+            return ValidationResult(isValid: false, message: "Amount exceeds maximum allowed")
         }
         if selectedParticipants.isEmpty {
-            return "Select at least one participant"
+            return ValidationResult(isValid: false, message: "Select at least one person to split with")
         }
 
         // Multi-payer validation
         if selectedPayerPersons.count > 1 && !isPaidByBalanced {
-            return "Paid-by amounts must equal the total"
+            return ValidationResult(isValid: false, message: "Paid-by amounts must equal the total")
         }
 
+        // Split method specific validation
         switch splitMethod {
+        case .equal:
+            return ValidationResult(isValid: true, message: nil)
+
         case .percentage:
             let totalPercent = selectedParticipants.reduce(0.0) { sum, person in
                 sum + (Double(rawInputs[person.id ?? UUID()] ?? "0") ?? 0)
             }
-            if abs(totalPercent - 100.0) >= 0.1 {
-                return "Percentages must add up to 100%"
+            if abs(totalPercent - 100.0) >= Self.percentageTolerance {
+                return ValidationResult(isValid: false, message: "Percentages must add up to 100%")
             }
+
         case .amount:
             let totalExact = selectedParticipants.reduce(0.0) { sum, person in
                 sum + (Double(rawInputs[person.id ?? UUID()] ?? "0") ?? 0)
             }
-            if abs(totalExact - totalAmountDouble) >= 0.01 {
-                return "Amounts must equal the total"
+            if abs(totalExact - totalAmountDouble) >= Self.epsilon {
+                return ValidationResult(isValid: false, message: "Amounts must equal the total")
             }
+
         case .adjustment:
             let totalAdjustments = selectedParticipants.reduce(0.0) { sum, person in
                 sum + (Double(rawInputs[person.id ?? UUID()] ?? "0") ?? 0)
             }
             if totalAdjustments > totalAmountDouble {
-                return "Adjustments cannot exceed the total amount"
+                return ValidationResult(isValid: false, message: "Adjustments cannot exceed the total amount")
             }
+
         case .shares:
             let totalShares = selectedParticipants.reduce(0.0) { sum, person in
                 sum + (Double(rawInputs[person.id ?? UUID()] ?? "0") ?? 0)
             }
             if totalShares <= 0 {
-                return "Enter shares for at least one person"
+                return ValidationResult(isValid: false, message: "Enter shares for at least one person")
             }
-        default:
-            break
         }
 
-        return nil
+        return ValidationResult(isValid: true, message: nil)
+    }
+
+    var isValid: Bool {
+        validate().isValid
+    }
+
+    var validationMessage: String? {
+        validate().message
     }
 
     // MARK: - Actions
@@ -397,6 +410,7 @@ final class TransactionViewModel: ObservableObject {
         guard let index = sortedPeople.firstIndex(of: person) else { return 0 }
 
         let totalCents = Int(totalAmountDouble * 100)
+        guard totalAmountDouble < 10_000_000 else { return 0 }
 
         switch splitMethod {
         case .equal:
@@ -456,6 +470,8 @@ final class TransactionViewModel: ObservableObject {
             return
         }
 
+        isSaving = true
+
         // 2. Trim title
         let cleanTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
 
@@ -468,48 +484,23 @@ final class TransactionViewModel: ObservableObject {
             transaction.date = date
             transaction.splitMethod = splitMethod.rawValue
 
-            // Set note (nil if empty)
+            // Set note — encode category as prefix if present
             let trimmedNote = note.trimmingCharacters(in: .whitespacesAndNewlines)
-            transaction.note = trimmedNote.isEmpty ? nil : trimmedNote
+            var fullNote = ""
+            if let category = selectedCategory {
+                fullNote = "[category:\(category.id)]"
+            }
+            if !trimmedNote.isEmpty {
+                fullNote += (fullNote.isEmpty ? "" : " ") + trimmedNote
+            }
+            transaction.note = fullNote.isEmpty ? nil : fullNote
 
-            // 4. Set legacy payer field for backward compatibility
+            // 4. Create payer records
             let currentUser = CurrentUser.getOrCreate(in: viewContext)
-            if selectedPayerPersons.isEmpty {
-                transaction.payer = currentUser
-            } else if selectedPayerPersons.count == 1 {
-                transaction.payer = selectedPayerPersons.first
-            } else {
-                // Multi-payer: set legacy payer to current user if they're a payer, else first payer
-                if let currentUserPayer = selectedPayerPersons.first(where: { CurrentUser.isCurrentUser($0.id) }) {
-                    transaction.payer = currentUserPayer
-                } else {
-                    transaction.payer = selectedPayerPersons.sorted { ($0.name ?? "") < ($1.name ?? "") }.first
-                }
-            }
+            createPayerRecords(for: transaction, currentUser: currentUser)
 
-            // 5. Create TransactionPayer records
-            if selectedPayerPersons.isEmpty {
-                // Default: "You" pays the full amount
-                let payerRecord = TransactionPayer(context: viewContext)
-                payerRecord.paidBy = currentUser
-                payerRecord.transaction = transaction
-                payerRecord.amount = totalAmountDouble
-            } else if selectedPayerPersons.count == 1, let singlePayer = selectedPayerPersons.first {
-                // Single payer: auto-fill to total
-                let payerRecord = TransactionPayer(context: viewContext)
-                payerRecord.paidBy = singlePayer
-                payerRecord.transaction = transaction
-                payerRecord.amount = totalAmountDouble
-            } else {
-                // Multi-payer: use entered amounts
-                for person in selectedPayerPersons {
-                    let payerRecord = TransactionPayer(context: viewContext)
-                    payerRecord.paidBy = person
-                    payerRecord.transaction = transaction
-                    let amountStr = payerAmounts[person.id ?? UUID()] ?? "0"
-                    payerRecord.amount = Double(amountStr) ?? 0
-                }
-            }
+            // 5. Set legacy payer field for backward compatibility
+            setLegacyPayer(for: transaction, currentUser: currentUser)
 
             // 6. Set creator (always the current user)
             transaction.createdBy = currentUser
@@ -534,21 +525,65 @@ final class TransactionViewModel: ObservableObject {
                 }
             }
 
-            // 8. Save to CoreData
+            // 9. Save to CoreData
             try viewContext.save()
 
-            // 9. Success feedback
-            HapticManager.success()
+            // 10. Success feedback
+            HapticManager.transactionAdded()
+            isSaving = false
+            saveCompleted = true
 
-            // 10. Call completion handler
+            // 11. Call completion handler
             completion(true)
 
         } catch {
-            // 11. Handle save error
+            // 12. Handle save error
             viewContext.rollback()
             HapticManager.error()
+            isSaving = false
             AppLogger.transactions.error("Failed to save transaction: \(error.localizedDescription)")
             completion(false)
+        }
+    }
+
+    // MARK: - Payer Record Helpers
+
+    private func createPayerRecords(for transaction: FinancialTransaction, currentUser: Person) {
+        if selectedPayerPersons.isEmpty {
+            // Default: "You" pays the full amount
+            let payerRecord = TransactionPayer(context: viewContext)
+            payerRecord.paidBy = currentUser
+            payerRecord.transaction = transaction
+            payerRecord.amount = totalAmountDouble
+        } else if selectedPayerPersons.count == 1, let singlePayer = selectedPayerPersons.first {
+            // Single payer: auto-fill to total
+            let payerRecord = TransactionPayer(context: viewContext)
+            payerRecord.paidBy = singlePayer
+            payerRecord.transaction = transaction
+            payerRecord.amount = totalAmountDouble
+        } else {
+            // Multi-payer: use entered amounts
+            for person in selectedPayerPersons {
+                let payerRecord = TransactionPayer(context: viewContext)
+                payerRecord.paidBy = person
+                payerRecord.transaction = transaction
+                let amountStr = payerAmounts[person.id ?? UUID()] ?? "0"
+                payerRecord.amount = Double(amountStr) ?? 0
+            }
+        }
+    }
+
+    private func setLegacyPayer(for transaction: FinancialTransaction, currentUser: Person) {
+        if selectedPayerPersons.isEmpty {
+            transaction.payer = currentUser
+        } else if selectedPayerPersons.count == 1 {
+            transaction.payer = selectedPayerPersons.first
+        } else {
+            if let currentUserPayer = selectedPayerPersons.first(where: { CurrentUser.isCurrentUser($0.id) }) {
+                transaction.payer = currentUserPayer
+            } else {
+                transaction.payer = selectedPayerPersons.sorted { ($0.name ?? "") < ($1.name ?? "") }.first
+            }
         }
     }
 
@@ -558,6 +593,7 @@ final class TransactionViewModel: ObservableObject {
         totalAmount = ""
         date = Date()
         note = ""
+        selectedCategory = Category.builtIn.first { $0.id == "other" }
         selectedPayerPersons = []
         payerAmounts = [:]
         selectedParticipants = []
@@ -566,6 +602,8 @@ final class TransactionViewModel: ObservableObject {
         selectedGroup = nil
         paidBySearchText = ""
         splitWithSearchText = ""
+        isSaving = false
+        saveCompleted = false
 
         // Default payer ("You") should be in the split by default
         let currentUser = CurrentUser.getOrCreate(in: viewContext)
@@ -579,7 +617,21 @@ final class TransactionViewModel: ObservableObject {
         title = transaction.title ?? ""
         totalAmount = String(format: "%.2f", transaction.amount)
         date = transaction.date ?? Date()
-        note = transaction.note ?? ""
+
+        // Parse note for category prefix
+        let rawNote = transaction.note ?? ""
+        if rawNote.hasPrefix("[category:") {
+            if let endIndex = rawNote.firstIndex(of: "]") {
+                let categoryId = String(rawNote[rawNote.index(rawNote.startIndex, offsetBy: 10)..<endIndex])
+                selectedCategory = Category.all.first { $0.id == categoryId }
+                let remainingNote = String(rawNote[rawNote.index(after: endIndex)...]).trimmingCharacters(in: .whitespacesAndNewlines)
+                note = remainingNote
+            } else {
+                note = rawNote
+            }
+        } else {
+            note = rawNote
+        }
 
         // Split method
         if let methodStr = transaction.splitMethod,
@@ -691,8 +743,16 @@ final class TransactionViewModel: ObservableObject {
             transaction.date = date
             transaction.splitMethod = splitMethod.rawValue
 
+            // Set note with category prefix
             let trimmedNote = note.trimmingCharacters(in: .whitespacesAndNewlines)
-            transaction.note = trimmedNote.isEmpty ? nil : trimmedNote
+            var fullNote = ""
+            if let category = selectedCategory {
+                fullNote = "[category:\(category.id)]"
+            }
+            if !trimmedNote.isEmpty {
+                fullNote += (fullNote.isEmpty ? "" : " ") + trimmedNote
+            }
+            transaction.note = fullNote.isEmpty ? nil : fullNote
 
             // Delete existing split records
             if let existingSplits = transaction.splits as? Set<TransactionSplit> {
@@ -708,40 +768,10 @@ final class TransactionViewModel: ObservableObject {
                 }
             }
 
-            // Set legacy payer field
+            // Create new payer records
             let currentUser = CurrentUser.getOrCreate(in: viewContext)
-            if selectedPayerPersons.isEmpty {
-                transaction.payer = currentUser
-            } else if selectedPayerPersons.count == 1 {
-                transaction.payer = selectedPayerPersons.first
-            } else {
-                if let currentUserPayer = selectedPayerPersons.first(where: { CurrentUser.isCurrentUser($0.id) }) {
-                    transaction.payer = currentUserPayer
-                } else {
-                    transaction.payer = selectedPayerPersons.sorted { ($0.name ?? "") < ($1.name ?? "") }.first
-                }
-            }
-
-            // Create new TransactionPayer records
-            if selectedPayerPersons.isEmpty {
-                let payerRecord = TransactionPayer(context: viewContext)
-                payerRecord.paidBy = currentUser
-                payerRecord.transaction = transaction
-                payerRecord.amount = totalAmountDouble
-            } else if selectedPayerPersons.count == 1, let singlePayer = selectedPayerPersons.first {
-                let payerRecord = TransactionPayer(context: viewContext)
-                payerRecord.paidBy = singlePayer
-                payerRecord.transaction = transaction
-                payerRecord.amount = totalAmountDouble
-            } else {
-                for person in selectedPayerPersons {
-                    let payerRecord = TransactionPayer(context: viewContext)
-                    payerRecord.paidBy = person
-                    payerRecord.transaction = transaction
-                    let amountStr = payerAmounts[person.id ?? UUID()] ?? "0"
-                    payerRecord.amount = Double(amountStr) ?? 0
-                }
-            }
+            createPayerRecords(for: transaction, currentUser: currentUser)
+            setLegacyPayer(for: transaction, currentUser: currentUser)
 
             // Update group
             transaction.group = selectedGroup
