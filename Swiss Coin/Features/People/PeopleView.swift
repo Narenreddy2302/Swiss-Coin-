@@ -243,24 +243,11 @@ struct PersonListView: View {
 
 struct PersonEmptyStateView: View {
     var body: some View {
-        VStack(spacing: Spacing.lg) {
+        VStack {
             Spacer()
-
-            Image(systemName: "person.2.slash")
-                .font(.system(size: IconSize.xxl))
-                .foregroundColor(AppColors.textSecondary)
-                .accessibilityHidden(true)
-
-            Text("No People Yet")
+            Text("No Contacts")
                 .font(AppTypography.headingLarge())
-                .foregroundColor(AppColors.textPrimary)
-
-            Text("Add an expense with someone to start tracking balances")
-                .font(AppTypography.bodyDefault())
                 .foregroundColor(AppColors.textSecondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, Spacing.xxl)
-
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -553,24 +540,11 @@ struct GroupListView: View {
 
 struct GroupEmptyStateView: View {
     var body: some View {
-        VStack(spacing: Spacing.lg) {
+        VStack {
             Spacer()
-
-            Image(systemName: "person.3.slash")
-                .font(.system(size: IconSize.xxl))
-                .foregroundColor(AppColors.textSecondary)
-                .accessibilityHidden(true)
-
-            Text("No Groups Yet")
+            Text("No Groups")
                 .font(AppTypography.headingLarge())
-                .foregroundColor(AppColors.textPrimary)
-
-            Text("Create a group to split expenses with multiple people")
-                .font(AppTypography.bodyDefault())
                 .foregroundColor(AppColors.textSecondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, Spacing.xxl)
-
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
