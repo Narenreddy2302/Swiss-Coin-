@@ -159,12 +159,12 @@ struct TransactionDetailView: View {
                 .foregroundColor(AppColors.textSecondary)
 
             // Net amount
-            Text(FinancialFormatter.signedCurrency(snapshot.userNetAmount))
+            Text(FinancialFormatter.signedCurrency(snapshot.userNetAmount, currencyCode: snapshot.currencyCode))
                 .financialHeroStyle()
                 .foregroundColor(snapshot.netAmountColor)
                 .padding(.top, Spacing.xl)
                 .padding(.bottom, Spacing.xs)
-                .accessibilityLabel("Net amount: \(FinancialFormatter.signedCurrency(snapshot.userNetAmount))")
+                .accessibilityLabel("Net amount: \(FinancialFormatter.signedCurrency(snapshot.userNetAmount, currencyCode: snapshot.currencyCode))")
 
             // Payment summary
             Text(snapshot.paymentSummaryText)
@@ -475,7 +475,7 @@ struct UnifiedParticipantRow: View {
             Spacer()
 
             VStack(alignment: .trailing, spacing: 1) {
-                Text(FinancialFormatter.currency(participant.displayAmount))
+                Text(FinancialFormatter.currency(participant.displayAmount, currencyCode: participant.currencyCode))
                     .font(AppTypography.financialSmall())
                     .foregroundColor(AppColors.textPrimary)
 
@@ -571,6 +571,7 @@ struct TransactionSnapshot {
         let initials: String
         let colorHex: String
         let displayAmount: Double
+        let currencyCode: String
         let subtitle: String
         let statusText: String
         let statusColor: Color
@@ -591,7 +592,8 @@ struct TransactionSnapshot {
                 initials: payer.initials,
                 colorHex: payer.colorHex,
                 displayAmount: splitAmount > 0 ? splitAmount : payer.amount,
-                subtitle: "Paid \(FinancialFormatter.currency(payer.amount))",
+                currencyCode: currencyCode,
+                subtitle: "Paid \(FinancialFormatter.currency(payer.amount, currencyCode: currencyCode))",
                 statusText: "Your share",
                 statusColor: AppColors.textTertiary,
                 isPaid: false,
@@ -609,6 +611,7 @@ struct TransactionSnapshot {
                 initials: split.initials,
                 colorHex: split.colorHex,
                 displayAmount: split.amount,
+                currencyCode: currencyCode,
                 subtitle: "Owes \(primaryPayerName)",
                 statusText: "Pending",
                 statusColor: AppColors.warning,

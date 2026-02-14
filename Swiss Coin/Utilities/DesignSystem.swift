@@ -1131,6 +1131,14 @@ enum FinancialFormatter {
         return formatter.string(from: NSNumber(value: amount)) ?? "\(currencySymbol)0.00"
     }
 
+    /// Standard currency format using a specific currency code for per-transaction display.
+    static func currency(_ amount: Double, currencyCode: String, showCents: Bool = true) -> String {
+        let symbol = CurrencyFormatter.symbol(for: currencyCode)
+        let isZeroDecimal = CurrencyFormatter.isZeroDecimal(currencyCode)
+        let effectiveShowCents = isZeroDecimal ? false : showCents
+        return currency(amount, showCents: effectiveShowCents, currencySymbol: symbol)
+    }
+
     /// Currency format with explicit sign: +$12,345.67 or -$12,345.67
     static func signedCurrency(_ amount: Double, showCents: Bool = true, currencySymbol: String = "$") -> String {
         let formatted = currency(abs(amount), showCents: showCents, currencySymbol: currencySymbol)
@@ -1140,6 +1148,14 @@ enum FinancialFormatter {
             return "-\(formatted)"
         }
         return formatted
+    }
+
+    /// Signed currency format using a specific currency code for per-transaction display.
+    static func signedCurrency(_ amount: Double, currencyCode: String, showCents: Bool = true) -> String {
+        let symbol = CurrencyFormatter.symbol(for: currencyCode)
+        let isZeroDecimal = CurrencyFormatter.isZeroDecimal(currencyCode)
+        let effectiveShowCents = isZeroDecimal ? false : showCents
+        return signedCurrency(amount, showCents: effectiveShowCents, currencySymbol: symbol)
     }
 
     /// Privacy mode: masks digits with bullet characters (preserves layout width)
