@@ -50,7 +50,7 @@ struct EditPersonView: View {
                             .frame(width: AvatarSize.xl, height: AvatarSize.xl)
                             .overlay(
                                 Text(editingInitials)
-                                    .font(AppTypography.title2())
+                                    .font(AppTypography.displayMedium())
                                     .foregroundColor(Color(hex: colorHex))
                             )
                         Spacer()
@@ -60,7 +60,7 @@ struct EditPersonView: View {
                     // Details Section
                     VStack(alignment: .leading, spacing: Spacing.sm) {
                         Text("DETAILS")
-                            .font(AppTypography.footnote())
+                            .font(AppTypography.bodySmall())
                             .foregroundColor(AppColors.textSecondary)
                             .padding(.horizontal, Spacing.lg + Spacing.xxs)
 
@@ -73,7 +73,7 @@ struct EditPersonView: View {
                                     .frame(width: 24)
 
                                 TextField("Name", text: $name)
-                                    .font(AppTypography.body())
+                                    .font(AppTypography.bodyLarge())
                                     .foregroundColor(AppColors.textPrimary)
                                     .limitTextLength(to: ValidationLimits.maxNameLength, text: $name)
                             }
@@ -91,7 +91,7 @@ struct EditPersonView: View {
                                     .frame(width: 24)
 
                                 TextField("Phone Number", text: $phoneNumber)
-                                    .font(AppTypography.body())
+                                    .font(AppTypography.bodyLarge())
                                     .foregroundColor(AppColors.textPrimary)
                                     .keyboardType(.phonePad)
                                     .limitTextLength(to: ValidationLimits.maxPhoneLength, text: $phoneNumber)
@@ -132,7 +132,7 @@ struct EditPersonView: View {
                     // Color Section
                     VStack(alignment: .leading, spacing: Spacing.sm) {
                         Text("COLOR")
-                            .font(AppTypography.footnote())
+                            .font(AppTypography.bodySmall())
                             .foregroundColor(AppColors.textSecondary)
                             .padding(.horizontal, Spacing.lg + Spacing.xxs)
 

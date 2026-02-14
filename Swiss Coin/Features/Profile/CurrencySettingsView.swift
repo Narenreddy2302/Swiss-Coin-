@@ -62,7 +62,7 @@ struct CurrencySettingsView: View {
                     if let selected = selectedCurrencyOption {
                         VStack(alignment: .leading, spacing: Spacing.md) {
                             Text("Current Currency")
-                                .font(AppTypography.headline())
+                                .font(AppTypography.headingMedium())
                                 .foregroundColor(AppColors.textPrimary)
                                 .padding(.horizontal, Spacing.sm)
 
@@ -72,18 +72,18 @@ struct CurrencySettingsView: View {
 
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(selected.name)
-                                        .font(AppTypography.headline())
+                                        .font(AppTypography.headingMedium())
                                         .foregroundColor(AppColors.textPrimary)
 
                                     Text("\(selected.code) • \(selected.symbol)")
-                                        .font(AppTypography.subheadline())
+                                        .font(AppTypography.bodyDefault())
                                         .foregroundColor(AppColors.textSecondary)
                                 }
 
                                 Spacer()
 
                                 Image(systemName: "checkmark.circle.fill")
-                                    .font(.system(size: 24))
+                                    .font(.system(size: IconSize.lg))
                                     .foregroundColor(AppColors.positive)
                             }
                             .padding(.horizontal, Spacing.lg)
@@ -101,11 +101,11 @@ struct CurrencySettingsView: View {
                             // Preview
                             HStack {
                                 Text("Preview")
-                                    .font(AppTypography.subheadline())
+                                    .font(AppTypography.bodyDefault())
                                     .foregroundColor(AppColors.textSecondary)
                                 Spacer()
                                 Text(CurrencyFormatter.format(1234.56))
-                                    .font(AppTypography.amount())
+                                    .font(AppTypography.financialDefault())
                                     .foregroundColor(AppColors.textPrimary)
                             }
                             .padding(.horizontal, Spacing.lg)
@@ -121,18 +121,18 @@ struct CurrencySettingsView: View {
                     // Search Bar
                     HStack(spacing: Spacing.sm) {
                         Image(systemName: "magnifyingglass")
-                            .font(.system(size: 16))
+                            .font(.system(size: IconSize.sm))
                             .foregroundColor(AppColors.textSecondary)
 
                         TextField("Search currencies", text: $searchText)
-                            .font(AppTypography.body())
+                            .font(AppTypography.bodyLarge())
 
                         if !searchText.isEmpty {
                             Button {
                                 searchText = ""
                             } label: {
                                 Image(systemName: "xmark.circle.fill")
-                                    .font(.system(size: 16))
+                                    .font(.system(size: IconSize.sm))
                                     .foregroundColor(AppColors.textSecondary)
                             }
                         }
@@ -153,7 +153,7 @@ struct CurrencySettingsView: View {
                     if !filteredCurrencies.isEmpty {
                         VStack(alignment: .leading, spacing: Spacing.md) {
                             Text("Select Currency")
-                                .font(AppTypography.headline())
+                                .font(AppTypography.headingMedium())
                                 .foregroundColor(AppColors.textPrimary)
                                 .padding(.horizontal, Spacing.sm)
 
@@ -186,10 +186,10 @@ struct CurrencySettingsView: View {
                     } else {
                         VStack(spacing: Spacing.lg) {
                             Image(systemName: "magnifyingglass")
-                                .font(.system(size: 40))
+                                .font(.system(size: IconSize.xxl))
                                 .foregroundColor(AppColors.textSecondary)
                             Text("No currencies found")
-                                .font(AppTypography.subheadline())
+                                .font(AppTypography.bodyDefault())
                                 .foregroundColor(AppColors.textSecondary)
                         }
                         .frame(maxWidth: .infinity)
@@ -216,11 +216,11 @@ private struct CurrencyRow: View {
         Button(action: action) {
             HStack(spacing: Spacing.md) {
                 Text(currency.flag)
-                    .font(.system(size: 32))
+                    .font(.system(size: IconSize.xl))
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(currency.name)
-                        .font(AppTypography.body())
+                        .font(AppTypography.bodyLarge())
                         .foregroundColor(AppColors.textPrimary)
 
                     Text("\(currency.code) (\(currency.symbol))")
@@ -232,7 +232,7 @@ private struct CurrencyRow: View {
 
                 if isSelected {
                     Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 22))
+                        .font(.system(size: IconSize.lg))
                         .foregroundColor(AppColors.accent)
                 } else {
                     Circle()

@@ -167,10 +167,10 @@ struct NotificationSettingsView: View {
                     VStack(alignment: .leading, spacing: Spacing.md) {
                         HStack {
                             Image(systemName: "bell.fill")
-                                .font(.system(size: 14))
+                                .font(.system(size: IconSize.sm))
                                 .foregroundColor(AppColors.accent)
                             Text("All Notifications")
-                                .font(AppTypography.headline())
+                                .font(AppTypography.headingMedium())
                                 .foregroundColor(AppColors.textPrimary)
                             Spacer()
                             Toggle("", isOn: $viewModel.allNotificationsEnabled)
@@ -228,7 +228,7 @@ struct NotificationSettingsView: View {
 
                                 HStack {
                                     Text("Remind me")
-                                        .font(AppTypography.body())
+                                        .font(AppTypography.bodyLarge())
                                     Spacer()
                                     Picker("", selection: $viewModel.reminderDaysBefore) {
                                         ForEach(1...7, id: \.self) { day in
@@ -255,7 +255,7 @@ struct NotificationSettingsView: View {
 
                                 HStack {
                                     Text("Notify me")
-                                        .font(AppTypography.body())
+                                        .font(AppTypography.bodyLarge())
                                     Spacer()
                                     Picker("", selection: $viewModel.subscriptionDueDays) {
                                         ForEach(1...7, id: \.self) { day in
@@ -317,7 +317,7 @@ private struct SystemStatusCard: View {
     var body: some View {
         HStack(spacing: Spacing.md) {
             Image(systemName: icon)
-                .font(.system(size: 24))
+                .font(.system(size: IconSize.lg))
                 .foregroundColor(iconColor)
                 .frame(width: 44, height: 44)
                 .background(iconColor.opacity(0.1))
@@ -325,7 +325,7 @@ private struct SystemStatusCard: View {
 
             VStack(alignment: .leading, spacing: Spacing.xs) {
                 Text(title)
-                    .font(AppTypography.subheadlineMedium())
+                    .font(AppTypography.labelLarge())
                     .foregroundColor(AppColors.textPrimary)
 
                 Text(message)
@@ -338,8 +338,7 @@ private struct SystemStatusCard: View {
 
             Button(action: action) {
                 Text(buttonTitle)
-                    .font(AppTypography.caption())
-                    .fontWeight(.semibold)
+                    .font(AppTypography.buttonSmall())
                     .foregroundColor(AppColors.buttonForeground)
                     .padding(.horizontal, Spacing.md)
                     .padding(.vertical, Spacing.xs)
@@ -368,7 +367,7 @@ private struct SettingsGroup<Content: View>: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
             Text(title)
-                .font(AppTypography.headline())
+                .font(AppTypography.headingMedium())
                 .foregroundColor(AppColors.textPrimary)
                 .padding(.horizontal, Spacing.sm)
 
@@ -396,12 +395,12 @@ private struct NotificationToggle: View {
     var body: some View {
         HStack(spacing: Spacing.md) {
             Image(systemName: icon)
-                .font(.system(size: 16))
+                .font(.system(size: IconSize.sm))
                 .foregroundColor(AppColors.accent)
                 .frame(width: 28)
 
             Text(title)
-                .font(AppTypography.body())
+                .font(AppTypography.bodyLarge())
                 .foregroundColor(AppColors.textPrimary)
 
             Spacer()
@@ -428,7 +427,7 @@ private struct LoadingOverlay: View {
                     .scaleEffect(1.2)
 
                 Text("Loading...")
-                    .font(AppTypography.subheadline())
+                    .font(AppTypography.bodyDefault())
                     .foregroundColor(AppColors.textPrimary)
             }
             .padding(Spacing.xl)

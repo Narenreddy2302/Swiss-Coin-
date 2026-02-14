@@ -64,13 +64,13 @@ struct BalanceHeaderView: View {
                         .frame(width: AvatarSize.xl, height: AvatarSize.xl)
                         .overlay(
                             Text(person.initials)
-                                .font(AppTypography.title1())
-                                .foregroundColor(.white)
+                                .font(AppTypography.displayLarge())
+                                .foregroundColor(AppColors.onAccent)
                         )
                         .shadow(color: AppColors.shadow, radius: 8, x: 0, y: 4)
 
                     Text(person.name ?? "Unknown")
-                        .font(AppTypography.title3())
+                        .font(AppTypography.headingLarge())
                         .foregroundColor(AppColors.textPrimary)
                 }
             }
@@ -80,7 +80,7 @@ struct BalanceHeaderView: View {
             HStack {
                 Spacer()
                 balanceTextView
-                    .font(AppTypography.subheadlineMedium())
+                    .font(AppTypography.labelLarge())
                     .foregroundColor(balanceColor)
                 Spacer()
             }

@@ -25,7 +25,6 @@ struct ProfileView: View {
     @AppStorage("reduce_motion") private var reduceMotion = false
 
     // Security
-    @State private var darkModeOn = false
     @State private var biometricEnabled = false
     @State private var pinEnabled = false
     @State private var biometricType: LABiometryType = .none
@@ -75,6 +74,14 @@ struct ProfileView: View {
         }
     }
 
+    private var themeDisplayName: String {
+        switch themeMode {
+        case "light": return "Light"
+        case "dark": return "Dark"
+        default: return "System"
+        }
+    }
+
     private var appVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
     }
@@ -108,14 +115,13 @@ struct ProfileView: View {
                         HapticManager.tap()
                         dismiss()
                     }
-                    .fontWeight(.semibold)
+                    .font(AppTypography.buttonDefault())
                 }
             }
             .onAppear {
                 HapticManager.prepare()
                 loadCurrentUser()
                 loadSecuritySettings()
-                darkModeOn = themeMode == "dark"
             }
             .alert("Log Out", isPresented: $showingLogoutAlert) {
                 Button("Cancel", role: .cancel) {}
@@ -172,19 +178,19 @@ struct ProfileView: View {
 
                 VStack(alignment: .leading, spacing: Spacing.xxs) {
                     Text(userName)
-                        .font(AppTypography.headline())
+                        .font(AppTypography.headingMedium())
                         .foregroundColor(AppColors.textPrimary)
                         .lineLimit(1)
 
                     Text("Personal Details")
-                        .font(AppTypography.subheadline())
+                        .font(AppTypography.bodyDefault())
                         .foregroundColor(AppColors.textSecondary)
                 }
 
                 Spacer()
 
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.system(size: IconSize.sm, weight: .semibold))
                     .foregroundColor(AppColors.textTertiary)
             }
             .padding(.horizontal, Spacing.lg)
@@ -197,14 +203,14 @@ struct ProfileView: View {
     private var generalSection: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             Text("GENERAL")
-                .font(AppTypography.footnote())
+                .font(AppTypography.bodySmall())
                 .foregroundColor(AppColors.textSecondary)
                 .padding(.horizontal, Spacing.lg)
 
             VStack(spacing: 0) {
                 HStack {
                     Text("Currency")
-                        .font(AppTypography.body())
+                        .font(AppTypography.bodyLarge())
                         .foregroundColor(AppColors.textPrimary)
 
                     Spacer()
@@ -224,24 +230,27 @@ struct ProfileView: View {
                 Divider()
                     .padding(.leading, Spacing.lg)
 
-                HStack {
-                    Text("Dark Mode")
-                        .font(AppTypography.body())
-                        .foregroundColor(AppColors.textPrimary)
+                NavigationLink(destination: AppearanceSettingsView()) {
+                    HStack {
+                        Text("Appearance")
+                            .font(AppTypography.bodyLarge())
+                            .foregroundColor(AppColors.textPrimary)
 
-                    Spacer()
+                        Spacer()
 
-                    Toggle("", isOn: $darkModeOn)
-                        .labelsHidden()
-                        .onChange(of: darkModeOn) { _, newValue in
-                            HapticManager.toggle()
-                            let newMode = newValue ? "dark" : "light"
-                            ThemeTransitionManager.shared.transition(to: newMode, reduceMotion: reduceMotion)
-                            themeMode = newMode
-                        }
+                        Text(themeDisplayName)
+                            .font(AppTypography.bodyDefault())
+                            .foregroundColor(AppColors.textSecondary)
+
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: IconSize.xs, weight: .semibold))
+                            .foregroundColor(AppColors.textTertiary)
+                    }
+                    .padding(.horizontal, Spacing.lg)
+                    .padding(.vertical, Spacing.md)
+                    .contentShape(Rectangle())
                 }
-                .padding(.horizontal, Spacing.lg)
-                .padding(.vertical, Spacing.md)
+                .buttonStyle(.plain)
             }
             .background(AppColors.cardBackground)
         }
@@ -250,13 +259,13 @@ struct ProfileView: View {
     private var notificationsSection: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             Text("NOTIFICATIONS")
-                .font(AppTypography.footnote())
+                .font(AppTypography.bodySmall())
                 .foregroundColor(AppColors.textSecondary)
                 .padding(.horizontal, Spacing.lg)
 
             HStack {
                 Text("Notifications")
-                    .font(AppTypography.body())
+                    .font(AppTypography.bodyLarge())
                     .foregroundColor(AppColors.textPrimary)
 
                 Spacer()
@@ -276,7 +285,7 @@ struct ProfileView: View {
     private var securitySection: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             Text("SECURITY")
-                .font(AppTypography.footnote())
+                .font(AppTypography.bodySmall())
                 .foregroundColor(AppColors.textSecondary)
                 .padding(.horizontal, Spacing.lg)
 
@@ -284,7 +293,7 @@ struct ProfileView: View {
                 if biometricType != .none {
                     HStack {
                         Text(biometricLabel)
-                            .font(AppTypography.body())
+                            .font(AppTypography.bodyLarge())
                             .foregroundColor(AppColors.textPrimary)
 
                         Spacer()
@@ -308,7 +317,7 @@ struct ProfileView: View {
 
                 HStack {
                     Text("PIN Lock")
-                        .font(AppTypography.body())
+                        .font(AppTypography.bodyLarge())
                         .foregroundColor(AppColors.textPrimary)
 
                     Spacer()
@@ -334,18 +343,18 @@ struct ProfileView: View {
     private var aboutSection: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             Text("ABOUT")
-                .font(AppTypography.footnote())
+                .font(AppTypography.bodySmall())
                 .foregroundColor(AppColors.textSecondary)
                 .padding(.horizontal, Spacing.lg)
 
             VStack(spacing: 0) {
                 HStack {
                     Text("Version")
-                        .font(AppTypography.body())
+                        .font(AppTypography.bodyLarge())
                         .foregroundColor(AppColors.textPrimary)
                     Spacer()
                     Text(appVersion)
-                        .font(AppTypography.body())
+                        .font(AppTypography.bodyLarge())
                         .foregroundColor(AppColors.textSecondary)
                 }
                 .padding(.horizontal, Spacing.lg)
@@ -360,11 +369,11 @@ struct ProfileView: View {
                 } label: {
                     HStack {
                         Text("Help Center")
-                            .font(AppTypography.body())
+                            .font(AppTypography.bodyLarge())
                             .foregroundColor(AppColors.textPrimary)
                         Spacer()
                         Image(systemName: "arrow.up.right")
-                            .font(.system(size: 14))
+                            .font(.system(size: IconSize.sm))
                             .foregroundColor(AppColors.textSecondary)
                     }
                     .padding(.horizontal, Spacing.lg)
@@ -382,11 +391,11 @@ struct ProfileView: View {
                 } label: {
                     HStack {
                         Text("Share Swiss Coin")
-                            .font(AppTypography.body())
+                            .font(AppTypography.bodyLarge())
                             .foregroundColor(AppColors.textPrimary)
                         Spacer()
                         Image(systemName: "arrow.up.right")
-                            .font(.system(size: 14))
+                            .font(.system(size: IconSize.sm))
                             .foregroundColor(AppColors.textSecondary)
                     }
                     .padding(.horizontal, Spacing.lg)
@@ -408,9 +417,9 @@ struct ProfileView: View {
                 Image(systemName: "rectangle.portrait.and.arrow.right")
                     .font(.system(size: IconSize.sm))
                 Text("Log Out")
-                    .font(AppTypography.subheadlineMedium())
+                    .font(AppTypography.labelLarge())
             }
-            .foregroundColor(.white)
+            .foregroundColor(AppColors.onAccent)
             .frame(height: ButtonHeight.md)
             .frame(maxWidth: .infinity)
             .background(AppColors.negative)

@@ -134,10 +134,10 @@ struct PersonalDetailsView: View {
                         .frame(width: 28, height: 28)
                         .overlay(
                             Image(systemName: "camera.fill")
-                                .font(.system(size: 12, weight: .semibold))
-                                .foregroundColor(.white)
+                                .font(.system(size: IconSize.xs, weight: .semibold))
+                                .foregroundColor(AppColors.onAccent)
                         )
-                        .shadow(color: Color.black.opacity(0.15), radius: 4, x: 0, y: 2)
+                        .shadow(color: AppColors.shadow, radius: 4, x: 0, y: 2)
                         .offset(x: -2, y: -2)
                 }
             }
@@ -259,7 +259,7 @@ struct PersonalDetailsView: View {
                             .foregroundColor(AppColors.textSecondary)
 
                         Image(systemName: "lock.fill")
-                            .font(.system(size: 10))
+                            .font(.system(size: IconSize.xs))
                             .foregroundColor(AppColors.textTertiary)
                     }
 
@@ -316,7 +316,7 @@ struct PersonalDetailsView: View {
                     if !viewModel.emailError.isEmpty {
                         HStack(spacing: Spacing.xs) {
                             Image(systemName: "exclamationmark.circle.fill")
-                                .font(.system(size: 12))
+                                .font(.system(size: IconSize.xs))
                             Text(viewModel.emailError)
                                 .font(AppTypography.caption())
                         }
@@ -378,13 +378,13 @@ struct PersonalDetailsView: View {
                 if viewModel.isSaving {
                     ProgressView()
                         .scaleEffect(0.8)
-                        .tint(.white)
+                        .tint(AppColors.onAccent)
                 } else {
                     Text("Save Changes")
                         .font(AppTypography.buttonLarge())
                 }
             }
-            .foregroundColor(.white)
+            .foregroundColor(AppColors.onAccent)
             .frame(maxWidth: .infinity)
             .frame(height: ButtonHeight.lg)
             .background(
@@ -404,7 +404,7 @@ struct PersonalDetailsView: View {
         Text(title)
             .font(AppTypography.caption())
             .foregroundColor(AppColors.textTertiary)
-            .tracking(0.5)
+            .tracking(AppTypography.Tracking.caption)
             .padding(.horizontal, Spacing.lg + Spacing.xs)
     }
 }

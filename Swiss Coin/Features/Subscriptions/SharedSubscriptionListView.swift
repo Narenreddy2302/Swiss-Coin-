@@ -11,10 +11,15 @@ import SwiftUI
 struct SharedSubscriptionListView: View {
     @Environment(\.managedObjectContext) private var viewContext
 
-    @FetchRequest(
-        sortDescriptors: [NSSortDescriptor(keyPath: \Subscription.nextBillingDate, ascending: true)],
-        predicate: NSPredicate(format: "isShared == YES AND isArchived == NO"),
-        animation: .default)
+    @State private var showRefreshFeedback = false
+
+    @FetchRequest(fetchRequest: {
+        let request: NSFetchRequest<Subscription> = Subscription.fetchRequest()
+        request.sortDescriptors = [NSSortDescriptor(keyPath: \Subscription.nextBillingDate, ascending: true)]
+        request.predicate = NSPredicate(format: "isShared == YES AND isArchived == NO")
+        request.fetchBatchSize = 20
+        return request
+    }(), animation: .default)
     private var subscriptions: FetchedResults<Subscription>
 
     /// Validates that a subscription is still valid in the managed object context
@@ -31,7 +36,12 @@ struct SharedSubscriptionListView: View {
 
     var body: some View {
         if subscriptions.isEmpty {
-            EmptySubscriptionView(isShared: true)
+            ScrollView {
+                EmptySubscriptionView(isShared: true)
+            }
+            .refreshable {
+                await RefreshHelper.performStandardRefresh(context: viewContext)
+            }
         } else {
             ScrollView {
                 VStack(spacing: Spacing.xl) {
@@ -81,6 +91,15 @@ struct SharedSubscriptionListView: View {
                 .padding(.top, Spacing.lg)
             }
             .background(AppColors.backgroundSecondary)
+            .refreshable {
+                await RefreshHelper.performStandardRefresh(context: viewContext)
+                withAnimation(AppAnimation.standard) { showRefreshFeedback = true }
+                Task {
+                    try? await Task.sleep(nanoseconds: 2_000_000_000)
+                    withAnimation(AppAnimation.standard) { showRefreshFeedback = false }
+                }
+            }
+            .refreshFeedback(isShowing: $showRefreshFeedback)
         }
     }
 }

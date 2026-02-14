@@ -50,12 +50,26 @@ final class AppearanceSettingsViewModel: ObservableObject {
     }
 
     private func setupAutoSave() {
-        Publishers.CombineLatest4($themeMode, $accentColor, $fontSize, $reduceMotion)
-            .combineLatest($hapticFeedback)
+        // Theme mode syncs immediately (no debounce) to avoid race condition
+        // with ThemeTransitionManager's direct UserDefaults write
+        $themeMode
+            .dropFirst()
+            .removeDuplicates()
+            .sink { [weak self] newMode in
+                self?.storedThemeMode = newMode
+            }
+            .store(in: &cancellables)
+
+        // Other settings can be debounced
+        Publishers.CombineLatest4($accentColor, $fontSize, $reduceMotion, $hapticFeedback)
             .dropFirst()
             .debounce(for: .milliseconds(300), scheduler: DispatchQueue.main)
             .sink { [weak self] _ in
-                self?.syncToLocalStorage()
+                guard let self else { return }
+                self.storedAccentColor = self.accentColor
+                self.storedFontSize = self.fontSize
+                self.storedReduceMotion = self.reduceMotion
+                self.storedHapticFeedback = self.hapticFeedback
             }
             .store(in: &cancellables)
     }
@@ -82,7 +96,7 @@ struct AppearanceSettingsView: View {
                     // Theme Section
                     VStack(alignment: .leading, spacing: Spacing.md) {
                         Text("Theme")
-                            .font(AppTypography.headline())
+                            .font(AppTypography.headingMedium())
                             .foregroundColor(AppColors.textPrimary)
                             .padding(.horizontal, Spacing.sm)
 
@@ -144,7 +158,7 @@ struct AppearanceSettingsView: View {
                     // Accent Color Section
                     VStack(alignment: .leading, spacing: Spacing.md) {
                         Text("Accent Color")
-                            .font(AppTypography.headline())
+                            .font(AppTypography.headingMedium())
                             .foregroundColor(AppColors.textPrimary)
                             .padding(.horizontal, Spacing.sm)
 
@@ -176,7 +190,7 @@ struct AppearanceSettingsView: View {
                     // Text Size Section
                     VStack(alignment: .leading, spacing: Spacing.md) {
                         Text("Text Size")
-                            .font(AppTypography.headline())
+                            .font(AppTypography.headingMedium())
                             .foregroundColor(AppColors.textPrimary)
                             .padding(.horizontal, Spacing.sm)
 
@@ -195,7 +209,7 @@ struct AppearanceSettingsView: View {
 
                                         if viewModel.fontSize == key {
                                             Image(systemName: "checkmark.circle.fill")
-                                                .font(.system(size: 22))
+                                                .font(.system(size: IconSize.lg))
                                                 .foregroundColor(AppColors.accent)
                                         } else {
                                             Circle()
@@ -229,19 +243,19 @@ struct AppearanceSettingsView: View {
                     // Accessibility Section
                     VStack(alignment: .leading, spacing: Spacing.md) {
                         Text("Accessibility")
-                            .font(AppTypography.headline())
+                            .font(AppTypography.headingMedium())
                             .foregroundColor(AppColors.textPrimary)
                             .padding(.horizontal, Spacing.sm)
 
                         VStack(spacing: 0) {
                             HStack {
                                 Image(systemName: "waveform")
-                                    .font(.system(size: 16))
+                                    .font(.system(size: IconSize.sm))
                                     .foregroundColor(AppColors.accent)
                                     .frame(width: 28)
 
                                 Text("Haptic Feedback")
-                                    .font(AppTypography.body())
+                                    .font(AppTypography.bodyLarge())
                                     .foregroundColor(AppColors.textPrimary)
 
                                 Spacer()
@@ -260,12 +274,12 @@ struct AppearanceSettingsView: View {
 
                             HStack {
                                 Image(systemName: "figure.walk.motion")
-                                    .font(.system(size: 16))
+                                    .font(.system(size: IconSize.sm))
                                     .foregroundColor(AppColors.accent)
                                     .frame(width: 28)
 
                                 Text("Reduce Motion")
-                                    .font(AppTypography.body())
+                                    .font(AppTypography.bodyLarge())
                                     .foregroundColor(AppColors.textPrimary)
 
                                 Spacer()
@@ -303,11 +317,11 @@ struct AppearanceSettingsView: View {
 
     private func fontSize(for key: String) -> Font {
         switch key {
-        case "small": return .system(size: 14)
-        case "medium": return .system(size: 16)
-        case "large": return .system(size: 18)
-        case "extra_large": return .system(size: 20)
-        default: return .system(size: 16)
+        case "small": return AppTypography.bodySmall()
+        case "medium": return AppTypography.bodyDefault()
+        case "large": return AppTypography.bodyLarge()
+        case "extra_large": return AppTypography.headingLarge()
+        default: return AppTypography.bodyDefault()
         }
     }
 
@@ -330,7 +344,7 @@ private struct ThemeButton: View {
         Button(action: action) {
             VStack(spacing: Spacing.sm) {
                 Image(systemName: icon)
-                    .font(.system(size: 24))
+                    .font(.system(size: IconSize.lg))
                     .foregroundColor(isSelected ? AppColors.textPrimary : AppColors.textSecondary)
 
                 Text(title)
@@ -358,18 +372,18 @@ private struct ThemePreview: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             RoundedRectangle(cornerRadius: CornerRadius.sm)
-                .fill(isDark ? Color.black : Color.white)
+                .fill(isDark ? Color(UIColor(hex: "#1C1C1E")) : Color.white)
                 .frame(height: 60)
                 .overlay(
-                    VStack(alignment: .leading, spacing: 4) {
-                        RoundedRectangle(cornerRadius: 2)
-                            .fill(isDark ? Color.gray.opacity(0.5) : Color.gray.opacity(0.3))
+                    VStack(alignment: .leading, spacing: Spacing.xs) {
+                        RoundedRectangle(cornerRadius: CornerRadius.xs)
+                            .fill(isDark ? AppColors.textTertiary : AppColors.borderSubtle)
                             .frame(width: 60, height: 8)
-                        RoundedRectangle(cornerRadius: 2)
-                            .fill(isDark ? Color.gray.opacity(0.3) : Color.gray.opacity(0.2))
+                        RoundedRectangle(cornerRadius: CornerRadius.xs)
+                            .fill(isDark ? AppColors.borderStrong : AppColors.border)
                             .frame(width: 100, height: 6)
                     }
-                    .padding(8),
+                    .padding(Spacing.sm),
                     alignment: .topLeading
                 )
                 .overlay(
@@ -402,13 +416,13 @@ private struct ColorButton: View {
                     )
                     .overlay(
                         Image(systemName: "checkmark")
-                            .font(.system(size: 16, weight: .bold))
-                            .foregroundColor(.white)
+                            .font(.system(size: IconSize.sm, weight: .bold))
+                            .foregroundColor(AppColors.onAccent)
                             .opacity(isSelected ? 1 : 0)
                     )
 
                 Text(name)
-                    .font(AppTypography.caption2())
+                    .font(AppTypography.labelSmall())
                     .foregroundColor(isSelected ? AppColors.textPrimary : AppColors.textSecondary)
             }
         }

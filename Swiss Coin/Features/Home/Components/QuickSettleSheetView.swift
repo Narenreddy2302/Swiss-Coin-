@@ -26,11 +26,11 @@ struct QuickSettleSheetView: View {
                             .foregroundColor(AppColors.positive)
 
                         Text("All settled up!")
-                            .font(AppTypography.title3())
+                            .font(AppTypography.headingLarge())
                             .foregroundColor(AppColors.textPrimary)
 
                         Text("You don't owe anyone right now.")
-                            .font(AppTypography.subheadline())
+                            .font(AppTypography.bodyDefault())
                             .foregroundColor(AppColors.textSecondary)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -51,14 +51,14 @@ struct QuickSettleSheetView: View {
                                             .frame(width: AvatarSize.md, height: AvatarSize.md)
                                             .overlay(
                                                 Text(item.person.initials)
-                                                    .font(AppTypography.subheadlineMedium())
+                                                    .font(AppTypography.labelLarge())
                                                     .foregroundColor(Color(hex: item.person.colorHex ?? CurrentUser.defaultColorHex))
                                             )
 
                                         // Name
                                         VStack(alignment: .leading, spacing: Spacing.xxs) {
                                             Text(item.person.name ?? "Unknown")
-                                                .font(AppTypography.bodyBold())
+                                                .font(AppTypography.headingMedium())
                                                 .foregroundColor(AppColors.textPrimary)
                                                 .lineLimit(1)
 
@@ -71,7 +71,7 @@ struct QuickSettleSheetView: View {
 
                                         // Amount
                                         Text(CurrencyFormatter.formatAbsolute(item.amount))
-                                            .font(AppTypography.amount())
+                                            .font(AppTypography.financialDefault())
                                             .foregroundColor(AppColors.negative)
 
                                         Image(systemName: "chevron.right")
@@ -83,7 +83,7 @@ struct QuickSettleSheetView: View {
                             }
                         } header: {
                             Text("People You Owe")
-                                .font(AppTypography.subheadlineMedium())
+                                .font(AppTypography.labelLarge())
                                 .foregroundColor(AppColors.textSecondary)
                         }
                     }

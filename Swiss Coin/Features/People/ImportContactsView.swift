@@ -59,7 +59,7 @@ struct ImportContactsView: View {
 
                                         VStack(alignment: .leading, spacing: Spacing.xxs) {
                                             Text(contact.fullName)
-                                                .font(AppTypography.body())
+                                                .font(AppTypography.bodyLarge())
                                                 .foregroundColor(isAlreadyAdded ? AppColors.textSecondary : AppColors.textPrimary)
                                             if let phone = contact.phoneNumbers.first {
                                                 Text(phone)
@@ -108,10 +108,10 @@ struct ImportContactsView: View {
                             .font(.system(size: IconSize.xxl))
                             .foregroundColor(AppColors.warning)
                         Text("Access Denied")
-                            .font(AppTypography.title2())
+                            .font(AppTypography.displayMedium())
                             .foregroundColor(AppColors.textPrimary)
                         Text("Please enable contact access in Settings to import people.")
-                            .font(AppTypography.subheadline())
+                            .font(AppTypography.bodyDefault())
                             .multilineTextAlignment(.center)
                             .foregroundColor(AppColors.textSecondary)
                         Button("Open Settings") {
@@ -129,10 +129,10 @@ struct ImportContactsView: View {
                             .font(.system(size: IconSize.xxl))
                             .foregroundColor(AppColors.accent)
                         Text("Import Contacts")
-                            .font(AppTypography.title2())
+                            .font(AppTypography.displayMedium())
                             .foregroundColor(AppColors.textPrimary)
                         Text("Connect your address book to easily split bills with friends.")
-                            .font(AppTypography.subheadline())
+                            .font(AppTypography.bodyDefault())
                             .multilineTextAlignment(.center)
                             .foregroundColor(AppColors.textSecondary)
                         Button("Continue") {
@@ -164,7 +164,7 @@ struct ImportContactsView: View {
                         toggleSelectAll()
                     }) {
                         Text(areAllSelected ? "Deselect All" : "Select All")
-                            .font(AppTypography.subheadline())
+                            .font(AppTypography.bodyDefault())
                             .foregroundColor(AppColors.accent)
                     }
                 }

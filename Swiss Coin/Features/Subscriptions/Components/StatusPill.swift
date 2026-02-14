@@ -13,10 +13,10 @@ struct StatusPill: View {
     var body: some View {
         HStack(spacing: Spacing.xs) {
             Image(systemName: status.icon)
-                .font(.system(size: 12, weight: .medium))
+                .font(.system(size: IconSize.xs, weight: .medium))
 
             Text(status.label)
-                .font(AppTypography.subheadlineMedium())
+                .font(AppTypography.labelLarge())
         }
         .foregroundColor(status.color)
         .padding(.horizontal, Spacing.md)

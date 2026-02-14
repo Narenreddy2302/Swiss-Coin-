@@ -31,7 +31,7 @@ struct Step3SplitMethodView: View {
 
             // MARK: - Title
             Text("Split Details")
-                .font(AppTypography.title2())
+                .font(AppTypography.displayMedium())
                 .foregroundColor(AppColors.textPrimary)
                 .frame(maxWidth: .infinity)
 
@@ -64,7 +64,7 @@ struct Step3SplitMethodView: View {
                 Button("Done") {
                     dismissKeyboard()
                 }
-                .font(AppTypography.bodyBold())
+                .font(AppTypography.headingMedium())
             }
         }
     }
@@ -74,7 +74,7 @@ struct Step3SplitMethodView: View {
     private var splitMethodSection: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             Text("Split Method:")
-                .font(AppTypography.title3())
+                .font(AppTypography.headingLarge())
                 .foregroundColor(AppColors.textPrimary)
 
             HStack(spacing: Spacing.sm) {
@@ -98,7 +98,7 @@ struct Step3SplitMethodView: View {
         } label: {
             VStack(spacing: Spacing.xs) {
                 Text(method.icon)
-                    .font(.system(size: 18, weight: .bold))
+                    .font(AppTypography.headingMedium())
                     .foregroundColor(
                         isSelected ? AppColors.buttonForeground : AppColors.textPrimary
                     )
@@ -117,7 +117,7 @@ struct Step3SplitMethodView: View {
                     )
 
                 Text(method.displayName)
-                    .font(AppTypography.caption2())
+                    .font(AppTypography.labelSmall())
                     .foregroundColor(
                         isSelected ? AppColors.textPrimary : AppColors.textSecondary
                     )
@@ -133,13 +133,13 @@ struct Step3SplitMethodView: View {
     private var totalAmountBar: some View {
         HStack {
             Text("Total Amount")
-                .font(AppTypography.body())
+                .font(AppTypography.bodyLarge())
                 .foregroundColor(AppColors.textPrimary)
 
             Spacer()
 
             Text(viewModel.selectedCurrency.symbol)
-                .font(AppTypography.body())
+                .font(AppTypography.bodyLarge())
                 .foregroundColor(AppColors.textSecondary)
                 .padding(.horizontal, Spacing.md)
                 .padding(.vertical, Spacing.xs)
@@ -147,7 +147,7 @@ struct Step3SplitMethodView: View {
                 .cornerRadius(CornerRadius.xs)
 
             Text(String(format: "%.2f", viewModel.amount))
-                .font(.system(size: 22, weight: .bold, design: .rounded))
+                .font(AppTypography.displayMedium())
                 .foregroundColor(AppColors.textPrimary)
         }
         .padding(.horizontal, Spacing.lg)
@@ -165,7 +165,7 @@ struct Step3SplitMethodView: View {
     private var paidByBreakdownSection: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             Text("Paid By:")
-                .font(AppTypography.title3())
+                .font(AppTypography.headingLarge())
                 .foregroundColor(AppColors.textPrimary)
 
             let payers = sortedPayerEntries
@@ -227,25 +227,25 @@ struct Step3SplitMethodView: View {
     private func payerAmountRow(name: String, personId: UUID, isSinglePayer: Bool) -> some View {
         HStack {
             Text(name)
-                .font(AppTypography.body())
+                .font(AppTypography.bodyLarge())
                 .foregroundColor(AppColors.textPrimary)
 
             Spacer()
 
             Text(viewModel.selectedCurrency.symbol)
-                .font(AppTypography.body())
+                .font(AppTypography.bodyLarge())
                 .foregroundColor(AppColors.textSecondary)
 
             if isSinglePayer {
                 // Single payer: show read-only amount (auto-filled to total)
                 Text(String(format: "%.2f", viewModel.amount))
-                    .font(.system(size: 20, weight: .bold, design: .rounded))
+                    .font(AppTypography.headingLarge())
                     .foregroundColor(AppColors.textPrimary)
                     .frame(minWidth: 60, alignment: .trailing)
             } else {
                 // Multi-payer: editable amount field
                 TextField("0.00", text: payerAmountBinding(for: personId))
-                    .font(.system(size: 20, weight: .bold, design: .rounded))
+                    .font(AppTypography.headingLarge())
                     .keyboardType(.decimalPad)
                     .multilineTextAlignment(.trailing)
                     .foregroundColor(AppColors.textPrimary)
@@ -268,7 +268,7 @@ struct Step3SplitMethodView: View {
     private var breakdownSection: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             Text("Breakdown:")
-                .font(AppTypography.title3())
+                .font(AppTypography.headingLarge())
                 .foregroundColor(AppColors.textPrimary)
 
             let splits = viewModel.calculateSplits()
@@ -294,17 +294,17 @@ struct Step3SplitMethodView: View {
             // Total Balance
             HStack {
                 Text("Total Balance")
-                    .font(AppTypography.bodyBold())
+                    .font(AppTypography.headingMedium())
                     .foregroundColor(AppColors.textPrimary)
 
                 Spacer()
 
                 Text(viewModel.selectedCurrency.symbol)
-                    .font(AppTypography.body())
+                    .font(AppTypography.bodyLarge())
                     .foregroundColor(AppColors.textSecondary)
 
                 Text(String(format: "%.2f", abs(totalBalance)))
-                    .font(.system(size: 20, weight: .bold, design: .rounded))
+                    .font(AppTypography.headingLarge())
                     .foregroundColor(
                         abs(totalBalance) < 0.01
                             ? AppColors.textPrimary : AppColors.negative
@@ -338,7 +338,7 @@ struct Step3SplitMethodView: View {
             }
         } label: {
             Text("Save Transaction")
-                .font(AppTypography.bodyBold())
+                .font(AppTypography.headingMedium())
                 .foregroundColor(
                     viewModel.canSubmit
                         ? AppColors.textPrimary : AppColors.textSecondary
@@ -388,7 +388,7 @@ struct BreakdownPersonRow: View {
     var body: some View {
         HStack {
             Text(name)
-                .font(AppTypography.body())
+                .font(AppTypography.bodyLarge())
                 .foregroundColor(AppColors.textPrimary)
                 .lineLimit(1)
                 .layoutPriority(1)
@@ -428,10 +428,10 @@ struct BreakdownPersonRow: View {
         case .amount:
             HStack(spacing: Spacing.sm) {
                 Text(currencySymbol)
-                    .font(AppTypography.body())
+                    .font(AppTypography.bodyLarge())
                     .foregroundColor(AppColors.textSecondary)
                 TextField("0.00", text: $inputText)
-                    .font(.system(size: 20, weight: .bold, design: .rounded))
+                    .font(AppTypography.headingLarge())
                     .keyboardType(.decimalPad)
                     .multilineTextAlignment(.trailing)
                     .foregroundColor(AppColors.textPrimary)
@@ -446,7 +446,7 @@ struct BreakdownPersonRow: View {
         case .percentage:
             HStack(spacing: Spacing.sm) {
                 TextField("0", text: $inputText)
-                    .font(.system(size: 20, weight: .bold, design: .rounded))
+                    .font(AppTypography.headingLarge())
                     .keyboardType(.decimalPad)
                     .multilineTextAlignment(.trailing)
                     .foregroundColor(AppColors.textPrimary)
@@ -457,7 +457,7 @@ struct BreakdownPersonRow: View {
                         onUpdate(detail)
                     }
                 Text("%")
-                    .font(AppTypography.body())
+                    .font(AppTypography.bodyLarge())
                     .foregroundColor(AppColors.textSecondary)
             }
 
@@ -472,7 +472,7 @@ struct BreakdownPersonRow: View {
                     HapticManager.selectionChanged()
                 } label: {
                     Image(systemName: "minus")
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(AppTypography.buttonSmall())
                         .foregroundColor(AppColors.textPrimary)
                         .frame(width: 28, height: 28)
                         .background(AppColors.backgroundTertiary)
@@ -480,7 +480,7 @@ struct BreakdownPersonRow: View {
                 }
 
                 Text("\(shares)")
-                    .font(.system(size: 20, weight: .bold, design: .rounded))
+                    .font(AppTypography.headingLarge())
                     .foregroundColor(AppColors.textPrimary)
                     .frame(width: 30)
                     .multilineTextAlignment(.center)
@@ -493,7 +493,7 @@ struct BreakdownPersonRow: View {
                     HapticManager.selectionChanged()
                 } label: {
                     Image(systemName: "plus")
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(AppTypography.buttonSmall())
                         .foregroundColor(AppColors.textPrimary)
                         .frame(width: 28, height: 28)
                         .background(AppColors.backgroundTertiary)
@@ -504,10 +504,10 @@ struct BreakdownPersonRow: View {
         case .adjustment:
             HStack(spacing: Spacing.sm) {
                 Text("±\(currencySymbol)")
-                    .font(AppTypography.body())
+                    .font(AppTypography.bodyLarge())
                     .foregroundColor(AppColors.textSecondary)
                 TextField("0", text: $inputText)
-                    .font(.system(size: 20, weight: .bold, design: .rounded))
+                    .font(AppTypography.headingLarge())
                     .keyboardType(.numbersAndPunctuation)
                     .multilineTextAlignment(.trailing)
                     .foregroundColor(AppColors.textPrimary)
@@ -524,10 +524,10 @@ struct BreakdownPersonRow: View {
     private func currencyAmountDisplay(_ amount: Double) -> some View {
         HStack(spacing: Spacing.sm) {
             Text(currencySymbol)
-                .font(AppTypography.body())
+                .font(AppTypography.bodyLarge())
                 .foregroundColor(AppColors.textSecondary)
             Text(String(format: "%.2f", amount))
-                .font(.system(size: 20, weight: .bold, design: .rounded))
+                .font(AppTypography.headingLarge())
                 .foregroundColor(AppColors.textPrimary)
                 .frame(minWidth: 60, alignment: .trailing)
         }

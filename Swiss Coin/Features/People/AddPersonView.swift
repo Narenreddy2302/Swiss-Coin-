@@ -30,7 +30,7 @@ struct AddPersonView: View {
                         // Contact Details Section
                         VStack(alignment: .leading, spacing: Spacing.sm) {
                             Text("CONTACT DETAILS")
-                                .font(AppTypography.footnote())
+                                .font(AppTypography.bodySmall())
                                 .foregroundColor(AppColors.textSecondary)
                                 .padding(.horizontal, Spacing.lg + Spacing.xxs)
 
@@ -43,7 +43,7 @@ struct AddPersonView: View {
                                         .frame(width: 24)
 
                                     TextField("Name", text: $name)
-                                        .font(AppTypography.body())
+                                        .font(AppTypography.bodyLarge())
                                         .foregroundColor(AppColors.textPrimary)
                                         .limitTextLength(to: ValidationLimits.maxNameLength, text: $name)
                                         .onChange(of: name) { _, newValue in
@@ -64,7 +64,7 @@ struct AddPersonView: View {
                                         .frame(width: 24)
 
                                     TextField("Phone Number", text: $phoneNumber)
-                                        .font(AppTypography.body())
+                                        .font(AppTypography.bodyLarge())
                                         .foregroundColor(AppColors.textPrimary)
                                         .keyboardType(.phonePad)
                                         .limitTextLength(to: ValidationLimits.maxPhoneLength, text: $phoneNumber)
@@ -119,7 +119,7 @@ struct AddPersonView: View {
                         // Import Section
                         VStack(alignment: .leading, spacing: Spacing.sm) {
                             Text("IMPORT")
-                                .font(AppTypography.footnote())
+                                .font(AppTypography.bodySmall())
                                 .foregroundColor(AppColors.textSecondary)
                                 .padding(.horizontal, Spacing.lg + Spacing.xxs)
 
@@ -134,7 +134,7 @@ struct AddPersonView: View {
                                         .frame(width: 24)
 
                                     Text("Import from Phone Contacts")
-                                        .font(AppTypography.body())
+                                        .font(AppTypography.bodyLarge())
                                         .foregroundColor(AppColors.textPrimary)
 
                                     Spacer()

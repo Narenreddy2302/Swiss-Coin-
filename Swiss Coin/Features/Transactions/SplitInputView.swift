@@ -1,8 +1,8 @@
 import CoreData
 import SwiftUI
 
-/// A compact split input view for the redesigned transaction form
-/// Displays and allows editing of split amounts based on the selected split method
+/// Input control for split amounts — adapts based on split method.
+/// Used inside the breakdown section of AddTransactionView.
 struct SplitInputView: View {
     @ObservedObject var viewModel: TransactionViewModel
     let person: Person
@@ -11,11 +11,7 @@ struct SplitInputView: View {
         person.id ?? UUID()
     }
 
-    private var currentInput: String {
-        viewModel.rawInputs[personId] ?? ""
-    }
-
-    private var inputBinding: Binding<String> {
+    private var rawBinding: Binding<String> {
         Binding(
             get: { viewModel.rawInputs[personId] ?? "" },
             set: { viewModel.rawInputs[personId] = $0 }
@@ -23,52 +19,13 @@ struct SplitInputView: View {
     }
 
     var body: some View {
-        HStack(spacing: Spacing.sm) {
-            splitInput
-        }
-        .onAppear {
-            initializeDefaultValues()
-        }
-    }
-
-    // MARK: - Initialization
-
-    private func initializeDefaultValues() {
-        // Initialize with default values if empty
-        if currentInput.isEmpty {
-            let participantCount = max(1, viewModel.selectedParticipants.count)
-
-            switch viewModel.splitMethod {
-            case .percentage:
-                let defaultPercent = 100.0 / Double(participantCount)
-                viewModel.rawInputs[personId] = String(format: "%.1f", defaultPercent)
-
-            case .adjustment:
-                viewModel.rawInputs[personId] = "0"
-
-            case .shares:
-                viewModel.rawInputs[personId] = "1"
-
-            default:
-                break
-            }
-        }
-    }
-
-    // MARK: - Split Input
-
-    @ViewBuilder
-    private var splitInput: some View {
         switch viewModel.splitMethod {
         case .percentage:
             percentageInput
-
-        case .adjustment:
-            adjustmentInput
-
         case .shares:
             sharesInput
-
+        case .adjustment:
+            adjustmentInput
         default:
             EmptyView()
         }
@@ -77,18 +34,76 @@ struct SplitInputView: View {
     // MARK: - Percentage Input
 
     private var percentageInput: some View {
-        HStack(spacing: Spacing.sm) {
-            TextField("0", text: inputBinding)
-                .font(.system(size: 16, weight: .bold, design: .rounded))
+        HStack(spacing: Spacing.xs) {
+            TextField("0", text: rawBinding)
+                .font(AppTypography.financialSmall())
                 .keyboardType(.decimalPad)
                 .multilineTextAlignment(.trailing)
                 .foregroundColor(AppColors.textPrimary)
-                .frame(width: 50)
+                .frame(minWidth: 40, alignment: .trailing)
+                .accessibilityLabel("Percentage for \(person.displayName)")
 
             Text("%")
-                .font(AppTypography.subheadline())
+                .font(AppTypography.labelDefault())
                 .foregroundColor(AppColors.textSecondary)
         }
+        .padding(.horizontal, Spacing.sm)
+        .padding(.vertical, Spacing.xs)
+        .background(
+            RoundedRectangle(cornerRadius: CornerRadius.small)
+                .fill(AppColors.backgroundTertiary)
+        )
+        .onAppear { initializePercentageDefault() }
+    }
+
+    // MARK: - Shares Input (Stepper)
+
+    private var sharesInput: some View {
+        let currentShares = Int(Double(viewModel.rawInputs[personId] ?? "1") ?? 1)
+
+        return HStack(spacing: Spacing.sm) {
+            // Minus button
+            Button {
+                let newVal = max(0, currentShares - 1)
+                viewModel.rawInputs[personId] = "\(newVal)"
+                HapticManager.lightTap()
+            } label: {
+                Image(systemName: "minus")
+                    .font(.system(size: IconSize.xs, weight: .semibold))
+                    .foregroundColor(currentShares > 0 ? AppColors.textPrimary : AppColors.disabled)
+                    .frame(width: 28, height: 28)
+                    .background(
+                        Circle().fill(AppColors.backgroundTertiary)
+                    )
+            }
+            .buttonStyle(.plain)
+            .disabled(currentShares <= 0)
+            .accessibilityLabel("Decrease shares")
+
+            // Share count
+            Text("\(currentShares)")
+                .font(AppTypography.financialSmall())
+                .foregroundColor(AppColors.textPrimary)
+                .frame(minWidth: 24)
+
+            // Plus button
+            Button {
+                let newVal = currentShares + 1
+                viewModel.rawInputs[personId] = "\(newVal)"
+                HapticManager.lightTap()
+            } label: {
+                Image(systemName: "plus")
+                    .font(.system(size: IconSize.xs, weight: .semibold))
+                    .foregroundColor(AppColors.textPrimary)
+                    .frame(width: 28, height: 28)
+                    .background(
+                        Circle().fill(AppColors.backgroundTertiary)
+                    )
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Increase shares")
+        }
+        .onAppear { initializeSharesDefault() }
     }
 
     // MARK: - Adjustment Input
@@ -96,63 +111,45 @@ struct SplitInputView: View {
     private var adjustmentInput: some View {
         HStack(spacing: Spacing.xs) {
             Text("±")
-                .font(AppTypography.caption())
+                .font(AppTypography.labelDefault())
                 .foregroundColor(AppColors.textSecondary)
 
-            Text(CurrencyFormatter.currencySymbol)
-                .font(AppTypography.subheadline())
-                .foregroundColor(AppColors.textSecondary)
-
-            TextField("0", text: inputBinding)
-                .font(.system(size: 16, weight: .bold, design: .rounded))
-                .keyboardType(.numbersAndPunctuation)
+            TextField("0", text: rawBinding)
+                .font(AppTypography.financialSmall())
+                .keyboardType(.decimalPad)
                 .multilineTextAlignment(.trailing)
                 .foregroundColor(AppColors.textPrimary)
-                .frame(width: 60)
+                .frame(minWidth: 40, alignment: .trailing)
+                .accessibilityLabel("Adjustment for \(person.displayName)")
+        }
+        .padding(.horizontal, Spacing.sm)
+        .padding(.vertical, Spacing.xs)
+        .background(
+            RoundedRectangle(cornerRadius: CornerRadius.small)
+                .fill(AppColors.backgroundTertiary)
+        )
+        .onAppear { initializeAdjustmentDefault() }
+    }
+
+    // MARK: - Default Initialization
+
+    private func initializePercentageDefault() {
+        if (viewModel.rawInputs[personId] ?? "").isEmpty {
+            let count = max(1, viewModel.selectedParticipants.count)
+            let defaultPercent = 100.0 / Double(count)
+            viewModel.rawInputs[personId] = String(format: "%.1f", defaultPercent)
         }
     }
 
-    // MARK: - Shares Input
+    private func initializeSharesDefault() {
+        if (viewModel.rawInputs[personId] ?? "").isEmpty {
+            viewModel.rawInputs[personId] = "1"
+        }
+    }
 
-    private var sharesInput: some View {
-        let currentShares = max(1, Int(currentInput) ?? 1)
-
-        return HStack(spacing: Spacing.sm) {
-            // Decrement button
-            Button {
-                guard currentShares > 1 else { return }
-                viewModel.rawInputs[personId] = String(currentShares - 1)
-                HapticManager.selectionChanged()
-            } label: {
-                Image(systemName: "minus")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(AppColors.textPrimary)
-                    .frame(width: 28, height: 28)
-                    .background(AppColors.backgroundTertiary)
-                    .clipShape(Circle())
-            }
-            .buttonStyle(.plain)
-
-            // Shares count
-            Text("\(currentShares)")
-                .font(.system(size: 16, weight: .bold, design: .rounded))
-                .foregroundColor(AppColors.textPrimary)
-                .frame(width: 30)
-                .multilineTextAlignment(.center)
-
-            // Increment button
-            Button {
-                viewModel.rawInputs[personId] = String(currentShares + 1)
-                HapticManager.selectionChanged()
-            } label: {
-                Image(systemName: "plus")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(AppColors.textPrimary)
-                    .frame(width: 28, height: 28)
-                    .background(AppColors.backgroundTertiary)
-                    .clipShape(Circle())
-            }
-            .buttonStyle(.plain)
+    private func initializeAdjustmentDefault() {
+        if (viewModel.rawInputs[personId] ?? "").isEmpty {
+            viewModel.rawInputs[personId] = "0"
         }
     }
 }

@@ -36,11 +36,11 @@ struct GroupDetailView: View {
 
                     VStack(spacing: Spacing.xs) {
                         Text(group.name ?? "Unnamed Group")
-                            .font(AppTypography.title2())
+                            .font(AppTypography.displayMedium())
                             .foregroundColor(AppColors.textPrimary)
 
                         Text("\(group.members?.count ?? 0) Members")
-                            .font(AppTypography.subheadline())
+                            .font(AppTypography.bodyDefault())
                             .foregroundColor(AppColors.textSecondary)
 
                         // Balance summary
@@ -64,6 +64,11 @@ struct GroupDetailView: View {
                     }
                 }
             }
+        }
+        .refreshable {
+            await RefreshHelper.performStandardRefresh(context: viewContext)
+            balance = group.calculateBalance()
+            memberBalances = group.getMemberBalances()
         }
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
@@ -124,15 +129,15 @@ struct GroupDetailView: View {
                 .overlay(
                     Image(systemName: "person.3.fill")
                         .font(.system(size: IconSize.xl))
-                        .foregroundColor(.white)
+                        .foregroundColor(AppColors.onAccent)
                 )
 
             Text(group.name ?? "Unnamed Group")
-                .font(AppTypography.title2())
+                .font(AppTypography.displayMedium())
                 .foregroundColor(AppColors.textPrimary)
 
             Text("\(group.members?.count ?? 0) Members")
-                .font(AppTypography.footnote())
+                .font(AppTypography.bodySmall())
                 .foregroundColor(AppColors.textSecondary)
 
             // Balance pill
@@ -142,17 +147,17 @@ struct GroupDetailView: View {
                         Text("You're owed")
                             .foregroundColor(AppColors.textSecondary)
                         Text(CurrencyFormatter.format(balance))
-                            .fontWeight(.semibold)
+                            .font(AppTypography.headingSmall())
                             .foregroundColor(AppColors.positive)
                     } else {
                         Text("You owe")
                             .foregroundColor(AppColors.textSecondary)
                         Text(CurrencyFormatter.format(abs(balance)))
-                            .fontWeight(.semibold)
+                            .font(AppTypography.headingSmall())
                             .foregroundColor(AppColors.negative)
                     }
                 }
-                .font(AppTypography.subheadlineMedium())
+                .font(AppTypography.labelLarge())
                 .padding(.horizontal, Spacing.lg)
                 .padding(.vertical, Spacing.sm)
                 .background(
@@ -180,7 +185,7 @@ struct GroupDetailView: View {
                         Image(systemName: "plus.circle.fill")
                             .font(.system(size: IconSize.sm))
                         Text("Add Expense")
-                            .font(AppTypography.subheadlineMedium())
+                            .font(AppTypography.labelLarge())
                     }
                     .foregroundColor(AppColors.buttonForeground)
                     .frame(height: ButtonHeight.md)
@@ -197,7 +202,7 @@ struct GroupDetailView: View {
                         Image(systemName: "message.fill")
                             .font(.system(size: IconSize.sm))
                         Text("Chat")
-                            .font(AppTypography.subheadlineMedium())
+                            .font(AppTypography.labelLarge())
                     }
                     .foregroundColor(AppColors.textPrimary)
                     .frame(height: ButtonHeight.md)
@@ -216,7 +221,7 @@ struct GroupDetailView: View {
                         Image(systemName: "checkmark.circle.fill")
                             .font(.system(size: IconSize.sm))
                         Text("Settle Up")
-                            .font(AppTypography.subheadlineMedium())
+                            .font(AppTypography.labelLarge())
                     }
                     .foregroundColor(AppColors.positive)
                     .frame(height: ButtonHeight.md)
@@ -233,7 +238,7 @@ struct GroupDetailView: View {
     private var membersSection: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             Text("MEMBERS")
-                .font(AppTypography.footnote())
+                .font(AppTypography.bodySmall())
                 .foregroundColor(AppColors.textSecondary)
                 .padding(.horizontal, Spacing.lg)
 
@@ -245,12 +250,12 @@ struct GroupDetailView: View {
                             .frame(width: AvatarSize.md, height: AvatarSize.md)
                             .overlay(
                                 Text(item.member.initials)
-                                    .font(AppTypography.headline())
+                                    .font(AppTypography.headingMedium())
                                     .foregroundColor(Color(hex: item.member.colorHex ?? CurrentUser.defaultColorHex))
                             )
 
                         Text(item.member.name ?? "Unknown")
-                            .font(AppTypography.body())
+                            .font(AppTypography.bodyLarge())
                             .foregroundColor(AppColors.textPrimary)
 
                         Spacer()
@@ -267,7 +272,7 @@ struct GroupDetailView: View {
                             }
                         } else {
                             Text("settled")
-                                .font(AppTypography.footnote())
+                                .font(AppTypography.bodySmall())
                                 .foregroundColor(AppColors.textSecondary)
                         }
                     }
@@ -294,7 +299,7 @@ struct GroupDetailView: View {
     private var expensesSection: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             Text("EXPENSES")
-                .font(AppTypography.footnote())
+                .font(AppTypography.bodySmall())
                 .foregroundColor(AppColors.textSecondary)
                 .padding(.horizontal, Spacing.lg)
 
@@ -304,7 +309,7 @@ struct GroupDetailView: View {
                         .font(.system(size: IconSize.xl))
                         .foregroundColor(AppColors.textSecondary)
                     Text("No expenses yet")
-                        .font(AppTypography.subheadline())
+                        .font(AppTypography.bodyDefault())
                         .foregroundColor(AppColors.textSecondary)
                     Text("Add an expense to start tracking")
                         .font(AppTypography.caption())
@@ -406,7 +411,7 @@ struct GroupDetailTransactionRow: View {
 
             VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text(transaction.title ?? "Expense")
-                    .font(AppTypography.body())
+                    .font(AppTypography.bodyLarge())
                     .foregroundColor(AppColors.textPrimary)
                     .lineLimit(1)
 
@@ -424,12 +429,12 @@ struct GroupDetailTransactionRow: View {
             Spacer()
 
             VStack(alignment: .trailing, spacing: Spacing.xxs) {
-                Text("\(amountPrefix)\(CurrencyFormatter.format(abs(userNetAmount)))")
-                    .font(AppTypography.amountSmall())
+                Text("\(amountPrefix)\(CurrencyFormatter.format(abs(userNetAmount), currencyCode: transaction.effectiveCurrency))")
+                    .font(AppTypography.financialSmall())
                     .foregroundColor(amountColor)
 
-                (Text("of ") + Text(CurrencyFormatter.format(transaction.amount)).fontWeight(.bold))
-                    .font(AppTypography.caption2())
+                (Text("of ") + Text(CurrencyFormatter.format(transaction.amount, currencyCode: transaction.effectiveCurrency)).fontWeight(.bold))
+                    .font(AppTypography.labelSmall())
                     .foregroundColor(AppColors.textSecondary)
             }
         }

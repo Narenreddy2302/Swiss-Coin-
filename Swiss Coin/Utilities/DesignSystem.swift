@@ -209,6 +209,12 @@ enum AppShadow {
         let opacity = colorScheme == .dark ? 0.32 : 0.12
         return (Color.black.opacity(opacity), 16, 0, 4)
     }
+
+    /// Bubble shadow - chat message bubbles and comment bubbles
+    static func bubble(for colorScheme: ColorScheme) -> (color: Color, radius: CGFloat, x: CGFloat, y: CGFloat) {
+        let opacity = colorScheme == .dark ? 0.2 : 0.05
+        return (Color.black.opacity(opacity), 2, 0, 1)
+    }
 }
 
 // MARK: - Animation
@@ -706,11 +712,11 @@ enum AppColors {
             : UIColor(hex: "#22201D")
     })
 
-    /// Other person message bubble — white for visibility against off-white background
+    /// Other person message bubble — slightly warmer tone to differentiate from user bubble
     static let otherBubble = Color(UIColor { tc in
         tc.userInterfaceStyle == .dark
-            ? UIColor(hex: "#3A3A3C")
-            : UIColor.white
+            ? UIColor(hex: "#2C2C2E")
+            : UIColor(hex: "#F0EDE8")
     })
 
     /// Other message bubble text color
@@ -725,6 +731,20 @@ enum AppColors {
         tc.userInterfaceStyle == .dark
             ? UIColor(white: 0.0, alpha: 0.24)
             : UIColor(white: 0.0, alpha: 0.08)
+    })
+
+    /// Subtle shadow — lighter card shadows that remain visible in dark mode
+    static let shadowSubtle = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(white: 0.0, alpha: 0.16)
+            : UIColor(white: 0.0, alpha: 0.04)
+    })
+
+    /// Micro shadow — barely-there secondary shadow for layered depth
+    static let shadowMicro = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(white: 0.0, alpha: 0.12)
+            : UIColor(white: 0.0, alpha: 0.02)
     })
 
     // MARK: - Overlay Colors
@@ -891,39 +911,38 @@ enum AppColors {
 // MARK: - Typography
 
 /// Standardized typography styles
-/// Display: System default (San Francisco) for headings and hero financial numbers
-/// UI: System default (San Francisco) for all other text
+/// Font: SF Pro (system default) used consistently throughout the app
 ///
 /// TYPE SCALE REFERENCE:
 /// ───────────────────────────────────────────────────────────────────
 ///   TOKEN                SIZE   WEIGHT      LINE-H   TRACKING   FONT
 /// ───────────────────────────────────────────────────────────────────
-///   display.hero         34pt   Bold        40pt     -0.4pt     Sans
-///   display.large        28pt   Bold        34pt     -0.3pt     Sans
-///   display.medium       22pt   Bold        28pt     -0.2pt     Sans
+///   display.hero         34pt   Bold        40pt     -0.4pt     SF Pro
+///   display.large        28pt   Bold        34pt     -0.3pt     SF Pro
+///   display.medium       22pt   Bold        28pt     -0.2pt     SF Pro
 /// ───────────────────────────────────────────────────────────────────
-///   heading.large        20pt   Semibold    25pt      0         Sans
-///   heading.medium       17pt   Semibold    22pt      0         Sans
-///   heading.small        15pt   Semibold    20pt      0         Sans
+///   heading.large        20pt   Semibold    25pt      0         SF Pro
+///   heading.medium       17pt   Semibold    22pt      0         SF Pro
+///   heading.small        15pt   Semibold    20pt      0         SF Pro
 /// ───────────────────────────────────────────────────────────────────
-///   body.large           17pt   Regular     22pt      0         Sans
-///   body.default         15pt   Regular     20pt      0         Sans
-///   body.small           13pt   Regular     18pt      0         Sans
+///   body.large           17pt   Regular     22pt      0         SF Pro
+///   body.default         15pt   Regular     20pt      0         SF Pro
+///   body.small           13pt   Regular     18pt      0         SF Pro
 /// ───────────────────────────────────────────────────────────────────
-///   label.large          15pt   Medium      20pt      0         Sans
-///   label.default        13pt   Medium      18pt      0         Sans
-///   label.small          11pt   Medium      14pt      0.1pt     Sans
+///   label.large          15pt   Medium      20pt      0         SF Pro
+///   label.default        13pt   Medium      18pt      0         SF Pro
+///   label.small          11pt   Medium      14pt      0.1pt     SF Pro
 /// ───────────────────────────────────────────────────────────────────
-///   caption              11pt   Regular     14pt      0.1pt     Sans
+///   caption              11pt   Regular     14pt      0.1pt     SF Pro
 /// ───────────────────────────────────────────────────────────────────
-///   financial.hero       34pt   Bold        40pt     -0.4pt     Sans Rounded
-///   financial.large      24pt   Bold        30pt     -0.2pt     Sans
-///   financial.default    17pt   Bold        22pt      0         Sans
-///   financial.small      13pt   Bold        18pt      0         Sans
+///   financial.hero       34pt   Bold        40pt     -0.4pt     SF Pro
+///   financial.large      24pt   Bold        30pt     -0.2pt     SF Pro
+///   financial.default    17pt   Bold        22pt      0         SF Pro
+///   financial.small      13pt   Bold        18pt      0         SF Pro
 /// ───────────────────────────────────────────────────────────────────
-///   button.large         17pt   Semibold    22pt      0         Sans
-///   button.default       15pt   Semibold    20pt      0         Sans
-///   button.small         13pt   Semibold    18pt      0         Sans
+///   button.large         17pt   Semibold    22pt      0         SF Pro
+///   button.default       15pt   Semibold    20pt      0         SF Pro
+///   button.small         13pt   Semibold    18pt      0         SF Pro
 /// ───────────────────────────────────────────────────────────────────
 enum AppTypography {
 
@@ -977,7 +996,7 @@ enum AppTypography {
         static let buttonSmall: CGFloat = 0
     }
 
-    // MARK: - Display (Sans)
+    // MARK: - Display (SF Pro)
 
     /// Display hero - 34pt bold (line: 40pt, tracking: -0.4pt)
     static func displayHero() -> Font {
@@ -994,7 +1013,7 @@ enum AppTypography {
         .system(size: 22, weight: .bold, design: .default)
     }
 
-    // MARK: - Headings (Sans)
+    // MARK: - Headings (SF Pro)
 
     /// Heading large - 20pt semibold (line: 25pt)
     static func headingLarge() -> Font {
@@ -1011,7 +1030,7 @@ enum AppTypography {
         .system(size: 15, weight: .semibold)
     }
 
-    // MARK: - Body (Sans)
+    // MARK: - Body (SF Pro)
 
     /// Body large - 17pt regular (line: 22pt)
     static func bodyLarge() -> Font {
@@ -1028,7 +1047,7 @@ enum AppTypography {
         .system(size: 13, weight: .regular)
     }
 
-    // MARK: - Labels (Sans)
+    // MARK: - Labels (SF Pro)
 
     /// Label large - 15pt medium (line: 20pt)
     static func labelLarge() -> Font {
@@ -1054,9 +1073,9 @@ enum AppTypography {
 
     // MARK: - Financial Numbers (with tabular/monospaced digits)
 
-    /// Financial hero - 34pt bold rounded, monospaced digits (line: 40pt, tracking: -0.4pt)
+    /// Financial hero - 34pt bold, monospaced digits (line: 40pt, tracking: -0.4pt)
     static func financialHero() -> Font {
-        .system(size: 34, weight: .bold, design: .rounded).monospacedDigit()
+        .system(size: 34, weight: .bold, design: .default).monospacedDigit()
     }
 
     /// Financial large - 24pt bold, monospaced digits (line: 30pt, tracking: -0.2pt)
@@ -1091,24 +1110,6 @@ enum AppTypography {
         .system(size: 13, weight: .semibold)
     }
 
-    // MARK: - Legacy Methods (backward compatibility)
-
-    static func largeTitle() -> Font { displayHero() }
-    static func title1() -> Font { displayLarge() }
-    static func title2() -> Font { displayMedium() }
-    static func title3() -> Font { headingLarge() }
-    static func headline() -> Font { headingMedium() }
-    static func body() -> Font { bodyLarge() }
-    static func bodyBold() -> Font { .system(size: 17, weight: .semibold) }
-    static func subheadline() -> Font { bodyDefault() }
-    static func subheadlineMedium() -> Font { labelLarge() }
-    static func footnote() -> Font { bodySmall() }
-    static func caption2() -> Font { labelSmall() }
-
-    /// Amount display - monospaced digits (legacy)
-    static func amount() -> Font { financialDefault() }
-    static func amountLarge() -> Font { financialLarge() }
-    static func amountSmall() -> Font { financialSmall() }
 }
 
 // MARK: - Financial Number Formatter
@@ -1130,6 +1131,14 @@ enum FinancialFormatter {
         return formatter.string(from: NSNumber(value: amount)) ?? "\(currencySymbol)0.00"
     }
 
+    /// Standard currency format using a specific currency code for per-transaction display.
+    static func currency(_ amount: Double, currencyCode: String, showCents: Bool = true) -> String {
+        let symbol = CurrencyFormatter.symbol(for: currencyCode)
+        let isZeroDecimal = CurrencyFormatter.isZeroDecimal(currencyCode)
+        let effectiveShowCents = isZeroDecimal ? false : showCents
+        return currency(amount, showCents: effectiveShowCents, currencySymbol: symbol)
+    }
+
     /// Currency format with explicit sign: +$12,345.67 or -$12,345.67
     static func signedCurrency(_ amount: Double, showCents: Bool = true, currencySymbol: String = "$") -> String {
         let formatted = currency(abs(amount), showCents: showCents, currencySymbol: currencySymbol)
@@ -1139,6 +1148,14 @@ enum FinancialFormatter {
             return "-\(formatted)"
         }
         return formatted
+    }
+
+    /// Signed currency format using a specific currency code for per-transaction display.
+    static func signedCurrency(_ amount: Double, currencyCode: String, showCents: Bool = true) -> String {
+        let symbol = CurrencyFormatter.symbol(for: currencyCode)
+        let isZeroDecimal = CurrencyFormatter.isZeroDecimal(currencyCode)
+        let effectiveShowCents = isZeroDecimal ? false : showCents
+        return signedCurrency(amount, showCents: effectiveShowCents, currencySymbol: symbol)
     }
 
     /// Privacy mode: masks digits with bullet characters (preserves layout width)

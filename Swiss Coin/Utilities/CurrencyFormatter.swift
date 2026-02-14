@@ -14,7 +14,7 @@ final class CurrencyFormatter {
 
     // MARK: - Currency Configuration
 
-    private struct CurrencyConfig {
+    struct CurrencyConfig {
         let code: String
         let locale: String
         let symbol: String
@@ -22,30 +22,48 @@ final class CurrencyFormatter {
     }
 
     /// All supported currency configurations with locale and symbol mappings
-    private static let configs: [String: CurrencyConfig] = [
+    static let configs: [String: CurrencyConfig] = [
         "USD": CurrencyConfig(code: "USD", locale: "en_US",  symbol: "$",   flag: "🇺🇸"),
         "EUR": CurrencyConfig(code: "EUR", locale: "de_DE",  symbol: "€",   flag: "🇪🇺"),
         "GBP": CurrencyConfig(code: "GBP", locale: "en_GB",  symbol: "£",   flag: "🇬🇧"),
-        "INR": CurrencyConfig(code: "INR", locale: "en_IN",  symbol: "₹",   flag: "🇮🇳"),
-        "CNY": CurrencyConfig(code: "CNY", locale: "zh_CN",  symbol: "¥",   flag: "🇨🇳"),
-        "JPY": CurrencyConfig(code: "JPY", locale: "ja_JP",  symbol: "¥",   flag: "🇯🇵"),
         "CHF": CurrencyConfig(code: "CHF", locale: "de_CH",  symbol: "CHF", flag: "🇨🇭"),
         "CAD": CurrencyConfig(code: "CAD", locale: "en_CA",  symbol: "CA$", flag: "🇨🇦"),
         "AUD": CurrencyConfig(code: "AUD", locale: "en_AU",  symbol: "A$",  flag: "🇦🇺"),
+        "JPY": CurrencyConfig(code: "JPY", locale: "ja_JP",  symbol: "¥",   flag: "🇯🇵"),
+        "INR": CurrencyConfig(code: "INR", locale: "en_IN",  symbol: "₹",   flag: "🇮🇳"),
+        "CNY": CurrencyConfig(code: "CNY", locale: "zh_CN",  symbol: "¥",   flag: "🇨🇳"),
         "KRW": CurrencyConfig(code: "KRW", locale: "ko_KR",  symbol: "₩",   flag: "🇰🇷"),
         "SGD": CurrencyConfig(code: "SGD", locale: "en_SG",  symbol: "S$",  flag: "🇸🇬"),
         "AED": CurrencyConfig(code: "AED", locale: "en_AE",  symbol: "د.إ", flag: "🇦🇪"),
         "BRL": CurrencyConfig(code: "BRL", locale: "pt_BR",  symbol: "R$",  flag: "🇧🇷"),
         "MXN": CurrencyConfig(code: "MXN", locale: "es_MX",  symbol: "MX$", flag: "🇲🇽"),
         "SEK": CurrencyConfig(code: "SEK", locale: "sv_SE",  symbol: "kr",  flag: "🇸🇪"),
+        "NZD": CurrencyConfig(code: "NZD", locale: "en_NZ",  symbol: "NZ$", flag: "🇳🇿"),
     ]
 
-    // MARK: - Formatter Cache
+    /// All supported currencies sorted by code, for picker UIs
+    static var allSupportedCurrencies: [CurrencyConfig] {
+        configs.values.sorted { $0.code < $1.code }
+    }
+
+    /// Popular currencies for picker sections
+    static let popularCurrencyCodes: Set<String> = [
+        "USD", "EUR", "GBP", "CHF", "CAD", "AUD", "JPY", "INR"
+    ]
+
+    // MARK: - Formatter Cache (Global Default)
 
     /// Cached formatters are rebuilt whenever the selected currency changes.
     private static var _cachedCode: String?
     private static var _currencyFmt: NumberFormatter?
     private static var _decimalFmt: NumberFormatter?
+
+    // MARK: - Per-Currency Formatter Cache (Thread-Safe)
+
+    private static let cacheLock = NSLock()
+    private static var _currencyFmtCache: [String: NumberFormatter] = [:]
+    private static var _decimalFmtCache: [String: NumberFormatter] = [:]
+    private static let maxCacheSize = 20
 
     /// Reads the user's selected currency code from UserDefaults
     private static var selectedCode: String {
@@ -83,7 +101,60 @@ final class CurrencyFormatter {
         _decimalFmt = df
     }
 
-    // MARK: - Public Properties
+    /// Builds a currency NumberFormatter for a given code (not cached by this method).
+    private static func buildCurrencyFormatter(for code: String) -> NumberFormatter {
+        let config = configs[code] ?? configs["USD"]!
+        let isZeroDecimal = (code == "JPY" || code == "KRW")
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .currency
+        formatter.currencyCode = config.code
+        formatter.locale = Locale(identifier: config.locale)
+        formatter.maximumFractionDigits = isZeroDecimal ? 0 : 2
+        formatter.minimumFractionDigits = isZeroDecimal ? 0 : 2
+        return formatter
+    }
+
+    /// Builds a decimal NumberFormatter for a given code (not cached by this method).
+    private static func buildDecimalFormatter(for code: String) -> NumberFormatter {
+        let config = configs[code] ?? configs["USD"]!
+        let isZeroDecimal = (code == "JPY" || code == "KRW")
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.locale = Locale(identifier: config.locale)
+        formatter.maximumFractionDigits = isZeroDecimal ? 0 : 2
+        formatter.minimumFractionDigits = isZeroDecimal ? 0 : 2
+        return formatter
+    }
+
+    /// Returns a cached currency formatter for the given code, creating one if needed.
+    private static func cachedCurrencyFormatter(for code: String) -> NumberFormatter {
+        cacheLock.lock()
+        defer { cacheLock.unlock() }
+        if let cached = _currencyFmtCache[code] { return cached }
+        if _currencyFmtCache.count >= maxCacheSize {
+            _currencyFmtCache.removeAll()
+            _decimalFmtCache.removeAll()
+        }
+        let formatter = buildCurrencyFormatter(for: code)
+        _currencyFmtCache[code] = formatter
+        return formatter
+    }
+
+    /// Returns a cached decimal formatter for the given code, creating one if needed.
+    private static func cachedDecimalFormatter(for code: String) -> NumberFormatter {
+        cacheLock.lock()
+        defer { cacheLock.unlock() }
+        if let cached = _decimalFmtCache[code] { return cached }
+        if _decimalFmtCache.count >= maxCacheSize {
+            _decimalFmtCache.removeAll()
+            _currencyFmtCache.removeAll()
+        }
+        let formatter = buildDecimalFormatter(for: code)
+        _decimalFmtCache[code] = formatter
+        return formatter
+    }
+
+    // MARK: - Public Properties (Global Default)
 
     /// The currency symbol for the currently selected currency (e.g., "$", "€", "CHF")
     static var currencySymbol: String {
@@ -100,7 +171,30 @@ final class CurrencyFormatter {
         currentConfig.code
     }
 
-    // MARK: - Public Methods
+    /// Whether the currently selected currency uses zero decimal places (e.g., JPY, KRW)
+    static var isZeroDecimalCurrency: Bool {
+        let code = selectedCode
+        return code == "JPY" || code == "KRW"
+    }
+
+    // MARK: - Per-Currency Public Properties
+
+    /// Returns the symbol for a specific currency code.
+    static func symbol(for currencyCode: String) -> String {
+        (configs[currencyCode] ?? configs["USD"]!).symbol
+    }
+
+    /// Returns the flag emoji for a specific currency code.
+    static func flag(for currencyCode: String) -> String {
+        (configs[currencyCode] ?? configs["USD"]!).flag
+    }
+
+    /// Whether a specific currency code uses zero decimal places (e.g., JPY, KRW)
+    static func isZeroDecimal(_ currencyCode: String) -> Bool {
+        currencyCode == "JPY" || currencyCode == "KRW"
+    }
+
+    // MARK: - Public Methods (Global Default)
 
     /// Formats an amount using the user's selected currency with full locale formatting.
     /// - Parameter amount: The amount to format
@@ -146,6 +240,45 @@ final class CurrencyFormatter {
     static func formatCompact(_ amount: Double) -> String {
         return formatDecimal(amount)
     }
+
+    // MARK: - Per-Currency Public Methods
+
+    /// Formats an amount using a specific currency code (not the global default).
+    /// - Parameters:
+    ///   - amount: The amount to format
+    ///   - currencyCode: ISO 4217 currency code (e.g., "USD", "EUR")
+    /// - Returns: Formatted string (e.g., "$29.99", "€29,99")
+    static func format(_ amount: Double, currencyCode: String) -> String {
+        let formatter = cachedCurrencyFormatter(for: currencyCode)
+        let config = configs[currencyCode] ?? configs["USD"]!
+        return formatter.string(from: NSNumber(value: amount))
+            ?? "\(config.symbol)\(String(format: "%.2f", amount))"
+    }
+
+    /// Formats an absolute amount (always positive) with a specific currency.
+    static func formatAbsolute(_ amount: Double, currencyCode: String) -> String {
+        return format(abs(amount), currencyCode: currencyCode)
+    }
+
+    /// Formats an amount without currency symbol for a specific currency code.
+    static func formatDecimal(_ amount: Double, currencyCode: String) -> String {
+        let formatter = cachedDecimalFormatter(for: currencyCode)
+        return formatter.string(from: NSNumber(value: amount)) ?? "0.00"
+    }
+
+    /// Formats an amount with explicit sign for a specific currency code.
+    static func formatWithSign(_ amount: Double, currencyCode: String) -> String {
+        let formatted = format(abs(amount), currencyCode: currencyCode)
+        if amount > 0.01 {
+            return "+\(formatted)"
+        } else if amount < -0.01 {
+            return "-\(formatted)"
+        } else {
+            return formatted
+        }
+    }
+
+    // MARK: - Parsing
 
     /// Parses a formatted currency string back to Double.
     /// Handles the current currency's symbols as well as legacy CHF/Fr. formats.

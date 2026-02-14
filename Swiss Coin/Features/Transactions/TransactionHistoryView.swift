@@ -26,6 +26,7 @@ struct TransactionHistoryView: View {
     @State private var transactionToDelete: FinancialTransaction?
 
     @State private var selectedTransaction: FinancialTransaction?
+    @State private var showRefreshFeedback = false
 
     // MARK: - Cached Computed Values (avoid O(n) per render)
 
@@ -37,7 +38,8 @@ struct TransactionHistoryView: View {
         let calendar = Calendar.current
         let now = Date()
 
-        let grouped = Dictionary(grouping: Array(transactions)) { (transaction: FinancialTransaction) -> String in
+        let validTransactions = Array(transactions).filter { !$0.isDeleted && $0.managedObjectContext != nil }
+        let grouped = Dictionary(grouping: validTransactions) { (transaction: FinancialTransaction) -> String in
             guard let date = transaction.date else { return "Unknown" }
 
             if calendar.isDateInToday(date) {
@@ -76,7 +78,13 @@ struct TransactionHistoryView: View {
         NavigationStack {
             ZStack {
                 if transactions.isEmpty {
-                    emptyStateView
+                    ScrollView {
+                        emptyStateView
+                    }
+                    .refreshable {
+                        await RefreshHelper.performStandardRefresh(context: viewContext)
+                        recomputeGroupedTransactions()
+                    }
                 } else {
                     transactionList
                         .allowsHitTesting(selectedTransaction == nil)
@@ -181,9 +189,15 @@ struct TransactionHistoryView: View {
             .padding(.top, Spacing.lg)
         }
         .refreshable {
-            HapticManager.lightTap()
+            await RefreshHelper.performStandardRefresh(context: viewContext)
             recomputeGroupedTransactions()
+            withAnimation(AppAnimation.standard) { showRefreshFeedback = true }
+            Task {
+                try? await Task.sleep(nanoseconds: 2_000_000_000)
+                withAnimation(AppAnimation.standard) { showRefreshFeedback = false }
+            }
         }
+        .refreshFeedback(isShowing: $showRefreshFeedback)
     }
 
     // MARK: - Summary Header
@@ -219,7 +233,7 @@ struct TransactionHistoryView: View {
         .background(
             RoundedRectangle(cornerRadius: CornerRadius.card)
                 .fill(AppColors.cardBackground)
-                .shadow(color: Color.black.opacity(0.04), radius: 8, x: 0, y: 2)
+                .shadow(color: AppColors.shadowSubtle, radius: 8, x: 0, y: 2)
         )
     }
 
@@ -270,7 +284,7 @@ struct TransactionHistoryView: View {
             .background(
                 RoundedRectangle(cornerRadius: CornerRadius.card)
                     .fill(AppColors.cardBackground)
-                    .shadow(color: Color.black.opacity(0.04), radius: 8, x: 0, y: 2)
+                    .shadow(color: AppColors.shadowSubtle, radius: 8, x: 0, y: 2)
             )
         }
     }

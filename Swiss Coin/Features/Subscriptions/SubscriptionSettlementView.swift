@@ -91,7 +91,7 @@ struct SubscriptionSettlementView: View {
                                     HStack(spacing: Spacing.sm) {
                                         Image(systemName: "arrow.down.circle.fill")
                                             .foregroundColor(AppColors.positive)
-                                            .font(.system(size: 16))
+                                            .font(.system(size: IconSize.sm))
                                         Text("\(countOwedToYou) \(countOwedToYou == 1 ? "person owes" : "people owe") you \(CurrencyFormatter.format(totalOwedToYou))")
                                             .font(AppTypography.bodyDefault())
                                             .foregroundColor(AppColors.textPrimary)
@@ -102,7 +102,7 @@ struct SubscriptionSettlementView: View {
                                     HStack(spacing: Spacing.sm) {
                                         Image(systemName: "arrow.up.circle.fill")
                                             .foregroundColor(AppColors.negative)
-                                            .font(.system(size: 16))
+                                            .font(.system(size: IconSize.sm))
                                         Text("You owe \(countYouOwe) \(countYouOwe == 1 ? "person" : "people") \(CurrencyFormatter.format(totalYouOwe))")
                                             .font(AppTypography.bodyDefault())
                                             .foregroundColor(AppColors.textPrimary)
@@ -117,7 +117,7 @@ struct SubscriptionSettlementView: View {
                             } label: {
                                 HStack {
                                     Image(systemName: "checkmark.circle.fill")
-                                        .font(.system(size: 18))
+                                        .font(.system(size: IconSize.md))
                                     Text("Settle All Balances")
                                         .font(AppTypography.buttonDefault())
                                 }
@@ -135,7 +135,7 @@ struct SubscriptionSettlementView: View {
                         .padding(.vertical, Spacing.xs)
                     } header: {
                         Text("Quick Settlement")
-                            .font(AppTypography.subheadlineMedium())
+                            .font(AppTypography.labelLarge())
                     } footer: {
                         Text("Record all outstanding balances as settled in one action")
                             .font(AppTypography.caption())
@@ -157,13 +157,13 @@ struct SubscriptionSettlementView: View {
                                         .frame(width: 36, height: 36)
                                         .overlay(
                                             Text(item.member.initials)
-                                                .font(.system(size: 14, weight: .medium))
+                                                .font(AppTypography.labelDefault())
                                                 .foregroundColor(Color(hex: item.member.colorHex ?? "#808080"))
                                         )
 
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text(item.member.firstName)
-                                            .font(AppTypography.body())
+                                            .font(AppTypography.bodyLarge())
                                             .foregroundColor(AppColors.textPrimary)
 
                                         (Text("owes you ") + Text(CurrencyFormatter.format(item.amount)).fontWeight(.bold))
@@ -182,7 +182,7 @@ struct SubscriptionSettlementView: View {
                         }
                     } header: {
                         Text("Collect from")
-                            .font(AppTypography.subheadlineMedium())
+                            .font(AppTypography.labelLarge())
                     } footer: {
                         Text("Select a member who has paid you back")
                             .font(AppTypography.caption())
@@ -204,13 +204,13 @@ struct SubscriptionSettlementView: View {
                                         .frame(width: 36, height: 36)
                                         .overlay(
                                             Text(item.member.initials)
-                                                .font(.system(size: 14, weight: .medium))
+                                                .font(AppTypography.labelDefault())
                                                 .foregroundColor(Color(hex: item.member.colorHex ?? "#808080"))
                                         )
 
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text(item.member.firstName)
-                                            .font(AppTypography.body())
+                                            .font(AppTypography.bodyLarge())
                                             .foregroundColor(AppColors.textPrimary)
 
                                         (Text("you owe ") + Text(CurrencyFormatter.format(item.amount)).fontWeight(.bold))
@@ -229,7 +229,7 @@ struct SubscriptionSettlementView: View {
                         }
                     } header: {
                         Text("Pay to")
-                            .font(AppTypography.subheadlineMedium())
+                            .font(AppTypography.labelLarge())
                     } footer: {
                         Text("Select a member you have paid back")
                             .font(AppTypography.caption())
@@ -250,7 +250,7 @@ struct SubscriptionSettlementView: View {
                             HStack(spacing: Spacing.sm) {
                                 Image(systemName: "exclamationmark.triangle.fill")
                                     .foregroundColor(AppColors.warning)
-                                    .font(.system(size: 14))
+                                    .font(.system(size: IconSize.sm))
 
                                 (Text("Amount exceeds outstanding balance of ") + Text(CurrencyFormatter.format(outstandingBalance)).fontWeight(.bold) + Text(". It will be capped."))
                                     .font(AppTypography.caption())
@@ -262,7 +262,7 @@ struct SubscriptionSettlementView: View {
                             .limitTextLength(to: ValidationLimits.maxNoteLength, text: $note)
                     } header: {
                         Text("Settlement Amount")
-                            .font(AppTypography.subheadlineMedium())
+                            .font(AppTypography.labelLarge())
                     }
                 }
 
@@ -271,15 +271,15 @@ struct SubscriptionSettlementView: View {
                     Section {
                         VStack(spacing: Spacing.md) {
                             Image(systemName: "checkmark.circle.fill")
-                                .font(.system(size: 48))
+                                .font(.system(size: IconSize.xxl))
                                 .foregroundColor(AppColors.positive)
 
                             Text("All Settled Up!")
-                                .font(AppTypography.headline())
+                                .font(AppTypography.headingMedium())
                                 .foregroundColor(AppColors.textPrimary)
 
                             Text("Everyone's subscription share is paid.")
-                                .font(AppTypography.subheadline())
+                                .font(AppTypography.bodyDefault())
                                 .foregroundColor(AppColors.textSecondary)
                         }
                         .frame(maxWidth: .infinity)

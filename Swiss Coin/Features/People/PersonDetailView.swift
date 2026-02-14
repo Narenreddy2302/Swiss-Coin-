@@ -179,25 +179,25 @@ struct PersonDetailView: View {
                 .frame(width: AvatarSize.xxl, height: AvatarSize.xxl)
                 .overlay(
                     Text(person.initials)
-                        .font(AppTypography.largeTitle())
-                        .foregroundColor(.white)
+                        .font(AppTypography.displayHero())
+                        .foregroundColor(AppColors.onAccent)
                 )
 
             // Name
             Text(person.name ?? "Unknown")
-                .font(AppTypography.title2())
+                .font(AppTypography.displayMedium())
                 .foregroundColor(AppColors.textPrimary)
 
             // Phone number
             if let phone = person.phoneNumber, !phone.isEmpty {
                 Text(phone)
-                    .font(AppTypography.footnote())
+                    .font(AppTypography.bodySmall())
                     .foregroundColor(AppColors.textSecondary)
             }
 
             // Balance pill
             balanceTextView
-                .font(AppTypography.subheadlineMedium())
+                .font(AppTypography.labelLarge())
                 .foregroundColor(balanceColor)
                 .padding(.horizontal, Spacing.lg)
                 .padding(.vertical, Spacing.sm)
@@ -226,7 +226,7 @@ struct PersonDetailView: View {
                         Image(systemName: "plus.circle.fill")
                             .font(.system(size: IconSize.sm))
                         Text("Add Expense")
-                            .font(AppTypography.subheadlineMedium())
+                            .font(AppTypography.labelLarge())
                     }
                     .foregroundColor(AppColors.buttonForeground)
                     .frame(height: ButtonHeight.md)
@@ -244,7 +244,7 @@ struct PersonDetailView: View {
                         Image(systemName: "message.fill")
                             .font(.system(size: IconSize.sm))
                         Text("Chat")
-                            .font(AppTypography.subheadlineMedium())
+                            .font(AppTypography.labelLarge())
                     }
                     .foregroundColor(AppColors.textPrimary)
                     .frame(height: ButtonHeight.md)
@@ -264,7 +264,7 @@ struct PersonDetailView: View {
                         Image(systemName: "checkmark.circle.fill")
                             .font(.system(size: IconSize.sm))
                         Text("Settle Up")
-                            .font(AppTypography.subheadlineMedium())
+                            .font(AppTypography.labelLarge())
                     }
                     .foregroundColor(AppColors.positive)
                     .frame(height: ButtonHeight.md)
@@ -320,7 +320,7 @@ struct PersonDetailView: View {
                 .background(
                     RoundedRectangle(cornerRadius: CornerRadius.card)
                         .fill(AppColors.cardBackground)
-                        .shadow(color: Color.black.opacity(0.04), radius: 8, x: 0, y: 2)
+                        .shadow(color: AppColors.shadowSubtle, radius: 8, x: 0, y: 2)
                 )
                 .padding(.horizontal, Spacing.lg)
             } else {
@@ -329,7 +329,7 @@ struct PersonDetailView: View {
                         .font(.system(size: IconSize.xl))
                         .foregroundColor(AppColors.textSecondary)
                     Text("No transactions yet")
-                        .font(AppTypography.subheadline())
+                        .font(AppTypography.bodyDefault())
                         .foregroundColor(AppColors.textSecondary)
                     Text("Add an expense to start tracking")
                         .font(AppTypography.caption())

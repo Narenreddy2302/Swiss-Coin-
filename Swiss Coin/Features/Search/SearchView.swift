@@ -27,6 +27,9 @@ struct SearchView: View {
 
     @State private var selectedTransaction: FinancialTransaction?
     @State private var cachedDisplayedTransactions: [FinancialTransaction] = []
+    @Namespace private var chipNamespace
+    @State private var cachedNetPositions: [NSManagedObjectID: Double] = [:]
+    @State private var showRefreshFeedback = false
 
     // MARK: - Fetch Requests
 
@@ -107,22 +110,39 @@ struct SearchView: View {
         return userPaid - userSplit
     }
 
+    private func cacheNetPositions() {
+        var positions: [NSManagedObjectID: Double] = [:]
+        for transaction in allTransactions {
+            positions[transaction.objectID] = userNetPosition(for: transaction)
+        }
+        cachedNetPositions = positions
+    }
+
+    private func cachedUserNetPosition(for transaction: FinancialTransaction) -> Double {
+        cachedNetPositions[transaction.objectID] ?? userNetPosition(for: transaction)
+    }
+
     private func updateDisplayedTransactions() {
         let base: [FinancialTransaction]
         if isSearching {
             let query = debouncedSearchText.lowercased()
-            base = allTransactions.filter { $0.title?.lowercased().contains(query) == true }
+            base = allTransactions
+                .filter { !$0.isDeleted && $0.managedObjectContext != nil }
+                .filter { $0.title?.lowercased().contains(query) == true }
         } else {
-            base = Array(allTransactions)
+            base = Array(allTransactions).filter { !$0.isDeleted && $0.managedObjectContext != nil }
         }
 
         switch selectedFilter {
-        case .all, .subscriptions:
+        case .all:
             cachedDisplayedTransactions = base
+        case .subscriptions:
+            // Subscriptions tab uses displayedSubscriptions; no transaction filtering needed
+            cachedDisplayedTransactions = []
         case .incoming:
-            cachedDisplayedTransactions = base.filter { userNetPosition(for: $0) > 0.01 }
+            cachedDisplayedTransactions = base.filter { cachedUserNetPosition(for: $0) > 0.01 }
         case .outgoing:
-            cachedDisplayedTransactions = base.filter { userNetPosition(for: $0) < -0.01 }
+            cachedDisplayedTransactions = base.filter { cachedUserNetPosition(for: $0) < -0.01 }
         }
     }
 
@@ -186,9 +206,13 @@ struct SearchView: View {
         )
         .onAppear {
             HapticManager.prepare()
+            cacheNetPositions()
             updateDisplayedTransactions()
         }
-        .onChange(of: allTransactions.count) { updateDisplayedTransactions() }
+        .onChange(of: allTransactions.count) {
+            cacheNetPositions()
+            updateDisplayedTransactions()
+        }
         .onChange(of: selectedFilter) { updateDisplayedTransactions() }
         .onChange(of: searchText) { _, newValue in
             searchDebounceTask?.cancel()
@@ -207,29 +231,45 @@ struct SearchView: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: Spacing.sm) {
                 ForEach(TransactionFilter.allCases, id: \.self) { filter in
+                    let isSelected = selectedFilter == filter
+
                     Button {
-                        withAnimation(.easeInOut(duration: 0.2)) {
+                        guard selectedFilter != filter else { return }
+                        withAnimation(AppAnimation.spring) {
                             selectedFilter = filter
                         }
-                        HapticManager.selectionChanged()
+                        HapticManager.actionBarTap()
                     } label: {
                         Text(filter.rawValue)
-                            .font(AppTypography.labelLarge())
-                            .foregroundColor(selectedFilter == filter ? AppColors.buttonForeground : AppColors.textSecondary)
+                            .font(AppTypography.buttonDefault())
+                            .foregroundColor(isSelected ? AppColors.buttonForeground : AppColors.textSecondary)
                             .frame(height: ButtonHeight.sm)
                             .padding(.horizontal, Spacing.md)
                             .background(
-                                selectedFilter == filter
-                                    ? AppColors.buttonBackground
-                                    : AppColors.surface
+                                Group {
+                                    if isSelected {
+                                        Capsule()
+                                            .fill(AppColors.buttonBackground)
+                                            .matchedGeometryEffect(id: "activeFilter", in: chipNamespace)
+                                            .shadow(color: AppColors.shadow, radius: 2, x: 0, y: 1)
+                                    } else {
+                                        Capsule()
+                                            .fill(AppColors.surface)
+                                            .overlay(
+                                                Capsule()
+                                                    .strokeBorder(AppColors.border, lineWidth: 1)
+                                            )
+                                    }
+                                }
                             )
-                            .cornerRadius(CornerRadius.md)
                     }
                     .buttonStyle(AppButtonStyle(haptic: .none))
+                    .accessibilityLabel("\(filter.rawValue) filter")
+                    .accessibilityAddTraits(isSelected ? .isSelected : [])
                 }
             }
-            .padding(.horizontal)
-            .padding(.vertical, Spacing.xs)
+            .padding(.horizontal, Spacing.lg)
+            .padding(.vertical, Spacing.sm)
         }
     }
 
@@ -238,7 +278,10 @@ struct SearchView: View {
     private var transactionListView: some View {
         Group {
             if cachedDisplayedTransactions.isEmpty {
-                filterEmptyView
+                ScrollView {
+                    filterEmptyView
+                }
+                .refreshable { await performSearchRefresh() }
             } else {
                 ScrollView {
                     LazyVStack(spacing: 0) {
@@ -253,8 +296,10 @@ struct SearchView: View {
                         }
                     }
                     .padding(.bottom, Spacing.section)
-                    .animation(.easeInOut(duration: 0.2), value: cachedDisplayedTransactions.count)
+                    .animation(AppAnimation.standard, value: cachedDisplayedTransactions.count)
                 }
+                .refreshable { await performSearchRefresh() }
+                .refreshFeedback(isShowing: $showRefreshFeedback)
             }
         }
     }
@@ -264,7 +309,10 @@ struct SearchView: View {
     private var subscriptionsListView: some View {
         Group {
             if displayedSubscriptions.isEmpty {
-                filterEmptyView
+                ScrollView {
+                    filterEmptyView
+                }
+                .refreshable { await performSearchRefresh() }
             } else {
                 ScrollView {
                     LazyVStack(spacing: 0) {
@@ -285,6 +333,8 @@ struct SearchView: View {
                     }
                     .padding(.bottom, Spacing.section)
                 }
+                .refreshable { await performSearchRefresh() }
+                .refreshFeedback(isShowing: $showRefreshFeedback)
             }
         }
     }
@@ -389,11 +439,13 @@ struct SearchView: View {
                     }
                     .padding(.top, Spacing.lg)
                     .padding(.bottom, Spacing.section)
-                    .animation(.easeInOut(duration: 0.2), value: cachedDisplayedTransactions.count)
-                    .animation(.easeInOut(duration: 0.2), value: filteredPeople.count)
-                    .animation(.easeInOut(duration: 0.2), value: filteredGroups.count)
-                    .animation(.easeInOut(duration: 0.2), value: filteredSubscriptions.count)
+                    .animation(AppAnimation.standard, value: cachedDisplayedTransactions.count)
+                    .animation(AppAnimation.standard, value: filteredPeople.count)
+                    .animation(AppAnimation.standard, value: filteredGroups.count)
+                    .animation(AppAnimation.standard, value: filteredSubscriptions.count)
                 }
+                .refreshable { await performSearchRefresh() }
+                .refreshFeedback(isShowing: $showRefreshFeedback)
             } else {
                 SearchNoResultsView(searchText: searchText)
             }
@@ -406,18 +458,64 @@ struct SearchView: View {
         VStack(spacing: Spacing.lg) {
             Spacer()
 
-            Image(systemName: selectedFilter == .subscriptions ? "creditcard" : "arrow.left.arrow.right")
+            Image(systemName: filterEmptyIcon)
                 .font(.system(size: IconSize.xxl))
                 .foregroundColor(AppColors.textSecondary.opacity(0.5))
                 .accessibilityHidden(true)
 
-            Text("No \(selectedFilter.rawValue) Transactions")
+            Text(filterEmptyTitle)
                 .font(AppTypography.headingLarge())
                 .foregroundColor(AppColors.textPrimary)
+
+            Text(filterEmptySubtitle)
+                .font(AppTypography.bodyDefault())
+                .foregroundColor(AppColors.textSecondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, Spacing.xxl)
 
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var filterEmptyIcon: String {
+        switch selectedFilter {
+        case .all: return "arrow.left.arrow.right"
+        case .incoming: return "arrow.down.left"
+        case .outgoing: return "arrow.up.right"
+        case .subscriptions: return "creditcard"
+        }
+    }
+
+    private var filterEmptyTitle: String {
+        switch selectedFilter {
+        case .all: return "No Transactions"
+        case .incoming: return "No Incoming Transactions"
+        case .outgoing: return "No Outgoing Transactions"
+        case .subscriptions: return "No Subscriptions"
+        }
+    }
+
+    private var filterEmptySubtitle: String {
+        switch selectedFilter {
+        case .all: return "Transactions you create will appear here"
+        case .incoming: return "Transactions where others owe you will appear here"
+        case .outgoing: return "Transactions where you owe others will appear here"
+        case .subscriptions: return "Subscriptions you add will appear here"
+        }
+    }
+
+    private func performSearchRefresh() async {
+        await RefreshHelper.performStandardRefresh(context: viewContext)
+        cacheNetPositions()
+        withAnimation(.none) {
+            updateDisplayedTransactions()
+        }
+        withAnimation(AppAnimation.standard) { showRefreshFeedback = true }
+        Task {
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            withAnimation(AppAnimation.standard) { showRefreshFeedback = false }
+        }
     }
 }
 
@@ -576,8 +674,7 @@ private struct SearchSubscriptionRow: View {
 
                 HStack(spacing: Spacing.xs) {
                     Text(CurrencyFormatter.format(subscription.amount))
-                        .font(AppTypography.bodySmall())
-                        .fontWeight(.bold)
+                        .font(AppTypography.financialSmall())
                         .foregroundColor(AppColors.textSecondary)
 
                     if let cycle = subscription.cycle {

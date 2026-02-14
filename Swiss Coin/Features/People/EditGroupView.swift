@@ -71,12 +71,12 @@ struct EditGroupView: View {
             // Group Name Input
             VStack(alignment: .leading, spacing: Spacing.sm) {
                 Text("Group Name")
-                    .font(AppTypography.subheadlineMedium())
+                    .font(AppTypography.labelLarge())
                     .foregroundColor(AppColors.textSecondary)
                     .padding(.horizontal, Spacing.lg)
 
                 TextField("Enter group name", text: $groupName)
-                    .font(AppTypography.body())
+                    .font(AppTypography.bodyLarge())
                     .limitTextLength(to: ValidationLimits.maxNameLength, text: $groupName)
                     .padding(Spacing.md)
                     .background(AppColors.backgroundTertiary)
@@ -88,7 +88,7 @@ struct EditGroupView: View {
             // Color picker
             VStack(alignment: .leading, spacing: Spacing.sm) {
                 Text("Color")
-                    .font(AppTypography.subheadlineMedium())
+                    .font(AppTypography.labelLarge())
                     .foregroundColor(AppColors.textSecondary)
                     .padding(.horizontal, Spacing.lg)
 
@@ -132,14 +132,14 @@ struct EditGroupView: View {
 
             // Member List
             List {
-                Section(header: Text("Members").font(AppTypography.subheadlineMedium())) {
+                Section(header: Text("Members").font(AppTypography.labelLarge())) {
                     if availablePeople.isEmpty {
                         VStack(spacing: Spacing.md) {
                             Image(systemName: "person.slash")
                                 .font(.system(size: IconSize.xl))
                                 .foregroundColor(AppColors.textSecondary)
                             Text("No people available")
-                                .font(AppTypography.subheadline())
+                                .font(AppTypography.bodyDefault())
                                 .foregroundColor(AppColors.textSecondary)
                             Text("Add people first to include them in groups")
                                 .font(AppTypography.caption())
@@ -166,7 +166,7 @@ struct EditGroupView: View {
                                         )
 
                                     Text(person.name ?? "Unknown")
-                                        .font(AppTypography.body())
+                                        .font(AppTypography.bodyLarge())
                                         .foregroundColor(AppColors.textPrimary)
 
                                     Spacer()
@@ -175,7 +175,7 @@ struct EditGroupView: View {
                                         systemName: selectedMembers.contains(person.objectID)
                                             ? "checkmark.circle.fill" : "circle"
                                     )
-                                    .font(.system(size: 22))
+                                    .font(.system(size: IconSize.lg))
                                     .foregroundColor(
                                         selectedMembers.contains(person.objectID)
                                             ? AppColors.accent : AppColors.textSecondary

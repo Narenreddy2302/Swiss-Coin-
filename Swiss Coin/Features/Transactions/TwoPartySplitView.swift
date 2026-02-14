@@ -47,7 +47,7 @@ struct TwoPartySplitView: View {
 
     private var equalSplitPill: some View {
         Text("Equal Split")
-            .font(AppTypography.bodyBold())
+            .font(AppTypography.headingMedium())
             .foregroundColor(AppColors.textPrimary)
             .frame(maxWidth: .infinity)
             .frame(height: ButtonHeight.lg)
@@ -77,7 +77,8 @@ struct TwoPartySplitView: View {
                 labelText: "\(otherName) owe You",
                 amount: theyOweYou,
                 isActive: theyOweYou > 0.01,
-                accentColor: positiveGreen
+                accentColor: positiveGreen,
+                currencyCode: viewModel.transactionCurrency
             )
 
             // Row 2: You owe Other Person
@@ -89,7 +90,8 @@ struct TwoPartySplitView: View {
                 labelText: "You owe \(otherName)",
                 amount: youOweThem,
                 isActive: youOweThem > 0.01,
-                accentColor: AppColors.negative
+                accentColor: AppColors.negative,
+                currencyCode: viewModel.transactionCurrency
             )
         }
     }
@@ -108,6 +110,7 @@ struct DirectionalFlowRow: View {
     let amount: Double
     let isActive: Bool
     let accentColor: Color
+    var currencyCode: String = CurrencyFormatter.currencyCode
 
     private let avatarSize: CGFloat = 40
 
@@ -125,12 +128,12 @@ struct DirectionalFlowRow: View {
                 // Label + amount overlay
                 VStack(spacing: Spacing.xxs) {
                     Text(labelText)
-                        .font(AppTypography.subheadlineMedium())
+                        .font(AppTypography.labelLarge())
                         .foregroundColor(isActive ? accentColor : AppColors.textTertiary)
 
                     if isActive && amount > 0.01 {
-                        Text(CurrencyFormatter.formatAbsolute(amount))
-                            .font(AppTypography.amount())
+                        Text(CurrencyFormatter.formatAbsolute(amount, currencyCode: currencyCode))
+                            .font(AppTypography.financialDefault())
                             .foregroundColor(accentColor)
                     }
                 }

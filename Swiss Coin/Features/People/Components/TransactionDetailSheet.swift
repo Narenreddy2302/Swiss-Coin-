@@ -103,21 +103,21 @@ struct TransactionDetailSheet: View {
                 .padding(.top, Spacing.xl)
 
             Text(snapshot.title)
-                .font(AppTypography.title2())
+                .font(AppTypography.displayMedium())
                 .foregroundColor(AppColors.textPrimary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, Spacing.lg)
 
             Text(snapshot.formattedDate)
-                .font(AppTypography.subheadline())
+                .font(AppTypography.bodyDefault())
                 .foregroundColor(AppColors.textSecondary)
 
-            Text(FinancialFormatter.signedCurrency(snapshot.userNetAmount))
+            Text(FinancialFormatter.signedCurrency(snapshot.userNetAmount, currencyCode: snapshot.currencyCode))
                 .font(AppTypography.financialHero())
                 .foregroundColor(snapshot.netAmountColor)
 
             Text(snapshot.paymentSummaryText)
-                .font(AppTypography.subheadline())
+                .font(AppTypography.bodyDefault())
                 .foregroundColor(AppColors.textSecondary)
                 .padding(.bottom, Spacing.xl)
         }
@@ -137,7 +137,7 @@ struct TransactionDetailSheet: View {
     private var splitDetailsSection: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             Text("Split Details")
-                .font(AppTypography.headline())
+                .font(AppTypography.headingMedium())
                 .foregroundColor(AppColors.textPrimary)
 
             VStack(spacing: 0) {
@@ -167,12 +167,12 @@ struct TransactionDetailSheet: View {
     private func noteSection(note: String) -> some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             Text("Note")
-                .font(AppTypography.headline())
+                .font(AppTypography.headingMedium())
                 .foregroundColor(AppColors.textPrimary)
 
             VStack(alignment: .leading) {
                 Text(note)
-                    .font(AppTypography.body())
+                    .font(AppTypography.bodyLarge())
                     .foregroundColor(AppColors.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             }

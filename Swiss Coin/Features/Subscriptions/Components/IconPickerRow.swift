@@ -50,12 +50,12 @@ struct IconPickerRow: View {
                     .frame(width: 36, height: 36)
                     .overlay(
                         Image(systemName: selectedIcon)
-                            .font(.system(size: 18))
+                            .font(.system(size: IconSize.md))
                             .foregroundColor(AppColors.accent)
                     )
 
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.system(size: IconSize.sm, weight: .semibold))
                     .foregroundColor(AppColors.textSecondary)
             }
         }
@@ -76,7 +76,7 @@ struct IconPickerRow: View {
                                     .frame(width: 60, height: 60)
                                     .overlay(
                                         Image(systemName: icon)
-                                            .font(.system(size: 24))
+                                            .font(.system(size: IconSize.lg))
                                             .foregroundColor(selectedIcon == icon ? AppColors.accent : AppColors.textSecondary)
                                     )
                                     .overlay(

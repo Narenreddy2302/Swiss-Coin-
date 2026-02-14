@@ -32,7 +32,7 @@ struct CustomSegmentedControl: View {
                         }
 
                         Text(options[index])
-                            .font(AppTypography.subheadlineMedium())
+                            .font(AppTypography.labelLarge())
                             .foregroundColor(selection == index ? AppColors.buttonForeground : AppColors.textSecondary)
                             .padding(.vertical, Spacing.sm)
                     }

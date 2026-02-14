@@ -41,6 +41,8 @@ struct HomeView: View {
     /// Tracks the last time data was refreshed to debounce rapid refreshes
     @State private var lastRefreshDate = Date.distantPast
     @State private var isRefreshing = false
+    @State private var showRefreshFeedback = false
+    @State private var balanceRecalcTask: Task<Void, Never>?
 
     /// Cached balance totals computed asynchronously to avoid blocking the main thread
     @State private var cachedYouOwe: Double = 0
@@ -152,16 +154,13 @@ struct HomeView: View {
                     }
                     .padding(.top, Spacing.lg)
                     .padding(.bottom, Spacing.section + Spacing.sm)
-                    .opacity(isRefreshing ? 0.6 : 1.0)
-                    .animation(AppAnimation.contentReveal, value: isRefreshing)
                 }
                 .allowsHitTesting(selectedTransaction == nil)
+                .refreshFeedback(isShowing: $showRefreshFeedback)
 
             }
             .background(AppColors.backgroundSecondary)
-            .refreshable {
-                await performRefresh()
-            }
+            .refreshable { await performRefresh() }
             .navigationTitle("Home")
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
@@ -204,7 +203,12 @@ struct HomeView: View {
                 NotificationCenter.default.publisher(for: .NSManagedObjectContextDidSave)
             ) { _ in
                 refreshIfStale()
-                Task { await recalculateBalances() }
+                balanceRecalcTask?.cancel()
+                balanceRecalcTask = Task {
+                    try? await Task.sleep(nanoseconds: 500_000_000)
+                    guard !Task.isCancelled else { return }
+                    await recalculateBalances()
+                }
             }
         }
     }
@@ -214,11 +218,15 @@ struct HomeView: View {
     private func performRefresh() async {
         isRefreshing = true
         refreshData()
-        try? await Task.sleep(nanoseconds: 600_000_000)
-        withAnimation(AppAnimation.contentReveal) {
-            isRefreshing = false
+        await recalculateBalances()
+        try? await Task.sleep(nanoseconds: 300_000_000)
+        isRefreshing = false
+        HapticManager.lightTap()
+        withAnimation(AppAnimation.standard) { showRefreshFeedback = true }
+        Task {
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            withAnimation(AppAnimation.standard) { showRefreshFeedback = false }
         }
-        HapticManager.success()
     }
 
     /// Refresh only if enough time has elapsed since the last refresh (debounce).
@@ -263,8 +271,10 @@ struct HomeView: View {
             return (totalOwe, totalOwed)
         }
 
-        cachedYouOwe = result.owe
-        cachedOwedToYou = result.owed
+        await MainActor.run {
+            cachedYouOwe = result.owe
+            cachedOwedToYou = result.owed
+        }
     }
 }
 
@@ -326,6 +336,8 @@ struct SummaryCard: View {
                     .font(AppTypography.financialLarge())
                     .tracking(AppTypography.Tracking.financialLarge)
                     .foregroundColor(AppColors.textPrimary)
+                    .contentTransition(.numericText())
+                    .animation(AppAnimation.standard, value: amount)
             }
         }
         .frame(width: 160)

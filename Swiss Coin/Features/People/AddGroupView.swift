@@ -35,12 +35,12 @@ struct AddGroupView: View {
             // Group Name Input
             VStack(alignment: .leading, spacing: Spacing.sm) {
                 Text("Group Name")
-                    .font(AppTypography.subheadlineMedium())
+                    .font(AppTypography.labelLarge())
                     .foregroundColor(AppColors.textSecondary)
                     .padding(.horizontal, Spacing.lg)
 
                 TextField("Enter group name", text: $groupName)
-                    .font(AppTypography.body())
+                    .font(AppTypography.bodyLarge())
                     .limitTextLength(to: ValidationLimits.maxNameLength, text: $groupName)
                     .padding(Spacing.md)
                     .background(AppColors.backgroundTertiary)
@@ -83,7 +83,7 @@ struct AddGroupView: View {
             // Contact List
             List {
                 if contactsManager.authorizationStatus == .authorized {
-                    Section(header: Text("Add Members").font(AppTypography.subheadlineMedium())) {
+                    Section(header: Text("Add Members").font(AppTypography.labelLarge())) {
                         ForEach(filteredContacts) { contact in
                             Button(action: {
                                 HapticManager.selectionChanged()
@@ -111,13 +111,13 @@ struct AddGroupView: View {
                                     }
 
                                     Text(contact.fullName)
-                                        .font(AppTypography.body())
+                                        .font(AppTypography.bodyLarge())
                                         .foregroundColor(AppColors.textPrimary)
 
                                     Spacer()
 
                                     Image(systemName: selectedContacts.contains(contact) ? "checkmark.circle.fill" : "circle")
-                                        .font(.system(size: 22))
+                                        .font(.system(size: IconSize.lg))
                                         .foregroundColor(selectedContacts.contains(contact) ? AppColors.accent : AppColors.textSecondary)
                                 }
                             }
@@ -131,11 +131,11 @@ struct AddGroupView: View {
                             .foregroundColor(AppColors.textSecondary)
 
                         Text("Contact Access Required")
-                            .font(AppTypography.headline())
+                            .font(AppTypography.headingMedium())
                             .foregroundColor(AppColors.textPrimary)
 
                         Text("Grant access to your contacts to add members to this group.")
-                            .font(AppTypography.subheadline())
+                            .font(AppTypography.bodyDefault())
                             .foregroundColor(AppColors.textSecondary)
                             .multilineTextAlignment(.center)
 
@@ -144,7 +144,7 @@ struct AddGroupView: View {
                             Task { await contactsManager.requestAccess() }
                         } label: {
                             Text("Grant Access")
-                                .font(AppTypography.bodyBold())
+                                .font(AppTypography.headingMedium())
                                 .foregroundColor(AppColors.buttonForeground)
                                 .frame(maxWidth: .infinity)
                                 .frame(height: ButtonHeight.md)

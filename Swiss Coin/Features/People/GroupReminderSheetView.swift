@@ -47,10 +47,10 @@ struct GroupReminderSheetView: View {
                         .foregroundColor(AppColors.warning)
 
                     Text("Send Reminders")
-                        .font(AppTypography.title2())
+                        .font(AppTypography.displayMedium())
 
                     Text("Select members to remind in \(group.name ?? "the group")")
-                        .font(AppTypography.subheadline())
+                        .font(AppTypography.bodyDefault())
                         .foregroundColor(AppColors.textSecondary)
                         .multilineTextAlignment(.center)
                 }
@@ -64,11 +64,11 @@ struct GroupReminderSheetView: View {
                             .foregroundColor(AppColors.positive)
 
                         Text("No reminders needed")
-                            .font(AppTypography.headline())
+                            .font(AppTypography.headingMedium())
                             .foregroundColor(AppColors.textPrimary)
 
                         Text("No one in this group owes you money.")
-                            .font(AppTypography.body())
+                            .font(AppTypography.bodyLarge())
                             .foregroundColor(AppColors.textSecondary)
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, Spacing.xxl)
@@ -79,7 +79,7 @@ struct GroupReminderSheetView: View {
                     VStack(alignment: .leading, spacing: Spacing.md) {
                         HStack {
                             Text("Members who owe you")
-                                .font(AppTypography.subheadlineMedium())
+                                .font(AppTypography.labelLarge())
                                 .foregroundColor(AppColors.textSecondary)
 
                             Spacer()
@@ -128,11 +128,11 @@ struct GroupReminderSheetView: View {
                     if selectedCount > 0 {
                         VStack(spacing: Spacing.xs) {
                             Text("\(selectedCount) member\(selectedCount == 1 ? "" : "s") selected")
-                                .font(AppTypography.subheadline())
+                                .font(AppTypography.bodyDefault())
                                 .foregroundColor(AppColors.textSecondary)
 
                             Text("Total: \(formattedTotalAmount)")
-                                .font(AppTypography.headline())
+                                .font(AppTypography.headingMedium())
                                 .foregroundColor(AppColors.positive)
                         }
                         .padding(.vertical, Spacing.md)
@@ -141,12 +141,12 @@ struct GroupReminderSheetView: View {
                     // Message Field
                     VStack(alignment: .leading, spacing: Spacing.md) {
                         Text("Message (optional)")
-                            .font(AppTypography.subheadlineMedium())
+                            .font(AppTypography.labelLarge())
                             .foregroundColor(AppColors.textSecondary)
 
                         TextField("Add a friendly reminder message...", text: $message, axis: .vertical)
                             .limitTextLength(to: ValidationLimits.maxMessageLength, text: $message)
-                            .font(AppTypography.body())
+                            .font(AppTypography.bodyLarge())
                             .lineLimit(3...6)
                             .padding(Spacing.lg)
                             .background(
@@ -169,9 +169,9 @@ struct GroupReminderSheetView: View {
                             Image(systemName: "bell.fill")
                                 .font(.system(size: IconSize.sm))
                             Text(selectedCount == 1 ? "Send Reminder" : "Send \(selectedCount) Reminders")
-                                .font(AppTypography.bodyBold())
+                                .font(AppTypography.headingMedium())
                         }
-                        .foregroundColor(.white)
+                        .foregroundColor(AppColors.onAccent)
                         .frame(maxWidth: .infinity)
                         .frame(height: ButtonHeight.lg)
                         .background(selectedCount > 0 ? AppColors.warning : AppColors.disabled)
@@ -265,7 +265,7 @@ private struct MemberReminderRow: View {
             HStack(spacing: Spacing.md) {
                 // Checkbox
                 Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                    .font(.system(size: 22))
+                    .font(.system(size: IconSize.lg))
                     .foregroundColor(isSelected ? AppColors.accent : AppColors.textSecondary)
 
                 // Avatar
@@ -274,20 +274,20 @@ private struct MemberReminderRow: View {
                     .frame(width: AvatarSize.xs, height: AvatarSize.xs)
                     .overlay(
                         Text(member.initials)
-                            .font(.system(size: 12, weight: .semibold))
+                            .font(AppTypography.labelSmall())
                             .foregroundColor(Color(hex: member.colorHex ?? CurrentUser.defaultColorHex))
                     )
 
                 // Name
                 Text(member.name ?? "Unknown")
-                    .font(AppTypography.body())
+                    .font(AppTypography.bodyLarge())
                     .foregroundColor(AppColors.textPrimary)
 
                 Spacer()
 
                 // Amount
                 Text("owes \(formattedAmount)")
-                    .font(AppTypography.subheadline())
+                    .font(AppTypography.bodyDefault())
                     .foregroundColor(AppColors.positive)
             }
             .padding(.vertical, Spacing.sm)
