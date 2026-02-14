@@ -148,6 +148,9 @@ struct PeopleView: View {
 // MARK: - Person List
 
 struct PersonListView: View {
+    @Environment(\.managedObjectContext) private var viewContext
+    @State private var showRefreshFeedback = false
+
     @FetchRequest(fetchRequest: {
         let request: NSFetchRequest<Person> = Person.fetchRequest()
         request.sortDescriptors = [NSSortDescriptor(keyPath: \Person.name, ascending: true)]
@@ -169,7 +172,12 @@ struct PersonListView: View {
     var body: some View {
         Group {
             if people.isEmpty {
-                PersonEmptyStateView()
+                ScrollView {
+                    PersonEmptyStateView()
+                }
+                .refreshable {
+                    await RefreshHelper.performStandardRefresh(context: viewContext)
+                }
             } else {
                 ScrollView {
                     VStack(spacing: Spacing.xl) {
@@ -216,6 +224,15 @@ struct PersonListView: View {
                     }
                     .padding(.top, Spacing.lg)
                 }
+                .refreshable {
+                    await RefreshHelper.performStandardRefresh(context: viewContext)
+                    withAnimation(AppAnimation.standard) { showRefreshFeedback = true }
+                    Task {
+                        try? await Task.sleep(nanoseconds: 2_000_000_000)
+                        withAnimation(AppAnimation.standard) { showRefreshFeedback = false }
+                    }
+                }
+                .refreshFeedback(isShowing: $showRefreshFeedback)
             }
         }
     }
@@ -450,6 +467,9 @@ struct PersonListRowView: View {
 // MARK: - Group List
 
 struct GroupListView: View {
+    @Environment(\.managedObjectContext) private var viewContext
+    @State private var showRefreshFeedback = false
+
     @FetchRequest(fetchRequest: {
         let request: NSFetchRequest<UserGroup> = UserGroup.fetchRequest()
         request.sortDescriptors = [NSSortDescriptor(keyPath: \UserGroup.name, ascending: true)]
@@ -461,7 +481,12 @@ struct GroupListView: View {
     var body: some View {
         Group {
             if groups.isEmpty {
-                GroupEmptyStateView()
+                ScrollView {
+                    GroupEmptyStateView()
+                }
+                .refreshable {
+                    await RefreshHelper.performStandardRefresh(context: viewContext)
+                }
             } else {
                 ScrollView {
                     VStack(spacing: Spacing.xl) {
@@ -509,6 +534,15 @@ struct GroupListView: View {
                     }
                     .padding(.top, Spacing.lg)
                 }
+                .refreshable {
+                    await RefreshHelper.performStandardRefresh(context: viewContext)
+                    withAnimation(AppAnimation.standard) { showRefreshFeedback = true }
+                    Task {
+                        try? await Task.sleep(nanoseconds: 2_000_000_000)
+                        withAnimation(AppAnimation.standard) { showRefreshFeedback = false }
+                    }
+                }
+                .refreshFeedback(isShowing: $showRefreshFeedback)
             }
         }
     }
