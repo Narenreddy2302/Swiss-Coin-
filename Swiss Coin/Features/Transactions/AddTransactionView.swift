@@ -18,6 +18,7 @@ struct AddTransactionView: View {
     @State private var saveErrorMessage = ""
     @State private var undoParticipant: Person?
     @State private var showUndoToast = false
+    @State private var showDatePicker = false
 
     var initialParticipant: Person?
     var initialGroup: UserGroup?
@@ -65,9 +66,20 @@ struct AddTransactionView: View {
                 // Sticky bottom bar
                 stickyBottomBar
             }
-            .background(AppColors.backgroundSecondary)
+            .background(
+                ZStack {
+                    AppColors.conversationBackground
+                    DotGridPattern(
+                        dotSpacing: 16,
+                        dotRadius: 0.5,
+                        color: AppColors.receiptDot.opacity(0.5)
+                    )
+                }
+            )
             .navigationTitle("New Transaction")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(AppColors.conversationBackground, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button {
@@ -107,6 +119,26 @@ struct AddTransactionView: View {
                     isPresented: $showCategoryPicker
                 )
                 .presentationDetents([.medium, .large])
+            }
+            .sheet(isPresented: $showDatePicker) {
+                NavigationStack {
+                    DatePicker("Select Date", selection: $viewModel.date, displayedComponents: .date)
+                        .datePickerStyle(.graphical)
+                        .tint(AppColors.accent)
+                        .padding()
+                        .navigationTitle("Transaction Date")
+                        .navigationBarTitleDisplayMode(.inline)
+                        .toolbar {
+                            ToolbarItem(placement: .topBarTrailing) {
+                                Button("Done") {
+                                    showDatePicker = false
+                                }
+                                .font(AppTypography.headingMedium())
+                                .foregroundColor(AppColors.accent)
+                            }
+                        }
+                }
+                .presentationDetents([.medium])
             }
             .undoToast(
                 isShowing: $showUndoToast,
@@ -253,91 +285,75 @@ struct AddTransactionView: View {
 
     // MARK: - Section 2: Amount + Date + Currency
 
+    private var formattedDate: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMM d, yyyy"
+        return formatter.string(from: viewModel.date)
+    }
+
     private var amountAndDateSection: some View {
-        VStack(spacing: Spacing.md) {
-            // Date picker row
-            HStack {
-                Image(systemName: "calendar")
-                    .font(.system(size: IconSize.sm))
-                    .foregroundColor(AppColors.textSecondary)
-
-                DatePicker(
-                    "",
-                    selection: $viewModel.date,
-                    displayedComponents: .date
-                )
-                .labelsHidden()
-                .datePickerStyle(.compact)
-                .tint(AppColors.textPrimary)
-                .fixedSize()
-                .accessibilityLabel("Transaction date")
-
-                Spacer()
-            }
-
-            Divider()
-
-            // Hero amount zone
-            VStack(spacing: Spacing.sm) {
-                HStack(spacing: Spacing.sm) {
-                    // Currency selector button
-                    Button {
-                        HapticManager.tap()
-                        focusedField = nil
-                        showCurrencyPicker = true
-                    } label: {
-                        HStack(spacing: Spacing.xs) {
-                            Text(CurrencyFormatter.flag(for: viewModel.transactionCurrency))
-                                .font(.system(size: IconSize.md))
-
-                            Text(CurrencyFormatter.symbol(for: viewModel.transactionCurrency))
-                                .font(AppTypography.financialLarge())
-                                .foregroundColor(AppColors.textSecondary)
-
-                            Image(systemName: "chevron.up.chevron.down")
-                                .font(.system(size: 8, weight: .semibold))
-                                .foregroundColor(AppColors.textTertiary)
-                        }
-                        .padding(.horizontal, Spacing.sm)
-                        .padding(.vertical, Spacing.xs)
-                        .background(AppColors.backgroundTertiary)
-                        .cornerRadius(CornerRadius.xs)
-                        .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Currency: \(viewModel.transactionCurrency). Tap to change.")
-
-                    // Amount field
-                    TextField(
-                        CurrencyFormatter.isZeroDecimal(viewModel.transactionCurrency) ? "0" : "0.00",
-                        text: $viewModel.totalAmount
-                    )
-                    .font(AppTypography.financialHero())
-                    .keyboardType(CurrencyFormatter.isZeroDecimal(viewModel.transactionCurrency) ? .numberPad : .decimalPad)
-                    .multilineTextAlignment(.trailing)
+        HStack(spacing: 0) {
+            // Date display as tappable text
+            Button {
+                showDatePicker = true
+                HapticManager.selectionChanged()
+            } label: {
+                Text(formattedDate)
+                    .font(AppTypography.bodyLarge())
                     .foregroundColor(AppColors.textPrimary)
-                    .focused($focusedField, equals: .amount)
-                    .onChange(of: viewModel.totalAmount) { _, newValue in
-                        let sanitized = viewModel.sanitizeAmountInput(newValue)
-                        if sanitized != newValue {
-                            viewModel.totalAmount = sanitized
-                        }
-                    }
-                    .accessibilityLabel("Transaction amount")
-                }
-                .padding(.vertical, Spacing.md)
             }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Transaction date: \(formattedDate). Tap to change.")
+
+            Spacer()
+
+            // Currency badge
+            Button {
+                HapticManager.tap()
+                focusedField = nil
+                showCurrencyPicker = true
+            } label: {
+                Text(CurrencyFormatter.symbol(for: viewModel.transactionCurrency))
+                    .font(AppTypography.labelLarge())
+                    .foregroundColor(AppColors.textPrimary)
+                    .padding(.horizontal, Spacing.sm)
+                    .padding(.vertical, Spacing.xs)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: CornerRadius.small)
+                            .stroke(AppColors.border, lineWidth: 1)
+                    )
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Currency: \(viewModel.transactionCurrency). Tap to change.")
+            .padding(.trailing, Spacing.sm)
+
+            // Amount input
+            TextField(
+                CurrencyFormatter.isZeroDecimal(viewModel.transactionCurrency) ? "0" : "0.00",
+                text: $viewModel.totalAmount
+            )
+            .font(AppTypography.financialLarge())
+            .keyboardType(CurrencyFormatter.isZeroDecimal(viewModel.transactionCurrency) ? .numberPad : .decimalPad)
+            .multilineTextAlignment(.trailing)
+            .foregroundColor(AppColors.textPrimary)
+            .focused($focusedField, equals: .amount)
+            .limitTextLength(to: 12, text: $viewModel.totalAmount)
+            .frame(minWidth: 80)
+            .onChange(of: viewModel.totalAmount) { _, newValue in
+                let sanitized = viewModel.sanitizeAmountInput(newValue)
+                if sanitized != newValue {
+                    viewModel.totalAmount = sanitized
+                }
+            }
+            .accessibilityLabel("Transaction amount")
         }
-        .padding(Spacing.cardPadding)
-        .background(
-            RoundedRectangle(cornerRadius: CornerRadius.card)
-                .fill(AppColors.cardBackground)
-                .shadow(
-                    color: AppShadow.card(for: colorScheme).color,
-                    radius: AppShadow.card(for: colorScheme).radius,
-                    x: AppShadow.card(for: colorScheme).x,
-                    y: AppShadow.card(for: colorScheme).y
-                )
+        .padding(.horizontal, Spacing.lg)
+        .padding(.vertical, Spacing.md)
+        .background(AppColors.cardBackgroundElevated)
+        .cornerRadius(CornerRadius.sm)
+        .overlay(
+            RoundedRectangle(cornerRadius: CornerRadius.sm)
+                .stroke(AppColors.border, lineWidth: 1)
         )
     }
 
@@ -384,34 +400,36 @@ struct AddTransactionView: View {
                     .accessibilityLabel("Paid by You. Tap to change.")
                 } else if !viewModel.selectedPayerPersons.isEmpty && viewModel.paidBySearchText.isEmpty {
                     // Show selected payers as avatar chips
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: Spacing.sm) {
-                            ForEach(sortedByCurrentUser(viewModel.selectedPayerPersons), id: \.self) { person in
-                                avatarChip(person) { viewModel.togglePayer(person) }
-                            }
-
-                            // Add more button
-                            Button {
-                                focusedField = .paidBySearch
-                            } label: {
-                                HStack(spacing: Spacing.xs) {
-                                    Image(systemName: "plus")
-                                        .font(.system(size: IconSize.xs, weight: .semibold))
-                                    Text("Add")
-                                        .font(AppTypography.labelSmall())
-                                }
-                                .foregroundColor(AppColors.accent)
-                                .padding(.horizontal, Spacing.md)
-                                .padding(.vertical, Spacing.sm)
-                                .background(AppColors.accentMuted)
-                                .cornerRadius(CornerRadius.full)
-                            }
-                            .buttonStyle(.plain)
-                            .accessibilityLabel("Add payer")
+                    FlowLayout(spacing: Spacing.sm) {
+                        ForEach(sortedByCurrentUser(viewModel.selectedPayerPersons), id: \.self) { person in
+                            avatarChip(person) { viewModel.togglePayer(person) }
                         }
-                        .padding(.horizontal, Spacing.cardPadding)
-                        .padding(.vertical, Spacing.md)
+
+                        // Add more button
+                        Button {
+                            focusedField = .paidBySearch
+                        } label: {
+                            HStack(spacing: Spacing.xs) {
+                                Image(systemName: "plus")
+                                    .font(.system(size: IconSize.xs, weight: .semibold))
+                                Text("Add")
+                                    .font(AppTypography.labelSmall())
+                            }
+                            .foregroundColor(AppColors.accent)
+                            .padding(.horizontal, Spacing.md)
+                            .padding(.vertical, Spacing.sm)
+                            .background(Color.clear)
+                            .cornerRadius(CornerRadius.full)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: CornerRadius.full)
+                                    .stroke(AppColors.border, lineWidth: 1)
+                            )
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Add payer")
                     }
+                    .padding(.horizontal, Spacing.cardPadding)
+                    .padding(.vertical, Spacing.md)
                 }
 
                 Divider().padding(.leading, Spacing.cardPadding)
@@ -531,63 +549,69 @@ struct AddTransactionView: View {
             VStack(spacing: 0) {
                 // Selected participants chips
                 if !viewModel.selectedParticipants.isEmpty && viewModel.splitWithSearchText.isEmpty {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: Spacing.sm) {
-                            ForEach(sortedByCurrentUser(viewModel.selectedParticipants), id: \.self) { person in
-                                let isCurrentUser = CurrentUser.isCurrentUser(person.id)
-                                if isCurrentUser {
-                                    // Current user chip — non-removable
-                                    HStack(spacing: Spacing.xs) {
-                                        avatarCircle(
-                                            initials: CurrentUser.initials,
-                                            color: Color(hex: CurrentUser.defaultColorHex),
-                                            size: 22
-                                        )
-                                        Text("You")
-                                            .font(AppTypography.labelSmall())
-                                            .foregroundColor(AppColors.textPrimary)
-                                        Image(systemName: "lock.fill")
-                                            .font(.system(size: 8))
-                                            .foregroundColor(AppColors.textTertiary)
-                                    }
-                                    .padding(.horizontal, Spacing.sm)
-                                    .padding(.vertical, Spacing.xs)
-                                    .background(AppColors.backgroundTertiary)
-                                    .cornerRadius(CornerRadius.full)
-                                    .accessibilityLabel("You, locked participant")
-                                } else {
-                                    avatarChip(person) {
-                                        withAnimation(AppAnimation.spring) {
-                                            undoParticipant = person
-                                            _ = viewModel.selectedParticipants.remove(person)
-                                            showUndoToast = true
-                                        }
-                                    }
-                                }
-                            }
-
-                            // Add more button
-                            Button {
-                                focusedField = .splitWithSearch
-                            } label: {
+                    FlowLayout(spacing: Spacing.sm) {
+                        ForEach(sortedByCurrentUser(viewModel.selectedParticipants), id: \.self) { person in
+                            let isCurrentUser = CurrentUser.isCurrentUser(person.id)
+                            if isCurrentUser {
+                                // Current user chip — non-removable
                                 HStack(spacing: Spacing.xs) {
-                                    Image(systemName: "plus")
-                                        .font(.system(size: IconSize.xs, weight: .semibold))
-                                    Text("Add")
+                                    avatarCircle(
+                                        initials: CurrentUser.initials,
+                                        color: Color(hex: CurrentUser.defaultColorHex),
+                                        size: 22
+                                    )
+                                    Text("You")
                                         .font(AppTypography.labelSmall())
+                                        .foregroundColor(AppColors.textPrimary)
+                                    Image(systemName: "lock.fill")
+                                        .font(.system(size: 8))
+                                        .foregroundColor(AppColors.textTertiary)
                                 }
-                                .foregroundColor(AppColors.accent)
-                                .padding(.horizontal, Spacing.md)
-                                .padding(.vertical, Spacing.sm)
-                                .background(AppColors.accentMuted)
+                                .padding(.horizontal, Spacing.sm)
+                                .padding(.vertical, Spacing.xs)
+                                .background(Color.clear)
                                 .cornerRadius(CornerRadius.full)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: CornerRadius.full)
+                                        .stroke(AppColors.border, lineWidth: 1)
+                                )
+                                .accessibilityLabel("You, locked participant")
+                            } else {
+                                avatarChip(person) {
+                                    withAnimation(AppAnimation.spring) {
+                                        undoParticipant = person
+                                        _ = viewModel.selectedParticipants.remove(person)
+                                        showUndoToast = true
+                                    }
+                                }
                             }
-                            .buttonStyle(.plain)
-                            .accessibilityLabel("Add participant")
                         }
-                        .padding(.horizontal, Spacing.cardPadding)
-                        .padding(.vertical, Spacing.md)
+
+                        // Add more button
+                        Button {
+                            focusedField = .splitWithSearch
+                        } label: {
+                            HStack(spacing: Spacing.xs) {
+                                Image(systemName: "plus")
+                                    .font(.system(size: IconSize.xs, weight: .semibold))
+                                Text("Add")
+                                    .font(AppTypography.labelSmall())
+                            }
+                            .foregroundColor(AppColors.accent)
+                            .padding(.horizontal, Spacing.md)
+                            .padding(.vertical, Spacing.sm)
+                            .background(Color.clear)
+                            .cornerRadius(CornerRadius.full)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: CornerRadius.full)
+                                    .stroke(AppColors.border, lineWidth: 1)
+                            )
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Add participant")
                     }
+                    .padding(.horizontal, Spacing.cardPadding)
+                    .padding(.vertical, Spacing.md)
 
                     // Person count
                     HStack {
@@ -755,17 +779,15 @@ struct AddTransactionView: View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             sectionLabel("SPLIT METHOD")
 
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: Spacing.sm) {
-                    ForEach(SplitMethod.allCases) { method in
-                        methodCard(method)
-                    }
+            FlowLayout(spacing: Spacing.sm) {
+                ForEach(SplitMethod.allCases) { method in
+                    methodPill(method)
                 }
             }
         }
     }
 
-    private func methodCard(_ method: SplitMethod) -> some View {
+    private func methodPill(_ method: SplitMethod) -> some View {
         let isSelected = viewModel.splitMethod == method
 
         return Button {
@@ -776,28 +798,24 @@ struct AddTransactionView: View {
             }
             HapticManager.selectionChanged()
         } label: {
-            VStack(spacing: Spacing.sm) {
-                Image(systemName: method.systemImage)
-                    .font(.system(size: IconSize.lg, weight: .medium))
-                    .foregroundColor(isSelected ? AppColors.onAccent : AppColors.textPrimary)
-
+            HStack(spacing: Spacing.xs) {
+                Text(method.icon)
+                    .font(AppTypography.labelLarge())
                 Text(method.displayName)
                     .font(AppTypography.labelSmall())
-                    .foregroundColor(isSelected ? AppColors.onAccent : AppColors.textSecondary)
                     .lineLimit(1)
-                    .minimumScaleFactor(0.8)
             }
-            .frame(width: 80, height: 80)
+            .foregroundColor(isSelected ? AppColors.onAccent : AppColors.textPrimary)
+            .padding(.horizontal, Spacing.md)
+            .padding(.vertical, Spacing.sm)
             .background(
-                RoundedRectangle(cornerRadius: CornerRadius.card)
-                    .fill(isSelected ? AppColors.accent : AppColors.cardBackground)
+                RoundedRectangle(cornerRadius: CornerRadius.full)
+                    .fill(isSelected ? AppColors.accent : Color.clear)
             )
             .overlay(
-                RoundedRectangle(cornerRadius: CornerRadius.card)
+                RoundedRectangle(cornerRadius: CornerRadius.full)
                     .stroke(isSelected ? Color.clear : AppColors.border, lineWidth: 1)
             )
-            .scaleEffect(isSelected ? 1.05 : 1.0)
-            .animation(AppAnimation.spring, value: isSelected)
         }
         .buttonStyle(.plain)
         .accessibilityLabel("\(method.displayName) split method\(isSelected ? ", selected" : "")")
@@ -962,7 +980,7 @@ struct AddTransactionView: View {
 
             // Total row
             HStack {
-                Text("Total")
+                Text("Total Balance")
                     .font(AppTypography.headingSmall())
                     .foregroundColor(AppColors.textPrimary)
 
@@ -1196,7 +1214,7 @@ struct AddTransactionView: View {
                 .frame(maxWidth: .infinity)
                 .frame(height: ButtonHeight.lg)
                 .background(
-                    RoundedRectangle(cornerRadius: CornerRadius.button)
+                    RoundedRectangle(cornerRadius: CornerRadius.xl)
                         .fill(viewModel.isValid ? AppColors.accent : AppColors.disabled)
                 )
             }
@@ -1267,8 +1285,12 @@ struct AddTransactionView: View {
             .padding(.leading, Spacing.xs)
             .padding(.trailing, Spacing.sm)
             .padding(.vertical, Spacing.xs)
-            .background(AppColors.accentMuted)
+            .background(Color.clear)
             .cornerRadius(CornerRadius.full)
+            .overlay(
+                RoundedRectangle(cornerRadius: CornerRadius.full)
+                    .stroke(AppColors.border, lineWidth: 1)
+            )
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Remove \(shortName(for: person))")
