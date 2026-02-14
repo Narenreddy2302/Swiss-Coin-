@@ -111,6 +111,10 @@ struct FeedTransactionContent: View {
         return splitSet.sorted { ($0.owedBy?.name ?? "") < ($1.owedBy?.name ?? "") }
     }
 
+    private var commentCount: Int {
+        (transaction.comments as? Set<ChatMessage>)?.count ?? 0
+    }
+
     // MARK: - Body
 
     var body: some View {
@@ -293,11 +297,11 @@ struct FeedTransactionContent: View {
         .padding(.top, Spacing.sm)
     }
 
-    // MARK: - Card Action Buttons
+    // MARK: - Card Action Buttons (unified with EnhancedTransactionCardView)
 
     @ViewBuilder
     private var cardActionButtons: some View {
-        HStack(spacing: Spacing.md) {
+        HStack(spacing: Spacing.sm) {
             if onComment != nil {
                 Button {
                     HapticManager.selectionChanged()
@@ -305,14 +309,29 @@ struct FeedTransactionContent: View {
                 } label: {
                     Text("Comment")
                         .font(AppTypography.buttonDefault())
-                        .foregroundColor(AppColors.accent)
+                        .foregroundColor(AppColors.onAccent)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, Spacing.sm)
+                        .frame(height: ButtonHeight.sm)
                         .background(
                             RoundedRectangle(cornerRadius: CornerRadius.button)
-                                .stroke(AppColors.accent, lineWidth: 1)
+                                .fill(AppColors.accent)
                         )
+                        .overlay(alignment: .topTrailing) {
+                            if commentCount > 0 {
+                                Text(commentCount > 99 ? "99+" : "\(commentCount)")
+                                    .font(AppTypography.labelSmall())
+                                    .foregroundColor(AppColors.onAccent)
+                                    .frame(minWidth: 18, minHeight: 18)
+                                    .background(
+                                        Circle()
+                                            .fill(AppColors.negative)
+                                    )
+                                    .offset(x: -Spacing.sm, y: -Spacing.sm)
+                                    .transition(.scale.combined(with: .opacity))
+                            }
+                        }
                 }
+                .buttonStyle(AppButtonStyle(haptic: .none))
             }
 
             if onEdit != nil {
@@ -322,14 +341,19 @@ struct FeedTransactionContent: View {
                 } label: {
                     Text("Edit")
                         .font(AppTypography.buttonDefault())
-                        .foregroundColor(AppColors.accent)
+                        .foregroundColor(AppColors.textPrimary)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, Spacing.sm)
+                        .frame(height: ButtonHeight.sm)
                         .background(
                             RoundedRectangle(cornerRadius: CornerRadius.button)
-                                .stroke(AppColors.accent, lineWidth: 1)
+                                .stroke(AppColors.border, lineWidth: 1)
+                                .background(
+                                    RoundedRectangle(cornerRadius: CornerRadius.button)
+                                        .fill(AppColors.transactionCardBackground)
+                                )
                         )
                 }
+                .buttonStyle(AppButtonStyle(haptic: .none))
             }
         }
     }
@@ -377,10 +401,19 @@ struct FeedTransactionContent: View {
                             HapticManager.selectionChanged()
                             onComment?()
                         } label: {
-                            Image(systemName: "bubble.right")
-                                .font(.system(size: IconSize.xs))
-                                .foregroundColor(AppColors.textTertiary)
+                            HStack(spacing: Spacing.xs) {
+                                Image(systemName: "bubble.right")
+                                    .font(.system(size: IconSize.xs))
+                                    .foregroundColor(AppColors.textTertiary)
+
+                                if commentCount > 0 {
+                                    Text("\(commentCount)")
+                                        .font(AppTypography.caption())
+                                        .foregroundColor(AppColors.textSecondary)
+                                }
+                            }
                         }
+                        .frame(minWidth: ButtonHeight.md, minHeight: ButtonHeight.md)
                     }
 
                     if onViewDetails != nil {
@@ -392,6 +425,7 @@ struct FeedTransactionContent: View {
                                 .font(.system(size: IconSize.xs))
                                 .foregroundColor(AppColors.textTertiary)
                         }
+                        .frame(minWidth: ButtonHeight.md, minHeight: ButtonHeight.md)
                     }
 
                     if onEdit != nil {
@@ -403,6 +437,7 @@ struct FeedTransactionContent: View {
                                 .font(.system(size: IconSize.xs))
                                 .foregroundColor(AppColors.textTertiary)
                         }
+                        .frame(minWidth: ButtonHeight.md, minHeight: ButtonHeight.md)
                     }
                 }
                 .padding(.top, Spacing.xxs)
@@ -433,6 +468,15 @@ struct FeedTransactionContent: View {
                 onViewDetails()
             } label: {
                 Label("View Details", systemImage: "doc.text.magnifyingglass")
+            }
+        }
+
+        if let onComment {
+            Button {
+                HapticManager.selectionChanged()
+                onComment()
+            } label: {
+                Label("Comment", systemImage: "bubble.right")
             }
         }
 
