@@ -17,23 +17,12 @@ struct PersonConversationView: View {
 
     // MARK: - State
 
-    @State private var showingAddTransaction = false
-    @State private var showingSettlement = false
-    @State private var showingReminder = false
-    @State private var showingPersonDetail = false
     @State private var messageText = ""
     @State private var showingError = false
     @State private var errorMessage = ""
     @State private var transactionToDelete: FinancialTransaction?
     @State private var showingDeleteTransaction = false
-    @State private var showingTransactionDetail: FinancialTransaction?
     @State private var isMessageInputFocused = false
-
-    // Undo toast state (messages)
-    @State private var showUndoToast = false
-    @State private var deletedMessageContent: String?
-    @State private var deletedMessageTimestamp: Date?
-    @State private var deletedMessageIsEdited: Bool = false
 
     // Transaction edit state
     @State private var transactionToEdit: FinancialTransaction?
@@ -41,17 +30,61 @@ struct PersonConversationView: View {
     // Transaction comment state
     @State private var transactionToComment: FinancialTransaction?
 
-    // Transaction undo toast state
-    @State private var showUndoTransactionToast = false
-    @State private var cachedTxnTitle: String = ""
-    @State private var cachedTxnAmount: Double = 0
-    @State private var cachedTxnDate: Date = Date()
-    @State private var cachedTxnSplitMethod: String = "equal"
-    @State private var cachedTxnPayer: Person?
-    @State private var cachedTxnCreatedBy: Person?
-    @State private var cachedTxnSplitPersons: [Person?] = []
-    @State private var cachedTxnSplitAmounts: [Double] = []
-    @State private var cachedTxnSplitRawAmounts: [Double] = []
+    // Sheet presentation via enum
+    @State private var activeSheet: ActiveSheet?
+
+    // Undo state (messages)
+    @State private var undoMessage = UndoMessageState()
+
+    // Undo state (transactions)
+    @State private var undoTransaction = UndoTransactionState()
+
+    // Loading state
+    @State private var isLoading = true
+
+    // Scroll-to-bottom FAB state
+    @State private var showScrollToBottom = false
+    @State private var hasAppeared = false
+
+    // MARK: - Sheet Enum
+
+    enum ActiveSheet: Identifiable {
+        case addTransaction
+        case settlement
+        case reminder
+        case personDetail
+
+        var id: String {
+            switch self {
+            case .addTransaction: return "addTransaction"
+            case .settlement: return "settlement"
+            case .reminder: return "reminder"
+            case .personDetail: return "personDetail"
+            }
+        }
+    }
+
+    // MARK: - Undo State Structs
+
+    struct UndoMessageState {
+        var isShowing = false
+        var content: String?
+        var timestamp: Date?
+        var isEdited = false
+    }
+
+    struct UndoTransactionState {
+        var isShowing = false
+        var title = ""
+        var amount: Double = 0
+        var date = Date()
+        var splitMethod = "equal"
+        var payer: Person?
+        var createdBy: Person?
+        var splitPersons: [Person?] = []
+        var splitAmounts: [Double] = []
+        var splitRawAmounts: [Double] = []
+    }
 
     // MARK: - Timeline Constants
 
@@ -93,56 +126,71 @@ struct PersonConversationView: View {
     var body: some View {
         VStack(spacing: 0) {
             // Messages Area
-            ScrollViewReader { proxy in
-                ScrollView {
-                    LazyVStack(spacing: 0) {
-                        if groupedItems.isEmpty {
-                            emptyStateView
-                        } else {
-                            ForEach(Array(groupedItems.enumerated()), id: \.element.id) { groupIndex, group in
-                                // Date Header
-                                DateHeaderView(dateString: group.dateDisplayString)
-                                    .padding(.top, groupIndex == 0 ? Spacing.md : Spacing.lg)
-                                    .padding(.bottom, Spacing.sm)
+            ZStack(alignment: .bottomTrailing) {
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        LazyVStack(spacing: 0) {
+                            if isLoading {
+                                loadingPlaceholder
+                            } else if groupedItems.isEmpty {
+                                emptyStateView
+                                    .transition(.opacity)
+                            } else {
+                                ForEach(Array(groupedItems.enumerated()), id: \.element.id) { groupIndex, group in
+                                    // Date Header
+                                    DateHeaderView(dateString: group.dateDisplayString)
+                                        .padding(.top, groupIndex == 0 ? Spacing.md : Spacing.lg)
+                                        .padding(.bottom, Spacing.sm)
 
-                                ForEach(Array(group.items.enumerated()), id: \.element.id) { itemIndex, item in
-                                    let isLastInGroup = itemIndex == group.items.count - 1
-                                    let isLastGroup = groupIndex == groupedItems.count - 1
-                                    let isLastItem = isLastInGroup && isLastGroup
+                                    ForEach(Array(group.items.enumerated()), id: \.element.id) { itemIndex, item in
+                                        let isLastInGroup = itemIndex == group.items.count - 1
+                                        let isLastGroup = groupIndex == groupedItems.count - 1
+                                        let isLastItem = isLastInGroup && isLastGroup
 
-                                    timelineRow(
-                                        item: item,
-                                        isLastItem: isLastItem
-                                    )
-                                    .id(item.id)
-                                    .transition(.opacity.combined(with: .scale(scale: 0.95)))
+                                        timelineRow(
+                                            item: item,
+                                            isLastItem: isLastItem
+                                        )
+                                        .id(item.id)
+                                        .transition(hasAppeared ? .identity : .opacity.combined(with: .scale(scale: 0.95)))
+                                    }
                                 }
                             }
                         }
+                        .padding(.vertical, Spacing.md)
                     }
-                    .padding(.vertical, Spacing.md)
-                }
-                .scrollDismissesKeyboard(.interactively)
-                .background(
-                    ZStack {
-                        AppColors.conversationBackground
-                        DotGridPattern(
-                            dotSpacing: 16,
-                            dotRadius: 0.5,
-                            color: AppColors.receiptDot.opacity(0.5)
-                        )
+                    .scrollDismissesKeyboard(.interactively)
+                    .background(
+                        ZStack {
+                            AppColors.conversationBackground
+                            DotGridPattern(
+                                dotSpacing: 16,
+                                dotRadius: 0.5,
+                                color: AppColors.receiptDot
+                            )
+                        }
+                    )
+                    .onTapGesture {
+                        hideKeyboard()
                     }
-                )
-                .onTapGesture {
-                    hideKeyboard()
-                }
-                .onAppear {
-                    HapticManager.prepare()
-                    scrollToBottom(proxy)
-                }
-                .onChange(of: totalItemCount) { _, _ in
-                    withAnimation(AppAnimation.standard) {
-                        scrollToBottom(proxy)
+                    .onAppear {
+                        HapticManager.prepare()
+                        withAnimation(AppAnimation.standard) {
+                            scrollToBottom(proxy)
+                        }
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                            hasAppeared = true
+                        }
+                    }
+                    .onChange(of: totalItemCount) { _, _ in
+                        withAnimation(AppAnimation.standard) {
+                            scrollToBottom(proxy)
+                        }
+                    }
+
+                    // Scroll-to-bottom FAB
+                    if showScrollToBottom {
+                        scrollToBottomButton(proxy: proxy)
                     }
                 }
             }
@@ -150,9 +198,9 @@ struct PersonConversationView: View {
             // Action Bar
             ConversationActionBar(
                 balance: balance,
-                onAdd: { showingAddTransaction = true },
-                onSettle: { showingSettlement = true },
-                onRemind: { showingReminder = true }
+                onAdd: { activeSheet = .addTransaction },
+                onSettle: { activeSheet = .settlement },
+                onRemind: { activeSheet = .reminder }
             )
 
             // Message Input
@@ -178,31 +226,31 @@ struct PersonConversationView: View {
                 toolbarTrailingContent
             }
         }
-        .sheet(isPresented: $showingAddTransaction) {
-            QuickActionSheetPresenter(initialPerson: person)
-                .onAppear { HapticManager.sheetPresent() }
-        }
-        .sheet(isPresented: $showingSettlement) {
-            SettlementView(person: person, currentBalance: balance)
-                .onAppear { HapticManager.sheetPresent() }
-        }
-        .sheet(isPresented: $showingReminder) {
-            ReminderSheetView(person: person, amount: balance)
-                .onAppear { HapticManager.sheetPresent() }
-        }
-        .sheet(isPresented: $showingPersonDetail) {
-            NavigationStack {
-                PersonDetailView(person: person)
-                    .toolbar {
-                        ToolbarItem(placement: .navigationBarTrailing) {
-                            Button("Done") {
-                                HapticManager.sheetDismiss()
-                                showingPersonDetail = false
+        .sheet(item: $activeSheet) { sheet in
+            switch sheet {
+            case .addTransaction:
+                QuickActionSheetPresenter(initialPerson: person)
+                    .onAppear { HapticManager.sheetPresent() }
+            case .settlement:
+                SettlementView(person: person, currentBalance: balance)
+                    .onAppear { HapticManager.sheetPresent() }
+            case .reminder:
+                ReminderSheetView(person: person, amount: balance)
+                    .onAppear { HapticManager.sheetPresent() }
+            case .personDetail:
+                NavigationStack {
+                    PersonDetailView(person: person)
+                        .toolbar {
+                            ToolbarItem(placement: .navigationBarTrailing) {
+                                Button("Done") {
+                                    HapticManager.sheetDismiss()
+                                    activeSheet = nil
+                                }
                             }
                         }
-                    }
+                }
+                .onAppear { HapticManager.sheetPresent() }
             }
-            .onAppear { HapticManager.sheetPresent() }
         }
         .sheet(item: $showingTransactionDetail) { transaction in
             TransactionDetailSheet(
@@ -237,7 +285,7 @@ struct PersonConversationView: View {
             Text("This will permanently delete this transaction and update all related balances. This cannot be undone.")
         }
         .undoToast(
-            isShowing: $showUndoToast,
+            isShowing: $undoMessage.isShowing,
             message: "Message deleted",
             onUndo: undoDeleteMessage
         )
@@ -250,16 +298,75 @@ struct PersonConversationView: View {
                 .onAppear { HapticManager.sheetPresent() }
         }
         .undoToast(
-            isShowing: $showUndoTransactionToast,
+            isShowing: $undoTransaction.isShowing,
             message: "Transaction undone",
             onUndo: restoreUndoneTransaction
         )
         .task {
             loadConversationData()
+            withAnimation(AppAnimation.standard) {
+                isLoading = false
+            }
         }
-        .onReceive(NotificationCenter.default.publisher(for: .NSManagedObjectContextDidSave)) { _ in
+        .onReceive(NotificationCenter.default.publisher(for: .NSManagedObjectContextDidSave)) { notification in
+            guard isRelevantSave(notification) else { return }
             loadConversationData()
         }
+        .onChange(of: person.isDeleted) { _, isDeleted in
+            if isDeleted { dismiss() }
+        }
+    }
+
+    // MARK: - Transaction Detail State
+
+    @State private var showingTransactionDetail: FinancialTransaction?
+
+    // MARK: - Loading Placeholder
+
+    @ViewBuilder
+    private var loadingPlaceholder: some View {
+        VStack(spacing: Spacing.lg) {
+            ForEach(0..<3, id: \.self) { _ in
+                HStack(alignment: .top, spacing: Spacing.md) {
+                    Circle()
+                        .fill(AppColors.backgroundTertiary)
+                        .frame(width: timelineCircleSize, height: timelineCircleSize)
+                        .padding(.leading, timelineLeadingPad)
+
+                    RoundedRectangle(cornerRadius: CornerRadius.card)
+                        .fill(AppColors.backgroundTertiary)
+                        .frame(height: 60)
+                        .padding(.trailing, Spacing.lg)
+                }
+            }
+        }
+        .redacted(reason: .placeholder)
+        .padding(.top, Spacing.lg)
+    }
+
+    // MARK: - Scroll-to-Bottom Button
+
+    @ViewBuilder
+    private func scrollToBottomButton(proxy: ScrollViewProxy) -> some View {
+        Button {
+            HapticManager.lightTap()
+            withAnimation(AppAnimation.standard) {
+                scrollToBottom(proxy)
+            }
+        } label: {
+            Image(systemName: "chevron.down")
+                .font(AppTypography.labelLarge())
+                .foregroundColor(AppColors.textPrimary)
+                .frame(width: ButtonHeight.md, height: ButtonHeight.md)
+                .background(
+                    Circle()
+                        .fill(AppColors.elevatedSurface)
+                        .shadow(color: AppColors.shadow, radius: Spacing.sm, x: 0, y: 2)
+                )
+        }
+        .padding(.trailing, Spacing.lg)
+        .padding(.bottom, Spacing.sm)
+        .transition(.scale.combined(with: .opacity))
     }
 
     /// Recompute balance and conversation items. Called outside of body evaluation
@@ -267,6 +374,39 @@ struct PersonConversationView: View {
     private func loadConversationData() {
         balance = person.calculateBalance()
         groupedItems = person.getGroupedConversationItems()
+    }
+
+    /// Check if the CoreData save notification is relevant to this person's data
+    private func isRelevantSave(_ notification: Notification) -> Bool {
+        let insertedObjects = notification.userInfo?[NSInsertedObjectsKey] as? Set<NSManagedObject> ?? []
+        let updatedObjects = notification.userInfo?[NSUpdatedObjectsKey] as? Set<NSManagedObject> ?? []
+        let deletedObjects = notification.userInfo?[NSDeletedObjectsKey] as? Set<NSManagedObject> ?? []
+
+        let allChanged = insertedObjects.union(updatedObjects).union(deletedObjects)
+
+        for obj in allChanged {
+            // Direct person match
+            if let p = obj as? Person, p.objectID == person.objectID { return true }
+            // Transaction involving this person
+            if let t = obj as? FinancialTransaction {
+                if t.payer?.objectID == person.objectID { return true }
+                if let splits = t.splits as? Set<TransactionSplit> {
+                    if splits.contains(where: { $0.owedBy?.objectID == person.objectID }) { return true }
+                }
+            }
+            // Message with this person
+            if let m = obj as? ChatMessage, m.withPerson?.objectID == person.objectID { return true }
+            // Settlement with this person
+            if let s = obj as? Settlement {
+                if s.fromPerson?.objectID == person.objectID || s.toPerson?.objectID == person.objectID { return true }
+            }
+            // Reminder with this person
+            if let r = obj as? Reminder, r.forPerson?.objectID == person.objectID { return true }
+            // TransactionSplit involving this person
+            if let ts = obj as? TransactionSplit, ts.owedBy?.objectID == person.objectID { return true }
+        }
+
+        return false
     }
 
     // MARK: - Timeline Row
@@ -282,11 +422,12 @@ struct PersonConversationView: View {
             let avatar = itemAvatarInfo(for: item)
 
             HStack(alignment: .top, spacing: 0) {
-                // Timeline column with avatar
+                // Timeline column with avatar and connector line
                 timelineConnector(
                     isMessage: isMessage,
                     avatarInitials: avatar.initials,
-                    avatarColor: avatar.color
+                    avatarColor: avatar.color,
+                    showLine: !isLastItem
                 )
 
                 // Content column
@@ -325,7 +466,7 @@ struct PersonConversationView: View {
     // MARK: - Timeline Connector
 
     @ViewBuilder
-    private func timelineConnector(isMessage: Bool, avatarInitials: String, avatarColor: String) -> some View {
+    private func timelineConnector(isMessage: Bool, avatarInitials: String, avatarColor: String, showLine: Bool) -> some View {
         VStack(spacing: 0) {
             // Top offset to vertically align avatar with first line of content
             Spacer()
@@ -338,8 +479,15 @@ struct PersonConversationView: View {
                 size: timelineCircleSize
             )
 
-            // Spacer below avatar
-            Spacer(minLength: 0)
+            // Connecting line below avatar
+            if showLine {
+                Rectangle()
+                    .fill(AppColors.timelineConnector)
+                    .frame(width: 1)
+                    .frame(maxHeight: .infinity)
+            } else {
+                Spacer(minLength: 0)
+            }
         }
         .frame(width: timelineCircleSize)
         .padding(.leading, timelineLeadingPad)
@@ -363,7 +511,7 @@ struct PersonConversationView: View {
 
             Button {
                 HapticManager.navigationTap()
-                showingPersonDetail = true
+                activeSheet = .personDetail
             } label: {
                 personHeaderContent
             }
@@ -388,20 +536,31 @@ struct PersonConversationView: View {
                 .font(AppTypography.headingMedium())
                 .foregroundColor(AppColors.textPrimary)
                 .lineLimit(1)
+
+            Image(systemName: "chevron.right")
+                .font(AppTypography.caption())
+                .foregroundColor(AppColors.textTertiary)
         }
     }
 
     @ViewBuilder
     private var toolbarTrailingContent: some View {
-        VStack(alignment: .trailing, spacing: 2) {
+        VStack(alignment: .trailing, spacing: Spacing.xxs) {
             Text(balanceLabel)
-                .font(AppTypography.caption())
+                .font(AppTypography.labelSmall())
                 .foregroundColor(AppColors.textSecondary)
 
             Text(balanceAmount)
                 .font(AppTypography.financialSmall())
                 .foregroundColor(balanceColor)
+                .contentTransition(.numericText())
         }
+        .padding(.horizontal, Spacing.sm)
+        .padding(.vertical, Spacing.xs)
+        .background(
+            Capsule()
+                .fill(balanceColor.opacity(0.1))
+        )
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Balance: \(balanceLabel) \(balanceAmount)")
     }
@@ -412,14 +571,18 @@ struct PersonConversationView: View {
         VStack(spacing: Spacing.lg) {
             Spacer()
 
-            Image(systemName: "message.fill")
-                .font(.system(size: IconSize.xxl))
-                .foregroundColor(AppColors.textSecondary.opacity(0.5))
-                .accessibilityHidden(true)
+            Circle()
+                .fill(AppColors.accent.opacity(0.15))
+                .frame(width: IconSize.xxl + Spacing.xl, height: IconSize.xxl + Spacing.xl)
+                .overlay(
+                    Image(systemName: "message.fill")
+                        .font(.system(size: IconSize.xl))
+                        .foregroundColor(AppColors.accent)
+                )
 
             Text("No conversations yet")
                 .font(AppTypography.headingMedium())
-                .foregroundColor(AppColors.textSecondary)
+                .foregroundColor(AppColors.textPrimary)
 
             Text("Start a conversation with \(person.firstName) or add an expense")
                 .font(AppTypography.bodyDefault())
@@ -427,10 +590,19 @@ struct PersonConversationView: View {
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, Spacing.xxxl)
 
+            Button {
+                HapticManager.selectionChanged()
+                activeSheet = .addTransaction
+            } label: {
+                Text("Add Expense")
+            }
+            .buttonStyle(PrimaryButtonStyle())
+            .padding(.horizontal, Spacing.xxxl)
+            .padding(.top, Spacing.sm)
+
             Spacer()
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 60)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     // MARK: - Conversation Item View
@@ -576,9 +748,9 @@ struct PersonConversationView: View {
 
     private func deleteMessageWithUndo(_ message: ChatMessage) {
         // Cache data for potential undo
-        deletedMessageContent = message.content
-        deletedMessageTimestamp = message.timestamp
-        deletedMessageIsEdited = message.isEdited
+        undoMessage.content = message.content
+        undoMessage.timestamp = message.timestamp
+        undoMessage.isEdited = message.isEdited
 
         // Delete immediately
         viewContext.delete(message)
@@ -586,7 +758,7 @@ struct PersonConversationView: View {
             try viewContext.save()
             HapticManager.destructiveAction()
             withAnimation(AppAnimation.standard) {
-                showUndoToast = true
+                undoMessage.isShowing = true
             }
         } catch {
             viewContext.rollback()
@@ -598,14 +770,14 @@ struct PersonConversationView: View {
     }
 
     private func undoDeleteMessage() {
-        guard let content = deletedMessageContent else { return }
+        guard let content = undoMessage.content else { return }
 
         let restored = ChatMessage(context: viewContext)
         restored.id = UUID()
         restored.content = content
-        restored.timestamp = deletedMessageTimestamp ?? Date()
+        restored.timestamp = undoMessage.timestamp ?? Date()
         restored.isFromUser = true
-        restored.isEdited = deletedMessageIsEdited
+        restored.isEdited = undoMessage.isEdited
         restored.withPerson = person
 
         do {
@@ -616,9 +788,7 @@ struct PersonConversationView: View {
             HapticManager.errorAlert()
         }
 
-        deletedMessageContent = nil
-        deletedMessageTimestamp = nil
-        deletedMessageIsEdited = false
+        undoMessage = UndoMessageState()
     }
 
     // MARK: - Transaction Actions
@@ -647,18 +817,18 @@ struct PersonConversationView: View {
 
     private func undoTransactionWithToast(_ transaction: FinancialTransaction) {
         // Cache transaction data before deletion
-        cachedTxnTitle = transaction.title ?? ""
-        cachedTxnAmount = transaction.amount
-        cachedTxnDate = transaction.date ?? Date()
-        cachedTxnSplitMethod = transaction.splitMethod ?? "equal"
-        cachedTxnPayer = transaction.payer
-        cachedTxnCreatedBy = transaction.createdBy
+        undoTransaction.title = transaction.title ?? ""
+        undoTransaction.amount = transaction.amount
+        undoTransaction.date = transaction.date ?? Date()
+        undoTransaction.splitMethod = transaction.splitMethod ?? "equal"
+        undoTransaction.payer = transaction.payer
+        undoTransaction.createdBy = transaction.createdBy
 
         // Cache splits data
         let splits = (transaction.splits as? Set<TransactionSplit>) ?? []
-        cachedTxnSplitPersons = splits.map { $0.owedBy }
-        cachedTxnSplitAmounts = splits.map { $0.amount }
-        cachedTxnSplitRawAmounts = splits.map { $0.rawAmount }
+        undoTransaction.splitPersons = splits.map { $0.owedBy }
+        undoTransaction.splitAmounts = splits.map { $0.amount }
+        undoTransaction.splitRawAmounts = splits.map { $0.rawAmount }
 
         // Delete transaction (splits cascade-deleted)
         viewContext.delete(transaction)
@@ -666,7 +836,7 @@ struct PersonConversationView: View {
             try viewContext.save()
             HapticManager.destructiveAction()
             withAnimation(AppAnimation.standard) {
-                showUndoTransactionToast = true
+                undoTransaction.isShowing = true
             }
         } catch {
             viewContext.rollback()
@@ -679,20 +849,20 @@ struct PersonConversationView: View {
     private func restoreUndoneTransaction() {
         let restored = FinancialTransaction(context: viewContext)
         restored.id = UUID()
-        restored.title = cachedTxnTitle
-        restored.amount = cachedTxnAmount
-        restored.date = cachedTxnDate
-        restored.splitMethod = cachedTxnSplitMethod
-        restored.payer = cachedTxnPayer
-        restored.createdBy = cachedTxnCreatedBy
+        restored.title = undoTransaction.title
+        restored.amount = undoTransaction.amount
+        restored.date = undoTransaction.date
+        restored.splitMethod = undoTransaction.splitMethod
+        restored.payer = undoTransaction.payer
+        restored.createdBy = undoTransaction.createdBy
 
         // Restore splits
-        for i in 0..<cachedTxnSplitPersons.count {
+        for i in 0..<undoTransaction.splitPersons.count {
             let split = TransactionSplit(context: viewContext)
-            split.owedBy = cachedTxnSplitPersons[i]
-            split.amount = cachedTxnSplitAmounts[i]
-            if i < cachedTxnSplitRawAmounts.count {
-                split.rawAmount = cachedTxnSplitRawAmounts[i]
+            split.owedBy = undoTransaction.splitPersons[i]
+            split.amount = undoTransaction.splitAmounts[i]
+            if i < undoTransaction.splitRawAmounts.count {
+                split.rawAmount = undoTransaction.splitRawAmounts[i]
             }
             split.transaction = restored
         }
@@ -705,9 +875,6 @@ struct PersonConversationView: View {
             HapticManager.errorAlert()
         }
 
-        // Clear cached data
-        cachedTxnSplitPersons = []
-        cachedTxnSplitAmounts = []
-        cachedTxnSplitRawAmounts = []
+        undoTransaction = UndoTransactionState()
     }
 }

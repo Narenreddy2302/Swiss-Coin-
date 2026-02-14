@@ -209,6 +209,12 @@ enum AppShadow {
         let opacity = colorScheme == .dark ? 0.32 : 0.12
         return (Color.black.opacity(opacity), 16, 0, 4)
     }
+
+    /// Bubble shadow - chat message bubbles and comment bubbles
+    static func bubble(for colorScheme: ColorScheme) -> (color: Color, radius: CGFloat, x: CGFloat, y: CGFloat) {
+        let opacity = colorScheme == .dark ? 0.2 : 0.05
+        return (Color.black.opacity(opacity), 2, 0, 1)
+    }
 }
 
 // MARK: - Animation
@@ -706,11 +712,11 @@ enum AppColors {
             : UIColor(hex: "#22201D")
     })
 
-    /// Other person message bubble — white for visibility against off-white background
+    /// Other person message bubble — slightly warmer tone to differentiate from user bubble
     static let otherBubble = Color(UIColor { tc in
         tc.userInterfaceStyle == .dark
-            ? UIColor(hex: "#3A3A3C")
-            : UIColor.white
+            ? UIColor(hex: "#2C2C2E")
+            : UIColor(hex: "#F0EDE8")
     })
 
     /// Other message bubble text color
