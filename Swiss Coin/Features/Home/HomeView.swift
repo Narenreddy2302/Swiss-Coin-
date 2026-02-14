@@ -174,8 +174,9 @@ struct HomeView: View {
                 ProfileView()
             }
             .sheet(isPresented: $showingAddTransaction) {
-                AddTransactionView()
-                    .environment(\.managedObjectContext, viewContext)
+                NavigationStack {
+                    AddTransactionView(context: viewContext)
+                }
             }
             .sheet(isPresented: Binding(
                 get: { selectedTransaction != nil },

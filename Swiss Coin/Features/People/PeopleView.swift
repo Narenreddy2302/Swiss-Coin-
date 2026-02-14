@@ -1,3 +1,4 @@
+import Contacts
 import CoreData
 import os
 import SwiftUI
@@ -5,7 +6,6 @@ import SwiftUI
 struct PeopleView: View {
     @State private var selectedSegment = 0
     @Environment(\.managedObjectContext) private var viewContext
-    @State private var showingContactPicker = false
     @State private var showingManualEntry = false
     @State private var showingArchivedPeople = false
 
@@ -41,7 +41,7 @@ struct PeopleView: View {
 
                 Group {
                     if selectedSegment == 0 {
-                        PersonListView()
+                        PersonListView(selectedPersonForConversation: $selectedPersonForConversation)
                     } else {
                         GroupListView()
                     }
@@ -72,9 +72,9 @@ struct PeopleView: View {
                         if selectedSegment == 0 {
                             Button {
                                 HapticManager.lightTap()
-                                showingContactPicker = true
+                                showingManualEntry = true
                             } label: {
-                                Image(systemName: "plus")
+                                Image(systemName: "person.badge.plus")
                                     .font(AppTypography.buttonLarge())
                             }
                         } else {
@@ -88,18 +88,6 @@ struct PeopleView: View {
                         }
                     }
                 }
-            }
-            .sheet(isPresented: $showingContactPicker) {
-                ContactPickerView { person in
-                    // Contact added/selected - dismiss picker and navigate to conversation
-                    AppLogger.contacts.info("Contact selected: \(person.name ?? "Unknown")")
-                    showingContactPicker = false
-                    // Small delay to allow sheet dismissal animation
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                        selectedPersonForConversation = person
-                    }
-                }
-                .environment(\.managedObjectContext, viewContext)
             }
             .sheet(isPresented: $showingManualEntry) {
                 NavigationStack {
@@ -129,28 +117,26 @@ struct PeopleView: View {
         ) { _ in
             showingManualEntry = true
         }
-
-        NotificationCenter.default.addObserver(
-            forName: .contactAddedSuccessfully,
-            object: nil,
-            queue: .main
-        ) { _ in
-            showingContactPicker = false
-        }
     }
 
     private func removeNotifications() {
         NotificationCenter.default.removeObserver(self, name: .showManualContactEntry, object: nil)
-        NotificationCenter.default.removeObserver(self, name: .contactAddedSuccessfully, object: nil)
     }
 }
 
-// MARK: - Person List
+// MARK: - Person List (with inline phone contacts)
 
 struct PersonListView: View {
     @Environment(\.managedObjectContext) private var viewContext
+    @Binding var selectedPersonForConversation: Person?
+    @StateObject private var contactsManager = ContactsManager()
     @State private var showRefreshFeedback = false
+    @State private var existingPhoneNumbers: Set<String> = []
+    @State private var searchText = ""
+    @State private var filteredPhoneContacts: [ContactsManager.PhoneContact] = []
+    @State private var hasLoadedContacts = false
 
+    // People with transaction history
     @FetchRequest(fetchRequest: {
         let request: NSFetchRequest<Person> = Person.fetchRequest()
         request.sortDescriptors = [NSSortDescriptor(keyPath: \Person.name, ascending: true)]
@@ -169,74 +155,321 @@ struct PersonListView: View {
     }(), animation: .default)
     private var people: FetchedResults<Person>
 
+    /// People filtered by search
+    private var filteredPeople: [Person] {
+        if searchText.isEmpty { return Array(people) }
+        let search = searchText.lowercased()
+        return people.filter { ($0.name?.lowercased().contains(search) ?? false) }
+    }
+
     var body: some View {
-        Group {
-            if people.isEmpty {
-                ScrollView {
-                    PersonEmptyStateView()
-                }
-                .refreshable {
-                    await RefreshHelper.performStandardRefresh(context: viewContext)
-                }
-            } else {
-                ScrollView {
-                    VStack(spacing: Spacing.xl) {
-                        // Section
-                        VStack(alignment: .leading, spacing: Spacing.sm) {
-                            // Section header
-                            HStack {
-                                Text("All People")
-                                    .font(AppTypography.labelLarge())
-                                    .foregroundColor(AppColors.textSecondary)
+        ScrollView {
+            VStack(spacing: Spacing.xl) {
+                // MARK: - Recent / With Balances Section
+                if !filteredPeople.isEmpty {
+                    VStack(alignment: .leading, spacing: Spacing.sm) {
+                        HStack {
+                            Text("Recent")
+                                .font(AppTypography.labelLarge())
+                                .foregroundColor(AppColors.textSecondary)
 
-                                Spacer()
+                            Spacer()
 
-                                Text("\(people.count)")
-                                    .font(AppTypography.caption())
-                                    .foregroundColor(AppColors.textTertiary)
-                                    .padding(.horizontal, Spacing.sm)
-                                    .padding(.vertical, Spacing.xxs)
-                                    .background(
-                                        Capsule()
-                                            .fill(AppColors.backgroundTertiary)
-                                    )
-                            }
-                            .padding(.horizontal, Spacing.lg)
+                            Text("\(filteredPeople.count)")
+                                .font(AppTypography.caption())
+                                .foregroundColor(AppColors.textTertiary)
+                                .padding(.horizontal, Spacing.sm)
+                                .padding(.vertical, Spacing.xxs)
+                                .background(
+                                    Capsule()
+                                        .fill(AppColors.backgroundTertiary)
+                                )
+                        }
+                        .padding(.horizontal, Spacing.lg)
 
-                            // People rows
-                            LazyVStack(spacing: 0) {
-                                ForEach(people) { person in
-                                    NavigationLink(destination: PersonConversationView(person: person)) {
-                                        PersonListRowView(person: person)
-                                    }
-                                    .buttonStyle(.plain)
+                        LazyVStack(spacing: 0) {
+                            ForEach(filteredPeople, id: \.objectID) { person in
+                                NavigationLink(destination: PersonConversationView(person: person)) {
+                                    PersonListRowView(person: person)
+                                }
+                                .buttonStyle(.plain)
 
-                                    if person.objectID != people.last?.objectID {
-                                        Divider()
-                                            .padding(.leading, Spacing.lg + AvatarSize.lg + Spacing.md)
-                                    }
+                                if person.objectID != filteredPeople.last?.objectID {
+                                    Divider()
+                                        .padding(.leading, Spacing.lg + AvatarSize.lg + Spacing.md)
                                 }
                             }
                         }
+                    }
+                }
 
-                        Spacer()
-                            .frame(height: Spacing.section + Spacing.sm)
+                // MARK: - Phone Contacts (search only)
+                if !searchText.isEmpty && !filteredPhoneContacts.isEmpty {
+                    VStack(alignment: .leading, spacing: Spacing.sm) {
+                        HStack {
+                            Text("Phone Contacts")
+                                .font(AppTypography.labelLarge())
+                                .foregroundColor(AppColors.textSecondary)
+
+                            Spacer()
+
+                            Text("\(filteredPhoneContacts.count)")
+                                .font(AppTypography.caption())
+                                .foregroundColor(AppColors.textTertiary)
+                                .padding(.horizontal, Spacing.sm)
+                                .padding(.vertical, Spacing.xxs)
+                                .background(
+                                    Capsule()
+                                        .fill(AppColors.backgroundTertiary)
+                                )
+                        }
+                        .padding(.horizontal, Spacing.lg)
+
+                        LazyVStack(spacing: 0) {
+                            ForEach(filteredPhoneContacts) { contact in
+                                Button {
+                                    handlePhoneContactTap(contact)
+                                } label: {
+                                    PhoneContactRowView(contact: contact)
+                                }
+                                .buttonStyle(.plain)
+
+                                if contact.id != filteredPhoneContacts.last?.id {
+                                    Divider()
+                                        .padding(.leading, Spacing.lg + AvatarSize.lg + Spacing.md)
+                                }
+                            }
+                        }
                     }
-                    .padding(.top, Spacing.lg)
                 }
-                .refreshable {
-                    await RefreshHelper.performStandardRefresh(context: viewContext)
-                    withAnimation(AppAnimation.standard) { showRefreshFeedback = true }
-                    Task {
-                        try? await Task.sleep(nanoseconds: 2_000_000_000)
-                        withAnimation(AppAnimation.standard) { showRefreshFeedback = false }
+
+                // Contact access prompts (when not searching)
+                if searchText.isEmpty {
+                    if contactsManager.authorizationStatus == .notDetermined {
+                        contactAccessPrompt
+                    } else if contactsManager.authorizationStatus == .denied {
+                        contactAccessDeniedPrompt
                     }
                 }
-                .refreshFeedback(isShowing: $showRefreshFeedback)
+
+                // Empty state
+                if searchText.isEmpty && people.isEmpty {
+                    PersonEmptyStateView()
+                } else if !searchText.isEmpty && filteredPeople.isEmpty && filteredPhoneContacts.isEmpty {
+                    noSearchResultsView
+                }
+
+                Spacer()
+                    .frame(height: Spacing.section + Spacing.sm)
             }
+            .padding(.top, Spacing.lg)
+        }
+        .searchable(text: $searchText, prompt: "Search contacts")
+        .refreshable {
+            await refreshAll()
+        }
+        .refreshFeedback(isShowing: $showRefreshFeedback)
+        .task {
+            existingPhoneNumbers = ContactsManager.loadExistingPhoneNumbers(in: viewContext)
+        }
+        .task(id: searchText) {
+            guard !searchText.isEmpty else {
+                filteredPhoneContacts = []
+                return
+            }
+            // 300ms debounce — task auto-cancels on new keystroke
+            try? await Task.sleep(nanoseconds: 300_000_000)
+            guard !Task.isCancelled else { return }
+
+            // Lazy-load phone contacts on first search
+            if !hasLoadedContacts && contactsManager.authorizationStatus == .authorized {
+                await contactsManager.fetchContacts()
+                existingPhoneNumbers = ContactsManager.loadExistingPhoneNumbers(in: viewContext)
+                hasLoadedContacts = true
+            }
+
+            guard !Task.isCancelled else { return }
+            filteredPhoneContacts = contactsManager.searchContacts(
+                query: searchText,
+                excludingPhoneNumbers: existingPhoneNumbers
+            )
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .NSManagedObjectContextDidSave)) { _ in
+            existingPhoneNumbers = ContactsManager.loadExistingPhoneNumbers(in: viewContext)
         }
     }
 
+    // MARK: - Contact Access Prompt
+
+    private var contactAccessPrompt: some View {
+        VStack(spacing: Spacing.lg) {
+            Image(systemName: "person.2.circle")
+                .font(.system(size: IconSize.xxl))
+                .foregroundColor(AppColors.accent)
+
+            Text("See Your Contacts")
+                .font(AppTypography.headingLarge())
+                .foregroundColor(AppColors.textPrimary)
+
+            Text("Allow access to see your phone contacts here and easily split expenses.")
+                .font(AppTypography.bodyDefault())
+                .foregroundColor(AppColors.textSecondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, Spacing.xl)
+
+            Button {
+                HapticManager.tap()
+                Task {
+                    let granted = await contactsManager.requestAccess()
+                    if granted {
+                        existingPhoneNumbers = ContactsManager.loadExistingPhoneNumbers(in: viewContext)
+                    }
+                }
+            } label: {
+                Text("Allow Access")
+                    .font(AppTypography.headingMedium())
+            }
+            .buttonStyle(PrimaryButtonStyle())
+            .padding(.horizontal, Spacing.xxl)
+        }
+        .padding(Spacing.xxl)
+    }
+
+    private var contactAccessDeniedPrompt: some View {
+        VStack(spacing: Spacing.md) {
+            Image(systemName: "person.crop.circle.badge.exclamationmark")
+                .font(.system(size: IconSize.xl))
+                .foregroundColor(AppColors.warning)
+
+            Text("Contact Access Denied")
+                .font(AppTypography.headingMedium())
+                .foregroundColor(AppColors.textPrimary)
+
+            Text("Enable in Settings to see your contacts here.")
+                .font(AppTypography.bodySmall())
+                .foregroundColor(AppColors.textSecondary)
+                .multilineTextAlignment(.center)
+
+            Button {
+                HapticManager.tap()
+                if let url = URL(string: UIApplication.openSettingsURLString) {
+                    UIApplication.shared.open(url)
+                }
+            } label: {
+                Text("Open Settings")
+                    .font(AppTypography.bodyDefault())
+                    .foregroundColor(AppColors.accent)
+            }
+        }
+        .padding(Spacing.xl)
+    }
+
+    private var noSearchResultsView: some View {
+        VStack(spacing: Spacing.md) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: IconSize.xl))
+                .foregroundColor(AppColors.textTertiary)
+
+            Text("No results for \"\(searchText)\"")
+                .font(AppTypography.headingMedium())
+                .foregroundColor(AppColors.textSecondary)
+                .multilineTextAlignment(.center)
+        }
+        .padding(Spacing.xxl)
+        .frame(maxWidth: .infinity)
+    }
+
+    // MARK: - Actions
+
+    private func handlePhoneContactTap(_ contact: ContactsManager.PhoneContact) {
+        HapticManager.tap()
+
+        // Check if a Person already exists for this contact
+        if let existing = ContactsManager.findExistingPerson(for: contact, in: viewContext) {
+            selectedPersonForConversation = existing
+            return
+        }
+
+        // Create new Person from phone contact
+        let newPerson = ContactsManager.createPerson(from: contact, in: viewContext)
+        do {
+            try viewContext.save()
+            HapticManager.success()
+            existingPhoneNumbers = ContactsManager.loadExistingPhoneNumbers(in: viewContext)
+            // Remove from phone contact results since they're now a Person
+            filteredPhoneContacts.removeAll { $0.id == contact.id }
+            selectedPersonForConversation = newPerson
+        } catch {
+            viewContext.rollback()
+            HapticManager.error()
+            AppLogger.coreData.error("Failed to save contact: \(error.localizedDescription)")
+        }
+    }
+
+    private func refreshAll() async {
+        await RefreshHelper.performStandardRefresh(context: viewContext)
+        existingPhoneNumbers = ContactsManager.loadExistingPhoneNumbers(in: viewContext)
+        // Reset lazy-load flag so next search fetches fresh contacts
+        hasLoadedContacts = false
+        filteredPhoneContacts = []
+        withAnimation(AppAnimation.standard) { showRefreshFeedback = true }
+        Task {
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            withAnimation(AppAnimation.standard) { showRefreshFeedback = false }
+        }
+    }
+}
+
+// MARK: - Phone Contact Row View
+
+struct PhoneContactRowView: View {
+    let contact: ContactsManager.PhoneContact
+
+    var body: some View {
+        HStack(spacing: Spacing.md) {
+            // Avatar
+            if let data = contact.thumbnailImageData,
+               let uiImage = UIImage(data: data) {
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: AvatarSize.lg, height: AvatarSize.lg)
+                    .clipShape(Circle())
+            } else {
+                Circle()
+                    .fill(AppColors.accent.opacity(0.15))
+                    .frame(width: AvatarSize.lg, height: AvatarSize.lg)
+                    .overlay(
+                        Text(contact.initials)
+                            .font(AppTypography.headingLarge())
+                            .foregroundColor(AppColors.accent)
+                    )
+            }
+
+            VStack(alignment: .leading, spacing: Spacing.xs) {
+                Text(contact.fullName)
+                    .font(AppTypography.headingMedium())
+                    .foregroundColor(AppColors.textPrimary)
+                    .lineLimit(1)
+
+                if let phone = contact.phoneNumbers.first {
+                    Text(phone)
+                        .font(AppTypography.bodySmall())
+                        .foregroundColor(AppColors.textSecondary)
+                        .lineLimit(1)
+                }
+            }
+
+            Spacer()
+
+            Image(systemName: "chevron.right")
+                .font(.system(size: IconSize.xs, weight: .semibold))
+                .foregroundColor(AppColors.textTertiary)
+        }
+        .padding(.vertical, Spacing.md)
+        .padding(.horizontal, Spacing.lg)
+        .contentShape(Rectangle())
+    }
 }
 
 // MARK: - Person Empty State

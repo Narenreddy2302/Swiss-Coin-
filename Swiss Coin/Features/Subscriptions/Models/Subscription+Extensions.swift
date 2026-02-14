@@ -7,6 +7,7 @@
 
 import CoreData
 import Foundation
+import os
 import SwiftUI
 
 // MARK: - Billing Status
@@ -524,7 +525,7 @@ extension Subscription {
             try csvContent.write(to: fileURL, atomically: true, encoding: .utf8)
             return fileURL
         } catch {
-            print("Failed to create CSV file: \(error.localizedDescription)")
+            AppLogger.subscriptions.error("Failed to create CSV file: \(error.localizedDescription)")
             return nil
         }
     }

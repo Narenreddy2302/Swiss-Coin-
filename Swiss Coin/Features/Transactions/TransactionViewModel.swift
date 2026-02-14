@@ -1,4 +1,5 @@
 import Combine
+import Contacts
 import CoreData
 import Foundation
 import os
@@ -48,6 +49,11 @@ final class TransactionViewModel: ObservableObject {
     @Published private(set) var cachedSplitWithContacts: [Person] = []
     @Published private(set) var cachedSplitWithGroups: [UserGroup] = []
 
+    // MARK: - Phone Contacts Integration
+    private let contactsManager = ContactsManager()
+    @Published var phoneContacts: [ContactsManager.PhoneContact] = []
+    private var existingPhoneNumbers: Set<String> = []
+
     // MARK: - Save State
     @Published var isSaving: Bool = false
     @Published var saveCompleted: Bool = false
@@ -75,6 +81,17 @@ final class TransactionViewModel: ObservableObject {
         refreshAllGroups()
 
         setupSearchListeners()
+
+        // Fetch phone contacts
+        Task { await loadPhoneContacts() }
+    }
+
+    private func loadPhoneContacts() async {
+        if contactsManager.authorizationStatus == .authorized {
+            await contactsManager.fetchContacts()
+            existingPhoneNumbers = ContactsManager.loadExistingPhoneNumbers(in: viewContext)
+            phoneContacts = contactsManager.contacts
+        }
     }
 
     // MARK: - Search Functionality
@@ -155,6 +172,61 @@ final class TransactionViewModel: ObservableObject {
     /// Filtered groups for "Split With" search
     var filteredSplitWithGroups: [UserGroup] {
         cachedSplitWithGroups
+    }
+
+    /// Phone contacts filtered for "Paid By" search (excludes already-added persons)
+    var filteredPaidByPhoneContacts: [ContactsManager.PhoneContact] {
+        guard !paidBySearchText.isEmpty else { return [] }
+        let search = paidBySearchText.lowercased()
+        return phoneContacts.filter { contact in
+            guard contact.fullName.lowercased().contains(search) ||
+                  contact.phoneNumbers.contains(where: { $0.contains(search) }) else { return false }
+            return !contact.phoneNumbers.contains(where: { phone in
+                let normalized = phone.normalizedPhoneNumber()
+                return existingPhoneNumbers.contains(normalized) || existingPhoneNumbers.contains(phone)
+            })
+        }
+    }
+
+    /// Phone contacts filtered for "Split With" search (excludes already-added persons)
+    var filteredSplitWithPhoneContacts: [ContactsManager.PhoneContact] {
+        guard !splitWithSearchText.isEmpty else { return [] }
+        let search = splitWithSearchText.lowercased()
+        return phoneContacts.filter { contact in
+            guard contact.fullName.lowercased().contains(search) ||
+                  contact.phoneNumbers.contains(where: { $0.contains(search) }) else { return false }
+            return !contact.phoneNumbers.contains(where: { phone in
+                let normalized = phone.normalizedPhoneNumber()
+                return existingPhoneNumbers.contains(normalized) || existingPhoneNumbers.contains(phone)
+            })
+        }
+    }
+
+    /// Creates a Person from a PhoneContact and adds as participant
+    func addPhoneContactAsParticipant(_ contact: ContactsManager.PhoneContact) {
+        let person = ContactsManager.getOrCreatePerson(from: contact, in: viewContext)
+        do { try viewContext.save() } catch {
+            AppLogger.coreData.error("Failed to save phone contact: \(error.localizedDescription)")
+        }
+        selectedParticipants.insert(person)
+        refreshAllContacts()
+        existingPhoneNumbers = ContactsManager.loadExistingPhoneNumbers(in: viewContext)
+        splitWithSearchText = ""
+    }
+
+    /// Creates a Person from a PhoneContact and adds as payer
+    func addPhoneContactAsPayer(_ contact: ContactsManager.PhoneContact) {
+        let person = ContactsManager.getOrCreatePerson(from: contact, in: viewContext)
+        do { try viewContext.save() } catch {
+            AppLogger.coreData.error("Failed to save phone contact: \(error.localizedDescription)")
+        }
+        selectedPayerPersons.insert(person)
+        if !selectedParticipants.contains(person) {
+            selectedParticipants.insert(person)
+        }
+        refreshAllContacts()
+        existingPhoneNumbers = ContactsManager.loadExistingPhoneNumbers(in: viewContext)
+        paidBySearchText = ""
     }
 
     // MARK: - Amount Sanitization

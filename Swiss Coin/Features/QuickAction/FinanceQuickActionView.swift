@@ -26,9 +26,9 @@ struct FinanceQuickActionView: View {
                     FloatingActionButton {
                         viewModel.openSheet()
                     }
-                    .padding(.trailing, Spacing.lg)
-                    .padding(.bottom, Spacing.xl)
                 }
+                .padding(.trailing, Spacing.lg)
+                .padding(.bottom, Spacing.xl)
             }
         }
         // MARK: Bottom Sheet Presentation

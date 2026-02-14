@@ -915,7 +915,8 @@ struct SubscriptionDetailView: View {
                     .foregroundColor(AppColors.textTertiary)
             }
 
-            if let id = subscription.objectID.uriRepresentation().lastPathComponent {
+            let id = subscription.objectID.uriRepresentation().lastPathComponent
+            if !id.isEmpty {
                 Text("ID: \(id)")
                     .font(AppTypography.caption())
                     .foregroundColor(AppColors.textTertiary)

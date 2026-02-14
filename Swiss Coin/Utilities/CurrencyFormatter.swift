@@ -21,6 +21,9 @@ final class CurrencyFormatter {
         let flag: String
     }
 
+    /// Safe fallback for when a currency code isn't found in configs
+    private static let usdFallback = CurrencyConfig(code: "USD", locale: "en_US", symbol: "$", flag: "🇺🇸")
+
     /// All supported currency configurations with locale and symbol mappings
     static let configs: [String: CurrencyConfig] = [
         "USD": CurrencyConfig(code: "USD", locale: "en_US",  symbol: "$",   flag: "🇺🇸"),
@@ -72,7 +75,7 @@ final class CurrencyFormatter {
 
     /// Returns the config for the currently selected currency (falls back to USD)
     private static var currentConfig: CurrencyConfig {
-        configs[selectedCode] ?? configs["USD"]!
+        configs[selectedCode] ?? usdFallback
     }
 
     /// Ensures cached formatters match the current currency selection; rebuilds if stale.
@@ -80,7 +83,7 @@ final class CurrencyFormatter {
         let code = selectedCode
         guard _cachedCode != code else { return }
 
-        let config = configs[code] ?? configs["USD"]!
+        let config = configs[code] ?? usdFallback
         let isZeroDecimal = (code == "JPY" || code == "KRW")
 
         let cf = NumberFormatter()
@@ -103,7 +106,7 @@ final class CurrencyFormatter {
 
     /// Builds a currency NumberFormatter for a given code (not cached by this method).
     private static func buildCurrencyFormatter(for code: String) -> NumberFormatter {
-        let config = configs[code] ?? configs["USD"]!
+        let config = configs[code] ?? usdFallback
         let isZeroDecimal = (code == "JPY" || code == "KRW")
         let formatter = NumberFormatter()
         formatter.numberStyle = .currency
@@ -116,7 +119,7 @@ final class CurrencyFormatter {
 
     /// Builds a decimal NumberFormatter for a given code (not cached by this method).
     private static func buildDecimalFormatter(for code: String) -> NumberFormatter {
-        let config = configs[code] ?? configs["USD"]!
+        let config = configs[code] ?? usdFallback
         let isZeroDecimal = (code == "JPY" || code == "KRW")
         let formatter = NumberFormatter()
         formatter.numberStyle = .decimal
@@ -181,12 +184,12 @@ final class CurrencyFormatter {
 
     /// Returns the symbol for a specific currency code.
     static func symbol(for currencyCode: String) -> String {
-        (configs[currencyCode] ?? configs["USD"]!).symbol
+        (configs[currencyCode] ?? usdFallback).symbol
     }
 
     /// Returns the flag emoji for a specific currency code.
     static func flag(for currencyCode: String) -> String {
-        (configs[currencyCode] ?? configs["USD"]!).flag
+        (configs[currencyCode] ?? usdFallback).flag
     }
 
     /// Whether a specific currency code uses zero decimal places (e.g., JPY, KRW)
@@ -250,7 +253,7 @@ final class CurrencyFormatter {
     /// - Returns: Formatted string (e.g., "$29.99", "€29,99")
     static func format(_ amount: Double, currencyCode: String) -> String {
         let formatter = cachedCurrencyFormatter(for: currencyCode)
-        let config = configs[currencyCode] ?? configs["USD"]!
+        let config = configs[currencyCode] ?? usdFallback
         return formatter.string(from: NSNumber(value: amount))
             ?? "\(config.symbol)\(String(format: "%.2f", amount))"
     }
