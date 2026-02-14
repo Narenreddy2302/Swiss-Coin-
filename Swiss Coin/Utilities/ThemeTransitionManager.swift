@@ -96,5 +96,27 @@ final class ThemeTransitionManager {
 
     private func applyTheme(_ themeMode: String) {
         UserDefaults.standard.set(themeMode, forKey: "theme_mode")
+
+        // Directly override UIKit trait collection on all windows so that
+        // UIColor { traitCollection in … } closures (used by AppColors)
+        // resolve to the new theme *immediately* — before the snapshot
+        // overlay begins fading out.  Without this, the SwiftUI
+        // @AppStorage → .preferredColorScheme chain is asynchronous and
+        // the current page (e.g. Profile / Appearance Settings) can stay
+        // stuck showing old-theme colours while the cross-fade reveals it.
+        let style: UIUserInterfaceStyle
+        switch themeMode {
+        case "light":
+            style = .light
+        case "dark":
+            style = .dark
+        default:
+            style = .unspecified
+        }
+
+        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene else { return }
+        for window in windowScene.windows {
+            window.overrideUserInterfaceStyle = style
+        }
     }
 }
