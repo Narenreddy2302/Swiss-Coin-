@@ -12,6 +12,7 @@ struct TransactionEditView: View {
     @FocusState private var focusedField: FocusField?
 
     @AppStorage("default_currency") private var selectedCurrency: String = "USD"
+    @State private var showCurrencyPicker = false
 
     private enum FocusField: Hashable {
         case title
@@ -27,6 +28,19 @@ struct TransactionEditView: View {
         let vm = TransactionViewModel(context: ctx)
         vm.loadTransaction(transaction)
         _viewModel = StateObject(wrappedValue: vm)
+    }
+
+    // MARK: - Computed Properties
+
+    private var currentCurrency: Currency {
+        Currency.all.first(where: { $0.code == selectedCurrency }) ?? Currency.all[0]
+    }
+
+    private var currencyBinding: Binding<Currency> {
+        Binding(
+            get: { currentCurrency },
+            set: { selectedCurrency = $0.code }
+        )
     }
 
     var body: some View {
@@ -75,6 +89,13 @@ struct TransactionEditView: View {
                     .foregroundColor(AppColors.accent)
                 }
             }
+            .sheet(isPresented: $showCurrencyPicker) {
+                CurrencyPickerSheet(
+                    selectedCurrency: currencyBinding,
+                    isPresented: $showCurrencyPicker
+                )
+                .presentationDetents([.medium, .large])
+            }
             .presentationDetents([.large])
         }
     }
@@ -119,9 +140,20 @@ struct TransactionEditView: View {
                 .frame(height: 28)
                 .padding(.horizontal, Spacing.md)
 
-            Text(CurrencyFormatter.currencySymbol)
-                .font(AppTypography.body())
-                .foregroundColor(AppColors.textSecondary)
+            Button {
+                HapticManager.tap()
+                focusedField = nil
+                showCurrencyPicker = true
+            } label: {
+                Text(CurrencyFormatter.currencySymbol)
+                    .font(AppTypography.body())
+                    .foregroundColor(AppColors.textSecondary)
+                    .padding(.horizontal, Spacing.md)
+                    .padding(.vertical, Spacing.xs)
+                    .background(AppColors.backgroundTertiary)
+                    .cornerRadius(CornerRadius.xs)
+            }
+            .buttonStyle(.plain)
 
             TextField("0.00", text: $viewModel.totalAmount)
                 .font(AppTypography.financialLarge())
