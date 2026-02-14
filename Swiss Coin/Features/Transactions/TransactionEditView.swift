@@ -14,6 +14,7 @@ struct TransactionEditView: View {
     @State private var showCurrencyPicker = false
     @State private var showSaveError = false
     @State private var saveErrorMessage = ""
+    @State private var showDatePicker = false
 
     private enum FocusField: Hashable {
         case title
@@ -55,9 +56,20 @@ struct TransactionEditView: View {
                 .padding(.bottom, Spacing.lg)
             }
             .scrollDismissesKeyboard(.interactively)
-            .background(AppColors.backgroundSecondary)
+            .background(
+                ZStack {
+                    AppColors.conversationBackground
+                    DotGridPattern(
+                        dotSpacing: 16,
+                        dotRadius: 0.5,
+                        color: AppColors.receiptDot.opacity(0.5)
+                    )
+                }
+            )
             .navigationTitle("Edit Transaction")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(AppColors.conversationBackground, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button {
@@ -84,6 +96,26 @@ struct TransactionEditView: View {
             .sheet(isPresented: $showCurrencyPicker) {
                 TransactionCurrencyPicker(selectedCurrencyCode: $viewModel.transactionCurrency)
                     .presentationDetents([.medium, .large])
+            }
+            .sheet(isPresented: $showDatePicker) {
+                NavigationStack {
+                    DatePicker("Select Date", selection: $viewModel.date, displayedComponents: .date)
+                        .datePickerStyle(.graphical)
+                        .tint(AppColors.accent)
+                        .padding()
+                        .navigationTitle("Transaction Date")
+                        .navigationBarTitleDisplayMode(.inline)
+                        .toolbar {
+                            ToolbarItem(placement: .topBarTrailing) {
+                                Button("Done") {
+                                    showDatePicker = false
+                                }
+                                .font(AppTypography.headingMedium())
+                                .foregroundColor(AppColors.accent)
+                            }
+                        }
+                }
+                .presentationDetents([.medium])
             }
             .onChange(of: viewModel.transactionCurrency) { _, newCurrency in
                 if CurrencyFormatter.isZeroDecimal(newCurrency) {
@@ -126,12 +158,16 @@ struct TransactionEditView: View {
         } label: {
             Text(shortName(for: person))
                 .font(AppTypography.labelSmall())
-                .foregroundColor(AppColors.buttonForeground)
+                .foregroundColor(AppColors.textPrimary)
                 .lineLimit(1)
                 .padding(.horizontal, Spacing.md)
                 .padding(.vertical, Spacing.sm)
-                .background(AppColors.buttonBackground)
+                .background(Color.clear)
                 .cornerRadius(CornerRadius.full)
+                .overlay(
+                    RoundedRectangle(cornerRadius: CornerRadius.full)
+                        .stroke(AppColors.border, lineWidth: 1)
+                )
         }
         .buttonStyle(.plain)
     }
@@ -158,64 +194,66 @@ struct TransactionEditView: View {
 
     // MARK: - Date & Amount Section
 
+    private var formattedDate: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMM d, yyyy"
+        return formatter.string(from: viewModel.date)
+    }
+
     private var dateAndAmountSection: some View {
         HStack(spacing: 0) {
-            DatePicker(
-                "",
-                selection: $viewModel.date,
-                displayedComponents: .date
-            )
-            .labelsHidden()
-            .datePickerStyle(.compact)
-            .tint(AppColors.textPrimary)
-            .fixedSize()
+            // Date display as tappable text
+            Button {
+                showDatePicker = true
+                HapticManager.selectionChanged()
+            } label: {
+                Text(formattedDate)
+                    .font(AppTypography.bodyLarge())
+                    .foregroundColor(AppColors.textPrimary)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Transaction date: \(formattedDate). Tap to change.")
 
             Spacer()
 
-            Divider()
-                .frame(height: 28)
-                .padding(.horizontal, Spacing.md)
-
+            // Currency badge
             Button {
                 HapticManager.tap()
                 focusedField = nil
                 showCurrencyPicker = true
             } label: {
-                HStack(spacing: Spacing.xs) {
-                    Text(CurrencyFormatter.flag(for: viewModel.transactionCurrency))
-                        .font(AppTypography.bodyDefault())
-                    Text(CurrencyFormatter.symbol(for: viewModel.transactionCurrency))
-                        .font(AppTypography.bodyLarge())
-                        .foregroundColor(AppColors.textSecondary)
-                    Image(systemName: "chevron.up.chevron.down")
-                        .font(.system(size: 8, weight: .semibold))
-                        .foregroundColor(AppColors.textTertiary)
-                }
-                .padding(.horizontal, Spacing.sm)
-                .padding(.vertical, Spacing.xs)
-                .background(AppColors.backgroundTertiary)
-                .cornerRadius(CornerRadius.xs)
+                Text(CurrencyFormatter.symbol(for: viewModel.transactionCurrency))
+                    .font(AppTypography.labelLarge())
+                    .foregroundColor(AppColors.textPrimary)
+                    .padding(.horizontal, Spacing.sm)
+                    .padding(.vertical, Spacing.xs)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: CornerRadius.small)
+                            .stroke(AppColors.border, lineWidth: 1)
+                    )
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Currency: \(viewModel.transactionCurrency). Tap to change.")
+            .padding(.trailing, Spacing.sm)
 
+            // Amount input
             TextField(
                 CurrencyFormatter.isZeroDecimal(viewModel.transactionCurrency) ? "0" : "0.00",
                 text: $viewModel.totalAmount
             )
-                .font(AppTypography.financialLarge())
-                .keyboardType(CurrencyFormatter.isZeroDecimal(viewModel.transactionCurrency) ? .numberPad : .decimalPad)
-                .multilineTextAlignment(.trailing)
-                .foregroundColor(AppColors.textPrimary)
-                .focused($focusedField, equals: .amount)
-                .limitTextLength(to: 12, text: $viewModel.totalAmount)
-                .frame(minWidth: 80)
-                .onChange(of: viewModel.totalAmount) { _, newValue in
-                    let sanitized = viewModel.sanitizeAmountInput(newValue)
-                    if sanitized != newValue {
-                        viewModel.totalAmount = sanitized
-                    }
+            .font(AppTypography.financialLarge())
+            .keyboardType(CurrencyFormatter.isZeroDecimal(viewModel.transactionCurrency) ? .numberPad : .decimalPad)
+            .multilineTextAlignment(.trailing)
+            .foregroundColor(AppColors.textPrimary)
+            .focused($focusedField, equals: .amount)
+            .limitTextLength(to: 12, text: $viewModel.totalAmount)
+            .frame(minWidth: 80)
+            .onChange(of: viewModel.totalAmount) { _, newValue in
+                let sanitized = viewModel.sanitizeAmountInput(newValue)
+                if sanitized != newValue {
+                    viewModel.totalAmount = sanitized
                 }
+            }
         }
         .padding(.horizontal, Spacing.lg)
         .padding(.vertical, Spacing.md)
@@ -263,25 +301,27 @@ struct TransactionEditView: View {
     }
 
     private var payerChipsScroll: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: Spacing.sm) {
-                if viewModel.selectedPayerPersons.isEmpty {
-                    Text("You")
-                        .font(AppTypography.labelSmall())
-                        .foregroundColor(AppColors.buttonForeground)
-                        .lineLimit(1)
-                        .padding(.horizontal, Spacing.md)
-                        .padding(.vertical, Spacing.sm)
-                        .background(AppColors.buttonBackground)
-                        .cornerRadius(CornerRadius.full)
-                } else {
-                    ForEach(sortedByCurrentUser(viewModel.selectedPayerPersons), id: \.self) { person in
-                        personChip(person) { viewModel.togglePayer(person) }
-                    }
+        FlowLayout(spacing: Spacing.sm) {
+            if viewModel.selectedPayerPersons.isEmpty {
+                Text("You")
+                    .font(AppTypography.labelSmall())
+                    .foregroundColor(AppColors.textPrimary)
+                    .lineLimit(1)
+                    .padding(.horizontal, Spacing.md)
+                    .padding(.vertical, Spacing.sm)
+                    .background(Color.clear)
+                    .cornerRadius(CornerRadius.full)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: CornerRadius.full)
+                            .stroke(AppColors.border, lineWidth: 1)
+                    )
+            } else {
+                ForEach(sortedByCurrentUser(viewModel.selectedPayerPersons), id: \.self) { person in
+                    personChip(person) { viewModel.togglePayer(person) }
                 }
             }
-            .padding(.vertical, Spacing.xs)
         }
+        .padding(.vertical, Spacing.xs)
     }
 
     private var paidBySearchResults: some View {
@@ -365,14 +405,12 @@ struct TransactionEditView: View {
     }
 
     private var participantChipsScroll: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: Spacing.sm) {
-                ForEach(sortedByCurrentUser(viewModel.selectedParticipants), id: \.self) { person in
-                    personChip(person) { _ = viewModel.selectedParticipants.remove(person) }
-                }
+        FlowLayout(spacing: Spacing.sm) {
+            ForEach(sortedByCurrentUser(viewModel.selectedParticipants), id: \.self) { person in
+                personChip(person) { _ = viewModel.selectedParticipants.remove(person) }
             }
-            .padding(.vertical, Spacing.xs)
         }
+        .padding(.vertical, Spacing.xs)
     }
 
     private var splitWithSearchResults: some View {
@@ -483,15 +521,15 @@ struct TransactionEditView: View {
                 .font(AppTypography.labelLarge())
                 .foregroundColor(AppColors.textPrimary)
 
-            HStack(spacing: Spacing.sm) {
+            FlowLayout(spacing: Spacing.sm) {
                 ForEach(SplitMethod.allCases) { method in
-                    methodChip(method)
+                    methodPill(method)
                 }
             }
         }
     }
 
-    private func methodChip(_ method: SplitMethod) -> some View {
+    private func methodPill(_ method: SplitMethod) -> some View {
         let isSelected = viewModel.splitMethod == method
 
         return Button {
@@ -502,27 +540,24 @@ struct TransactionEditView: View {
             }
             HapticManager.selectionChanged()
         } label: {
-            VStack(spacing: Spacing.xxs) {
+            HStack(spacing: Spacing.xs) {
                 Text(method.icon)
-                    .font(.system(size: IconSize.md, weight: .bold))
-                    .foregroundColor(isSelected ? AppColors.buttonForeground : AppColors.textPrimary)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: ButtonHeight.md)
-                    .background(
-                        RoundedRectangle(cornerRadius: CornerRadius.md)
-                            .fill(isSelected ? AppColors.buttonBackground : AppColors.cardBackground)
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: CornerRadius.md)
-                            .stroke(isSelected ? Color.clear : AppColors.border, lineWidth: 1)
-                    )
-
+                    .font(AppTypography.labelLarge())
                 Text(method.displayName)
-                    .font(AppTypography.caption())
-                    .foregroundColor(isSelected ? AppColors.textPrimary : AppColors.textSecondary)
+                    .font(AppTypography.labelSmall())
                     .lineLimit(1)
-                    .minimumScaleFactor(0.8)
             }
+            .foregroundColor(isSelected ? AppColors.onAccent : AppColors.textPrimary)
+            .padding(.horizontal, Spacing.md)
+            .padding(.vertical, Spacing.sm)
+            .background(
+                RoundedRectangle(cornerRadius: CornerRadius.full)
+                    .fill(isSelected ? AppColors.accent : Color.clear)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: CornerRadius.full)
+                    .stroke(isSelected ? Color.clear : AppColors.border, lineWidth: 1)
+            )
         }
         .buttonStyle(.plain)
     }
@@ -634,7 +669,7 @@ struct TransactionEditView: View {
                 .padding(.top, Spacing.sm)
 
             HStack {
-                Text("Total")
+                Text("Total Balance")
                     .font(AppTypography.labelLarge())
                     .foregroundColor(AppColors.textPrimary)
 
@@ -790,7 +825,7 @@ struct TransactionEditView: View {
                 .frame(maxWidth: .infinity)
                 .frame(height: ButtonHeight.lg)
                 .background(AppColors.accent)
-                .cornerRadius(CornerRadius.button)
+                .cornerRadius(CornerRadius.xl)
         }
         .disabled(!viewModel.isValid)
         .opacity(viewModel.isValid ? 1.0 : 0.5)
