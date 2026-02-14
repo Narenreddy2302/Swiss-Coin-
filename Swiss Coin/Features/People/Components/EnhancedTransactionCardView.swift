@@ -16,15 +16,12 @@ struct EnhancedTransactionCardView: View {
     var onViewDetails: (() -> Void)? = nil
     var onUndo: (() -> Void)? = nil
     var onDelete: (() -> Void)? = nil
-    var onComment: (() -> Void)? = nil
-
     @Environment(\.colorScheme) var colorScheme
 
     // MARK: - Cached State (avoid recomputing on every body evaluation)
 
     @State private var cachedPairwiseResult: Double = 0
     @State private var cachedSortedSplits: [TransactionSplit] = []
-    @State private var cachedCommentCount: Int = 0
 
     // MARK: - Derived from cached state
 
@@ -116,10 +113,6 @@ struct EnhancedTransactionCardView: View {
         abs(totalBalance - transaction.amount) < 0.01
     }
 
-    private var commentCountDisplay: String {
-        cachedCommentCount > 99 ? "99+" : "\(cachedCommentCount)"
-    }
-
     // MARK: - Body
 
     var body: some View {
@@ -186,7 +179,6 @@ struct EnhancedTransactionCardView: View {
             return (s1.owedBy?.name ?? "") < (s2.owedBy?.name ?? "")
         }
 
-        cachedCommentCount = (transaction.comments as? Set<ChatMessage>)?.count ?? 0
     }
 
     // MARK: - Header Section
@@ -307,40 +299,7 @@ struct EnhancedTransactionCardView: View {
     @ViewBuilder
     private var actionButtons: some View {
         HStack(spacing: Spacing.sm) {
-            // Comment Button - Orange filled with badge overlay
-            Button {
-                HapticManager.selectionChanged()
-                onComment?()
-            } label: {
-                Text("Comment")
-                    .font(AppTypography.buttonDefault())
-                    .foregroundColor(AppColors.onAccent)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: ButtonHeight.sm)
-                    .background(
-                        RoundedRectangle(cornerRadius: CornerRadius.button)
-                            .fill(AppColors.accent)
-                    )
-                    .overlay(alignment: .topTrailing) {
-                        if cachedCommentCount > 0 {
-                            Text(commentCountDisplay)
-                                .font(AppTypography.labelSmall())
-                                .foregroundColor(AppColors.onAccent)
-                                .frame(minWidth: 18, minHeight: 18)
-                                .background(
-                                    Circle()
-                                        .fill(AppColors.negative)
-                                )
-                                .offset(x: -Spacing.sm, y: -Spacing.sm)
-                                .contentTransition(.numericText())
-                                .transition(.scale.combined(with: .opacity))
-                        }
-                    }
-                    .animation(AppAnimation.spring, value: cachedCommentCount)
-            }
-            .buttonStyle(AppButtonStyle(haptic: .none))
-
-            // Edit Button - Outlined
+            // Edit Button
             Button {
                 HapticManager.selectionChanged()
                 onEdit?()
@@ -433,15 +392,6 @@ struct EnhancedTransactionCardView: View {
             }
         }
 
-        if let onComment {
-            Button {
-                HapticManager.selectionChanged()
-                onComment()
-            } label: {
-                Label("Comment", systemImage: "bubble.right")
-            }
-        }
-
         if let onUndo {
             Button {
                 HapticManager.undoAction()
@@ -502,8 +452,7 @@ struct EnhancedTransactionCardView: View {
     EnhancedTransactionCardView(
         transaction: transaction,
         person: person,
-        onEdit: {},
-        onComment: {}
+        onEdit: {}
     )
     .padding()
     .background(AppColors.backgroundSecondary)
