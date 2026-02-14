@@ -14,10 +14,9 @@ struct MemberChip: View {
     var body: some View {
         HStack(spacing: Spacing.xs) {
             // Avatar
-            PersonAvatar(
+            ConversationAvatarView(
                 initials: person.initials,
-                isCurrentUser: false,
-                isSelected: false,
+                colorHex: person.safeColorHex,
                 size: 28
             )
             

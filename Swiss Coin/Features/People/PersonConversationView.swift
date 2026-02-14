@@ -401,7 +401,7 @@ struct PersonConversationView: View {
                 if s.fromPerson?.objectID == person.objectID || s.toPerson?.objectID == person.objectID { return true }
             }
             // Reminder with this person
-            if let r = obj as? Reminder, r.forPerson?.objectID == person.objectID { return true }
+            if let r = obj as? Reminder, r.toPerson?.objectID == person.objectID { return true }
             // TransactionSplit involving this person
             if let ts = obj as? TransactionSplit, ts.owedBy?.objectID == person.objectID { return true }
         }

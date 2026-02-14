@@ -214,27 +214,8 @@ struct AddGroupView: View {
         newGroup.addToMembers(currentUser)
 
         for contact in selectedContacts {
-            // Find or Create Person Logic
-            let fetchRequest: NSFetchRequest<Person> = Person.fetchRequest()
-            fetchRequest.predicate = NSPredicate(format: "name == %@", contact.fullName)
-            fetchRequest.fetchLimit = 1
-
-            do {
-                let results = try viewContext.fetch(fetchRequest)
-                let person: Person
-                if let existing = results.first {
-                    person = existing
-                } else {
-                    person = Person(context: viewContext)
-                    person.id = UUID()
-                    person.name = contact.fullName
-                    person.phoneNumber = contact.phoneNumbers.first
-                    person.colorHex = Self.randomColorHex()
-                }
-                newGroup.addToMembers(person)
-            } catch {
-                AppLogger.coreData.error("Failed to find/create person: \(error.localizedDescription)")
-            }
+            let person = ContactsManager.getOrCreatePerson(from: contact, in: viewContext)
+            newGroup.addToMembers(person)
         }
 
         do {

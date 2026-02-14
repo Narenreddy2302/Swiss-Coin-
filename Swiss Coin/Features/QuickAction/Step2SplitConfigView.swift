@@ -130,6 +130,20 @@ struct Step2SplitConfigView: View {
                 }
                 .buttonStyle(.plain)
             }
+
+            // Phone contacts (not yet in app)
+            ForEach(viewModel.filteredPaidByPhoneContacts) { contact in
+                Divider().padding(.horizontal, Spacing.lg)
+
+                Button {
+                    HapticManager.selectionChanged()
+                    viewModel.addPhoneContactAsPayer(contact)
+                    focusedField = nil
+                } label: {
+                    phoneContactSearchRow(contact: contact)
+                }
+                .buttonStyle(.plain)
+            }
         }
         .background(AppColors.cardBackground)
         .cornerRadius(CornerRadius.sm)
@@ -203,12 +217,11 @@ struct Step2SplitConfigView: View {
                 Divider().padding(.horizontal, Spacing.lg)
             }
 
-            // Contacts
+            // Existing contacts (Person entities)
             let validContacts = viewModel.filteredSplitWithContacts.filter { $0.id != nil }
 
             ForEach(Array(validContacts.enumerated()), id: \.element.objectID) { index, person in
-                let personId = person.id!
-
+                if let personId = person.id {
                 Button {
                     HapticManager.selectionChanged()
                     viewModel.toggleParticipant(personId)
@@ -222,12 +235,30 @@ struct Step2SplitConfigView: View {
                 }
                 .buttonStyle(.plain)
 
-                if index < validContacts.count - 1 {
+                if index < validContacts.count - 1 || !viewModel.filteredSplitWithPhoneContacts.isEmpty {
+                    Divider().padding(.horizontal, Spacing.lg)
+                }
+                }
+            }
+
+            // Phone contacts (not yet in app)
+            ForEach(Array(viewModel.filteredSplitWithPhoneContacts.enumerated()), id: \.element.id) { index, contact in
+                Button {
+                    HapticManager.selectionChanged()
+                    viewModel.addPhoneContactAsParticipant(contact)
+                    focusedField = nil
+                } label: {
+                    phoneContactSearchRow(contact: contact)
+                }
+                .buttonStyle(.plain)
+
+                if index < viewModel.filteredSplitWithPhoneContacts.count - 1 {
                     Divider().padding(.horizontal, Spacing.lg)
                 }
             }
 
-            if validContacts.isEmpty && viewModel.filteredSplitWithGroups.isEmpty {
+            if validContacts.isEmpty && viewModel.filteredSplitWithGroups.isEmpty
+                && viewModel.filteredSplitWithPhoneContacts.isEmpty {
                 Text("No results found")
                     .font(AppTypography.bodyDefault())
                     .foregroundColor(AppColors.textSecondary)
@@ -310,6 +341,33 @@ struct Step2SplitConfigView: View {
             chipLabel(name)
         }
         .buttonStyle(.plain)
+    }
+
+    private func phoneContactSearchRow(contact: ContactsManager.PhoneContact) -> some View {
+        HStack {
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
+                Text(contact.fullName)
+                    .font(AppTypography.bodyLarge())
+                    .foregroundColor(AppColors.textPrimary)
+                    .lineLimit(1)
+
+                if let phone = contact.phoneNumbers.first {
+                    Text(phone)
+                        .font(AppTypography.caption())
+                        .foregroundColor(AppColors.textTertiary)
+                        .lineLimit(1)
+                }
+            }
+
+            Spacer()
+
+            Image(systemName: "person.badge.plus")
+                .font(.system(size: IconSize.sm))
+                .foregroundColor(AppColors.accent)
+        }
+        .padding(.horizontal, Spacing.lg)
+        .padding(.vertical, Spacing.md)
+        .contentShape(Rectangle())
     }
 
     private func removableChip(name: String, action: @escaping () -> Void) -> some View {

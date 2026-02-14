@@ -90,128 +90,30 @@ struct GroupConversationView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Messages Area
-            ScrollViewReader { proxy in
-                ScrollView {
-                    LazyVStack(spacing: 0) {
-                        if groupedItems.isEmpty {
-                            emptyStateView
-                        } else {
-                            ForEach(Array(groupedItems.enumerated()), id: \.element.id) { groupIndex, group in
-                                DateHeaderView(dateString: group.dateDisplayString)
-                                    .padding(.top, groupIndex == 0 ? Spacing.md : Spacing.lg)
-                                    .padding(.bottom, Spacing.sm)
-
-                                ForEach(Array(group.items.enumerated()), id: \.element.id) { itemIndex, item in
-                                    let isLastInGroup = itemIndex == group.items.count - 1
-                                    let isLastGroup = groupIndex == groupedItems.count - 1
-                                    let isLastItem = isLastInGroup && isLastGroup
-
-                                    timelineRow(
-                                        item: item,
-                                        isLastItem: isLastItem
-                                    )
-                                    .id(item.id)
-                                    .transition(.opacity.combined(with: .scale(scale: 0.95)))
-                                }
-                            }
-                        }
-                    }
-                    .padding(.vertical, Spacing.md)
-                }
-                .scrollDismissesKeyboard(.interactively)
-                .background(
-                    ZStack {
-                        AppColors.conversationBackground
-                        DotGridPattern(dotSpacing: 16, dotRadius: 0.5, color: AppColors.receiptDot.opacity(0.5))
-                    }
-                )
-                .onTapGesture {
-                    hideKeyboard()
-                }
-                .onAppear {
-                    HapticManager.prepare()
-                    scrollToBottom(proxy)
-                }
-                .onChange(of: totalItemCount) { _, _ in
-                    withAnimation(AppAnimation.standard) {
-                        scrollToBottom(proxy)
-                    }
-                }
-            }
-
-            // Action Bar
-            GroupConversationActionBar(
-                balance: balance,
-                memberBalances: cachedMemberBalances,
-                membersWhoOweYou: cachedMembersWhoOweYou,
-                onAdd: { showingAddTransaction = true },
-                onSettle: { showingSettlement = true },
-                onRemind: { showingReminder = true }
-            )
-
-            // Message Input
-            MessageInputView(
-                messageText: $messageText,
-                onSend: sendMessage
-            )
+            messagesScrollArea
+            actionBar
+            messageInput
         }
         .background(AppColors.conversationBackground)
-        .navigationTitle("")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(AppColors.conversationBackground, for: .navigationBar)
-        .toolbarBackground(.visible, for: .navigationBar)
-        .toolbar(.hidden, for: .tabBar)
-        .tint(AppColors.textSecondary)
-        .navigationBarBackButtonHidden(true)
-        .enableSwipeBack()
-        .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
-                toolbarLeadingContent
-            }
-            ToolbarItem(placement: .topBarTrailing) {
-                toolbarTrailingContent
-            }
-        }
+        .applyNavigationBar()
+        .applyToolbar(leading: { toolbarLeadingContent }, trailing: { toolbarTrailingContent })
         .sheet(isPresented: $showingAddTransaction) {
-            QuickActionSheetPresenter(initialGroup: group)
-                .onAppear { HapticManager.sheetPresent() }
+            addTransactionSheet
         }
         .sheet(isPresented: $showingSettlement) {
-            GroupSettlementView(group: group)
-                .onAppear { HapticManager.sheetPresent() }
+            settlementSheet
         }
         .sheet(isPresented: $showingReminder) {
-            GroupReminderSheetView(group: group)
-                .onAppear { HapticManager.sheetPresent() }
+            reminderSheet
         }
         .sheet(isPresented: $showingGroupDetail) {
-            NavigationStack {
-                GroupDetailView(group: group)
-                    .toolbar {
-                        ToolbarItem(placement: .navigationBarTrailing) {
-                            Button("Done") {
-                                HapticManager.sheetDismiss()
-                                showingGroupDetail = false
-                            }
-                        }
-                    }
-            }
-            .onAppear { HapticManager.sheetPresent() }
+            groupDetailSheet
         }
         .sheet(item: $showingTransactionDetail) { transaction in
-            TransactionDetailSheet(
-                transaction: transaction,
-                person: nil,
-                onEdit: {
-                    transactionToEdit = transaction
-                },
-                onDelete: {
-                    transactionToDelete = transaction
-                    showingDeleteTransaction = true
-                }
-            )
-            .environment(\.managedObjectContext, viewContext)
+            transactionDetailSheet(transaction: transaction)
+        }
+        .sheet(item: $transactionToEdit) { transaction in
+            transactionEditSheet(transaction: transaction)
         }
         .alert("Error", isPresented: $showingError) {
             Button("OK", role: .cancel) {}
@@ -236,10 +138,6 @@ struct GroupConversationView: View {
             message: "Message deleted",
             onUndo: undoDeleteMessage
         )
-        .sheet(item: $transactionToEdit) { transaction in
-            TransactionEditView(transaction: transaction)
-                .onAppear { HapticManager.sheetPresent() }
-        }
         .undoToast(
             isShowing: $showUndoTransactionToast,
             message: "Transaction undone",
@@ -251,6 +149,89 @@ struct GroupConversationView: View {
         .onReceive(NotificationCenter.default.publisher(for: .NSManagedObjectContextDidSave)) { _ in
             loadGroupConversationData()
         }
+    }
+
+    // MARK: - Sub-Views
+
+    private var messagesScrollArea: some View {
+        ScrollViewReader { proxy in
+            ScrollView {
+                conversationContent
+                    .padding(.vertical, Spacing.md)
+            }
+            .scrollDismissesKeyboard(.interactively)
+            .background(conversationBackgroundView)
+            .onTapGesture {
+                hideKeyboard()
+            }
+            .onAppear {
+                HapticManager.prepare()
+                scrollToBottom(proxy)
+            }
+            .onChange(of: totalItemCount) { _, _ in
+                withAnimation(AppAnimation.standard) {
+                    scrollToBottom(proxy)
+                }
+            }
+        }
+    }
+
+    private var conversationContent: some View {
+        LazyVStack(spacing: 0) {
+            if groupedItems.isEmpty {
+                emptyStateView
+            } else {
+                ForEach(Array(groupedItems.enumerated()), id: \.element.id) { groupIndex, dateGroup in
+                    dateGroupSection(dateGroup: dateGroup, groupIndex: groupIndex)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func dateGroupSection(dateGroup: GroupConversationDateGroup, groupIndex: Int) -> some View {
+        DateHeaderView(dateString: dateGroup.dateDisplayString)
+            .padding(.top, groupIndex == 0 ? Spacing.md : Spacing.lg)
+            .padding(.bottom, Spacing.sm)
+
+        ForEach(Array(dateGroup.items.enumerated()), id: \.element.id) { itemIndex, item in
+            let isLastInGroup = itemIndex == dateGroup.items.count - 1
+            let isLastGroup = groupIndex == groupedItems.count - 1
+            let isLastItem = isLastInGroup && isLastGroup
+
+            timelineRow(item: item, isLastItem: isLastItem)
+                .id(item.id)
+                .transition(.opacity.combined(with: .scale(scale: 0.95)))
+        }
+    }
+
+    private var conversationBackgroundView: some View {
+        ZStack {
+            AppColors.conversationBackground
+            DotGridPattern(
+                dotSpacing: 16,
+                dotRadius: 0.5,
+                color: AppColors.receiptDot.opacity(0.5)
+            )
+        }
+    }
+
+    private var actionBar: some View {
+        GroupConversationActionBar(
+            balance: balance,
+            memberBalances: cachedMemberBalances,
+            membersWhoOweYou: cachedMembersWhoOweYou,
+            onAdd: { showingAddTransaction = true },
+            onSettle: { showingSettlement = true },
+            onRemind: { showingReminder = true }
+        )
+    }
+
+    private var messageInput: some View {
+        MessageInputView(
+            messageText: $messageText,
+            onSend: sendMessage
+        )
     }
 
     /// Recompute balance, conversation items, and member balances. Called outside of body
@@ -689,4 +670,91 @@ struct GroupConversationView: View {
         cachedTxnSplitAmounts = []
         cachedTxnSplitRawAmounts = []
     }
+}
+
+// MARK: - View Extensions for Modifier Composition
+
+extension View {
+    @ViewBuilder
+    fileprivate func applyNavigationBar() -> some View {
+        self
+            .navigationTitle("")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(AppColors.conversationBackground, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbar(.hidden, for: .tabBar)
+            .tint(AppColors.textSecondary)
+            .navigationBarBackButtonHidden(true)
+            .enableSwipeBack()
+    }
+
+    @ViewBuilder
+    fileprivate func applyToolbar<Leading: View, Trailing: View>(
+        @ViewBuilder leading: () -> Leading,
+        @ViewBuilder trailing: () -> Trailing
+    ) -> some View {
+        self.toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                leading()
+            }
+            ToolbarItem(placement: .topBarTrailing) {
+                trailing()
+            }
+        }
+    }
+}
+
+// MARK: - GroupConversationView Sheet & Alert Helpers
+
+extension GroupConversationView {
+    private var addTransactionSheet: some View {
+        QuickActionSheetPresenter(initialGroup: group)
+            .onAppear { HapticManager.sheetPresent() }
+    }
+
+    private var settlementSheet: some View {
+        GroupSettlementView(group: group)
+            .onAppear { HapticManager.sheetPresent() }
+    }
+
+    private var reminderSheet: some View {
+        GroupReminderSheetView(group: group)
+            .onAppear { HapticManager.sheetPresent() }
+    }
+
+    private var groupDetailSheet: some View {
+        NavigationStack {
+            GroupDetailView(group: group)
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button("Done") {
+                            HapticManager.sheetDismiss()
+                            showingGroupDetail = false
+                        }
+                    }
+                }
+        }
+        .onAppear { HapticManager.sheetPresent() }
+    }
+
+    private func transactionDetailSheet(transaction: FinancialTransaction) -> some View {
+        TransactionDetailSheet(
+            transaction: transaction,
+            person: nil,
+            onEdit: {
+                transactionToEdit = transaction
+            },
+            onDelete: {
+                transactionToDelete = transaction
+                showingDeleteTransaction = true
+            }
+        )
+        .environment(\.managedObjectContext, viewContext)
+    }
+
+    private func transactionEditSheet(transaction: FinancialTransaction) -> some View {
+        TransactionEditView(transaction: transaction)
+            .onAppear { HapticManager.sheetPresent() }
+    }
+
 }

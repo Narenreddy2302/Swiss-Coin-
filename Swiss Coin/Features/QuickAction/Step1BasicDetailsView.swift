@@ -136,7 +136,8 @@ struct Step1BasicDetailsView: View {
                 selectedCurrency: $viewModel.selectedCurrency,
                 isPresented: $viewModel.showCurrencyPicker
             )
-            .presentationDetents([.medium, .large])
+            .presentationDetents([PresentationDetent.medium, PresentationDetent.large])
+            .presentationDragIndicator(.visible)
         }
         .onAppear {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
