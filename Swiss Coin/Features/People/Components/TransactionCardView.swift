@@ -14,7 +14,6 @@ struct TransactionCardView: View {
     var onViewDetails: (() -> Void)? = nil
     var onUndo: (() -> Void)? = nil
     var onDelete: (() -> Void)? = nil
-    var onComment: (() -> Void)? = nil
 
     @Environment(\.colorScheme) var colorScheme
 
@@ -302,22 +301,6 @@ struct TransactionCardView: View {
     @ViewBuilder
     private var actionButtons: some View {
         HStack(spacing: Spacing.sm) {
-            // Comment Button
-            Button {
-                HapticManager.selectionChanged()
-                onComment?()
-            } label: {
-                Text("Comment")
-                    .font(AppTypography.buttonSmall())
-                    .foregroundColor(AppColors.onAccent)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: ButtonHeight.sm)
-                    .background(
-                        RoundedRectangle(cornerRadius: CornerRadius.button)
-                            .fill(AppColors.accent)
-                    )
-            }
-
             // Edit Button
             Button {
                 HapticManager.selectionChanged()

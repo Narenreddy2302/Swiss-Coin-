@@ -27,9 +27,6 @@ struct PersonConversationView: View {
     // Transaction edit state
     @State private var transactionToEdit: FinancialTransaction?
 
-    // Transaction comment state
-    @State private var transactionToComment: FinancialTransaction?
-
     // Sheet presentation via enum
     @State private var activeSheet: ActiveSheet?
 
@@ -291,10 +288,6 @@ struct PersonConversationView: View {
         )
         .sheet(item: $transactionToEdit) { transaction in
             TransactionEditView(transaction: transaction)
-                .onAppear { HapticManager.sheetPresent() }
-        }
-        .sheet(item: $transactionToComment) { transaction in
-            TransactionCommentSheet(transaction: transaction, person: person)
                 .onAppear { HapticManager.sheetPresent() }
         }
         .undoToast(
@@ -626,9 +619,6 @@ struct PersonConversationView: View {
                 onDelete: {
                     transactionToDelete = transaction
                     showingDeleteTransaction = true
-                },
-                onComment: {
-                    transactionToComment = transaction
                 }
             )
 

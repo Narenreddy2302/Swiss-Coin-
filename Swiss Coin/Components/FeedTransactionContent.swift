@@ -16,7 +16,6 @@ struct FeedTransactionContent: View {
     var onViewDetails: (() -> Void)? = nil
     var onUndo: (() -> Void)? = nil
     var onDelete: (() -> Void)? = nil
-    var onComment: (() -> Void)? = nil
 
     // MARK: - Computed Properties
 
@@ -111,10 +110,6 @@ struct FeedTransactionContent: View {
         return splitSet.sorted { ($0.owedBy?.name ?? "") < ($1.owedBy?.name ?? "") }
     }
 
-    private var commentCount: Int {
-        (transaction.comments as? Set<ChatMessage>)?.count ?? 0
-    }
-
     // MARK: - Body
 
     var body: some View {
@@ -151,7 +146,7 @@ struct FeedTransactionContent: View {
                 cardTotalBalance
                     .padding(.top, Spacing.sm)
 
-                if onComment != nil || onEdit != nil {
+                if onEdit != nil {
                     cardActionButtons
                         .padding(.top, Spacing.lg)
                 }
@@ -302,38 +297,6 @@ struct FeedTransactionContent: View {
     @ViewBuilder
     private var cardActionButtons: some View {
         HStack(spacing: Spacing.sm) {
-            if onComment != nil {
-                Button {
-                    HapticManager.selectionChanged()
-                    onComment?()
-                } label: {
-                    Text("Comment")
-                        .font(AppTypography.buttonDefault())
-                        .foregroundColor(AppColors.onAccent)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: ButtonHeight.sm)
-                        .background(
-                            RoundedRectangle(cornerRadius: CornerRadius.button)
-                                .fill(AppColors.accent)
-                        )
-                        .overlay(alignment: .topTrailing) {
-                            if commentCount > 0 {
-                                Text(commentCount > 99 ? "99+" : "\(commentCount)")
-                                    .font(AppTypography.labelSmall())
-                                    .foregroundColor(AppColors.onAccent)
-                                    .frame(minWidth: 18, minHeight: 18)
-                                    .background(
-                                        Circle()
-                                            .fill(AppColors.negative)
-                                    )
-                                    .offset(x: -Spacing.sm, y: -Spacing.sm)
-                                    .transition(.scale.combined(with: .opacity))
-                            }
-                        }
-                }
-                .buttonStyle(AppButtonStyle(haptic: .none))
-            }
-
             if onEdit != nil {
                 Button {
                     HapticManager.selectionChanged()
@@ -394,28 +357,8 @@ struct FeedTransactionContent: View {
                 .captionStyle()
                 .foregroundColor(AppColors.textTertiary)
 
-            if onComment != nil || onViewDetails != nil || onEdit != nil {
+            if onViewDetails != nil || onEdit != nil {
                 HStack(spacing: Spacing.xl) {
-                    if onComment != nil {
-                        Button {
-                            HapticManager.selectionChanged()
-                            onComment?()
-                        } label: {
-                            HStack(spacing: Spacing.xs) {
-                                Image(systemName: "bubble.right")
-                                    .font(.system(size: IconSize.xs))
-                                    .foregroundColor(AppColors.textTertiary)
-
-                                if commentCount > 0 {
-                                    Text("\(commentCount)")
-                                        .font(AppTypography.caption())
-                                        .foregroundColor(AppColors.textSecondary)
-                                }
-                            }
-                        }
-                        .frame(minWidth: ButtonHeight.md, minHeight: ButtonHeight.md)
-                    }
-
                     if onViewDetails != nil {
                         Button {
                             HapticManager.selectionChanged()
@@ -468,15 +411,6 @@ struct FeedTransactionContent: View {
                 onViewDetails()
             } label: {
                 Label("View Details", systemImage: "doc.text.magnifyingglass")
-            }
-        }
-
-        if let onComment {
-            Button {
-                HapticManager.selectionChanged()
-                onComment()
-            } label: {
-                Label("Comment", systemImage: "bubble.right")
             }
         }
 
