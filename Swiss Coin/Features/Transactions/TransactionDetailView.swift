@@ -2,8 +2,8 @@
 //  TransactionDetailView.swift
 //  Swiss Coin
 //
-//  Transaction detail page using a flat, form-style layout that mirrors
-//  AddTransactionView with read-only data displays.
+//  Transaction detail page matching the reference design: hero card,
+//  unified split details list and action buttons.
 //
 
 import CoreData
@@ -16,6 +16,7 @@ struct TransactionDetailView: View {
     @ObservedObject var transaction: FinancialTransaction
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.dismiss) var dismiss
+    @Environment(\.colorScheme) var colorScheme
 
     @State private var showEditSheet = false
     @State private var showDeleteConfirmation = false
@@ -53,25 +54,63 @@ struct TransactionDetailView: View {
     // MARK: - Main Content
 
     private var mainContent: some View {
-        ScrollView(.vertical, showsIndicators: false) {
-            VStack(spacing: Spacing.xl) {
-                transactionNameDisplay
-                dateAndAmountDisplay
-                paidByDisplay
-                splitWithDisplay
-                splitMethodDisplay
-                breakdownDisplay
-                noteDisplay
-                netBalanceSummary
+        ScrollView(showsIndicators: false) {
+            VStack(spacing: 0) {
+                heroHeader
+                    .padding(.horizontal, Spacing.screenHorizontal)
+                    .padding(.top, Spacing.lg)
+
+                transactionInfoCard
+                    .padding(.horizontal, Spacing.screenHorizontal)
+                    .padding(.top, Spacing.xl)
+
+                if !snapshot.sortedPayers.isEmpty || !snapshot.sortedSplits.isEmpty {
+                    splitDetailsSection
+                        .padding(.horizontal, Spacing.screenHorizontal)
+                        .padding(.top, Spacing.xl)
+                }
+
+                if let note = snapshot.note {
+                    noteSection(note: note)
+                        .padding(.horizontal, Spacing.screenHorizontal)
+                        .padding(.top, Spacing.xl)
+                }
+
                 actionButtons
+                    .padding(.horizontal, Spacing.screenHorizontal)
+                    .padding(.top, Spacing.xl)
+
+                metadataFooter
+                    .padding(.horizontal, Spacing.screenHorizontal)
+                    .padding(.top, Spacing.lg)
+                    .padding(.bottom, Spacing.xxl)
             }
-            .padding(.horizontal, Spacing.lg)
-            .padding(.top, Spacing.sm)
-            .padding(.bottom, Spacing.lg)
         }
         .background(AppColors.backgroundSecondary)
         .navigationTitle("Transaction Details")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Menu {
+                    Button {
+                        showEditSheet = true
+                    } label: {
+                        Label("Edit Transaction", systemImage: "pencil")
+                    }
+
+                    Divider()
+
+                    Button(role: .destructive) {
+                        showDeleteConfirmation = true
+                    } label: {
+                        Label("Delete Transaction", systemImage: "trash")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                        .foregroundColor(AppColors.accent)
+                }
+            }
+        }
         .sheet(isPresented: $showEditSheet) {
             TransactionEditView(transaction: transaction)
                 .environment(\.managedObjectContext, viewContext)
@@ -91,280 +130,238 @@ struct TransactionDetailView: View {
         }
     }
 
-    // MARK: - Section 1: Transaction Name Display
+    // MARK: - Hero Header
 
-    private var transactionNameDisplay: some View {
-        Text(snapshot.title)
-            .font(AppTypography.bodyLarge())
-            .foregroundColor(AppColors.textPrimary)
-            .lineLimit(2)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, Spacing.lg)
-            .padding(.vertical, Spacing.md)
-            .background(AppColors.cardBackgroundElevated)
-            .cornerRadius(CornerRadius.sm)
-            .overlay(
-                RoundedRectangle(cornerRadius: CornerRadius.sm)
-                    .stroke(AppColors.border, lineWidth: 1)
-            )
-    }
+    private var heroHeader: some View {
+        VStack(spacing: 0) {
+            // Direction icon
+            Circle()
+                .fill(AppColors.accentMuted)
+                .frame(width: 64, height: 64)
+                .overlay(
+                    Image(systemName: snapshot.directionIcon)
+                        .font(.system(size: IconSize.category, weight: .medium))
+                        .foregroundColor(AppColors.accent)
+                )
+                .padding(.bottom, Spacing.md)
 
-    // MARK: - Section 2: Date & Amount Display
-
-    private var dateAndAmountDisplay: some View {
-        HStack(spacing: 0) {
-            Text(snapshot.formattedDate)
-                .font(AppTypography.bodyLarge())
+            // Title
+            Text(snapshot.title)
+                .font(AppTypography.displayMedium())
                 .foregroundColor(AppColors.textPrimary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, Spacing.lg)
+                .padding(.bottom, Spacing.xs)
 
-            Spacer()
-
-            Divider()
-                .frame(height: 28)
-                .padding(.horizontal, Spacing.md)
-
-            Text(CurrencyFormatter.symbol(for: snapshot.currencyCode))
-                .font(AppTypography.bodyLarge())
+            // Date
+            Text(snapshot.formattedDate)
+                .font(AppTypography.bodyDefault())
                 .foregroundColor(AppColors.textSecondary)
 
-            Text(CurrencyFormatter.formatDecimal(snapshot.totalAmount, currencyCode: snapshot.currencyCode))
-                .font(AppTypography.financialLarge())
-                .foregroundColor(AppColors.textPrimary)
-                .frame(minWidth: 80, alignment: .trailing)
+            // Net amount
+            Text(FinancialFormatter.signedCurrency(snapshot.userNetAmount, currencyCode: snapshot.currencyCode))
+                .financialHeroStyle()
+                .foregroundColor(snapshot.netAmountColor)
+                .padding(.top, Spacing.xl)
+                .padding(.bottom, Spacing.xs)
+                .accessibilityLabel("Net amount: \(FinancialFormatter.signedCurrency(snapshot.userNetAmount, currencyCode: snapshot.currencyCode))")
+
+            // Payment summary
+            Text(snapshot.paymentSummaryText)
+                .font(AppTypography.bodyDefault())
+                .foregroundColor(AppColors.textSecondary)
         }
-        .padding(.horizontal, Spacing.lg)
-        .padding(.vertical, Spacing.md)
-        .background(AppColors.cardBackgroundElevated)
-        .cornerRadius(CornerRadius.sm)
-        .overlay(
-            RoundedRectangle(cornerRadius: CornerRadius.sm)
-                .stroke(AppColors.border, lineWidth: 1)
+        .padding(.vertical, Spacing.xxxl)
+        .frame(maxWidth: .infinity)
+        .background(
+            RoundedRectangle(cornerRadius: CornerRadius.large)
+                .fill(AppColors.cardBackground)
+                .shadow(
+                    color: AppShadow.card(for: colorScheme).color,
+                    radius: AppShadow.card(for: colorScheme).radius,
+                    x: AppShadow.card(for: colorScheme).x,
+                    y: AppShadow.card(for: colorScheme).y
+                )
         )
     }
 
-    // MARK: - Section 3: Paid By Display
+    // MARK: - Transaction Info Card
 
-    @ViewBuilder
-    private var paidByDisplay: some View {
-        if !snapshot.sortedPayers.isEmpty {
-            VStack(alignment: .leading, spacing: Spacing.sm) {
-                Text("Paid By:")
-                    .font(AppTypography.labelLarge())
-                    .foregroundColor(AppColors.textPrimary)
-
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: Spacing.sm) {
-                        ForEach(snapshot.sortedPayers, id: \.name) { payer in
-                            Text(payer.name)
-                                .font(AppTypography.labelSmall())
-                                .foregroundColor(AppColors.buttonForeground)
-                                .lineLimit(1)
-                                .padding(.horizontal, Spacing.md)
-                                .padding(.vertical, Spacing.sm)
-                                .background(AppColors.buttonBackground)
-                                .cornerRadius(CornerRadius.full)
-                        }
-                    }
-                    .padding(.vertical, Spacing.xs)
-                }
-            }
-        }
-    }
-
-    // MARK: - Section 4: Split With Display
-
-    @ViewBuilder
-    private var splitWithDisplay: some View {
-        if !snapshot.sortedSplits.isEmpty {
-            VStack(alignment: .leading, spacing: Spacing.sm) {
-                Text("Split with:")
-                    .font(AppTypography.labelLarge())
-                    .foregroundColor(AppColors.textPrimary)
-
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: Spacing.sm) {
-                        ForEach(snapshot.sortedSplits, id: \.objectID) { split in
-                            Text(split.name)
-                                .font(AppTypography.labelSmall())
-                                .foregroundColor(AppColors.buttonForeground)
-                                .lineLimit(1)
-                                .padding(.horizontal, Spacing.md)
-                                .padding(.vertical, Spacing.sm)
-                                .background(AppColors.buttonBackground)
-                                .cornerRadius(CornerRadius.full)
-                        }
-                    }
-                    .padding(.vertical, Spacing.xs)
-                }
-            }
-        }
-    }
-
-    // MARK: - Section 5: Split Method Display
-
-    private var splitMethodDisplay: some View {
+    private var transactionInfoCard: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
-            Text("Split Method:")
-                .font(AppTypography.labelLarge())
-                .foregroundColor(AppColors.textPrimary)
+            Text("DETAILS")
+                .font(AppTypography.labelSmall())
+                .foregroundColor(AppColors.textTertiary)
 
-            HStack(spacing: Spacing.sm) {
-                ForEach(SplitMethod.allCases) { method in
-                    let isSelected = method.rawValue == (transaction.splitMethod ?? "equal")
+            VStack(spacing: 0) {
+                // Total Amount
+                infoRow(
+                    label: "Total",
+                    value: CurrencyFormatter.format(snapshot.totalAmount, currencyCode: snapshot.currencyCode),
+                    valueFont: AppTypography.financialDefault()
+                )
 
-                    VStack(spacing: Spacing.xxs) {
-                        Image(systemName: method.systemImage)
-                            .font(.system(size: IconSize.lg, weight: .medium))
-                            .foregroundColor(isSelected ? AppColors.onAccent : AppColors.textPrimary)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: ButtonHeight.md)
-                            .background(
-                                RoundedRectangle(cornerRadius: CornerRadius.md)
-                                    .fill(isSelected ? AppColors.accent : AppColors.cardBackground)
-                            )
-                            .overlay(
-                                RoundedRectangle(cornerRadius: CornerRadius.md)
-                                    .stroke(isSelected ? Color.clear : AppColors.border, lineWidth: 1)
-                            )
+                CardDivider()
 
-                        Text(method.displayName)
-                            .font(AppTypography.caption())
-                            .foregroundColor(isSelected ? AppColors.textPrimary : AppColors.textSecondary)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.8)
-                    }
-                }
-            }
-        }
-    }
+                // Paid By
+                infoRow(
+                    label: "Paid by",
+                    value: snapshot.payerName
+                )
 
-    // MARK: - Section 6: Breakdown Display
+                CardDivider()
 
-    @ViewBuilder
-    private var breakdownDisplay: some View {
-        if !snapshot.sortedSplits.isEmpty {
-            VStack(alignment: .leading, spacing: Spacing.md) {
-                Text("Breakdown:")
-                    .font(AppTypography.labelLarge())
-                    .foregroundColor(AppColors.textPrimary)
+                // Split Method
+                infoRowWithIcon(
+                    label: "Split method",
+                    icon: snapshot.splitMethodIcon,
+                    value: snapshot.splitMethodName
+                )
 
-                VStack(spacing: Spacing.sm) {
-                    ForEach(snapshot.sortedSplits, id: \.objectID) { split in
-                        HStack {
-                            Text(split.name)
-                                .font(AppTypography.bodyDefault())
-                                .foregroundColor(AppColors.textPrimary)
-                                .lineLimit(1)
+                CardDivider()
 
-                            Spacer()
+                // Participants
+                infoRow(
+                    label: "Participants",
+                    value: snapshot.participantCount == 1
+                        ? "1 person"
+                        : "\(snapshot.participantCount) people"
+                )
 
-                            HStack(spacing: Spacing.xs) {
-                                Text(CurrencyFormatter.symbol(for: snapshot.currencyCode))
-                                    .font(AppTypography.bodyDefault())
-                                    .foregroundColor(AppColors.textSecondary)
+                // Group (conditional)
+                if let groupName = snapshot.groupName {
+                    CardDivider()
 
-                                Text(CurrencyFormatter.formatDecimal(split.amount, currencyCode: snapshot.currencyCode))
-                                    .font(AppTypography.financialDefault())
-                                    .foregroundColor(AppColors.textPrimary)
-                                    .frame(minWidth: 50, alignment: .trailing)
-                            }
-                        }
-                    }
-
-                    Divider()
-                        .padding(.top, Spacing.sm)
-
-                    HStack {
-                        Text("Total")
-                            .font(AppTypography.labelLarge())
-                            .foregroundColor(AppColors.textPrimary)
-
-                        Spacer()
-
-                        HStack(spacing: Spacing.xs) {
-                            Text(CurrencyFormatter.symbol(for: snapshot.currencyCode))
-                                .font(AppTypography.bodyDefault())
-                                .foregroundColor(AppColors.textSecondary)
-
-                            Text(CurrencyFormatter.formatDecimal(snapshot.totalAmount, currencyCode: snapshot.currencyCode))
-                                .font(AppTypography.financialDefault())
-                                .foregroundColor(AppColors.textPrimary)
-                                .frame(minWidth: 50, alignment: .trailing)
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    // MARK: - Section 7: Note Display (Conditional)
-
-    @ViewBuilder
-    private var noteDisplay: some View {
-        if let note = snapshot.note {
-            VStack(alignment: .leading, spacing: Spacing.sm) {
-                Text("Note:")
-                    .font(AppTypography.labelLarge())
-                    .foregroundColor(AppColors.textPrimary)
-
-                Text(note)
-                    .font(AppTypography.bodyDefault())
-                    .foregroundColor(AppColors.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, Spacing.lg)
-                    .padding(.vertical, Spacing.md)
-                    .background(AppColors.cardBackgroundElevated)
-                    .cornerRadius(CornerRadius.sm)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: CornerRadius.sm)
-                            .stroke(AppColors.border, lineWidth: 1)
+                    infoRowWithIcon(
+                        label: "Group",
+                        icon: "person.2.fill",
+                        value: groupName
                     )
+                }
+
+                CardDivider()
+
+                // Created by
+                infoRow(
+                    label: "Created by",
+                    value: snapshot.creatorName
+                )
             }
+            .cardStyle()
         }
     }
 
-    // MARK: - Section 8: Net Balance Summary
+    // MARK: - Info Row Helpers
 
-    private var netBalanceSummary: some View {
-        HStack(spacing: Spacing.sm) {
-            Image(systemName: snapshot.userNetAmount > 0.01
-                ? "arrow.up.right.circle.fill"
-                : snapshot.userNetAmount < -0.01
-                    ? "arrow.down.left.circle.fill"
-                    : "checkmark.circle.fill")
-                .font(.system(size: IconSize.sm))
-                .foregroundColor(snapshot.netAmountColor)
-
-            VStack(alignment: .leading, spacing: Spacing.xxs) {
-                Text(snapshot.statusText)
-                    .font(AppTypography.labelLarge())
-                    .foregroundColor(AppColors.textPrimary)
-
-                Text(snapshot.paymentSummaryText)
-                    .font(AppTypography.bodySmall())
-                    .foregroundColor(AppColors.textSecondary)
-            }
+    private func infoRow(
+        label: String,
+        value: String,
+        valueFont: Font = AppTypography.labelLarge()
+    ) -> some View {
+        HStack {
+            Text(label)
+                .font(AppTypography.bodyDefault())
+                .foregroundColor(AppColors.textSecondary)
 
             Spacer()
 
-            Text(FinancialFormatter.signedCurrency(snapshot.userNetAmount, currencyCode: snapshot.currencyCode))
-                .font(AppTypography.financialLarge())
-                .foregroundColor(snapshot.netAmountColor)
+            Text(value)
+                .font(valueFont)
+                .foregroundColor(AppColors.textPrimary)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, Spacing.lg)
         .padding(.vertical, Spacing.md)
-        .background(
-            RoundedRectangle(cornerRadius: CornerRadius.sm)
-                .fill(snapshot.netAmountColor.opacity(0.08))
-        )
+        .accessibilityElement(children: .combine)
     }
 
-    // MARK: - Section 9: Action Buttons
+    private func infoRowWithIcon(
+        label: String,
+        icon: String,
+        value: String
+    ) -> some View {
+        HStack {
+            Text(label)
+                .font(AppTypography.bodyDefault())
+                .foregroundColor(AppColors.textSecondary)
+
+            Spacer()
+
+            HStack(spacing: Spacing.xs) {
+                if !icon.isEmpty {
+                    Image(systemName: icon)
+                        .font(.system(size: IconSize.sm))
+                        .foregroundColor(AppColors.textPrimary)
+                }
+                Text(value)
+                    .font(AppTypography.labelLarge())
+                    .foregroundColor(AppColors.textPrimary)
+            }
+        }
+        .padding(.vertical, Spacing.md)
+        .accessibilityElement(children: .combine)
+    }
+
+    // MARK: - Split Details Section
+
+    private var splitDetailsSection: some View {
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            Text("SPLIT DETAILS")
+                .font(AppTypography.labelSmall())
+                .foregroundColor(AppColors.textTertiary)
+
+            VStack(spacing: 0) {
+                let participants = snapshot.unifiedParticipants
+                ForEach(Array(participants.enumerated()), id: \.element.id) { index, participant in
+                    UnifiedParticipantRow(participant: participant)
+
+                    if index < participants.count - 1 {
+                        CardDivider()
+                    }
+                }
+
+                // Total row
+                CardDivider()
+
+                HStack {
+                    Text("Total")
+                        .font(AppTypography.labelLarge())
+                        .foregroundColor(AppColors.textPrimary)
+
+                    Spacer()
+
+                    Text(CurrencyFormatter.format(snapshot.totalAmount, currencyCode: snapshot.currencyCode))
+                        .font(AppTypography.financialDefault())
+                        .foregroundColor(AppColors.textPrimary)
+                }
+                .padding(.vertical, Spacing.sm)
+                .accessibilityElement(children: .combine)
+            }
+            .cardStyle()
+        }
+    }
+
+    // MARK: - Note Section
+
+    private func noteSection(note: String) -> some View {
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            Text("NOTE")
+                .font(AppTypography.labelSmall())
+                .foregroundColor(AppColors.textTertiary)
+
+            VStack(alignment: .leading) {
+                Text(note)
+                    .font(AppTypography.bodyLarge())
+                    .foregroundColor(AppColors.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .cardStyle()
+        }
+    }
+
+    // MARK: - Action Buttons
 
     private var actionButtons: some View {
-        VStack(spacing: Spacing.sm) {
+        VStack(spacing: Spacing.md) {
             Button {
                 HapticManager.tap()
                 showEditSheet = true
@@ -373,9 +370,14 @@ struct TransactionDetailView: View {
                     Image(systemName: "pencil")
                         .font(.system(size: IconSize.sm))
                     Text("Edit Transaction")
+                        .font(AppTypography.buttonLarge())
                 }
+                .frame(maxWidth: .infinity)
+                .frame(height: ButtonHeight.lg)
+                .background(AppColors.accent)
+                .foregroundColor(AppColors.buttonForeground)
+                .cornerRadius(CornerRadius.button)
             }
-            .buttonStyle(PrimaryButtonStyle())
             .accessibilityLabel("Edit transaction")
 
             Button {
@@ -386,10 +388,32 @@ struct TransactionDetailView: View {
                     Image(systemName: "trash")
                         .font(.system(size: IconSize.sm))
                     Text("Delete Transaction")
+                        .font(AppTypography.buttonLarge())
                 }
+                .frame(maxWidth: .infinity)
+                .frame(height: ButtonHeight.lg)
+                .background(AppColors.cardBackground)
+                .foregroundColor(AppColors.negative)
+                .cornerRadius(CornerRadius.button)
+                .overlay(
+                    RoundedRectangle(cornerRadius: CornerRadius.button)
+                        .strokeBorder(AppColors.negative.opacity(0.3), lineWidth: 1)
+                )
             }
-            .buttonStyle(DestructiveButtonStyle())
             .accessibilityLabel("Delete transaction")
+        }
+    }
+
+    // MARK: - Metadata Footer
+
+    private var metadataFooter: some View {
+        Group {
+            if let date = transaction.date {
+                Text("Created \(DateFormatter.longDate.string(from: date)) at \(DateFormatter.timeOnly.string(from: date))")
+                    .font(AppTypography.caption())
+                    .foregroundColor(AppColors.textTertiary)
+                    .frame(maxWidth: .infinity, alignment: .center)
+            }
         }
     }
 
