@@ -2,7 +2,7 @@ import CoreData
 import SwiftUI
 
 // MARK: - Add Transaction View
-// Premium single-page scrollable form with card-based sections
+// Redesigned hero-amount-first, card-sectioned layout with clear visual hierarchy
 
 struct AddTransactionView: View {
     @StateObject private var viewModel: TransactionViewModel
@@ -19,6 +19,7 @@ struct AddTransactionView: View {
     @State private var undoParticipant: Person?
     @State private var showUndoToast = false
     @State private var showDatePicker = false
+    @State private var heroAmountScale: CGFloat = 1.0
 
     var initialParticipant: Person?
     var initialGroup: UserGroup?
@@ -42,14 +43,31 @@ struct AddTransactionView: View {
             wrappedValue: TransactionViewModel(context: ctx))
     }
 
+    // MARK: - Helpers
+
+    private var smartDateLabel: String {
+        let calendar = Calendar.current
+        if calendar.isDateInToday(viewModel.date) { return "Today" }
+        if calendar.isDateInYesterday(viewModel.date) { return "Yesterday" }
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMM d, yyyy"
+        return formatter.string(from: viewModel.date)
+    }
+
+    private var currencyFlag: String {
+        CurrencyFormatter.flag(for: viewModel.transactionCurrency)
+    }
+
+    // MARK: - Body
+
     var body: some View {
         NavigationStack {
             ZStack(alignment: .bottom) {
-                // Scrollable content
                 ScrollView(.vertical, showsIndicators: false) {
                     VStack(spacing: Spacing.sectionGap) {
-                        transactionHeaderSection
-                        amountAndDateSection
+                        heroAmountSection
+                        transactionNameSection
+                        categoryAndDateRow
                         paidBySection
                         splitWithSection
                         splitMethodSection
@@ -59,11 +77,12 @@ struct AddTransactionView: View {
                         breakdownSection
                         noteSection
                     }
-                    .padding(.bottom, 120) // Space for sticky bar
+                    .padding(.horizontal, Spacing.screenHorizontal)
+                    .padding(.top, Spacing.screenTopPad)
+                    .padding(.bottom, 120)
                 }
                 .scrollDismissesKeyboard(.interactively)
 
-                // Sticky bottom bar
                 stickyBottomBar
             }
             .background(
@@ -106,7 +125,7 @@ struct AddTransactionView: View {
                 setupInitialParticipants()
                 HapticManager.sheetPresent()
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                    focusedField = .title
+                    focusedField = .amount
                 }
             }
             .sheet(isPresented: $showCurrencyPicker) {
@@ -153,7 +172,6 @@ struct AddTransactionView: View {
                 }
             )
             .onChange(of: viewModel.transactionCurrency) { _, newCurrency in
-                // Strip decimals from amount when switching to zero-decimal currency
                 if CurrencyFormatter.isZeroDecimal(newCurrency) {
                     if let dotIndex = viewModel.totalAmount.firstIndex(of: ".") {
                         viewModel.totalAmount = String(viewModel.totalAmount[..<dotIndex])
@@ -184,7 +202,7 @@ struct AddTransactionView: View {
         }
     }
 
-    // MARK: - Helpers
+    // MARK: - Person Helpers
 
     private func sortedByCurrentUser(_ people: Set<Person>) -> [Person] {
         Array(people).sorted { p1, p2 in
@@ -207,70 +225,76 @@ struct AddTransactionView: View {
         Color(hex: person.colorHex ?? AppColors.defaultAvatarColorHex)
     }
 
-    // MARK: - Section 1: Transaction Header (Name + Category)
+    // MARK: - Section 1: Hero Amount Display
 
-    private var transactionHeaderSection: some View {
-        VStack(spacing: 0) {
-            HStack(spacing: Spacing.lg) {
-                // Category icon circle
-                Button {
-                    HapticManager.tap()
-                    showCategoryPicker = true
-                } label: {
-                    ZStack {
-                        Circle()
-                            .fill((viewModel.selectedCategory?.color ?? .gray).opacity(0.15))
-                            .frame(width: AvatarSize.lg, height: AvatarSize.lg)
-
-                        Text(viewModel.selectedCategory?.icon ?? "📦")
-                            .font(.system(size: IconSize.lg))
+    private var heroAmountSection: some View {
+        VStack(alignment: .center, spacing: Spacing.sm) {
+            // Large centered amount input
+            TextField(
+                CurrencyFormatter.isZeroDecimal(viewModel.transactionCurrency) ? "0" : "0.00",
+                text: $viewModel.totalAmount
+            )
+            .font(AppTypography.financialHero())
+            .tracking(AppTypography.Tracking.financialHero)
+            .keyboardType(CurrencyFormatter.isZeroDecimal(viewModel.transactionCurrency) ? .numberPad : .decimalPad)
+            .multilineTextAlignment(.center)
+            .foregroundColor(viewModel.totalAmount.isEmpty ? AppColors.textTertiary : AppColors.textPrimary)
+            .focused($focusedField, equals: .amount)
+            .limitTextLength(to: 12, text: $viewModel.totalAmount)
+            .onChange(of: viewModel.totalAmount) { _, newValue in
+                let sanitized = viewModel.sanitizeAmountInput(newValue)
+                if sanitized != newValue {
+                    viewModel.totalAmount = sanitized
+                }
+                // Scale animation on first digit
+                if !newValue.isEmpty && heroAmountScale == 1.0 {
+                    withAnimation(AppAnimation.spring) {
+                        heroAmountScale = 1.05
+                    }
+                    withAnimation(AppAnimation.spring.delay(0.15)) {
+                        heroAmountScale = 1.0
                     }
                 }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Select category")
-
-                // Title field
-                VStack(alignment: .leading, spacing: Spacing.xs) {
-                    TextField("Transaction Name", text: $viewModel.title)
-                        .font(viewModel.title.isEmpty ? AppTypography.bodyLarge() : AppTypography.headingLarge())
-                        .foregroundColor(AppColors.textPrimary)
-                        .focused($focusedField, equals: .title)
-                        .submitLabel(.next)
-                        .onSubmit { focusedField = .amount }
-                        .limitTextLength(to: ValidationLimits.maxTransactionTitleLength, text: $viewModel.title)
-                        .accessibilityLabel("Transaction name")
-                }
             }
+            .scaleEffect(heroAmountScale)
+            .accessibilityLabel("Transaction amount")
 
-            Divider()
-                .padding(.top, Spacing.md)
-
-            // Category selector row
+            // Currency badge
             Button {
                 HapticManager.tap()
-                showCategoryPicker = true
+                focusedField = nil
+                showCurrencyPicker = true
             } label: {
-                HStack(spacing: Spacing.sm) {
-                    Text(viewModel.selectedCategory?.icon ?? "📦")
+                HStack(spacing: Spacing.xs) {
+                    Text(currencyFlag)
                         .font(.system(size: IconSize.sm))
 
-                    Text(viewModel.selectedCategory?.name ?? "Other")
+                    Text(viewModel.transactionCurrency)
                         .font(AppTypography.labelDefault())
-                        .foregroundColor(AppColors.textSecondary)
+                        .foregroundColor(AppColors.textPrimary)
 
-                    Spacer()
-
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: IconSize.xs, weight: .semibold))
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 10, weight: .semibold))
                         .foregroundColor(AppColors.textTertiary)
                 }
-                .padding(.vertical, Spacing.md)
-                .contentShape(Rectangle())
+                .padding(.horizontal, Spacing.md)
+                .padding(.vertical, Spacing.sm)
+                .background(
+                    Capsule()
+                        .fill(AppColors.backgroundTertiary)
+                )
+                .overlay(
+                    Capsule()
+                        .stroke(AppColors.border, lineWidth: 1)
+                )
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("Category: \(viewModel.selectedCategory?.name ?? "Other"). Tap to change.")
+            .scaleEffect(1.0)
+            .accessibilityLabel("Currency: \(viewModel.transactionCurrency). Tap to change.")
         }
-        .padding(Spacing.cardPadding)
+        .padding(.vertical, Spacing.xxl)
+        .padding(.horizontal, Spacing.cardPadding)
+        .frame(maxWidth: .infinity)
         .background(
             RoundedRectangle(cornerRadius: CornerRadius.card)
                 .fill(AppColors.cardBackground)
@@ -283,90 +307,116 @@ struct AddTransactionView: View {
         )
     }
 
-    // MARK: - Section 2: Amount + Date + Currency
+    // MARK: - Section 2: Transaction Name Input
 
-    private var formattedDate: String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "MMM d, yyyy"
-        return formatter.string(from: viewModel.date)
-    }
+    private var transactionNameSection: some View {
+        HStack(spacing: Spacing.md) {
+            Image(systemName: "square.and.pencil")
+                .font(.system(size: IconSize.sm))
+                .foregroundColor(AppColors.textTertiary)
 
-    private var amountAndDateSection: some View {
-        HStack(spacing: 0) {
-            // Date display as tappable text
-            Button {
-                showDatePicker = true
-                HapticManager.selectionChanged()
-            } label: {
-                Text(formattedDate)
-                    .font(AppTypography.bodyLarge())
-                    .foregroundColor(AppColors.textPrimary)
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Transaction date: \(formattedDate). Tap to change.")
-
-            Spacer()
-
-            // Currency badge
-            Button {
-                HapticManager.tap()
-                focusedField = nil
-                showCurrencyPicker = true
-            } label: {
-                Text(CurrencyFormatter.symbol(for: viewModel.transactionCurrency))
-                    .font(AppTypography.labelLarge())
-                    .foregroundColor(AppColors.textPrimary)
-                    .padding(.horizontal, Spacing.sm)
-                    .padding(.vertical, Spacing.xs)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: CornerRadius.small)
-                            .stroke(AppColors.border, lineWidth: 1)
-                    )
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Currency: \(viewModel.transactionCurrency). Tap to change.")
-            .padding(.trailing, Spacing.sm)
-
-            // Amount input
-            TextField(
-                CurrencyFormatter.isZeroDecimal(viewModel.transactionCurrency) ? "0" : "0.00",
-                text: $viewModel.totalAmount
-            )
-            .font(AppTypography.financialLarge())
-            .keyboardType(CurrencyFormatter.isZeroDecimal(viewModel.transactionCurrency) ? .numberPad : .decimalPad)
-            .multilineTextAlignment(.trailing)
-            .foregroundColor(AppColors.textPrimary)
-            .focused($focusedField, equals: .amount)
-            .limitTextLength(to: 12, text: $viewModel.totalAmount)
-            .frame(minWidth: 80)
-            .onChange(of: viewModel.totalAmount) { _, newValue in
-                let sanitized = viewModel.sanitizeAmountInput(newValue)
-                if sanitized != newValue {
-                    viewModel.totalAmount = sanitized
-                }
-            }
-            .accessibilityLabel("Transaction amount")
+            TextField("Transaction Name", text: $viewModel.title)
+                .font(viewModel.title.isEmpty ? AppTypography.bodyLarge() : AppTypography.headingMedium())
+                .foregroundColor(AppColors.textPrimary)
+                .focused($focusedField, equals: .title)
+                .submitLabel(.next)
+                .onSubmit { focusedField = .amount }
+                .limitTextLength(to: ValidationLimits.maxTransactionTitleLength, text: $viewModel.title)
+                .accessibilityLabel("Transaction name")
         }
-        .padding(.horizontal, Spacing.lg)
-        .padding(.vertical, Spacing.md)
-        .background(AppColors.cardBackgroundElevated)
-        .cornerRadius(CornerRadius.sm)
+        .padding(Spacing.cardPadding)
+        .background(
+            RoundedRectangle(cornerRadius: CornerRadius.card)
+                .fill(AppColors.cardBackground)
+                .shadow(
+                    color: AppShadow.card(for: colorScheme).color,
+                    radius: AppShadow.card(for: colorScheme).radius,
+                    x: AppShadow.card(for: colorScheme).x,
+                    y: AppShadow.card(for: colorScheme).y
+                )
+        )
         .overlay(
-            RoundedRectangle(cornerRadius: CornerRadius.sm)
-                .stroke(AppColors.border, lineWidth: 1)
+            RoundedRectangle(cornerRadius: CornerRadius.card)
+                .stroke(focusedField == .title ? AppColors.borderFocus : Color.clear, lineWidth: 1.5)
         )
     }
 
-    // MARK: - Section 3: Paid By
+    // MARK: - Section 3: Category & Date Row
+
+    private var categoryAndDateRow: some View {
+        HStack(spacing: Spacing.md) {
+            // Category pill
+            Button {
+                HapticManager.tap()
+                showCategoryPicker = true
+            } label: {
+                HStack(spacing: Spacing.xs) {
+                    Text(viewModel.selectedCategory?.icon ?? "📦")
+                        .font(.system(size: IconSize.sm))
+
+                    Text(viewModel.selectedCategory?.name ?? "Other")
+                        .font(AppTypography.labelDefault())
+                        .foregroundColor(AppColors.textPrimary)
+
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundColor(AppColors.textTertiary)
+                }
+                .padding(.horizontal, Spacing.md)
+                .padding(.vertical, Spacing.sm)
+                .background(
+                    Capsule()
+                        .fill((viewModel.selectedCategory?.color ?? .gray).opacity(0.1))
+                )
+                .overlay(
+                    Capsule()
+                        .stroke((viewModel.selectedCategory?.color ?? .gray).opacity(0.2), lineWidth: 1)
+                )
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Category: \(viewModel.selectedCategory?.name ?? "Other"). Tap to change.")
+
+            // Date pill
+            Button {
+                HapticManager.selectionChanged()
+                showDatePicker = true
+            } label: {
+                HStack(spacing: Spacing.xs) {
+                    Image(systemName: "calendar")
+                        .font(.system(size: IconSize.xs))
+                        .foregroundColor(AppColors.textSecondary)
+
+                    Text(smartDateLabel)
+                        .font(AppTypography.labelDefault())
+                        .foregroundColor(AppColors.textPrimary)
+                }
+                .padding(.horizontal, Spacing.md)
+                .padding(.vertical, Spacing.sm)
+                .background(
+                    Capsule()
+                        .fill(AppColors.backgroundTertiary)
+                )
+                .overlay(
+                    Capsule()
+                        .stroke(AppColors.border, lineWidth: 1)
+                )
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Transaction date: \(smartDateLabel). Tap to change.")
+
+            Spacer()
+        }
+    }
+
+    // MARK: - Section 4: Paid By
 
     private var paidBySection: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             sectionLabel("PAID BY")
 
             VStack(spacing: 0) {
-                // Default single payer row or search
                 if viewModel.paidBySearchText.isEmpty && viewModel.selectedPayerPersons.isEmpty {
-                    // Show "You" as default payer
+                    // Default single payer: "You"
                     Button {
                         focusedField = .paidBySearch
                     } label: {
@@ -399,13 +449,12 @@ struct AddTransactionView: View {
                     .buttonStyle(.plain)
                     .accessibilityLabel("Paid by You. Tap to change.")
                 } else if !viewModel.selectedPayerPersons.isEmpty && viewModel.paidBySearchText.isEmpty {
-                    // Show selected payers as avatar chips
+                    // Multi-payer chips
                     FlowLayout(spacing: Spacing.sm) {
                         ForEach(sortedByCurrentUser(viewModel.selectedPayerPersons), id: \.self) { person in
                             avatarChip(person) { viewModel.togglePayer(person) }
                         }
 
-                        // Add more button
                         Button {
                             focusedField = .paidBySearch
                         } label: {
@@ -540,7 +589,7 @@ struct AddTransactionView: View {
         )
     }
 
-    // MARK: - Section 4: Split With
+    // MARK: - Section 5: Split With
 
     private var splitWithSection: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
@@ -553,7 +602,7 @@ struct AddTransactionView: View {
                         ForEach(sortedByCurrentUser(viewModel.selectedParticipants), id: \.self) { person in
                             let isCurrentUser = CurrentUser.isCurrentUser(person.id)
                             if isCurrentUser {
-                                // Current user chip — non-removable
+                                // Current user chip — non-removable with lock
                                 HStack(spacing: Spacing.xs) {
                                     avatarCircle(
                                         initials: CurrentUser.initials,
@@ -587,14 +636,14 @@ struct AddTransactionView: View {
                             }
                         }
 
-                        // Add more button
+                        // Add People button
                         Button {
                             focusedField = .splitWithSearch
                         } label: {
                             HStack(spacing: Spacing.xs) {
                                 Image(systemName: "plus")
                                     .font(.system(size: IconSize.xs, weight: .semibold))
-                                Text("Add")
+                                Text("Add People")
                                     .font(AppTypography.labelSmall())
                             }
                             .foregroundColor(AppColors.accent)
@@ -773,15 +822,17 @@ struct AddTransactionView: View {
         )
     }
 
-    // MARK: - Section 5: Split Method
+    // MARK: - Section 6: Split Method (Horizontal Scroll)
 
     private var splitMethodSection: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             sectionLabel("SPLIT METHOD")
 
-            FlowLayout(spacing: Spacing.sm) {
-                ForEach(SplitMethod.allCases) { method in
-                    methodPill(method)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: Spacing.sm) {
+                    ForEach(SplitMethod.allCases) { method in
+                        methodPill(method)
+                    }
                 }
             }
         }
@@ -792,7 +843,7 @@ struct AddTransactionView: View {
 
         return Button {
             guard viewModel.splitMethod != method else { return }
-            withAnimation(AppAnimation.standard) {
+            withAnimation(AppAnimation.spring) {
                 viewModel.splitMethod = method
                 viewModel.initializeDefaultRawInputs(for: method)
             }
@@ -809,11 +860,11 @@ struct AddTransactionView: View {
             .padding(.horizontal, Spacing.md)
             .padding(.vertical, Spacing.sm)
             .background(
-                RoundedRectangle(cornerRadius: CornerRadius.full)
+                Capsule()
                     .fill(isSelected ? AppColors.accent : Color.clear)
             )
             .overlay(
-                RoundedRectangle(cornerRadius: CornerRadius.full)
+                Capsule()
                     .stroke(isSelected ? Color.clear : AppColors.border, lineWidth: 1)
             )
         }
@@ -920,7 +971,7 @@ struct AddTransactionView: View {
         )
     }
 
-    // MARK: - Breakdown Section
+    // MARK: - Section 8: Breakdown
 
     private var breakdownSection: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
@@ -969,13 +1020,17 @@ struct AddTransactionView: View {
             ForEach(Array(sortedParticipants.enumerated()), id: \.element) { index, person in
                 breakdownRow(person: person)
                     .id("\(person.id?.uuidString ?? "unknown")-\(viewModel.splitMethod.rawValue)")
+                    .transition(.opacity.combined(with: .move(edge: .top)))
 
                 if index < sortedParticipants.count - 1 {
                     Divider().padding(.leading, Spacing.cardPadding + AvatarSize.sm + Spacing.md)
                 }
             }
 
-            Divider()
+            // Heavy divider before total
+            Rectangle()
+                .fill(AppColors.borderStrong)
+                .frame(height: 2)
                 .padding(.vertical, Spacing.xs)
 
             // Total row
@@ -1040,7 +1095,6 @@ struct AddTransactionView: View {
                     .foregroundColor(AppColors.textPrimary)
                     .lineLimit(1)
 
-                // Show calculated amount below for percentage/shares
                 if viewModel.splitMethod == .percentage || viewModel.splitMethod == .shares {
                     Text(CurrencyFormatter.formatAbsolute(splitAmount, currencyCode: viewModel.transactionCurrency))
                         .font(AppTypography.caption())
@@ -1086,79 +1140,75 @@ struct AddTransactionView: View {
         .padding(.vertical, Spacing.md)
     }
 
-    // MARK: - Section 7: Note
+    // MARK: - Section 9: Note
 
     private var noteSection: some View {
-        VStack(alignment: .leading, spacing: Spacing.sm) {
-            sectionLabel("NOTE")
+        VStack(spacing: 0) {
+            if showNoteField {
+                TextEditor(text: $viewModel.note)
+                    .font(AppTypography.bodyDefault())
+                    .foregroundColor(AppColors.textPrimary)
+                    .frame(minHeight: 80, maxHeight: 150)
+                    .padding(.horizontal, Spacing.md)
+                    .padding(.vertical, Spacing.sm)
+                    .focused($focusedField, equals: .note)
+                    .scrollContentBackground(.hidden)
+                    .limitTextLength(to: ValidationLimits.maxNoteLength, text: $viewModel.note)
+                    .accessibilityLabel("Transaction note")
 
-            VStack(spacing: 0) {
-                if showNoteField {
-                    TextEditor(text: $viewModel.note)
-                        .font(AppTypography.bodyDefault())
-                        .foregroundColor(AppColors.textPrimary)
-                        .frame(minHeight: 80, maxHeight: 150)
-                        .padding(.horizontal, Spacing.md)
-                        .padding(.vertical, Spacing.sm)
-                        .focused($focusedField, equals: .note)
-                        .scrollContentBackground(.hidden)
-                        .limitTextLength(to: ValidationLimits.maxNoteLength, text: $viewModel.note)
-                        .accessibilityLabel("Transaction note")
+                HStack {
+                    Spacer()
+                    Text("\(viewModel.note.count)/\(ValidationLimits.maxNoteLength)")
+                        .font(AppTypography.caption())
+                        .foregroundColor(AppColors.textTertiary)
+                }
+                .padding(.horizontal, Spacing.cardPadding)
+                .padding(.bottom, Spacing.sm)
+            } else {
+                Button {
+                    withAnimation(AppAnimation.standard) {
+                        showNoteField = true
+                    }
+                    HapticManager.lightTap()
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        focusedField = .note
+                    }
+                } label: {
+                    HStack(spacing: Spacing.sm) {
+                        Image(systemName: "square.and.pencil")
+                            .font(.system(size: IconSize.sm))
+                            .foregroundColor(AppColors.textTertiary)
 
-                    HStack {
+                        Text("Add a note (optional)")
+                            .font(AppTypography.bodyDefault())
+                            .foregroundColor(AppColors.textTertiary)
+
                         Spacer()
-                        Text("\(viewModel.note.count)/\(ValidationLimits.maxNoteLength)")
-                            .font(AppTypography.caption())
+
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: IconSize.xs, weight: .semibold))
                             .foregroundColor(AppColors.textTertiary)
                     }
-                    .padding(.horizontal, Spacing.cardPadding)
-                    .padding(.bottom, Spacing.sm)
-                } else {
-                    Button {
-                        withAnimation(AppAnimation.standard) {
-                            showNoteField = true
-                        }
-                        HapticManager.lightTap()
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                            focusedField = .note
-                        }
-                    } label: {
-                        HStack(spacing: Spacing.sm) {
-                            Image(systemName: "square.and.pencil")
-                                .font(.system(size: IconSize.sm))
-                                .foregroundColor(AppColors.textTertiary)
-
-                            Text("Add a note (optional)")
-                                .font(AppTypography.bodyDefault())
-                                .foregroundColor(AppColors.textTertiary)
-
-                            Spacer()
-
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: IconSize.xs, weight: .semibold))
-                                .foregroundColor(AppColors.textTertiary)
-                        }
-                        .padding(Spacing.cardPadding)
-                        .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Add a note")
+                    .padding(Spacing.cardPadding)
+                    .contentShape(Rectangle())
                 }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Add a note")
             }
-            .background(
-                RoundedRectangle(cornerRadius: CornerRadius.card)
-                    .fill(AppColors.cardBackground)
-                    .shadow(
-                        color: AppShadow.card(for: colorScheme).color,
-                        radius: AppShadow.card(for: colorScheme).radius,
-                        x: AppShadow.card(for: colorScheme).x,
-                        y: AppShadow.card(for: colorScheme).y
-                    )
-            )
         }
+        .background(
+            RoundedRectangle(cornerRadius: CornerRadius.card)
+                .fill(AppColors.cardBackground)
+                .shadow(
+                    color: AppShadow.card(for: colorScheme).color,
+                    radius: AppShadow.card(for: colorScheme).radius,
+                    x: AppShadow.card(for: colorScheme).x,
+                    y: AppShadow.card(for: colorScheme).y
+                )
+        )
     }
 
-    // MARK: - Sticky Bottom Bar (Validation + Save)
+    // MARK: - Section 10: Sticky Bottom Bar
 
     private var stickyBottomBar: some View {
         VStack(spacing: Spacing.sm) {
@@ -1205,6 +1255,7 @@ struct AddTransactionView: View {
                         Image(systemName: "checkmark")
                             .font(.system(size: IconSize.md, weight: .semibold))
                             .foregroundColor(AppColors.onAccent)
+                            .transition(.scale.combined(with: .opacity))
                     } else {
                         Text("Save Transaction")
                             .font(AppTypography.buttonLarge())
@@ -1220,8 +1271,10 @@ struct AddTransactionView: View {
             }
             .disabled(!viewModel.isValid || viewModel.isSaving)
             .opacity(viewModel.isValid ? 1.0 : 0.6)
+            .scaleEffect(viewModel.isSaving ? 0.98 : 1.0)
             .animation(AppAnimation.standard, value: viewModel.isValid)
             .animation(AppAnimation.standard, value: viewModel.isSaving)
+            .animation(AppAnimation.spring, value: viewModel.saveCompleted)
             .accessibilityLabel("Save transaction")
         }
         .padding(.horizontal, Spacing.screenHorizontal)
