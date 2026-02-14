@@ -130,37 +130,11 @@ struct TransactionHistoryView: View {
     // MARK: - Empty State
 
     private var emptyStateView: some View {
-        VStack(spacing: Spacing.lg) {
+        VStack {
             Spacer()
-
-            RoundedRectangle(cornerRadius: CornerRadius.card)
-                .fill(AppColors.backgroundTertiary)
-                .frame(width: AvatarSize.xl, height: AvatarSize.xl)
-                .overlay(
-                    Image(systemName: "arrow.left.arrow.right.circle")
-                        .font(.system(size: IconSize.xl, weight: .medium))
-                        .foregroundColor(AppColors.textSecondary)
-                )
-
-            Text("No Transactions Yet")
+            Text("No Transactions")
                 .font(AppTypography.headingLarge())
-                .foregroundColor(AppColors.textPrimary)
-
-            Text("Your transaction history will appear here once you add expenses or split bills with friends.")
-                .font(AppTypography.bodyDefault())
                 .foregroundColor(AppColors.textSecondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, Spacing.xxl)
-
-            HStack(spacing: Spacing.xs) {
-                Image(systemName: "plus.circle.fill")
-                    .font(.system(size: IconSize.sm))
-                Text("Tap + to create your first transaction")
-                    .font(AppTypography.labelLarge())
-            }
-            .foregroundColor(AppColors.accent)
-            .padding(.top, Spacing.sm)
-
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
