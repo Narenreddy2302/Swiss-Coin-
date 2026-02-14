@@ -29,6 +29,7 @@ struct SearchView: View {
     @State private var cachedDisplayedTransactions: [FinancialTransaction] = []
     @Namespace private var chipNamespace
     @State private var cachedNetPositions: [NSManagedObjectID: Double] = [:]
+    @State private var showRefreshFeedback = false
 
     // MARK: - Fetch Requests
 
@@ -125,9 +126,11 @@ struct SearchView: View {
         let base: [FinancialTransaction]
         if isSearching {
             let query = debouncedSearchText.lowercased()
-            base = allTransactions.filter { $0.title?.lowercased().contains(query) == true }
+            base = allTransactions
+                .filter { !$0.isDeleted && $0.managedObjectContext != nil }
+                .filter { $0.title?.lowercased().contains(query) == true }
         } else {
-            base = Array(allTransactions)
+            base = Array(allTransactions).filter { !$0.isDeleted && $0.managedObjectContext != nil }
         }
 
         switch selectedFilter {
@@ -275,7 +278,10 @@ struct SearchView: View {
     private var transactionListView: some View {
         Group {
             if cachedDisplayedTransactions.isEmpty {
-                filterEmptyView
+                ScrollView {
+                    filterEmptyView
+                }
+                .refreshable { await performSearchRefresh() }
             } else {
                 ScrollView {
                     LazyVStack(spacing: 0) {
@@ -292,6 +298,8 @@ struct SearchView: View {
                     .padding(.bottom, Spacing.section)
                     .animation(AppAnimation.standard, value: cachedDisplayedTransactions.count)
                 }
+                .refreshable { await performSearchRefresh() }
+                .refreshFeedback(isShowing: $showRefreshFeedback)
             }
         }
     }
@@ -301,7 +309,10 @@ struct SearchView: View {
     private var subscriptionsListView: some View {
         Group {
             if displayedSubscriptions.isEmpty {
-                filterEmptyView
+                ScrollView {
+                    filterEmptyView
+                }
+                .refreshable { await performSearchRefresh() }
             } else {
                 ScrollView {
                     LazyVStack(spacing: 0) {
@@ -322,6 +333,8 @@ struct SearchView: View {
                     }
                     .padding(.bottom, Spacing.section)
                 }
+                .refreshable { await performSearchRefresh() }
+                .refreshFeedback(isShowing: $showRefreshFeedback)
             }
         }
     }
@@ -431,6 +444,8 @@ struct SearchView: View {
                     .animation(AppAnimation.standard, value: filteredGroups.count)
                     .animation(AppAnimation.standard, value: filteredSubscriptions.count)
                 }
+                .refreshable { await performSearchRefresh() }
+                .refreshFeedback(isShowing: $showRefreshFeedback)
             } else {
                 SearchNoResultsView(searchText: searchText)
             }
@@ -487,6 +502,19 @@ struct SearchView: View {
         case .incoming: return "Transactions where others owe you will appear here"
         case .outgoing: return "Transactions where you owe others will appear here"
         case .subscriptions: return "Subscriptions you add will appear here"
+        }
+    }
+
+    private func performSearchRefresh() async {
+        await RefreshHelper.performStandardRefresh(context: viewContext)
+        cacheNetPositions()
+        withAnimation(.none) {
+            updateDisplayedTransactions()
+        }
+        withAnimation(AppAnimation.standard) { showRefreshFeedback = true }
+        Task {
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            withAnimation(AppAnimation.standard) { showRefreshFeedback = false }
         }
     }
 }

@@ -65,6 +65,11 @@ struct GroupDetailView: View {
                 }
             }
         }
+        .refreshable {
+            await RefreshHelper.performStandardRefresh(context: viewContext)
+            balance = group.calculateBalance()
+            memberBalances = group.getMemberBalances()
+        }
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Menu {
