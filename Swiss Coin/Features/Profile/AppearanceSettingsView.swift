@@ -50,12 +50,26 @@ final class AppearanceSettingsViewModel: ObservableObject {
     }
 
     private func setupAutoSave() {
-        Publishers.CombineLatest4($themeMode, $accentColor, $fontSize, $reduceMotion)
-            .combineLatest($hapticFeedback)
+        // Theme mode syncs immediately (no debounce) to avoid race condition
+        // with ThemeTransitionManager's direct UserDefaults write
+        $themeMode
+            .dropFirst()
+            .removeDuplicates()
+            .sink { [weak self] newMode in
+                self?.storedThemeMode = newMode
+            }
+            .store(in: &cancellables)
+
+        // Other settings can be debounced
+        Publishers.CombineLatest4($accentColor, $fontSize, $reduceMotion, $hapticFeedback)
             .dropFirst()
             .debounce(for: .milliseconds(300), scheduler: DispatchQueue.main)
             .sink { [weak self] _ in
-                self?.syncToLocalStorage()
+                guard let self else { return }
+                self.storedAccentColor = self.accentColor
+                self.storedFontSize = self.fontSize
+                self.storedReduceMotion = self.reduceMotion
+                self.storedHapticFeedback = self.hapticFeedback
             }
             .store(in: &cancellables)
     }
@@ -361,15 +375,15 @@ private struct ThemePreview: View {
                 .fill(isDark ? Color(UIColor(hex: "#1C1C1E")) : Color.white)
                 .frame(height: 60)
                 .overlay(
-                    VStack(alignment: .leading, spacing: 4) {
-                        RoundedRectangle(cornerRadius: 2)
+                    VStack(alignment: .leading, spacing: Spacing.xs) {
+                        RoundedRectangle(cornerRadius: CornerRadius.xs)
                             .fill(isDark ? AppColors.textTertiary : AppColors.borderSubtle)
                             .frame(width: 60, height: 8)
-                        RoundedRectangle(cornerRadius: 2)
+                        RoundedRectangle(cornerRadius: CornerRadius.xs)
                             .fill(isDark ? AppColors.borderStrong : AppColors.border)
                             .frame(width: 100, height: 6)
                     }
-                    .padding(8),
+                    .padding(Spacing.sm),
                     alignment: .topLeading
                 )
                 .overlay(
