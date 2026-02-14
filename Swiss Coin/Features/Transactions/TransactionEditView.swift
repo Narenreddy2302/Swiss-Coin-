@@ -11,9 +11,8 @@ struct TransactionEditView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @FocusState private var focusedField: FocusField?
 
+    @AppStorage("default_currency") private var selectedCurrency: String = "USD"
     @State private var showCurrencyPicker = false
-    @State private var showSaveError = false
-    @State private var saveErrorMessage = ""
 
     private enum FocusField: Hashable {
         case title
@@ -31,6 +30,19 @@ struct TransactionEditView: View {
             vm.loadTransaction(transaction)
         }
         _viewModel = StateObject(wrappedValue: vm)
+    }
+
+    // MARK: - Computed Properties
+
+    private var currentCurrency: Currency {
+        Currency.all.first(where: { $0.code == selectedCurrency }) ?? Currency.all[0]
+    }
+
+    private var currencyBinding: Binding<Currency> {
+        Binding(
+            get: { currentCurrency },
+            set: { selectedCurrency = $0.code }
+        )
     }
 
     var body: some View {
@@ -79,6 +91,13 @@ struct TransactionEditView: View {
                     .font(AppTypography.headingMedium())
                     .foregroundColor(AppColors.accent)
                 }
+            }
+            .sheet(isPresented: $showCurrencyPicker) {
+                CurrencyPickerSheet(
+                    selectedCurrency: currencyBinding,
+                    isPresented: $showCurrencyPicker
+                )
+                .presentationDetents([.medium, .large])
             }
             .presentationDetents([.large])
             .sheet(isPresented: $showCurrencyPicker) {
@@ -181,23 +200,15 @@ struct TransactionEditView: View {
                 focusedField = nil
                 showCurrencyPicker = true
             } label: {
-                HStack(spacing: Spacing.xs) {
-                    Text(CurrencyFormatter.flag(for: viewModel.transactionCurrency))
-                        .font(AppTypography.bodyDefault())
-                    Text(CurrencyFormatter.symbol(for: viewModel.transactionCurrency))
-                        .font(AppTypography.bodyLarge())
-                        .foregroundColor(AppColors.textSecondary)
-                    Image(systemName: "chevron.up.chevron.down")
-                        .font(.system(size: 8, weight: .semibold))
-                        .foregroundColor(AppColors.textTertiary)
-                }
-                .padding(.horizontal, Spacing.sm)
-                .padding(.vertical, Spacing.xs)
-                .background(AppColors.backgroundTertiary)
-                .cornerRadius(CornerRadius.xs)
+                Text(CurrencyFormatter.currencySymbol)
+                    .font(AppTypography.body())
+                    .foregroundColor(AppColors.textSecondary)
+                    .padding(.horizontal, Spacing.md)
+                    .padding(.vertical, Spacing.xs)
+                    .background(AppColors.backgroundTertiary)
+                    .cornerRadius(CornerRadius.xs)
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("Currency: \(viewModel.transactionCurrency). Tap to change.")
 
             TextField(
                 CurrencyFormatter.isZeroDecimal(viewModel.transactionCurrency) ? "0" : "0.00",

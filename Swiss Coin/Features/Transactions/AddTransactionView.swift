@@ -11,13 +11,8 @@ struct AddTransactionView: View {
     @Environment(\.colorScheme) private var colorScheme
     @FocusState private var focusedField: FocusField?
 
+    @AppStorage("default_currency") private var selectedCurrency: String = "USD"
     @State private var showCurrencyPicker = false
-    @State private var showCategoryPicker = false
-    @State private var showNoteField = false
-    @State private var showSaveError = false
-    @State private var saveErrorMessage = ""
-    @State private var undoParticipant: Person?
-    @State private var showUndoToast = false
 
     var initialParticipant: Person?
     var initialGroup: UserGroup?
@@ -39,6 +34,19 @@ struct AddTransactionView: View {
             ?? PersistenceController.shared.container.viewContext
         _viewModel = StateObject(
             wrappedValue: TransactionViewModel(context: ctx))
+    }
+
+    // MARK: - Computed Properties
+
+    private var currentCurrency: Currency {
+        Currency.all.first(where: { $0.code == selectedCurrency }) ?? Currency.all[0]
+    }
+
+    private var currencyBinding: Binding<Currency> {
+        Binding(
+            get: { currentCurrency },
+            set: { selectedCurrency = $0.code }
+        )
     }
 
     var body: some View {
@@ -98,35 +106,11 @@ struct AddTransactionView: View {
                 }
             }
             .sheet(isPresented: $showCurrencyPicker) {
-                TransactionCurrencyPicker(selectedCurrencyCode: $viewModel.transactionCurrency)
-                    .presentationDetents([.medium, .large])
-            }
-            .sheet(isPresented: $showCategoryPicker) {
-                CategoryPickerSheet(
-                    selectedCategory: $viewModel.selectedCategory,
-                    isPresented: $showCategoryPicker
+                CurrencyPickerSheet(
+                    selectedCurrency: currencyBinding,
+                    isPresented: $showCurrencyPicker
                 )
                 .presentationDetents([.medium, .large])
-            }
-            .undoToast(
-                isShowing: $showUndoToast,
-                message: "Participant removed",
-                onUndo: {
-                    if let person = undoParticipant {
-                        withAnimation(AppAnimation.spring) {
-                            viewModel.selectedParticipants.insert(person)
-                        }
-                        undoParticipant = nil
-                    }
-                }
-            )
-            .onChange(of: viewModel.transactionCurrency) { _, newCurrency in
-                // Strip decimals from amount when switching to zero-decimal currency
-                if CurrencyFormatter.isZeroDecimal(newCurrency) {
-                    if let dotIndex = viewModel.totalAmount.firstIndex(of: ".") {
-                        viewModel.totalAmount = String(viewModel.totalAmount[..<dotIndex])
-                    }
-                }
             }
             .presentationDetents([.large])
             .alert("Save Failed", isPresented: $showSaveError) {
@@ -277,18 +261,20 @@ struct AddTransactionView: View {
 
             Divider()
 
-            // Hero amount zone
-            VStack(spacing: Spacing.sm) {
-                HStack(spacing: Spacing.sm) {
-                    // Currency selector button
-                    Button {
-                        HapticManager.tap()
-                        focusedField = nil
-                        showCurrencyPicker = true
-                    } label: {
-                        HStack(spacing: Spacing.xs) {
-                            Text(CurrencyFormatter.flag(for: viewModel.transactionCurrency))
-                                .font(.system(size: IconSize.md))
+            Button {
+                HapticManager.tap()
+                focusedField = nil
+                showCurrencyPicker = true
+            } label: {
+                Text(CurrencyFormatter.currencySymbol)
+                    .font(AppTypography.body())
+                    .foregroundColor(AppColors.textSecondary)
+                    .padding(.horizontal, Spacing.md)
+                    .padding(.vertical, Spacing.xs)
+                    .background(AppColors.backgroundTertiary)
+                    .cornerRadius(CornerRadius.xs)
+            }
+            .buttonStyle(.plain)
 
                             Text(CurrencyFormatter.symbol(for: viewModel.transactionCurrency))
                                 .font(AppTypography.financialLarge())
