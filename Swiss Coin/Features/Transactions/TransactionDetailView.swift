@@ -197,7 +197,7 @@ struct TransactionDetailView: View {
                 // Total Amount
                 infoRow(
                     label: "Total",
-                    value: CurrencyFormatter.format(snapshot.totalAmount),
+                    value: CurrencyFormatter.format(snapshot.totalAmount, currencyCode: snapshot.currencyCode),
                     valueFont: AppTypography.financialDefault()
                 )
 
@@ -328,7 +328,7 @@ struct TransactionDetailView: View {
 
                     Spacer()
 
-                    Text(CurrencyFormatter.format(snapshot.totalAmount))
+                    Text(CurrencyFormatter.format(snapshot.totalAmount, currencyCode: snapshot.currencyCode))
                         .font(AppTypography.financialDefault())
                         .foregroundColor(AppColors.textPrimary)
                 }
@@ -514,6 +514,7 @@ struct CardDivider: View {
 /// Immutable snapshot of transaction data for view rendering
 struct TransactionSnapshot {
     var title: String = "Unknown"
+    var currencyCode: String = CurrencyFormatter.currencyCode
     var totalAmount: Double = 0
     var userNetAmount: Double = 0
     var formattedDate: String = ""
@@ -622,6 +623,7 @@ struct TransactionSnapshot {
     static func build(from tx: FinancialTransaction) -> TransactionSnapshot {
         var s = TransactionSnapshot()
         s.title = tx.title ?? "Unknown Transaction"
+        s.currencyCode = tx.effectiveCurrency
         s.totalAmount = tx.amount
 
         if let date = tx.date {

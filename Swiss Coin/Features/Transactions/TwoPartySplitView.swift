@@ -77,7 +77,8 @@ struct TwoPartySplitView: View {
                 labelText: "\(otherName) owe You",
                 amount: theyOweYou,
                 isActive: theyOweYou > 0.01,
-                accentColor: positiveGreen
+                accentColor: positiveGreen,
+                currencyCode: viewModel.transactionCurrency
             )
 
             // Row 2: You owe Other Person
@@ -89,7 +90,8 @@ struct TwoPartySplitView: View {
                 labelText: "You owe \(otherName)",
                 amount: youOweThem,
                 isActive: youOweThem > 0.01,
-                accentColor: AppColors.negative
+                accentColor: AppColors.negative,
+                currencyCode: viewModel.transactionCurrency
             )
         }
     }
@@ -108,6 +110,7 @@ struct DirectionalFlowRow: View {
     let amount: Double
     let isActive: Bool
     let accentColor: Color
+    var currencyCode: String = CurrencyFormatter.currencyCode
 
     private let avatarSize: CGFloat = 40
 
@@ -129,7 +132,7 @@ struct DirectionalFlowRow: View {
                         .foregroundColor(isActive ? accentColor : AppColors.textTertiary)
 
                     if isActive && amount > 0.01 {
-                        Text(CurrencyFormatter.formatAbsolute(amount))
+                        Text(CurrencyFormatter.formatAbsolute(amount, currencyCode: currencyCode))
                             .font(AppTypography.financialDefault())
                             .foregroundColor(accentColor)
                     }

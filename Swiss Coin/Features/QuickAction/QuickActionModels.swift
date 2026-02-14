@@ -36,7 +36,7 @@ enum SplitMethod: String, CaseIterable, Identifiable {
     var icon: String {
         switch self {
         case .equal: return "="
-        case .amount: return CurrencyFormatter.currencySymbol
+        case .amount: return "$"
         case .percentage: return "%"
         case .shares: return "÷"
         case .adjustment: return "±"

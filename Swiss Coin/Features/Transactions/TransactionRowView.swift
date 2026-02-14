@@ -81,7 +81,7 @@ struct TransactionRowView: View {
             if let owedById = split.owedBy?.id { participants.insert(owedById) }
         }
         let count = max(participants.count, 1)
-        let formattedTotal = CurrencyFormatter.format(transaction.amount)
+        let formattedTotal = CurrencyFormatter.format(transaction.amount, currencyCode: transaction.effectiveCurrency)
         let peopleText = count == 1 ? "1 person" : "\(count) people"
         cachedSplitDetails = "\(formattedTotal) · \(peopleText)"
 
@@ -316,7 +316,7 @@ struct TransactionRowView: View {
     }
 
     var amountView: some View {
-        Text(amountPrefix + CurrencyFormatter.format(amountToShow))
+        Text(amountPrefix + CurrencyFormatter.format(amountToShow, currencyCode: transaction.effectiveCurrency))
             .font(AppTypography.financialDefault())
             .foregroundColor(amountColor)
     }
@@ -346,7 +346,7 @@ struct TransactionRowView: View {
     private func shareTransaction() {
         let shareText = """
         \(transaction.title ?? "Transaction")
-        Amount: \(CurrencyFormatter.format(transaction.amount))
+        Amount: \(CurrencyFormatter.format(transaction.amount, currencyCode: transaction.effectiveCurrency))
         Date: \(cachedDateString)
         \(cachedSplitDetails)
         """

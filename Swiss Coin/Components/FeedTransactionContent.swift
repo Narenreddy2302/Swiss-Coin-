@@ -94,7 +94,7 @@ struct FeedTransactionContent: View {
     }
 
     private var totalAmountText: String {
-        CurrencyFormatter.format(transaction.amount)
+        CurrencyFormatter.format(transaction.amount, currencyCode: transaction.effectiveCurrency)
     }
 
     private var amountPrefix: String {
@@ -168,7 +168,7 @@ struct FeedTransactionContent: View {
         .padding(.horizontal, Spacing.screenHorizontal)
         .onTapGesture { onViewDetails?() }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(transaction.title ?? "Expense"), \(CurrencyFormatter.format(displayAmount)), \(transaction.date?.receiptFormatted ?? "")")
+        .accessibilityLabel("\(transaction.title ?? "Expense"), \(CurrencyFormatter.format(displayAmount, currencyCode: transaction.effectiveCurrency)), \(transaction.date?.receiptFormatted ?? "")")
     }
 
     // MARK: - Card Header
@@ -184,7 +184,7 @@ struct FeedTransactionContent: View {
 
                 Spacer()
 
-                Text("\(amountPrefix)\(CurrencyFormatter.format(displayAmount))")
+                Text("\(amountPrefix)\(CurrencyFormatter.format(displayAmount, currencyCode: transaction.effectiveCurrency))")
                     .font(AppTypography.financialLarge())
                     .foregroundColor(amountColor)
             }
@@ -250,11 +250,11 @@ struct FeedTransactionContent: View {
                     Spacer()
 
                     HStack(spacing: Spacing.sm) {
-                        Text(CurrencyFormatter.currencySymbol)
+                        Text(CurrencyFormatter.symbol(for: transaction.effectiveCurrency))
                             .font(AppTypography.bodySmall())
                             .foregroundColor(AppColors.textSecondary)
 
-                        Text(CurrencyFormatter.formatDecimal(split.amount))
+                        Text(CurrencyFormatter.formatDecimal(split.amount, currencyCode: transaction.effectiveCurrency))
                             .font(AppTypography.financialSmall())
                             .foregroundColor(AppColors.textPrimary)
                             .frame(minWidth: 50, alignment: .trailing)
@@ -279,11 +279,11 @@ struct FeedTransactionContent: View {
             Spacer()
 
             HStack(spacing: Spacing.sm) {
-                Text(CurrencyFormatter.currencySymbol)
+                Text(CurrencyFormatter.symbol(for: transaction.effectiveCurrency))
                     .font(AppTypography.bodySmall())
                     .foregroundColor(AppColors.textSecondary)
 
-                Text(CurrencyFormatter.formatDecimal(transaction.amount))
+                Text(CurrencyFormatter.formatDecimal(transaction.amount, currencyCode: transaction.effectiveCurrency))
                     .font(AppTypography.financialSmall())
                     .foregroundColor(AppColors.textPrimary)
                     .padding(.horizontal, Spacing.sm)
@@ -371,7 +371,7 @@ struct FeedTransactionContent: View {
 
                 Spacer()
 
-                Text("\(amountPrefix)\(CurrencyFormatter.format(displayAmount))")
+                Text("\(amountPrefix)\(CurrencyFormatter.format(displayAmount, currencyCode: transaction.effectiveCurrency))")
                     .font(AppTypography.financialDefault())
                     .foregroundColor(amountColor)
             }
@@ -448,7 +448,7 @@ struct FeedTransactionContent: View {
         .onTapGesture { onViewDetails?() }
         .contextMenu { contextMenuContent }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(transaction.title ?? "Expense"), \(CurrencyFormatter.format(displayAmount)), \(transaction.date?.receiptFormatted ?? "")")
+        .accessibilityLabel("\(transaction.title ?? "Expense"), \(CurrencyFormatter.format(displayAmount, currencyCode: transaction.effectiveCurrency)), \(transaction.date?.receiptFormatted ?? "")")
     }
 
     // MARK: - Shared Context Menu
@@ -456,7 +456,7 @@ struct FeedTransactionContent: View {
     @ViewBuilder
     private var contextMenuContent: some View {
         Button {
-            UIPasteboard.general.string = CurrencyFormatter.format(transaction.amount)
+            UIPasteboard.general.string = CurrencyFormatter.format(transaction.amount, currencyCode: transaction.effectiveCurrency)
             HapticManager.copyAction()
         } label: {
             Label("Copy Amount", systemImage: "doc.on.doc")

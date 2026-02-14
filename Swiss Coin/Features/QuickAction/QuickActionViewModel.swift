@@ -578,6 +578,7 @@ class QuickActionViewModel: ObservableObject {
         transaction.id = UUID()
         transaction.title = transactionName.trimmingCharacters(in: .whitespacesAndNewlines)
         transaction.amount = amount
+        transaction.currency = selectedCurrency.code
         transaction.date = transactionDate
         // Legacy payer field for backward compatibility
         if paidByPersons.isEmpty {

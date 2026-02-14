@@ -10,6 +10,7 @@ final class TransactionViewModel: ObservableObject {
     @Published var totalAmount: String = ""
     @Published var date: Date = Date()
     @Published var note: String = ""
+    @Published var transactionCurrency: String = UserDefaults.standard.string(forKey: "default_currency") ?? "USD"
 
     // MARK: - Category Support
     @Published var selectedCategory: Category?
@@ -163,7 +164,7 @@ final class TransactionViewModel: ObservableObject {
         var result = ""
         var hasDecimalPoint = false
         var decimalCount = 0
-        let maxDecimals = CurrencyFormatter.isZeroDecimalCurrency ? 0 : 2
+        let maxDecimals = CurrencyFormatter.isZeroDecimal(transactionCurrency) ? 0 : 2
 
         for char in input {
             if char.isNumber {
@@ -294,51 +295,13 @@ final class TransactionViewModel: ObservableObject {
         let balance = totalBalance
         if abs(balance) < Self.epsilon { return nil }
         if balance > 0 {
-            return "Remaining: \(CurrencyFormatter.formatAbsolute(balance))"
+            return "Remaining: \(CurrencyFormatter.formatAbsolute(balance, currencyCode: transactionCurrency))"
         } else {
-            return "Over by: \(CurrencyFormatter.formatAbsolute(balance))"
+            return "Over by: \(CurrencyFormatter.formatAbsolute(balance, currencyCode: transactionCurrency))"
         }
     }
 
-    var isValid: Bool {
-        // 1. Title validation - trim whitespace
-        let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedTitle.isEmpty else { return false }
-
-        // 2. Amount validation - must be positive (using 0.001 threshold for floating-point safety)
-        guard totalAmountDouble > 0.001 else { return false }
-
-        // 3. Participant validation - at least one person
-        guard !selectedParticipants.isEmpty else { return false }
-
-        // 4. Multi-payer validation: paid amounts must sum to total
-        if selectedPayerPersons.count > 1 {
-            guard isPaidByBalanced else { return false }
-        }
-
-        // 5. Split method specific validation
-        switch splitMethod {
-        case .equal:
-            return true
-
-        case .percentage:
-            let totalPercent = selectedParticipants.reduce(0.0) { sum, person in
-                sum + (Double(rawInputs[person.id ?? UUID()] ?? "0") ?? 0)
-            }
-            return abs(totalPercent - 100.0) < 0.01
-
-        case .amount:
-            let totalExact = selectedParticipants.reduce(0.0) { sum, person in
-                sum + (Double(rawInputs[person.id ?? UUID()] ?? "0") ?? 0)
-            }
-            return abs(totalExact - totalAmountDouble) < 0.01
-
-        case .adjustment:
-            // Ensure total adjustments don't exceed total amount
-            let totalAdjustments = selectedParticipants.reduce(0.0) { sum, person in
-                sum + (Double(rawInputs[person.id ?? UUID()] ?? "0") ?? 0)
-            }
-            return totalAdjustments <= totalAmountDouble
+    // MARK: - Validation
 
     struct ValidationResult {
         let isValid: Bool
@@ -377,7 +340,7 @@ final class TransactionViewModel: ObservableObject {
                 sum + (Double(rawInputs[person.id ?? UUID()] ?? "0") ?? 0)
             }
             if abs(totalPercent - 100.0) >= 0.01 {
-                return "Percentages must add up to 100%"
+                return ValidationResult(isValid: false, message: "Percentages must add up to 100%")
             }
 
         case .amount:
@@ -471,7 +434,6 @@ final class TransactionViewModel: ObservableObject {
 
         guard totalAmountDouble < 10_000_000 else { return 0 }
         let totalCents = Int(totalAmountDouble * 100)
-        guard totalAmountDouble < 10_000_000 else { return 0 }
 
         switch splitMethod {
         case .equal:
@@ -542,6 +504,7 @@ final class TransactionViewModel: ObservableObject {
             transaction.id = UUID()
             transaction.title = cleanTitle
             transaction.amount = totalAmountDouble
+            transaction.currency = transactionCurrency.isEmpty ? nil : transactionCurrency
             transaction.date = date
             transaction.splitMethod = splitMethod.rawValue
 
@@ -654,6 +617,7 @@ final class TransactionViewModel: ObservableObject {
         totalAmount = ""
         date = Date()
         note = ""
+        transactionCurrency = UserDefaults.standard.string(forKey: "default_currency") ?? "USD"
         selectedCategory = Category.builtIn.first { $0.id == "other" }
         selectedPayerPersons = []
         payerAmounts = [:]
@@ -678,6 +642,7 @@ final class TransactionViewModel: ObservableObject {
         title = transaction.title ?? ""
         totalAmount = String(format: "%.2f", transaction.amount)
         date = transaction.date ?? Date()
+        transactionCurrency = transaction.effectiveCurrency
 
         // Parse note for category prefix
         let rawNote = transaction.note ?? ""
@@ -801,6 +766,7 @@ final class TransactionViewModel: ObservableObject {
             // Update basic fields
             transaction.title = cleanTitle
             transaction.amount = totalAmountDouble
+            transaction.currency = transactionCurrency.isEmpty ? nil : transactionCurrency
             transaction.date = date
             transaction.splitMethod = splitMethod.rawValue
 

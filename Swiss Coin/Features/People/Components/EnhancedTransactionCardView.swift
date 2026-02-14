@@ -105,7 +105,7 @@ struct EnhancedTransactionCardView: View {
     }
 
     private var totalAmountText: String {
-        CurrencyFormatter.format(transaction.amount)
+        CurrencyFormatter.format(transaction.amount, currencyCode: transaction.effectiveCurrency)
     }
 
     private var totalBalance: Double {
@@ -160,7 +160,7 @@ struct EnhancedTransactionCardView: View {
         .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: CornerRadius.card))
         .contextMenu { contextMenuContent }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(transaction.title ?? "Expense"), \(CurrencyFormatter.format(displayAmount)), \(dateText)")
+        .accessibilityLabel("\(transaction.title ?? "Expense"), \(CurrencyFormatter.format(displayAmount, currencyCode: transaction.effectiveCurrency)), \(dateText)")
         .accessibilityHint("Double tap and hold for options")
         .onAppear { recomputeCachedValues() }
         .onReceive(NotificationCenter.default.publisher(for: .NSManagedObjectContextDidSave)) { _ in
@@ -203,7 +203,7 @@ struct EnhancedTransactionCardView: View {
 
                 Spacer(minLength: Spacing.sm)
 
-                Text(CurrencyFormatter.format(displayAmount))
+                Text(CurrencyFormatter.format(displayAmount, currencyCode: transaction.effectiveCurrency))
                     .font(AppTypography.financialLarge())
                     .foregroundColor(amountColor)
             }
@@ -289,11 +289,11 @@ struct EnhancedTransactionCardView: View {
             Spacer()
 
             HStack(spacing: Spacing.xs) {
-                Text(CurrencyFormatter.currencySymbol)
+                Text(CurrencyFormatter.symbol(for: transaction.effectiveCurrency))
                     .font(AppTypography.bodySmall())
                     .foregroundColor(AppColors.textSecondary)
 
-                Text(CurrencyFormatter.formatDecimal(abs(transaction.amount - totalBalance)))
+                Text(CurrencyFormatter.formatDecimal(abs(transaction.amount - totalBalance), currencyCode: transaction.effectiveCurrency))
                     .font(AppTypography.financialSmall())
                     .foregroundColor(isSettled ? AppColors.positive : AppColors.textPrimary)
                     .frame(minWidth: 50, alignment: .trailing)
@@ -393,12 +393,12 @@ struct EnhancedTransactionCardView: View {
             Spacer()
 
             HStack(spacing: Spacing.xs) {
-                Text(CurrencyFormatter.currencySymbol)
+                Text(CurrencyFormatter.symbol(for: transaction.effectiveCurrency))
                     .font(AppTypography.bodySmall())
                     .foregroundColor(AppColors.textSecondary)
                     .frame(width: 14, alignment: .trailing)
 
-                Text(CurrencyFormatter.formatDecimal(amount))
+                Text(CurrencyFormatter.formatDecimal(amount, currencyCode: transaction.effectiveCurrency))
                     .font(AppTypography.financialSmall())
                     .foregroundColor(AppColors.textPrimary)
                     .frame(minWidth: 50, alignment: .trailing)
@@ -418,7 +418,7 @@ struct EnhancedTransactionCardView: View {
     @ViewBuilder
     private var contextMenuContent: some View {
         Button {
-            UIPasteboard.general.string = CurrencyFormatter.format(transaction.amount)
+            UIPasteboard.general.string = CurrencyFormatter.format(transaction.amount, currencyCode: transaction.effectiveCurrency)
             HapticManager.copyAction()
         } label: {
             Label("Copy Amount", systemImage: "doc.on.doc")
