@@ -25,7 +25,6 @@ struct ProfileView: View {
     @AppStorage("reduce_motion") private var reduceMotion = false
 
     // Security
-    @State private var darkModeOn = false
     @State private var biometricEnabled = false
     @State private var pinEnabled = false
     @State private var biometricType: LABiometryType = .none
@@ -75,6 +74,14 @@ struct ProfileView: View {
         }
     }
 
+    private var themeDisplayName: String {
+        switch themeMode {
+        case "light": return "Light"
+        case "dark": return "Dark"
+        default: return "System"
+        }
+    }
+
     private var appVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
     }
@@ -115,7 +122,6 @@ struct ProfileView: View {
                 HapticManager.prepare()
                 loadCurrentUser()
                 loadSecuritySettings()
-                darkModeOn = themeMode == "dark"
             }
             .alert("Log Out", isPresented: $showingLogoutAlert) {
                 Button("Cancel", role: .cancel) {}
@@ -224,24 +230,27 @@ struct ProfileView: View {
                 Divider()
                     .padding(.leading, Spacing.lg)
 
-                HStack {
-                    Text("Dark Mode")
-                        .font(AppTypography.bodyLarge())
-                        .foregroundColor(AppColors.textPrimary)
+                NavigationLink(destination: AppearanceSettingsView()) {
+                    HStack {
+                        Text("Appearance")
+                            .font(AppTypography.bodyLarge())
+                            .foregroundColor(AppColors.textPrimary)
 
-                    Spacer()
+                        Spacer()
 
-                    Toggle("", isOn: $darkModeOn)
-                        .labelsHidden()
-                        .onChange(of: darkModeOn) { _, newValue in
-                            HapticManager.toggle()
-                            let newMode = newValue ? "dark" : "light"
-                            ThemeTransitionManager.shared.transition(to: newMode, reduceMotion: reduceMotion)
-                            themeMode = newMode
-                        }
+                        Text(themeDisplayName)
+                            .font(AppTypography.bodyDefault())
+                            .foregroundColor(AppColors.textSecondary)
+
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: IconSize.xs, weight: .semibold))
+                            .foregroundColor(AppColors.textTertiary)
+                    }
+                    .padding(.horizontal, Spacing.lg)
+                    .padding(.vertical, Spacing.md)
+                    .contentShape(Rectangle())
                 }
-                .padding(.horizontal, Spacing.lg)
-                .padding(.vertical, Spacing.md)
+                .buttonStyle(.plain)
             }
             .background(AppColors.cardBackground)
         }
