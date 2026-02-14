@@ -429,11 +429,11 @@ struct GroupDetailTransactionRow: View {
             Spacer()
 
             VStack(alignment: .trailing, spacing: Spacing.xxs) {
-                Text("\(amountPrefix)\(CurrencyFormatter.format(abs(userNetAmount)))")
+                Text("\(amountPrefix)\(CurrencyFormatter.format(abs(userNetAmount), currencyCode: transaction.effectiveCurrency))")
                     .font(AppTypography.financialSmall())
                     .foregroundColor(amountColor)
 
-                (Text("of ") + Text(CurrencyFormatter.format(transaction.amount)).fontWeight(.bold))
+                (Text("of ") + Text(CurrencyFormatter.format(transaction.amount, currencyCode: transaction.effectiveCurrency)).fontWeight(.bold))
                     .font(AppTypography.labelSmall())
                     .foregroundColor(AppColors.textSecondary)
             }

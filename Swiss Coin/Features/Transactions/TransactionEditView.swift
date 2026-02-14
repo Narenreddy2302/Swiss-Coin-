@@ -11,8 +11,6 @@ struct TransactionEditView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @FocusState private var focusedField: FocusField?
 
-    @AppStorage("default_currency") private var selectedCurrency: String = "USD"
-    @State private var activeCurrency: Currency = Currency.fromGlobalSetting()
     @State private var showCurrencyPicker = false
     @State private var showSaveError = false
     @State private var saveErrorMessage = ""
@@ -84,10 +82,15 @@ struct TransactionEditView: View {
             }
             .presentationDetents([.large])
             .sheet(isPresented: $showCurrencyPicker) {
-                CurrencyPickerSheet(selectedCurrency: $activeCurrency, isPresented: $showCurrencyPicker)
+                TransactionCurrencyPicker(selectedCurrencyCode: $viewModel.transactionCurrency)
+                    .presentationDetents([.medium, .large])
             }
-            .onChange(of: activeCurrency) { newCurrency in
-                selectedCurrency = newCurrency.code
+            .onChange(of: viewModel.transactionCurrency) { _, newCurrency in
+                if CurrencyFormatter.isZeroDecimal(newCurrency) {
+                    if let dotIndex = viewModel.totalAmount.firstIndex(of: ".") {
+                        viewModel.totalAmount = String(viewModel.totalAmount[..<dotIndex])
+                    }
+                }
             }
             .alert("Update Failed", isPresented: $showSaveError) {
                 Button("OK", role: .cancel) {}
@@ -175,39 +178,42 @@ struct TransactionEditView: View {
 
             Button {
                 HapticManager.tap()
+                focusedField = nil
                 showCurrencyPicker = true
             } label: {
                 HStack(spacing: Spacing.xs) {
-                    Text(activeCurrency.flag)
+                    Text(CurrencyFormatter.flag(for: viewModel.transactionCurrency))
                         .font(AppTypography.bodyDefault())
-                    Text(activeCurrency.symbol)
+                    Text(CurrencyFormatter.symbol(for: viewModel.transactionCurrency))
                         .font(AppTypography.bodyLarge())
                         .foregroundColor(AppColors.textSecondary)
-                    Image(systemName: "chevron.down")
-                        .font(.system(size: IconSize.xs, weight: .medium))
+                    Image(systemName: "chevron.up.chevron.down")
+                        .font(.system(size: 8, weight: .semibold))
                         .foregroundColor(AppColors.textTertiary)
                 }
+                .padding(.horizontal, Spacing.sm)
+                .padding(.vertical, Spacing.xs)
+                .background(AppColors.backgroundTertiary)
+                .cornerRadius(CornerRadius.xs)
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("Select currency")
+            .accessibilityLabel("Currency: \(viewModel.transactionCurrency). Tap to change.")
 
-            TextField("0.00", text: $viewModel.totalAmount)
+            TextField(
+                CurrencyFormatter.isZeroDecimal(viewModel.transactionCurrency) ? "0" : "0.00",
+                text: $viewModel.totalAmount
+            )
                 .font(AppTypography.financialLarge())
-                .keyboardType(.decimalPad)
+                .keyboardType(CurrencyFormatter.isZeroDecimal(viewModel.transactionCurrency) ? .numberPad : .decimalPad)
                 .multilineTextAlignment(.trailing)
                 .foregroundColor(AppColors.textPrimary)
                 .focused($focusedField, equals: .amount)
                 .limitTextLength(to: 12, text: $viewModel.totalAmount)
                 .frame(minWidth: 80)
-                .onChange(of: viewModel.totalAmount) { newValue in
-                    var filtered = newValue.filter { "0123456789.".contains($0) }
-                    if let firstDot = filtered.firstIndex(of: ".") {
-                        let afterDot = filtered[filtered.index(after: firstDot)...]
-                        let digitsAfterDot = afterDot.filter { $0 != "." }
-                        filtered = String(filtered[...firstDot]) + String(digitsAfterDot.prefix(2))
-                    }
-                    if filtered != newValue {
-                        viewModel.totalAmount = filtered
+                .onChange(of: viewModel.totalAmount) { _, newValue in
+                    let sanitized = viewModel.sanitizeAmountInput(newValue)
+                    if sanitized != newValue {
+                        viewModel.totalAmount = sanitized
                     }
                 }
         }
@@ -555,7 +561,7 @@ struct TransactionEditView: View {
             Spacer()
 
             HStack(spacing: Spacing.xs) {
-                Text(CurrencyFormatter.currencySymbol)
+                Text(CurrencyFormatter.symbol(for: viewModel.transactionCurrency))
                     .font(AppTypography.bodyDefault())
                     .foregroundColor(AppColors.textSecondary)
 
@@ -635,7 +641,7 @@ struct TransactionEditView: View {
                 Spacer()
 
                 HStack(spacing: Spacing.xs) {
-                    Text(CurrencyFormatter.currencySymbol)
+                    Text(CurrencyFormatter.symbol(for: viewModel.transactionCurrency))
                         .font(AppTypography.bodyDefault())
                         .foregroundColor(AppColors.textSecondary)
 
@@ -669,7 +675,7 @@ struct TransactionEditView: View {
 
             if viewModel.splitMethod == .amount {
                 HStack(spacing: Spacing.xs) {
-                    Text(CurrencyFormatter.currencySymbol)
+                    Text(CurrencyFormatter.symbol(for: viewModel.transactionCurrency))
                         .font(AppTypography.bodyDefault())
                         .foregroundColor(AppColors.textSecondary)
 
@@ -683,7 +689,7 @@ struct TransactionEditView: View {
                 .onAppear { initializeAmountDefault(for: person) }
             } else {
                 HStack(spacing: Spacing.xs) {
-                    Text(CurrencyFormatter.currencySymbol)
+                    Text(CurrencyFormatter.symbol(for: viewModel.transactionCurrency))
                         .font(AppTypography.bodyDefault())
                         .foregroundColor(AppColors.textSecondary)
 

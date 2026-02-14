@@ -11,15 +11,11 @@ struct AddTransactionView: View {
     @Environment(\.colorScheme) private var colorScheme
     @FocusState private var focusedField: FocusField?
 
-    @AppStorage("default_currency") private var selectedCurrency: String = "USD"
-    @State private var activeCurrency: Currency = Currency.fromGlobalSetting()
-    @State private var showCurrencyPicker = false
-    @State private var showSaveError = false
-    @State private var saveErrorMessage = ""
-
     @State private var showCurrencyPicker = false
     @State private var showCategoryPicker = false
     @State private var showNoteField = false
+    @State private var showSaveError = false
+    @State private var saveErrorMessage = ""
     @State private var undoParticipant: Person?
     @State private var showUndoToast = false
 
@@ -62,10 +58,7 @@ struct AddTransactionView: View {
                         breakdownSection
                         noteSection
                     }
-                    breakdownSection
-                    noteSection
-                    validationSection
-                    saveButton
+                    .padding(.bottom, 120) // Space for sticky bar
                 }
                 .scrollDismissesKeyboard(.interactively)
 
@@ -105,7 +98,8 @@ struct AddTransactionView: View {
                 }
             }
             .sheet(isPresented: $showCurrencyPicker) {
-                currencyPickerSheet
+                TransactionCurrencyPicker(selectedCurrencyCode: $viewModel.transactionCurrency)
+                    .presentationDetents([.medium, .large])
             }
             .sheet(isPresented: $showCategoryPicker) {
                 CategoryPickerSheet(
@@ -126,13 +120,15 @@ struct AddTransactionView: View {
                     }
                 }
             )
+            .onChange(of: viewModel.transactionCurrency) { _, newCurrency in
+                // Strip decimals from amount when switching to zero-decimal currency
+                if CurrencyFormatter.isZeroDecimal(newCurrency) {
+                    if let dotIndex = viewModel.totalAmount.firstIndex(of: ".") {
+                        viewModel.totalAmount = String(viewModel.totalAmount[..<dotIndex])
+                    }
+                }
+            }
             .presentationDetents([.large])
-            .sheet(isPresented: $showCurrencyPicker) {
-                CurrencyPickerSheet(selectedCurrency: $activeCurrency, isPresented: $showCurrencyPicker)
-            }
-            .onChange(of: activeCurrency) { newCurrency in
-                selectedCurrency = newCurrency.code
-            }
             .alert("Save Failed", isPresented: $showSaveError) {
                 Button("OK", role: .cancel) {}
             } message: {
@@ -230,43 +226,17 @@ struct AddTransactionView: View {
                         .font(AppTypography.labelDefault())
                         .foregroundColor(AppColors.textSecondary)
 
-            Button {
-                HapticManager.tap()
-                showCurrencyPicker = true
-            } label: {
-                HStack(spacing: Spacing.xs) {
-                    Text(activeCurrency.flag)
-                        .font(AppTypography.bodyDefault())
-                    Text(activeCurrency.symbol)
-                        .font(AppTypography.bodyLarge())
-                        .foregroundColor(AppColors.textSecondary)
-                    Image(systemName: "chevron.down")
-                        .font(.system(size: IconSize.xs, weight: .medium))
+                    Spacer()
+
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: IconSize.xs, weight: .semibold))
                         .foregroundColor(AppColors.textTertiary)
                 }
+                .padding(.vertical, Spacing.md)
+                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("Select currency")
-
-            TextField("0.00", text: $viewModel.totalAmount)
-                .font(AppTypography.financialLarge())
-                .keyboardType(.decimalPad)
-                .multilineTextAlignment(.trailing)
-                .foregroundColor(AppColors.textPrimary)
-                .focused($focusedField, equals: .amount)
-                .limitTextLength(to: 12, text: $viewModel.totalAmount)
-                .frame(minWidth: 80)
-                .onChange(of: viewModel.totalAmount) { newValue in
-                    var filtered = newValue.filter { "0123456789.".contains($0) }
-                    if let firstDot = filtered.firstIndex(of: ".") {
-                        let afterDot = filtered[filtered.index(after: firstDot)...]
-                        let digitsAfterDot = afterDot.filter { $0 != "." }
-                        filtered = String(filtered[...firstDot]) + String(digitsAfterDot.prefix(2))
-                    }
-                    if filtered != newValue {
-                        viewModel.totalAmount = filtered
-                    }
-                }
+            .accessibilityLabel("Category: \(viewModel.selectedCategory?.name ?? "Other"). Tap to change.")
         }
         .padding(Spacing.cardPadding)
         .background(
@@ -313,32 +283,37 @@ struct AddTransactionView: View {
                     // Currency selector button
                     Button {
                         HapticManager.tap()
+                        focusedField = nil
                         showCurrencyPicker = true
                     } label: {
                         HStack(spacing: Spacing.xs) {
-                            Text(CurrencyFormatter.currencyFlag)
+                            Text(CurrencyFormatter.flag(for: viewModel.transactionCurrency))
                                 .font(.system(size: IconSize.md))
 
-                            Text(CurrencyFormatter.currencySymbol)
+                            Text(CurrencyFormatter.symbol(for: viewModel.transactionCurrency))
                                 .font(AppTypography.financialLarge())
                                 .foregroundColor(AppColors.textSecondary)
 
-                            Image(systemName: "chevron.down")
-                                .font(.system(size: IconSize.xs, weight: .semibold))
+                            Image(systemName: "chevron.up.chevron.down")
+                                .font(.system(size: 8, weight: .semibold))
                                 .foregroundColor(AppColors.textTertiary)
                         }
+                        .padding(.horizontal, Spacing.sm)
+                        .padding(.vertical, Spacing.xs)
+                        .background(AppColors.backgroundTertiary)
+                        .cornerRadius(CornerRadius.xs)
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel("Currency: \(CurrencyFormatter.currencyCode). Tap to change.")
+                    .accessibilityLabel("Currency: \(viewModel.transactionCurrency). Tap to change.")
 
                     // Amount field
                     TextField(
-                        CurrencyFormatter.isZeroDecimalCurrency ? "0" : "0.00",
+                        CurrencyFormatter.isZeroDecimal(viewModel.transactionCurrency) ? "0" : "0.00",
                         text: $viewModel.totalAmount
                     )
                     .font(AppTypography.financialHero())
-                    .keyboardType(.decimalPad)
+                    .keyboardType(CurrencyFormatter.isZeroDecimal(viewModel.transactionCurrency) ? .numberPad : .decimalPad)
                     .multilineTextAlignment(.trailing)
                     .foregroundColor(AppColors.textPrimary)
                     .focused($focusedField, equals: .amount)
@@ -364,73 +339,6 @@ struct AddTransactionView: View {
                     y: AppShadow.card(for: colorScheme).y
                 )
         )
-    }
-
-    private var paidBySearchResults: some View {
-        ScrollView {
-            VStack(spacing: 0) {
-                Button {
-                    withAnimation(AppAnimation.quick) {
-                        viewModel.toggleCurrentUserAsPayer(in: viewContext)
-                        viewModel.paidBySearchText = ""
-                    }
-                    HapticManager.selectionChanged()
-                    focusedField = .paidBySearch
-                } label: {
-                    searchResultRow(name: "You", isSelected: viewModel.isCurrentUserPayer && !viewModel.selectedPayerPersons.isEmpty)
-                }
-                .buttonStyle(.plain)
-
-                ForEach(viewModel.filteredPaidByContacts, id: \.objectID) { person in
-                    Divider().padding(.leading, Spacing.lg)
-
-                    Button {
-                        HapticManager.selectionChanged()
-                        selectedCurrency = currency.code
-                        showCurrencyPicker = false
-                    } label: {
-                        HStack(spacing: Spacing.md) {
-                            Text(currency.flag)
-                                .font(.system(size: IconSize.lg))
-
-                            VStack(alignment: .leading, spacing: Spacing.xxs) {
-                                Text(currency.name)
-                                    .font(AppTypography.bodyLarge())
-                                    .foregroundColor(AppColors.textPrimary)
-                                Text(currency.code)
-                                    .font(AppTypography.caption())
-                                    .foregroundColor(AppColors.textSecondary)
-                            }
-
-                            Spacer()
-
-                            Text(currency.symbol)
-                                .font(AppTypography.bodyLarge())
-                                .foregroundColor(AppColors.textSecondary)
-
-                            if selectedCurrency == currency.id {
-                                Image(systemName: "checkmark")
-                                    .font(AppTypography.headingMedium())
-                                    .foregroundColor(AppColors.accent)
-                            }
-                        }
-                        .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-            .listStyle(.insetGrouped)
-            .navigationTitle("Select Currency")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
-                        HapticManager.tap()
-                        showCurrencyPicker = false
-                    }
-                }
-            }
-        }
     }
 
     // MARK: - Section 3: Paid By
@@ -460,7 +368,7 @@ struct AddTransactionView: View {
                             Spacer()
 
                             if viewModel.totalAmountDouble > 0 {
-                                Text(CurrencyFormatter.formatAbsolute(viewModel.totalAmountDouble))
+                                Text(CurrencyFormatter.formatAbsolute(viewModel.totalAmountDouble, currencyCode: viewModel.transactionCurrency))
                                     .font(AppTypography.financialDefault())
                                     .foregroundColor(AppColors.positive)
                             }
@@ -570,22 +478,49 @@ struct AddTransactionView: View {
             }
             .buttonStyle(.plain)
 
-    private var splitWithSearchResults: some View {
-        ScrollView {
-            VStack(spacing: 0) {
-                ForEach(viewModel.filteredSplitWithGroups, id: \.objectID) { group in
-                    Button {
-                        withAnimation(AppAnimation.quick) {
-                            viewModel.selectGroup(group)
-                            viewModel.splitWithSearchText = ""
-                        }
-                        HapticManager.selectionChanged()
-                        focusedField = .splitWithSearch
-                    } label: {
-                        HStack {
-                            Image(systemName: "person.2.fill")
-                                .font(.system(size: IconSize.sm))
-                                .foregroundColor(AppColors.accent)
+            ForEach(viewModel.filteredPaidByContacts, id: \.objectID) { person in
+                Divider().padding(.leading, Spacing.cardPadding + AvatarSize.sm + Spacing.md)
+
+                Button {
+                    withAnimation(AppAnimation.quick) {
+                        viewModel.togglePayer(person)
+                        viewModel.paidBySearchText = ""
+                    }
+                    HapticManager.selectionChanged()
+                } label: {
+                    searchResultRow(
+                        name: person.displayName,
+                        initials: person.initials,
+                        color: personColor(for: person),
+                        isSelected: viewModel.selectedPayerPersons.contains(person)
+                    )
+                }
+                .buttonStyle(.plain)
+            }
+
+            if viewModel.filteredPaidByContacts.isEmpty {
+                HStack {
+                    Spacer()
+                    Text("No results found")
+                        .font(AppTypography.bodyDefault())
+                        .foregroundColor(AppColors.textSecondary)
+                    Spacer()
+                }
+                .padding(.vertical, Spacing.lg)
+            }
+        }
+        .frame(maxHeight: 220)
+        .background(
+            RoundedRectangle(cornerRadius: CornerRadius.card)
+                .fill(AppColors.elevatedSurface)
+                .shadow(
+                    color: AppShadow.elevated(for: colorScheme).color,
+                    radius: AppShadow.elevated(for: colorScheme).radius,
+                    x: AppShadow.elevated(for: colorScheme).x,
+                    y: AppShadow.elevated(for: colorScheme).y
+                )
+        )
+    }
 
     // MARK: - Section 4: Split With
 
@@ -874,9 +809,14 @@ struct AddTransactionView: View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             sectionLabel("PAID BY AMOUNTS")
 
-            let sortedPayers: [Person] = {
-                if viewModel.selectedPayerPersons.isEmpty {
-                    return [CurrentUser.getOrCreate(in: viewContext)]
+            VStack(spacing: 0) {
+                let sortedPayers = sortedByCurrentUser(viewModel.selectedPayerPersons)
+                ForEach(Array(sortedPayers.enumerated()), id: \.element) { index, person in
+                    payerAmountRow(person: person)
+
+                    if index < sortedPayers.count - 1 {
+                        Divider().padding(.leading, Spacing.cardPadding + AvatarSize.sm + Spacing.md)
+                    }
                 }
 
                 // Warning if unbalanced
@@ -886,7 +826,7 @@ struct AddTransactionView: View {
                         Image(systemName: "exclamationmark.triangle.fill")
                             .font(.system(size: IconSize.sm))
                             .foregroundColor(AppColors.warning)
-                        Text("Amounts must equal \(CurrencyFormatter.formatAbsolute(viewModel.totalAmountDouble))")
+                        Text("Amounts must equal \(CurrencyFormatter.formatAbsolute(viewModel.totalAmountDouble, currencyCode: viewModel.transactionCurrency))")
                             .font(AppTypography.bodySmall())
                             .foregroundColor(AppColors.warning)
                         Spacer()
@@ -927,7 +867,7 @@ struct AddTransactionView: View {
             Spacer()
 
             HStack(spacing: Spacing.xs) {
-                Text(CurrencyFormatter.currencySymbol)
+                Text(CurrencyFormatter.symbol(for: viewModel.transactionCurrency))
                     .font(AppTypography.bodyDefault())
                     .foregroundColor(AppColors.textSecondary)
 
@@ -1033,11 +973,11 @@ struct AddTransactionView: View {
                     let isBalanced = abs(balance) < TransactionViewModel.epsilon
 
                     HStack(spacing: Spacing.xs) {
-                        Text(CurrencyFormatter.currencySymbol)
+                        Text(CurrencyFormatter.symbol(for: viewModel.transactionCurrency))
                             .font(AppTypography.bodyDefault())
                             .foregroundColor(AppColors.textSecondary)
 
-                        Text(CurrencyFormatter.formatDecimal(abs(viewModel.totalAmountDouble - balance)))
+                        Text(CurrencyFormatter.formatDecimal(abs(viewModel.totalAmountDouble - balance), currencyCode: viewModel.transactionCurrency))
                             .font(AppTypography.financialDefault())
                             .foregroundColor(isBalanced ? AppColors.positive : AppColors.negative)
                     }
@@ -1084,7 +1024,7 @@ struct AddTransactionView: View {
 
                 // Show calculated amount below for percentage/shares
                 if viewModel.splitMethod == .percentage || viewModel.splitMethod == .shares {
-                    Text(CurrencyFormatter.formatAbsolute(splitAmount))
+                    Text(CurrencyFormatter.formatAbsolute(splitAmount, currencyCode: viewModel.transactionCurrency))
                         .font(AppTypography.caption())
                         .foregroundColor(AppColors.textTertiary)
                 }
@@ -1100,7 +1040,7 @@ struct AddTransactionView: View {
 
             if viewModel.splitMethod == .amount {
                 HStack(spacing: Spacing.xs) {
-                    Text(CurrencyFormatter.currencySymbol)
+                    Text(CurrencyFormatter.symbol(for: viewModel.transactionCurrency))
                         .font(AppTypography.bodyDefault())
                         .foregroundColor(AppColors.textSecondary)
 
@@ -1114,7 +1054,7 @@ struct AddTransactionView: View {
                 .onAppear { initializeAmountDefault(for: person) }
             } else if viewModel.splitMethod == .equal {
                 HStack(spacing: Spacing.xs) {
-                    Text(CurrencyFormatter.currencySymbol)
+                    Text(CurrencyFormatter.symbol(for: viewModel.transactionCurrency))
                         .font(AppTypography.bodyDefault())
                         .foregroundColor(AppColors.textSecondary)
 
@@ -1375,79 +1315,6 @@ struct AddTransactionView: View {
             let defaultAmount = viewModel.totalAmountDouble / Double(count)
             viewModel.rawInputs[personId] = String(format: "%.2f", defaultAmount)
         }
-    }
-
-    // MARK: - Note Section
-
-    private var noteSection: some View {
-        VStack(alignment: .leading, spacing: Spacing.sm) {
-            Text("Note:")
-                .font(AppTypography.labelLarge())
-                .foregroundColor(AppColors.textPrimary)
-
-            TextField("Add a note (optional)", text: $viewModel.note, axis: .vertical)
-                .font(AppTypography.bodyDefault())
-                .foregroundColor(AppColors.textPrimary)
-                .lineLimit(1...4)
-                .padding(.horizontal, Spacing.lg)
-                .padding(.vertical, Spacing.md)
-                .background(AppColors.cardBackgroundElevated)
-                .cornerRadius(CornerRadius.sm)
-                .overlay(
-                    RoundedRectangle(cornerRadius: CornerRadius.sm)
-                        .stroke(AppColors.border, lineWidth: 1)
-                )
-        }
-    }
-
-    // MARK: - Validation Section
-
-    @ViewBuilder
-    private var validationSection: some View {
-        if let validationMessage = viewModel.validationMessage {
-            HStack(spacing: Spacing.sm) {
-                Image(systemName: "exclamationmark.triangle.fill")
-                    .font(.system(size: IconSize.sm))
-                    .foregroundColor(AppColors.warning)
-
-                Text(validationMessage)
-                    .font(AppTypography.bodySmall())
-                    .foregroundColor(AppColors.textSecondary)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, Spacing.lg)
-            .padding(.vertical, Spacing.md)
-            .background(
-                RoundedRectangle(cornerRadius: CornerRadius.sm)
-                    .fill(AppColors.warning.opacity(0.08))
-            )
-        }
-    }
-
-    // MARK: - Save Button
-
-    private var saveButton: some View {
-        Button {
-            HapticManager.tap()
-            viewModel.saveTransaction { success in
-                if success {
-                    dismiss()
-                } else {
-                    saveErrorMessage = viewModel.validationMessage ?? "Failed to save transaction. Please try again."
-                    showSaveError = true
-                }
-            }
-        } label: {
-            Text("Save Transaction")
-                .font(AppTypography.buttonLarge())
-                .foregroundColor(AppColors.onAccent)
-                .frame(maxWidth: .infinity)
-                .frame(height: ButtonHeight.lg)
-                .background(AppColors.accent)
-                .cornerRadius(CornerRadius.button)
-        }
-        .disabled(!viewModel.isValid)
-        .opacity(viewModel.isValid ? 1.0 : 0.5)
     }
 }
 
