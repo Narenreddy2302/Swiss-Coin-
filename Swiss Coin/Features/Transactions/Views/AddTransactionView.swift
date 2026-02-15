@@ -48,13 +48,27 @@ struct AddTransactionView: View {
                 totalBalanceSection
                 saveButton
             }
-            .padding(.horizontal, Spacing.xl)
+            .padding(.horizontal, Spacing.lg)
             .padding(.top, Spacing.screenTopPad)
             .padding(.bottom, Spacing.xxxl)
         }
+        .scrollDismissesKeyboard(.interactively)
         .background(AppColors.backgroundSecondary)
         .navigationTitle("New Transaction")
         .navigationBarTitleDisplayMode(.large)
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button {
+                    HapticManager.cancel()
+                    dismiss()
+                } label: {
+                    Text("Cancel")
+                        .font(AppTypography.bodyLarge())
+                        .foregroundColor(AppColors.textPrimary)
+                }
+            }
+        }
+        .presentationDetents([.large])
         .alert("Validation Error", isPresented: $showingValidationAlert) {
             Button("OK", role: .cancel) { }
         } message: {

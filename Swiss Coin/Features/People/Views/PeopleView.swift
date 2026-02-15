@@ -7,6 +7,7 @@ struct PeopleView: View {
     @State private var selectedSegment = 0
     @Environment(\.managedObjectContext) private var viewContext
     @State private var showingManualEntry = false
+    @State private var showingContactPicker = false
     @State private var showingArchivedPeople = false
 
     // Navigation state for conversation view after adding contact
@@ -72,7 +73,7 @@ struct PeopleView: View {
                         if selectedSegment == 0 {
                             Button {
                                 HapticManager.lightTap()
-                                showingManualEntry = true
+                                showingContactPicker = true
                             } label: {
                                 Image(systemName: "person.badge.plus")
                                     .font(AppTypography.buttonLarge())
@@ -96,6 +97,14 @@ struct PeopleView: View {
                     AddPersonView()
                         .environment(\.managedObjectContext, viewContext)
                 }
+            }
+            .sheet(isPresented: $showingContactPicker) {
+                ContactPickerView(onContactAdded: { person in
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                        selectedPersonForConversation = person
+                    }
+                })
+                .environment(\.managedObjectContext, viewContext)
             }
             .sheet(isPresented: $showingArchivedPeople) {
                 ArchivedPeopleView()
