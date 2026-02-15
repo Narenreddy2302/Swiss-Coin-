@@ -13,6 +13,8 @@ import SwiftUI
 struct ProfileView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.dismiss) var dismiss
+    @Environment(\.colorScheme) private var systemColorScheme
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @State private var currentUser: Person?
     @State private var showingLogoutAlert = false
@@ -22,7 +24,6 @@ struct ProfileView: View {
     @AppStorage("default_currency") private var defaultCurrency = "USD"
     @AppStorage("theme_mode") private var themeMode = "system"
     @AppStorage("notifications_enabled") private var notificationsEnabled = true
-    @AppStorage("reduce_motion") private var reduceMotion = false
 
     // Security
     @State private var biometricEnabled = false
@@ -74,12 +75,20 @@ struct ProfileView: View {
         }
     }
 
-    private var themeDisplayName: String {
-        switch themeMode {
-        case "light": return "Light"
-        case "dark": return "Dark"
-        default: return "System"
-        }
+    private var isDarkMode: Binding<Bool> {
+        Binding(
+            get: {
+                if themeMode == "system" {
+                    return systemColorScheme == .dark
+                }
+                return themeMode == "dark"
+            },
+            set: { newValue in
+                let mode = newValue ? "dark" : "light"
+                themeMode = mode
+                ThemeTransitionManager.shared.transition(to: mode, reduceMotion: reduceMotion)
+            }
+        )
     }
 
     private var appVersion: String {
@@ -230,27 +239,19 @@ struct ProfileView: View {
                 Divider()
                     .padding(.leading, Spacing.lg)
 
-                NavigationLink(destination: AppearanceSettingsView()) {
-                    HStack {
-                        Text("Appearance")
-                            .font(AppTypography.bodyLarge())
-                            .foregroundColor(AppColors.textPrimary)
+                HStack {
+                    Text("Dark Mode")
+                        .font(AppTypography.bodyLarge())
+                        .foregroundColor(AppColors.textPrimary)
 
-                        Spacer()
+                    Spacer()
 
-                        Text(themeDisplayName)
-                            .font(AppTypography.bodyDefault())
-                            .foregroundColor(AppColors.textSecondary)
-
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: IconSize.xs, weight: .semibold))
-                            .foregroundColor(AppColors.textTertiary)
-                    }
-                    .padding(.horizontal, Spacing.lg)
-                    .padding(.vertical, Spacing.md)
-                    .contentShape(Rectangle())
+                    Toggle("", isOn: isDarkMode)
+                        .labelsHidden()
+                        .tint(AppColors.accent)
                 }
-                .buttonStyle(.plain)
+                .padding(.horizontal, Spacing.lg)
+                .padding(.vertical, Spacing.md)
             }
             .background(AppColors.cardBackground)
         }

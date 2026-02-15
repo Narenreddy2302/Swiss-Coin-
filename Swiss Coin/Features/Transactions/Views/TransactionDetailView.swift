@@ -2,8 +2,8 @@
 //  TransactionDetailView.swift
 //  Swiss Coin
 //
-//  Transaction detail page matching the reference design: hero card,
-//  unified split details list and action buttons.
+//  Transaction detail page with flat, form-like aesthetic matching
+//  AddTransactionView — field containers, flat rows and action buttons.
 //
 
 import CoreData
@@ -16,7 +16,6 @@ struct TransactionDetailView: View {
     @ObservedObject var transaction: FinancialTransaction
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.dismiss) var dismiss
-    @Environment(\.colorScheme) var colorScheme
 
     @State private var showEditSheet = false
     @State private var showDeleteConfirmation = false
@@ -54,41 +53,36 @@ struct TransactionDetailView: View {
     // MARK: - Main Content
 
     private var mainContent: some View {
-        ScrollView(showsIndicators: false) {
-            VStack(spacing: 0) {
-                heroHeader
-                    .padding(.horizontal, Spacing.screenHorizontal)
-                    .padding(.top, Spacing.lg)
+        ScrollView(.vertical, showsIndicators: false) {
+            VStack(alignment: .leading, spacing: Spacing.lg) {
+                transactionNameField
+                dateAndAmountRow
+                paidBySection
+                splitWithSection
+                splitMethodSection
 
-                transactionInfoCard
-                    .padding(.horizontal, Spacing.screenHorizontal)
-                    .padding(.top, Spacing.xl)
-
-                if !snapshot.sortedPayers.isEmpty || !snapshot.sortedSplits.isEmpty {
-                    splitDetailsSection
-                        .padding(.horizontal, Spacing.screenHorizontal)
-                        .padding(.top, Spacing.xl)
+                if snapshot.isMultiPayer && snapshot.sortedPayers.count > 1 {
+                    paidByAmountsSection
                 }
+
+                splitBreakdownSection
+                totalBalanceSection
+                netPositionSummary
 
                 if let note = snapshot.note {
                     noteSection(note: note)
-                        .padding(.horizontal, Spacing.screenHorizontal)
-                        .padding(.top, Spacing.xl)
                 }
 
                 actionButtons
-                    .padding(.horizontal, Spacing.screenHorizontal)
-                    .padding(.top, Spacing.xl)
-
                 metadataFooter
-                    .padding(.horizontal, Spacing.screenHorizontal)
-                    .padding(.top, Spacing.lg)
-                    .padding(.bottom, Spacing.xxl)
             }
+            .padding(.horizontal, Spacing.xl)
+            .padding(.top, Spacing.screenTopPad)
+            .padding(.bottom, Spacing.xxxl)
         }
         .background(AppColors.backgroundSecondary)
         .navigationTitle("Transaction Details")
-        .navigationBarTitleDisplayMode(.inline)
+        .navigationBarTitleDisplayMode(.large)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Menu {
@@ -130,231 +124,226 @@ struct TransactionDetailView: View {
         }
     }
 
-    // MARK: - Hero Header
+    // MARK: - Transaction Name Field (read-only)
 
-    private var heroHeader: some View {
-        VStack(spacing: 0) {
-            // Direction icon
-            Circle()
-                .fill(AppColors.accentMuted)
-                .frame(width: AvatarSize.categoryHero, height: AvatarSize.categoryHero)
-                .overlay(
-                    Image(systemName: snapshot.directionIcon)
-                        .font(.system(size: IconSize.category, weight: .medium))
-                        .foregroundColor(AppColors.accent)
-                )
-                .padding(.bottom, Spacing.md)
+    private var transactionNameField: some View {
+        Text(snapshot.title)
+            .font(AppTypography.bodyDefault())
+            .foregroundColor(AppColors.textPrimary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, Spacing.lg)
+            .frame(height: ButtonHeight.lg)
+            .background(AppColors.cardBackground)
+            .cornerRadius(CornerRadius.medium)
+            .overlay(
+                RoundedRectangle(cornerRadius: CornerRadius.medium)
+                    .stroke(AppColors.border, lineWidth: 1)
+            )
+    }
 
-            // Title
-            Text(snapshot.title)
-                .font(AppTypography.displayMedium())
+    // MARK: - Date & Amount Row
+
+    private var dateAndAmountRow: some View {
+        HStack(spacing: 0) {
+            Text(formattedDateWithOrdinal)
+                .font(AppTypography.headingSmall())
                 .foregroundColor(AppColors.textPrimary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, Spacing.lg)
-                .padding(.bottom, Spacing.xs)
 
-            // Date
-            Text(snapshot.formattedDate)
+            Spacer()
+
+            Text(currencySymbol)
                 .font(AppTypography.bodyDefault())
-                .foregroundColor(AppColors.textSecondary)
+                .foregroundColor(AppColors.textPrimary)
+                .padding(.trailing, Spacing.xs)
 
-            // Net amount
-            Text(FinancialFormatter.signedCurrency(snapshot.userNetAmount, currencyCode: snapshot.currencyCode))
-                .financialHeroStyle()
-                .foregroundColor(snapshot.netAmountColor)
-                .padding(.top, Spacing.xl)
-                .padding(.bottom, Spacing.xs)
-                .accessibilityLabel("Net amount: \(FinancialFormatter.signedCurrency(snapshot.userNetAmount, currencyCode: snapshot.currencyCode))")
-
-            // Payment summary
-            Text(snapshot.paymentSummaryText)
-                .font(AppTypography.bodyDefault())
-                .foregroundColor(AppColors.textSecondary)
+            Text(formattedAmount)
+                .font(AppTypography.headingMedium())
+                .foregroundColor(AppColors.textPrimary)
         }
-        .padding(.vertical, Spacing.xxxl)
-        .frame(maxWidth: .infinity)
-        .background(
-            RoundedRectangle(cornerRadius: CornerRadius.large)
-                .fill(AppColors.cardBackground)
-                .shadow(
-                    color: AppShadow.card(for: colorScheme).color,
-                    radius: AppShadow.card(for: colorScheme).radius,
-                    x: AppShadow.card(for: colorScheme).x,
-                    y: AppShadow.card(for: colorScheme).y
-                )
+        .padding(.horizontal, Spacing.lg)
+        .frame(height: ButtonHeight.lg)
+        .background(AppColors.cardBackground)
+        .cornerRadius(CornerRadius.medium)
+        .overlay(
+            RoundedRectangle(cornerRadius: CornerRadius.medium)
+                .stroke(AppColors.border, lineWidth: 1)
         )
     }
 
-    // MARK: - Transaction Info Card
+    // MARK: - Paid By Section
 
-    private var transactionInfoCard: some View {
+    private var paidBySection: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
-            Text("DETAILS")
-                .font(AppTypography.labelSmall())
-                .foregroundColor(AppColors.textTertiary)
-
-            VStack(spacing: 0) {
-                // Total Amount
-                infoRow(
-                    label: "Total",
-                    value: CurrencyFormatter.format(snapshot.totalAmount, currencyCode: snapshot.currencyCode),
-                    valueFont: AppTypography.financialDefault()
-                )
-
-                CardDivider()
-
-                // Paid By
-                infoRow(
-                    label: "Paid by",
-                    value: snapshot.payerName
-                )
-
-                CardDivider()
-
-                // Split Method
-                infoRowWithIcon(
-                    label: "Split method",
-                    icon: snapshot.splitMethodIcon,
-                    value: snapshot.splitMethodName
-                )
-
-                CardDivider()
-
-                // Participants
-                infoRow(
-                    label: "Participants",
-                    value: snapshot.participantCount == 1
-                        ? "1 person"
-                        : "\(snapshot.participantCount) people"
-                )
-
-                // Group (conditional)
-                if let groupName = snapshot.groupName {
-                    CardDivider()
-
-                    infoRowWithIcon(
-                        label: "Group",
-                        icon: "person.2.fill",
-                        value: groupName
-                    )
-                }
-
-                CardDivider()
-
-                // Created by
-                infoRow(
-                    label: "Created by",
-                    value: snapshot.creatorName
-                )
-            }
-            .cardStyle()
-        }
-    }
-
-    // MARK: - Info Row Helpers
-
-    private func infoRow(
-        label: String,
-        value: String,
-        valueFont: Font = AppTypography.labelLarge()
-    ) -> some View {
-        HStack {
-            Text(label)
-                .font(AppTypography.bodyDefault())
-                .foregroundColor(AppColors.textSecondary)
-
-            Spacer()
-
-            Text(value)
-                .font(valueFont)
+            Text("Paid By:")
+                .font(AppTypography.headingSmall())
                 .foregroundColor(AppColors.textPrimary)
-        }
-        .padding(.vertical, Spacing.md)
-        .accessibilityElement(children: .combine)
-    }
 
-    private func infoRowWithIcon(
-        label: String,
-        icon: String,
-        value: String
-    ) -> some View {
-        HStack {
-            Text(label)
-                .font(AppTypography.bodyDefault())
-                .foregroundColor(AppColors.textSecondary)
-
-            Spacer()
-
-            HStack(spacing: Spacing.xs) {
-                if !icon.isEmpty {
-                    Image(systemName: icon)
-                        .font(.system(size: IconSize.sm))
-                        .foregroundColor(AppColors.textPrimary)
-                }
-                Text(value)
-                    .font(AppTypography.labelLarge())
-                    .foregroundColor(AppColors.textPrimary)
-            }
-        }
-        .padding(.vertical, Spacing.md)
-        .accessibilityElement(children: .combine)
-    }
-
-    // MARK: - Split Details Section
-
-    private var splitDetailsSection: some View {
-        VStack(alignment: .leading, spacing: Spacing.sm) {
-            Text("SPLIT DETAILS")
-                .font(AppTypography.labelSmall())
-                .foregroundColor(AppColors.textTertiary)
-
-            VStack(spacing: 0) {
-                let participants = snapshot.unifiedParticipants
-                ForEach(Array(participants.enumerated()), id: \.element.id) { index, participant in
-                    UnifiedParticipantRow(participant: participant)
-
-                    if index < participants.count - 1 {
-                        CardDivider()
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: Spacing.sm) {
+                    ForEach(Array(snapshot.sortedPayers.enumerated()), id: \.offset) { _, payer in
+                        readOnlyChip(name: payer.name)
                     }
                 }
-
-                // Total row
-                CardDivider()
-
-                HStack {
-                    Text("Total")
-                        .font(AppTypography.labelLarge())
-                        .foregroundColor(AppColors.textPrimary)
-
-                    Spacer()
-
-                    Text(CurrencyFormatter.format(snapshot.totalAmount, currencyCode: snapshot.currencyCode))
-                        .font(AppTypography.financialDefault())
-                        .foregroundColor(AppColors.textPrimary)
-                }
-                .padding(.vertical, Spacing.sm)
-                .accessibilityElement(children: .combine)
             }
-            .cardStyle()
         }
+    }
+
+    // MARK: - Split With Section
+
+    private var splitWithSection: some View {
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            Text("Split with:")
+                .font(AppTypography.headingSmall())
+                .foregroundColor(AppColors.textPrimary)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: Spacing.sm) {
+                    ForEach(Array(snapshot.sortedSplits.enumerated()), id: \.offset) { _, split in
+                        readOnlyChip(name: split.name)
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: - Split Method Section
+
+    private var splitMethodSection: some View {
+        VStack(alignment: .leading, spacing: Spacing.md) {
+            Text("Split Method:")
+                .font(AppTypography.headingSmall())
+                .foregroundColor(AppColors.textPrimary)
+
+            HStack(spacing: 0) {
+                ForEach(Array(SplitMethod.allCases.enumerated()), id: \.element) { index, method in
+                    splitMethodIndicator(method: method)
+                    if index < SplitMethod.allCases.count - 1 && activeSplitMethod != method && activeSplitMethod != SplitMethod.allCases[index + 1] {
+                        Divider()
+                            .frame(height: IconSize.lg)
+                            .foregroundColor(AppColors.border)
+                    }
+                }
+            }
+            .padding(Spacing.xs)
+            .background(AppColors.backgroundTertiary)
+            .cornerRadius(CornerRadius.medium)
+        }
+    }
+
+    // MARK: - Paid By Amounts Section
+
+    private var paidByAmountsSection: some View {
+        VStack(alignment: .leading, spacing: Spacing.xs) {
+            Text("PAID BY")
+                .font(AppTypography.labelSmall())
+                .foregroundColor(AppColors.textSecondary)
+                .tracking(0.5)
+
+            VStack(spacing: 0) {
+                ForEach(Array(snapshot.sortedPayers.enumerated()), id: \.offset) { index, payer in
+                    readOnlyAmountRow(name: payer.name, amount: payer.amount)
+                    if index < snapshot.sortedPayers.count - 1 {
+                        AppColors.divider.frame(height: 0.5)
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: - Split Breakdown Section
+
+    private var splitBreakdownSection: some View {
+        VStack(alignment: .leading, spacing: Spacing.xs) {
+            Text("SPLIT BREAKDOWN")
+                .font(AppTypography.labelSmall())
+                .foregroundColor(AppColors.textSecondary)
+                .tracking(0.5)
+
+            VStack(spacing: 0) {
+                ForEach(Array(snapshot.sortedSplits.enumerated()), id: \.offset) { index, split in
+                    readOnlyAmountRow(name: split.name, amount: split.amount)
+                    if index < snapshot.sortedSplits.count - 1 {
+                        AppColors.divider.frame(height: 0.5)
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: - Total Balance Section
+
+    private var totalBalanceSection: some View {
+        VStack(spacing: 0) {
+            AppColors.divider.frame(height: 0.5)
+
+            HStack {
+                Text("Total")
+                    .font(AppTypography.headingSmall())
+                    .foregroundColor(AppColors.textPrimary)
+
+                Spacer()
+
+                Text(FinancialFormatter.currency(snapshot.totalAmount, currencyCode: snapshot.currencyCode))
+                    .font(AppTypography.headingSmall())
+                    .foregroundColor(AppColors.textPrimary)
+            }
+            .padding(.vertical, Spacing.md)
+        }
+    }
+
+    // MARK: - Net Position Summary
+
+    private var netPositionSummary: some View {
+        HStack(spacing: Spacing.sm) {
+            Image(systemName: snapshot.directionIcon)
+                .font(.system(size: IconSize.sm, weight: .medium))
+                .foregroundColor(snapshot.netAmountColor)
+
+            Text(snapshot.statusText)
+                .font(AppTypography.headingSmall())
+                .foregroundColor(snapshot.netAmountColor)
+
+            Spacer()
+
+            Text(FinancialFormatter.signedCurrency(snapshot.userNetAmount, currencyCode: snapshot.currencyCode))
+                .font(AppTypography.financialDefault())
+                .foregroundColor(snapshot.netAmountColor)
+        }
+        .padding(.horizontal, Spacing.lg)
+        .padding(.vertical, Spacing.md)
+        .background(netPositionBackground)
+        .cornerRadius(CornerRadius.medium)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Net position: \(snapshot.statusText) \(FinancialFormatter.signedCurrency(snapshot.userNetAmount, currencyCode: snapshot.currencyCode))")
+    }
+
+    private var netPositionBackground: Color {
+        if snapshot.userNetAmount > 0.01 { return AppColors.positiveMuted }
+        if snapshot.userNetAmount < -0.01 { return AppColors.negativeMuted }
+        return AppColors.neutralMuted
     }
 
     // MARK: - Note Section
 
     private func noteSection(note: String) -> some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
-            Text("NOTE")
-                .font(AppTypography.labelSmall())
-                .foregroundColor(AppColors.textTertiary)
+            Text("Note:")
+                .font(AppTypography.headingSmall())
+                .foregroundColor(AppColors.textPrimary)
 
-            VStack(alignment: .leading) {
-                Text(note)
-                    .font(AppTypography.bodyLarge())
-                    .foregroundColor(AppColors.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .cardStyle()
+            Text(note)
+                .font(AppTypography.bodyDefault())
+                .foregroundColor(AppColors.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, Spacing.lg)
+                .padding(.vertical, Spacing.md)
+                .background(AppColors.cardBackground)
+                .cornerRadius(CornerRadius.medium)
+                .overlay(
+                    RoundedRectangle(cornerRadius: CornerRadius.medium)
+                        .stroke(AppColors.border, lineWidth: 1)
+                )
         }
     }
 
@@ -371,9 +360,25 @@ struct TransactionDetailView: View {
                         .font(.system(size: IconSize.sm))
                     Text("Edit Transaction")
                         .font(AppTypography.buttonLarge())
+                        .foregroundColor(AppColors.onAccent)
                 }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, Spacing.lg)
+                .background(
+                    LinearGradient(
+                        gradient: Gradient(colors: [
+                            AppColors.accent,
+                            AppColors.accent.opacity(0.85)
+                        ]),
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+                .foregroundColor(AppColors.onAccent)
+                .cornerRadius(CornerRadius.card)
+                .shadow(color: AppColors.accent.opacity(0.3), radius: 6, x: 0, y: 4)
             }
-            .buttonStyle(PrimaryButtonStyle())
+            .buttonStyle(AppButtonStyle(haptic: .none))
             .accessibilityLabel("Edit transaction")
 
             Button {
@@ -399,6 +404,7 @@ struct TransactionDetailView: View {
             .buttonStyle(AppButtonStyle(haptic: .none))
             .accessibilityLabel("Delete transaction")
         }
+        .padding(.top, Spacing.md)
     }
 
     // MARK: - Metadata Footer
@@ -411,6 +417,105 @@ struct TransactionDetailView: View {
                     .foregroundColor(AppColors.textTertiary)
                     .frame(maxWidth: .infinity, alignment: .center)
             }
+        }
+    }
+
+    // MARK: - Reusable Components
+
+    private func readOnlyChip(name: String) -> some View {
+        Text(name)
+            .font(AppTypography.labelDefault())
+            .foregroundColor(AppColors.textPrimary)
+            .lineLimit(1)
+            .padding(.horizontal, Spacing.md)
+            .padding(.vertical, Spacing.compactVertical)
+            .background(AppColors.backgroundTertiary)
+            .cornerRadius(CornerRadius.full)
+            .overlay(
+                RoundedRectangle(cornerRadius: CornerRadius.full)
+                    .stroke(AppColors.borderStrong, lineWidth: 1)
+            )
+    }
+
+    private func readOnlyAmountRow(name: String, amount: Double) -> some View {
+        HStack {
+            Text(name)
+                .font(AppTypography.headingSmall())
+                .foregroundColor(AppColors.textPrimary)
+
+            Spacer()
+
+            Text(FinancialFormatter.currency(amount, currencyCode: snapshot.currencyCode))
+                .font(AppTypography.headingSmall())
+                .foregroundColor(AppColors.textPrimary)
+        }
+        .padding(.vertical, Spacing.md)
+    }
+
+    private func splitMethodIndicator(method: SplitMethod) -> some View {
+        let isActive = activeSplitMethod == method
+        return Image(systemName: systemImageForSplitMethod(method))
+            .font(.system(size: IconSize.sm, weight: .semibold))
+            .foregroundColor(AppColors.textPrimary)
+            .frame(maxWidth: .infinity)
+            .frame(height: ButtonHeight.sm)
+            .background(isActive ? AppColors.cardBackground : Color.clear)
+            .cornerRadius(CornerRadius.small)
+            .shadow(color: isActive ? AppColors.shadow : Color.clear, radius: 2, y: 1)
+    }
+
+    // MARK: - Helpers
+
+    private static let monthDayFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMM d"
+        return formatter
+    }()
+
+    private static let yearFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy"
+        return formatter
+    }()
+
+    private var formattedDateWithOrdinal: String {
+        guard let date = transaction.date else { return "Unknown date" }
+        let dayString = Self.monthDayFormatter.string(from: date)
+        let calendar = Calendar.current
+        let day = calendar.component(.day, from: date)
+        let suffix: String
+        switch day {
+        case 1, 21, 31: suffix = "st"
+        case 2, 22: suffix = "nd"
+        case 3, 23: suffix = "rd"
+        default: suffix = "th"
+        }
+        let year = Self.yearFormatter.string(from: date)
+        return "\(dayString)\(suffix), \(year)"
+    }
+
+    private var formattedAmount: String {
+        String(format: "%.2f", snapshot.totalAmount)
+    }
+
+    private var currencySymbol: String {
+        Currency.fromCode(snapshot.currencyCode).symbol
+    }
+
+    private var activeSplitMethod: SplitMethod {
+        if let raw = transaction.splitMethod, let method = SplitMethod(rawValue: raw) {
+            return method
+        }
+        return .equal
+    }
+
+    private func systemImageForSplitMethod(_ method: SplitMethod) -> String {
+        switch method {
+        case .equal: return "equal"
+        case .amount: return "dollarsign"
+        case .percentage: return "percent"
+        case .shares: return "divide"
+        case .adjustment: return "line.3.horizontal"
         }
     }
 
