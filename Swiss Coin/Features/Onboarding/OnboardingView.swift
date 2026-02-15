@@ -17,19 +17,19 @@ struct OnboardingView: View {
             icon: "dollarsign.circle.fill",
             title: "Track Expenses",
             description: "Keep a clear record of every expense.\nKnow exactly where your money goes.",
-            color: .blue
+            color: AppColors.info
         ),
         OnboardingPage(
             icon: "person.2.circle.fill",
             title: "Split with Friends",
             description: "Easily split bills and track who owes what.\nNo more awkward money conversations.",
-            color: .blue
+            color: AppColors.info
         ),
         OnboardingPage(
             icon: "creditcard.circle.fill",
             title: "Manage Subscriptions",
             description: "Track personal and shared subscriptions.\nNever miss a payment or overpay.",
-            color: .orange
+            color: AppColors.accent
         ),
     ]
 
@@ -93,14 +93,9 @@ struct OnboardingView: View {
                             }
                         } label: {
                             Text("Next")
-                                .font(AppTypography.headingMedium())
-                                .foregroundColor(AppColors.buttonForeground)
-                                .frame(maxWidth: .infinity)
-                                .frame(height: ButtonHeight.lg)
-                                .background(AppColors.buttonBackground)
-                                .cornerRadius(CornerRadius.md)
+                                .font(AppTypography.buttonDefault())
                         }
-                        .buttonStyle(AppButtonStyle(haptic: .none))
+                        .buttonStyle(PrimaryButtonStyle())
                         .padding(.horizontal, Spacing.xxl)
                     } else {
                         Button {
@@ -108,14 +103,9 @@ struct OnboardingView: View {
                             completeOnboarding()
                         } label: {
                             Text("Get Started")
-                                .font(AppTypography.headingMedium())
-                                .foregroundColor(AppColors.buttonForeground)
-                                .frame(maxWidth: .infinity)
-                                .frame(height: ButtonHeight.lg)
-                                .background(AppColors.buttonBackground)
-                                .cornerRadius(CornerRadius.md)
+                                .font(AppTypography.buttonDefault())
                         }
-                        .buttonStyle(AppButtonStyle(haptic: .none))
+                        .buttonStyle(PrimaryButtonStyle())
                         .padding(.horizontal, Spacing.xxl)
                     }
                 }
@@ -137,7 +127,7 @@ struct OnboardingView: View {
                     .frame(width: 160, height: 160)
 
                 Image(systemName: page.icon)
-                    .font(.system(size: 72, weight: .light))
+                    .font(.system(size: AvatarSize.xl, weight: .light))
                     .foregroundStyle(page.color)
             }
 
@@ -174,7 +164,7 @@ struct OnboardingView: View {
                     .frame(width: 160, height: 160)
 
                 Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 72, weight: .light))
+                    .font(.system(size: AvatarSize.xl, weight: .light))
                     .foregroundStyle(AppColors.accent)
             }
 

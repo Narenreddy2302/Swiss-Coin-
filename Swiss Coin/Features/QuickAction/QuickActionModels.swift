@@ -2,7 +2,7 @@
 //  QuickActionModels.swift
 //  Swiss Coin
 //
-//  Models for the Quick Action Transaction flow.
+//  Shared models: SplitMethod, Currency, Category.
 //
 
 import CoreData
@@ -11,7 +11,7 @@ import SwiftUI
 // MARK: - Enums
 
 /// Available methods for splitting a transaction.
-/// Canonical enum used by both the Transaction and QuickAction flows.
+/// Canonical enum used by the Transaction flow.
 enum SplitMethod: String, CaseIterable, Identifiable {
     case equal = "equal"            // Split evenly among all participants
     case amount = "amount"          // Each person pays a specific amount
@@ -113,14 +113,14 @@ struct Category: Identifiable, Hashable {
     }
 
     static let builtIn: [Category] = [
-        Category(id: "food", name: "Food & Drinks", icon: "🍽️", color: .orange, colorName: "orange"),
-        Category(id: "transport", name: "Transport", icon: "🚗", color: .blue, colorName: "blue"),
-        Category(id: "shopping", name: "Shopping", icon: "🛍️", color: .pink, colorName: "pink"),
-        Category(id: "entertainment", name: "Entertainment", icon: "🎬", color: .purple, colorName: "purple"),
-        Category(id: "bills", name: "Bills", icon: "📄", color: .indigo, colorName: "indigo"),
-        Category(id: "health", name: "Health", icon: "💊", color: .red, colorName: "red"),
-        Category(id: "travel", name: "Travel", icon: "✈️", color: .cyan, colorName: "cyan"),
-        Category(id: "other", name: "Other", icon: "📦", color: .gray, colorName: "gray"),
+        Category(id: "food", name: "Food & Drinks", icon: "🍽️", color: AppColors.warning, colorName: "orange"),
+        Category(id: "transport", name: "Transport", icon: "🚗", color: AppColors.info, colorName: "blue"),
+        Category(id: "shopping", name: "Shopping", icon: "🛍️", color: AppColors.chartSeries7, colorName: "pink"),
+        Category(id: "entertainment", name: "Entertainment", icon: "🎬", color: AppColors.assetRealEstate, colorName: "purple"),
+        Category(id: "bills", name: "Bills", icon: "📄", color: AppColors.assetInvestments, colorName: "indigo"),
+        Category(id: "health", name: "Health", icon: "💊", color: AppColors.negative, colorName: "red"),
+        Category(id: "travel", name: "Travel", icon: "✈️", color: AppColors.assetVehicles, colorName: "cyan"),
+        Category(id: "other", name: "Other", icon: "📦", color: AppColors.neutral, colorName: "gray"),
     ]
 
     /// All categories including user-created custom ones
@@ -186,10 +186,3 @@ private struct StoredCategory: Codable {
     }
 }
 
-/// Stores the calculated split details for each participant
-struct SplitDetail {
-    var amount: Double = 0  // Calculated amount this person owes/paid
-    var percentage: Double = 0  // Percentage of total (for display)
-    var shares: Int = 1  // Number of shares (for shares method)
-    var adjustment: Double = 0  // Adjustment amount (for adjustment method)
-}

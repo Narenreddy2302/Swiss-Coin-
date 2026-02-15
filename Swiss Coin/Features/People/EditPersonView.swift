@@ -70,7 +70,7 @@ struct EditPersonView: View {
                                 Image(systemName: "person.fill")
                                     .font(.system(size: IconSize.sm))
                                     .foregroundColor(AppColors.accent)
-                                    .frame(width: 24)
+                                    .frame(width: IconSize.lg)
 
                                 TextField("Name", text: $name)
                                     .font(AppTypography.bodyLarge())
@@ -88,7 +88,7 @@ struct EditPersonView: View {
                                 Image(systemName: "phone.fill")
                                     .font(.system(size: IconSize.sm))
                                     .foregroundColor(AppColors.accent)
-                                    .frame(width: 24)
+                                    .frame(width: IconSize.lg)
 
                                 TextField("Phone Number", text: $phoneNumber)
                                     .font(AppTypography.bodyLarge())

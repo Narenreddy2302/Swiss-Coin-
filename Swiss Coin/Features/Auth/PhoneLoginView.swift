@@ -89,13 +89,9 @@ struct PhoneLoginView: View {
                     authManager.authenticate()
                 } label: {
                     Text("Get Started")
-                        .font(AppTypography.headingMedium())
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, Spacing.lg)
-                        .background(AppColors.buttonBackground)
-                        .foregroundStyle(AppColors.buttonForeground)
-                        .clipShape(RoundedRectangle(cornerRadius: CornerRadius.md))
+                        .font(AppTypography.buttonDefault())
                 }
+                .buttonStyle(PrimaryButtonStyle())
                 .padding(.horizontal, Spacing.xxl)
                 .padding(.bottom, Spacing.lg)
 
@@ -126,11 +122,11 @@ private struct FeatureRow: View {
             Image(systemName: icon)
                 .font(.system(size: IconSize.md, weight: .semibold))
                 .foregroundColor(AppColors.accent)
-                .frame(width: 44, height: 44)
+                .frame(width: AvatarSize.md, height: AvatarSize.md)
                 .background(AppColors.accent.opacity(0.12))
                 .clipShape(RoundedRectangle(cornerRadius: CornerRadius.sm))
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text(title)
                     .font(AppTypography.labelLarge())
                     .foregroundColor(AppColors.textPrimary)

@@ -36,7 +36,7 @@ private struct ProfileButtonStyle: ButtonStyle {
 }
 
 #Preview {
-    VStack(spacing: 20) {
+    VStack(spacing: Spacing.xl) {
         ProfileButton(action: {})
             .padding()
             .background(AppColors.background)

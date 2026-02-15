@@ -16,9 +16,9 @@ struct FloatingActionButton: View {
             action()
         }) {
             Image(systemName: "plus")
-                .font(.system(size: 24, weight: .semibold))
-                .foregroundColor(.white)
-                .frame(width: 56, height: 56)
+                .font(.system(size: IconSize.lg, weight: .semibold))
+                .foregroundColor(AppColors.onAccent)
+                .frame(width: ButtonHeight.xl, height: ButtonHeight.xl)
                 .background(
                     Circle()
                         .fill(

@@ -71,6 +71,7 @@ struct ContactPickerView: View {
                     } label: {
                         Image(systemName: "person.badge.plus")
                     }
+                    .accessibilityLabel("Add person manually")
                     .disabled(contactsManager.authorizationStatus != .authorized)
                 }
             }
@@ -243,7 +244,7 @@ struct ContactPickerView: View {
                 showingManualEntry()
             } label: {
                 Text("Add Contact Manually")
-                    .font(AppTypography.headingMedium())
+                    .font(AppTypography.buttonDefault())
             }
             .buttonStyle(PrimaryButtonStyle())
             .padding(.top, Spacing.lg)
@@ -256,7 +257,7 @@ struct ContactPickerView: View {
             Spacer()
             
             Image(systemName: "person.2.circle")
-                .font(.system(size: 80))
+                .font(.system(size: AvatarSize.xl))
                 .foregroundColor(AppColors.accent)
             
             Text("Access Your Contacts")
@@ -280,32 +281,32 @@ struct ContactPickerView: View {
                     }
                 } label: {
                     Text("Allow Access")
-                        .font(AppTypography.headingMedium())
+                        .font(AppTypography.buttonDefault())
                 }
                 .buttonStyle(PrimaryButtonStyle())
-                
+
                 Button {
                     HapticManager.tap()
                     showingManualEntry()
                 } label: {
                     Text("Add Manually")
-                        .font(AppTypography.bodyLarge())
+                        .font(AppTypography.buttonDefault())
                 }
                 .buttonStyle(SecondaryButtonStyle())
             }
             .padding(.top, Spacing.lg)
-            
+
             Spacer()
         }
         .padding(Spacing.xxl)
     }
-    
+
     private var accessDeniedView: some View {
         VStack(spacing: Spacing.lg) {
             Spacer()
             
             Image(systemName: "person.crop.circle.badge.exclamationmark")
-                .font(.system(size: 80))
+                .font(.system(size: AvatarSize.xl))
                 .foregroundColor(AppColors.warning)
             
             Text("Access Denied")
@@ -326,16 +327,16 @@ struct ContactPickerView: View {
                     }
                 } label: {
                     Text("Open Settings")
-                        .font(AppTypography.headingMedium())
+                        .font(AppTypography.buttonDefault())
                 }
                 .buttonStyle(PrimaryButtonStyle())
-                
+
                 Button {
                     HapticManager.tap()
                     showingManualEntry()
                 } label: {
                     Text("Add Manually")
-                        .font(AppTypography.bodyLarge())
+                        .font(AppTypography.buttonDefault())
                 }
                 .buttonStyle(SecondaryButtonStyle())
             }

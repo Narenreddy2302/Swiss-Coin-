@@ -106,12 +106,12 @@ struct RecordSubscriptionPaymentView: View {
                             if let payer = selectedPayer {
                                 HStack(spacing: Spacing.sm) {
                                     Circle()
-                                        .fill(Color(hex: payer.colorHex ?? "#808080").opacity(0.3))
-                                        .frame(width: 24, height: 24)
+                                        .fill(Color(hex: payer.colorHex ?? AppColors.defaultAvatarColorHex).opacity(0.3))
+                                        .frame(width: IconSize.lg, height: IconSize.lg)
                                         .overlay(
                                             Text(payer.initials)
                                                 .font(AppTypography.labelSmall())
-                                                .foregroundColor(Color(hex: payer.colorHex ?? "#808080"))
+                                                .foregroundColor(Color(hex: payer.colorHex ?? AppColors.defaultAvatarColorHex))
                                         )
 
                                     Text(CurrentUser.isCurrentUser(payer.id) ? "You" : payer.firstName)
@@ -300,7 +300,7 @@ struct PayerPickerView: View {
                         HStack {
                             Circle()
                                 .fill(Color(hex: CurrentUser.defaultColorHex).opacity(0.3))
-                                .frame(width: 36, height: 36)
+                                .frame(width: AvatarSize.sm, height: AvatarSize.sm)
                                 .overlay(
                                     Text(CurrentUser.initials)
                                         .font(AppTypography.labelDefault())
@@ -331,12 +331,12 @@ struct PayerPickerView: View {
                         } label: {
                             HStack {
                                 Circle()
-                                    .fill(Color(hex: member.colorHex ?? "#808080").opacity(0.3))
-                                    .frame(width: 36, height: 36)
+                                    .fill(Color(hex: member.colorHex ?? AppColors.defaultAvatarColorHex).opacity(0.3))
+                                    .frame(width: AvatarSize.sm, height: AvatarSize.sm)
                                     .overlay(
                                         Text(member.initials)
                                             .font(AppTypography.labelDefault())
-                                            .foregroundColor(Color(hex: member.colorHex ?? "#808080"))
+                                            .foregroundColor(Color(hex: member.colorHex ?? AppColors.defaultAvatarColorHex))
                                     )
 
                                 Text(member.displayName)

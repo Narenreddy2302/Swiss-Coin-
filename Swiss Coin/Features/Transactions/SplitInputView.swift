@@ -71,7 +71,7 @@ struct SplitInputView: View {
                 Image(systemName: "minus")
                     .font(.system(size: IconSize.xs, weight: .semibold))
                     .foregroundColor(currentShares > 0 ? AppColors.textPrimary : AppColors.disabled)
-                    .frame(width: 28, height: 28)
+                    .frame(width: IconSize.category, height: IconSize.category)
                     .background(
                         Circle().fill(AppColors.backgroundTertiary)
                     )
@@ -95,7 +95,7 @@ struct SplitInputView: View {
                 Image(systemName: "plus")
                     .font(.system(size: IconSize.xs, weight: .semibold))
                     .foregroundColor(AppColors.textPrimary)
-                    .frame(width: 28, height: 28)
+                    .frame(width: IconSize.category, height: IconSize.category)
                     .background(
                         Circle().fill(AppColors.backgroundTertiary)
                     )

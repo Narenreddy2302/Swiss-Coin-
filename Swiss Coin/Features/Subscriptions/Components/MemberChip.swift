@@ -17,7 +17,7 @@ struct MemberChip: View {
             ConversationAvatarView(
                 initials: person.initials,
                 colorHex: person.safeColorHex,
-                size: 28
+                size: IconSize.category
             )
             
             // Name
@@ -50,7 +50,7 @@ struct MemberChip: View {
         HStack(spacing: Spacing.xs) {
             Circle()
                 .fill(AppColors.accent.opacity(0.2))
-                .frame(width: 28, height: 28)
+                .frame(width: IconSize.category, height: IconSize.category)
                 .overlay(
                     Text("JD")
                         .font(AppTypography.labelSmall())

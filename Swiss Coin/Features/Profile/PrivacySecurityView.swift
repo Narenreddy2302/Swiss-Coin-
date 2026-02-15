@@ -152,7 +152,7 @@ struct PrivacySecurityView: View {
                                     Image(systemName: viewModel.biometricIcon)
                                         .font(.system(size: IconSize.sm))
                                         .foregroundColor(AppColors.accent)
-                                        .frame(width: 28)
+                                        .frame(width: IconSize.category)
 
                                     Text(viewModel.biometricLabel)
                                         .font(AppTypography.bodyLarge())
@@ -175,7 +175,7 @@ struct PrivacySecurityView: View {
                                 .padding(.vertical, Spacing.md)
 
                                 Divider()
-                                    .padding(.leading, 70)
+                                    .padding(.leading, Spacing.rowDividerInset)
                             }
 
                             // PIN Toggle
@@ -183,7 +183,7 @@ struct PrivacySecurityView: View {
                                 Image(systemName: "lock.fill")
                                     .font(.system(size: IconSize.sm))
                                     .foregroundColor(AppColors.accent)
-                                    .frame(width: 28)
+                                    .frame(width: IconSize.category)
 
                                 Text("PIN Lock")
                                     .font(AppTypography.bodyLarge())
@@ -208,13 +208,13 @@ struct PrivacySecurityView: View {
                             // Auto-lock (if security enabled)
                             if viewModel.biometricEnabled || viewModel.pinEnabled {
                                 Divider()
-                                    .padding(.leading, 70)
+                                    .padding(.leading, Spacing.rowDividerInset)
 
                                 HStack(spacing: Spacing.md) {
                                     Image(systemName: "timer")
                                         .font(.system(size: IconSize.sm))
                                         .foregroundColor(AppColors.accent)
-                                        .frame(width: 28)
+                                        .frame(width: IconSize.category)
 
                                     Text("Auto-Lock")
                                         .font(AppTypography.bodyLarge())
@@ -257,7 +257,7 @@ struct PrivacySecurityView: View {
                                 Image(systemName: "dollarsign.circle")
                                     .font(.system(size: IconSize.sm))
                                     .foregroundColor(AppColors.accent)
-                                    .frame(width: 28)
+                                    .frame(width: IconSize.category)
 
                                 Text("Show Balance to Contacts")
                                     .font(AppTypography.bodyLarge())
@@ -276,13 +276,13 @@ struct PrivacySecurityView: View {
                             .padding(.vertical, Spacing.md)
 
                             Divider()
-                                .padding(.leading, 70)
+                                .padding(.leading, Spacing.rowDividerInset)
 
                             HStack(spacing: Spacing.md) {
                                 Image(systemName: "clock")
                                     .font(.system(size: IconSize.sm))
                                     .foregroundColor(AppColors.accent)
-                                    .frame(width: 28)
+                                    .frame(width: IconSize.category)
 
                                 Text("Show Last Seen")
                                     .font(AppTypography.bodyLarge())
@@ -322,7 +322,7 @@ struct PrivacySecurityView: View {
                             Image(systemName: "chart.bar.fill")
                                 .font(.system(size: IconSize.sm))
                                 .foregroundColor(AppColors.accent)
-                                .frame(width: 28)
+                                .frame(width: IconSize.category)
 
                             Text("Share Analytics")
                                 .font(AppTypography.bodyLarge())
@@ -365,7 +365,7 @@ struct PrivacySecurityView: View {
                                 Image(systemName: "trash.fill")
                                     .font(.system(size: IconSize.sm))
                                     .foregroundColor(AppColors.negative)
-                                    .frame(width: 28)
+                                    .frame(width: IconSize.category)
 
                                 Text("Clear All Data")
                                     .font(AppTypography.bodyLarge())
@@ -466,7 +466,7 @@ struct PINSetupView: View {
                     ForEach(0..<6, id: \.self) { index in
                         Circle()
                             .fill(index < currentPIN.count ? AppColors.accent : AppColors.textSecondary.opacity(0.3))
-                            .frame(width: 16, height: 16)
+                            .frame(width: IconSize.sm, height: IconSize.sm)
                     }
                 }
                 .padding(.vertical, Spacing.lg)

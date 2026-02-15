@@ -154,7 +154,7 @@ struct ProfileView: View {
                         Image(uiImage: photo)
                             .resizable()
                             .scaledToFill()
-                            .frame(width: 60, height: 60)
+                            .frame(width: AvatarSize.profile, height: AvatarSize.profile)
                             .clipShape(Circle())
                             .overlay(
                                 Circle()
@@ -163,10 +163,10 @@ struct ProfileView: View {
                     } else {
                         Circle()
                             .fill(Color(hex: userColor).opacity(0.15))
-                            .frame(width: 60, height: 60)
+                            .frame(width: AvatarSize.profile, height: AvatarSize.profile)
                             .overlay(
                                 Text(userInitials)
-                                    .font(.system(size: 24, weight: .semibold))
+                                    .font(.system(size: IconSize.lg, weight: .semibold))
                                     .foregroundColor(Color(hex: userColor))
                             )
                             .overlay(
@@ -417,14 +417,10 @@ struct ProfileView: View {
                 Image(systemName: "rectangle.portrait.and.arrow.right")
                     .font(.system(size: IconSize.sm))
                 Text("Log Out")
-                    .font(AppTypography.labelLarge())
+                    .font(AppTypography.buttonDefault())
             }
-            .foregroundColor(AppColors.onAccent)
-            .frame(height: ButtonHeight.md)
-            .frame(maxWidth: .infinity)
-            .background(AppColors.negative)
-            .clipShape(RoundedRectangle(cornerRadius: CornerRadius.md))
         }
+        .buttonStyle(DestructiveButtonStyle())
         .padding(.horizontal, Spacing.lg)
         .padding(.top, Spacing.md)
     }

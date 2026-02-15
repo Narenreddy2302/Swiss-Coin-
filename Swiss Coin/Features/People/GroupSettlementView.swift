@@ -137,22 +137,17 @@ struct GroupSettlementView: View {
 
                                 // Settle Full Amount Button
                                 Button {
-                                    HapticManager.tap()
+                                    HapticManager.primaryAction()
                                     settleFullAmount()
                                 } label: {
                                     HStack {
                                         Image(systemName: "checkmark.circle.fill")
                                             .font(.system(size: IconSize.md))
                                         Text("Settle Full Amount")
-                                            .font(AppTypography.headingMedium())
+                                            .font(AppTypography.buttonDefault())
                                     }
-                                    .foregroundColor(AppColors.buttonForeground)
-                                    .frame(maxWidth: .infinity)
-                                    .frame(height: ButtonHeight.lg)
-                                    .background(AppColors.buttonBackground)
-                                    .cornerRadius(CornerRadius.md)
                                 }
-                                .buttonStyle(AppButtonStyle(haptic: .none))
+                                .buttonStyle(PrimaryButtonStyle())
                                 .padding(.horizontal, Spacing.xxl)
 
                                 // Divider
@@ -219,18 +214,13 @@ struct GroupSettlementView: View {
 
                                 // Confirm Custom Amount Button
                                 Button {
-                                    HapticManager.tap()
+                                    HapticManager.primaryAction()
                                     settleCustomAmount()
                                 } label: {
                                     Text("Confirm Settlement")
-                                        .font(AppTypography.headingMedium())
-                                        .foregroundColor(AppColors.buttonForeground)
-                                        .frame(maxWidth: .infinity)
-                                        .frame(height: ButtonHeight.lg)
-                                        .background(isValidAmount ? AppColors.buttonBackground : AppColors.disabled)
-                                        .cornerRadius(CornerRadius.md)
+                                        .font(AppTypography.buttonDefault())
                                 }
-                                .buttonStyle(AppButtonStyle(haptic: .none))
+                                .buttonStyle(PrimaryButtonStyle(isEnabled: isValidAmount))
                                 .disabled(!isValidAmount)
                                 .padding(.horizontal, Spacing.xxl)
                             }
@@ -246,7 +236,7 @@ struct GroupSettlementView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") {
-                        HapticManager.tap()
+                        HapticManager.cancel()
                         dismiss()
                     }
                 }

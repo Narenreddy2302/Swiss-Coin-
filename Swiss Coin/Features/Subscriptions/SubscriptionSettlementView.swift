@@ -121,15 +121,8 @@ struct SubscriptionSettlementView: View {
                                     Text("Settle All Balances")
                                         .font(AppTypography.buttonDefault())
                                 }
-                                .frame(maxWidth: .infinity)
-                                .frame(height: ButtonHeight.md)
-                                .foregroundColor(AppColors.onAccent)
-                                .background(
-                                    RoundedRectangle(cornerRadius: CornerRadius.button)
-                                        .fill(AppColors.accent)
-                                )
                             }
-                            .buttonStyle(.plain)
+                            .buttonStyle(PrimaryButtonStyle())
                             .disabled(isSettlingAll)
                         }
                         .padding(.vertical, Spacing.xs)
@@ -153,15 +146,15 @@ struct SubscriptionSettlementView: View {
                             } label: {
                                 HStack {
                                     Circle()
-                                        .fill(Color(hex: item.member.colorHex ?? "#808080").opacity(0.3))
-                                        .frame(width: 36, height: 36)
+                                        .fill(Color(hex: item.member.colorHex ?? AppColors.defaultAvatarColorHex).opacity(0.3))
+                                        .frame(width: AvatarSize.sm, height: AvatarSize.sm)
                                         .overlay(
                                             Text(item.member.initials)
                                                 .font(AppTypography.labelDefault())
-                                                .foregroundColor(Color(hex: item.member.colorHex ?? "#808080"))
+                                                .foregroundColor(Color(hex: item.member.colorHex ?? AppColors.defaultAvatarColorHex))
                                         )
 
-                                    VStack(alignment: .leading, spacing: 2) {
+                                    VStack(alignment: .leading, spacing: Spacing.xxs) {
                                         Text(item.member.firstName)
                                             .font(AppTypography.bodyLarge())
                                             .foregroundColor(AppColors.textPrimary)
@@ -200,15 +193,15 @@ struct SubscriptionSettlementView: View {
                             } label: {
                                 HStack {
                                     Circle()
-                                        .fill(Color(hex: item.member.colorHex ?? "#808080").opacity(0.3))
-                                        .frame(width: 36, height: 36)
+                                        .fill(Color(hex: item.member.colorHex ?? AppColors.defaultAvatarColorHex).opacity(0.3))
+                                        .frame(width: AvatarSize.sm, height: AvatarSize.sm)
                                         .overlay(
                                             Text(item.member.initials)
                                                 .font(AppTypography.labelDefault())
-                                                .foregroundColor(Color(hex: item.member.colorHex ?? "#808080"))
+                                                .foregroundColor(Color(hex: item.member.colorHex ?? AppColors.defaultAvatarColorHex))
                                         )
 
-                                    VStack(alignment: .leading, spacing: 2) {
+                                    VStack(alignment: .leading, spacing: Spacing.xxs) {
                                         Text(item.member.firstName)
                                             .font(AppTypography.bodyLarge())
                                             .foregroundColor(AppColors.textPrimary)

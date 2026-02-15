@@ -61,14 +61,14 @@ struct ReminderSheetView: View {
 
                 // Send Button
                 Button {
-                    HapticManager.tap()
+                    HapticManager.primaryAction()
                     sendReminder()
                 } label: {
                     HStack {
                         Image(systemName: "bell.fill")
                             .font(.system(size: IconSize.sm))
                         Text("Send Reminder")
-                            .font(AppTypography.headingMedium())
+                            .font(AppTypography.buttonDefault())
                     }
                     .foregroundColor(AppColors.onAccent)
                     .frame(maxWidth: .infinity)
@@ -85,7 +85,7 @@ struct ReminderSheetView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") {
-                        HapticManager.tap()
+                        HapticManager.cancel()
                         dismiss()
                     }
                 }

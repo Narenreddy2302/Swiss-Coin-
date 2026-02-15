@@ -92,6 +92,9 @@ struct GroupDetailView: View {
                 }
             }
         }
+        .sheet(isPresented: $showingAddTransaction) {
+            AddTransactionPresenter(initialGroup: group)
+        }
         .sheet(isPresented: $showingEditGroup) {
             NavigationStack {
                 EditGroupView(group: group)
@@ -185,7 +188,7 @@ struct GroupDetailView: View {
                         Image(systemName: "plus.circle.fill")
                             .font(.system(size: IconSize.sm))
                         Text("Add Expense")
-                            .font(AppTypography.labelLarge())
+                            .font(AppTypography.buttonDefault())
                     }
                     .foregroundColor(AppColors.buttonForeground)
                     .frame(height: ButtonHeight.md)
@@ -193,6 +196,7 @@ struct GroupDetailView: View {
                     .background(AppColors.buttonBackground)
                     .clipShape(RoundedRectangle(cornerRadius: CornerRadius.md))
                 }
+                .buttonStyle(AppButtonStyle(haptic: .none))
 
                 Button {
                     HapticManager.tap()
@@ -202,7 +206,7 @@ struct GroupDetailView: View {
                         Image(systemName: "message.fill")
                             .font(.system(size: IconSize.sm))
                         Text("Chat")
-                            .font(AppTypography.labelLarge())
+                            .font(AppTypography.buttonDefault())
                     }
                     .foregroundColor(AppColors.textPrimary)
                     .frame(height: ButtonHeight.md)
@@ -210,6 +214,7 @@ struct GroupDetailView: View {
                     .background(AppColors.backgroundTertiary)
                     .clipShape(RoundedRectangle(cornerRadius: CornerRadius.md))
                 }
+                .buttonStyle(AppButtonStyle(haptic: .none))
             }
 
             if canSettle {
@@ -221,7 +226,7 @@ struct GroupDetailView: View {
                         Image(systemName: "checkmark.circle.fill")
                             .font(.system(size: IconSize.sm))
                         Text("Settle Up")
-                            .font(AppTypography.labelLarge())
+                            .font(AppTypography.buttonDefault())
                     }
                     .foregroundColor(AppColors.positive)
                     .frame(height: ButtonHeight.md)
@@ -229,6 +234,7 @@ struct GroupDetailView: View {
                     .background(AppColors.positive.opacity(0.12))
                     .clipShape(RoundedRectangle(cornerRadius: CornerRadius.md))
                 }
+                .buttonStyle(AppButtonStyle(haptic: .none))
             }
         }
     }

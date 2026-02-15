@@ -37,7 +37,7 @@ struct SubscriptionDetailView: View {
     // MARK: - Computed Properties
 
     private var subscriptionColor: Color {
-        Color(hex: subscription.colorHex ?? "#007AFF")
+        Color(hex: subscription.colorHex ?? AppColors.defaultAvatarColorHex)
     }
 
     private var dailyCost: Double {
@@ -122,13 +122,13 @@ struct SubscriptionDetailView: View {
                     .padding(.horizontal, Spacing.screenHorizontal)
                     .padding(.top, Spacing.lg)
                     .opacity(sectionsAppeared ? 1 : 0)
-                    .offset(y: sectionsAppeared ? 0 : 12)
+                    .offset(y: sectionsAppeared ? 0 : Spacing.md)
 
                 billingCountdownCard
                     .padding(.horizontal, Spacing.screenHorizontal)
                     .padding(.top, Spacing.sectionGap)
                     .opacity(sectionsAppeared ? 1 : 0)
-                    .offset(y: sectionsAppeared ? 0 : 12)
+                    .offset(y: sectionsAppeared ? 0 : Spacing.md)
                     .animation(
                         AppAnimation.contentReveal.delay(AppAnimation.staggerInterval),
                         value: sectionsAppeared
@@ -138,7 +138,7 @@ struct SubscriptionDetailView: View {
                     .padding(.horizontal, Spacing.screenHorizontal)
                     .padding(.top, Spacing.sectionGap)
                     .opacity(sectionsAppeared ? 1 : 0)
-                    .offset(y: sectionsAppeared ? 0 : 12)
+                    .offset(y: sectionsAppeared ? 0 : Spacing.md)
                     .animation(
                         AppAnimation.contentReveal.delay(AppAnimation.staggerInterval * 2),
                         value: sectionsAppeared
@@ -148,7 +148,7 @@ struct SubscriptionDetailView: View {
                     .padding(.horizontal, Spacing.screenHorizontal)
                     .padding(.top, Spacing.md)
                     .opacity(sectionsAppeared ? 1 : 0)
-                    .offset(y: sectionsAppeared ? 0 : 12)
+                    .offset(y: sectionsAppeared ? 0 : Spacing.md)
                     .animation(
                         AppAnimation.contentReveal.delay(AppAnimation.staggerInterval * 3),
                         value: sectionsAppeared
@@ -158,7 +158,7 @@ struct SubscriptionDetailView: View {
                     .padding(.horizontal, Spacing.screenHorizontal)
                     .padding(.top, Spacing.sectionGap)
                     .opacity(sectionsAppeared ? 1 : 0)
-                    .offset(y: sectionsAppeared ? 0 : 12)
+                    .offset(y: sectionsAppeared ? 0 : Spacing.md)
                     .animation(
                         AppAnimation.contentReveal.delay(AppAnimation.staggerInterval * 4),
                         value: sectionsAppeared
@@ -168,7 +168,7 @@ struct SubscriptionDetailView: View {
                     .padding(.horizontal, Spacing.screenHorizontal)
                     .padding(.top, Spacing.sectionGap)
                     .opacity(sectionsAppeared ? 1 : 0)
-                    .offset(y: sectionsAppeared ? 0 : 12)
+                    .offset(y: sectionsAppeared ? 0 : Spacing.md)
                     .animation(
                         AppAnimation.contentReveal.delay(AppAnimation.staggerInterval * 5),
                         value: sectionsAppeared
@@ -179,7 +179,7 @@ struct SubscriptionDetailView: View {
                         .padding(.horizontal, Spacing.screenHorizontal)
                         .padding(.top, Spacing.sectionGap)
                         .opacity(sectionsAppeared ? 1 : 0)
-                        .offset(y: sectionsAppeared ? 0 : 12)
+                        .offset(y: sectionsAppeared ? 0 : Spacing.md)
                         .animation(
                             AppAnimation.contentReveal.delay(AppAnimation.staggerInterval * 6),
                             value: sectionsAppeared
@@ -190,7 +190,7 @@ struct SubscriptionDetailView: View {
                     .padding(.horizontal, Spacing.screenHorizontal)
                     .padding(.top, Spacing.sectionGap)
                     .opacity(sectionsAppeared ? 1 : 0)
-                    .offset(y: sectionsAppeared ? 0 : 12)
+                    .offset(y: sectionsAppeared ? 0 : Spacing.md)
                     .animation(
                         AppAnimation.contentReveal.delay(AppAnimation.staggerInterval * 7),
                         value: sectionsAppeared

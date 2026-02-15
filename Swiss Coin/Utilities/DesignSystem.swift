@@ -63,6 +63,12 @@ enum Spacing {
     /// 12pt - Sheet/modal top spacing
     static let modalTopMargin: CGFloat = 12
 
+    /// 6pt - Compact row vertical padding
+    static let compactVertical: CGFloat = 6
+
+    /// 70pt - Settings row divider inset (icon rows with category-size icons)
+    static let settingsRowDividerInset: CGFloat = 70
+
     // Legacy compatibility
     static let section: CGFloat = 32
 }
@@ -150,6 +156,12 @@ enum AvatarSize {
 
     /// 100pt - Detail views
     static let xxl: CGFloat = 100
+
+    /// 60pt - Profile settings avatar
+    static let profile: CGFloat = 60
+
+    /// 64pt - Category/hero icon background
+    static let categoryHero: CGFloat = 64
 }
 
 // MARK: - Button Heights

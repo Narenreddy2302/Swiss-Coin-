@@ -106,15 +106,10 @@ struct HomeView: View {
                                         .font(.system(size: IconSize.sm))
                                         .accessibilityHidden(true)
                                     Text("Add Transaction")
-                                        .font(AppTypography.labelLarge())
+                                        .font(AppTypography.buttonDefault())
                                 }
-                                .foregroundColor(AppColors.buttonForeground)
-                                .frame(maxWidth: .infinity)
-                                .frame(height: ButtonHeight.md)
-                                .background(AppColors.buttonBackground)
-                                .cornerRadius(CornerRadius.button)
                             }
-                            .buttonStyle(AppButtonStyle(haptic: .none))
+                            .buttonStyle(PrimaryButtonStyle())
                             .padding(.horizontal)
                         }
 
@@ -174,9 +169,7 @@ struct HomeView: View {
                 ProfileView()
             }
             .sheet(isPresented: $showingAddTransaction) {
-                NavigationStack {
-                    AddTransactionView(context: viewContext)
-                }
+                AddTransactionPresenter()
             }
             .sheet(isPresented: Binding(
                 get: { selectedTransaction != nil },

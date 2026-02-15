@@ -59,15 +59,15 @@ struct SubscriptionReminderSheetView: View {
                             } label: {
                                 HStack {
                                     Circle()
-                                        .fill(Color(hex: item.member.colorHex ?? "#808080").opacity(0.3))
-                                        .frame(width: 36, height: 36)
+                                        .fill(Color(hex: item.member.colorHex ?? AppColors.defaultAvatarColorHex).opacity(0.3))
+                                        .frame(width: AvatarSize.sm, height: AvatarSize.sm)
                                         .overlay(
                                             Text(item.member.initials)
                                                 .font(AppTypography.labelDefault())
-                                                .foregroundColor(Color(hex: item.member.colorHex ?? "#808080"))
+                                                .foregroundColor(Color(hex: item.member.colorHex ?? AppColors.defaultAvatarColorHex))
                                         )
 
-                                    VStack(alignment: .leading, spacing: 2) {
+                                    VStack(alignment: .leading, spacing: Spacing.xxs) {
                                         Text(item.member.firstName)
                                             .font(AppTypography.bodyLarge())
                                             .foregroundColor(AppColors.textPrimary)

@@ -27,12 +27,12 @@ struct MemberBalancesCard: View {
                     HStack {
                         // Member Avatar
                         Circle()
-                            .fill(Color(hex: item.member.colorHex ?? "#808080").opacity(0.3))
-                            .frame(width: 28, height: 28)
+                            .fill(Color(hex: item.member.colorHex ?? AppColors.defaultAvatarColorHex).opacity(0.3))
+                            .frame(width: IconSize.category, height: IconSize.category)
                             .overlay(
                                 Text(item.member.initials)
                                     .font(AppTypography.labelSmall())
-                                    .foregroundColor(Color(hex: item.member.colorHex ?? "#808080"))
+                                    .foregroundColor(Color(hex: item.member.colorHex ?? AppColors.defaultAvatarColorHex))
                             )
 
                         Text(item.member.firstName)

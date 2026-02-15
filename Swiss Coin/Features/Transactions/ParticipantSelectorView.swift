@@ -174,12 +174,12 @@ struct ParticipantSelectorView: View {
             HStack(spacing: Spacing.md) {
                 // Group Icon
                 Circle()
-                    .fill(Color(hex: group.colorHex ?? "#808080").opacity(0.2))
+                    .fill(Color(hex: group.colorHex ?? AppColors.defaultAvatarColorHex).opacity(0.2))
                     .frame(width: AvatarSize.md, height: AvatarSize.md)
                     .overlay(
                         Image(systemName: "person.2.fill")
                             .font(.system(size: IconSize.sm))
-                            .foregroundColor(Color(hex: group.colorHex ?? "#808080"))
+                            .foregroundColor(Color(hex: group.colorHex ?? AppColors.defaultAvatarColorHex))
                     )
 
                 VStack(alignment: .leading, spacing: Spacing.xxs) {

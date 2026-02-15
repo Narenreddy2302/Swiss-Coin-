@@ -123,7 +123,7 @@ struct DirectionalFlowRow: View {
             ZStack {
                 // Arrow line
                 arrowLine
-                    .frame(height: 2)
+                    .frame(height: Spacing.xxs)
 
                 // Label + amount overlay
                 VStack(spacing: Spacing.xxs) {

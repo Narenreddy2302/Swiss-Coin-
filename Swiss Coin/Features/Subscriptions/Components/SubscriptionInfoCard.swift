@@ -15,15 +15,15 @@ struct SubscriptionInfoCard: View {
             HStack {
                 // Icon
                 RoundedRectangle(cornerRadius: CornerRadius.sm)
-                    .fill(Color(hex: subscription.colorHex ?? "#007AFF").opacity(0.2))
-                    .frame(width: 44, height: 44)
+                    .fill(Color(hex: subscription.colorHex ?? AppColors.defaultAvatarColorHex).opacity(0.2))
+                    .frame(width: AvatarSize.md, height: AvatarSize.md)
                     .overlay(
                         Image(systemName: subscription.iconName ?? "person.2.circle.fill")
                             .font(.system(size: IconSize.md))
-                            .foregroundColor(Color(hex: subscription.colorHex ?? "#007AFF"))
+                            .foregroundColor(Color(hex: subscription.colorHex ?? AppColors.defaultAvatarColorHex))
                     )
 
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: Spacing.xxs) {
                     Text(subscription.name ?? "Subscription")
                         .font(AppTypography.headingMedium())
                         .foregroundColor(AppColors.textPrimary)
@@ -36,7 +36,7 @@ struct SubscriptionInfoCard: View {
                 Spacer()
 
                 // Next billing badge
-                VStack(alignment: .trailing, spacing: 2) {
+                VStack(alignment: .trailing, spacing: Spacing.xxs) {
                     Text("Next billing")
                         .font(AppTypography.caption())
                         .foregroundColor(AppColors.textSecondary)

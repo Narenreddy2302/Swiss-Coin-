@@ -623,12 +623,12 @@ private struct SearchGroupRow: View {
     var body: some View {
         HStack(spacing: Spacing.md) {
             RoundedRectangle(cornerRadius: CornerRadius.sm)
-                .fill(Color(hex: group.colorHex ?? "#007AFF").opacity(0.2))
+                .fill(Color(hex: group.colorHex ?? AppColors.defaultAvatarColorHex).opacity(0.2))
                 .frame(width: AvatarSize.lg, height: AvatarSize.lg)
                 .overlay(
                     Image(systemName: "person.3.fill")
                         .font(.system(size: IconSize.md, weight: .medium))
-                        .foregroundColor(Color(hex: group.colorHex ?? "#007AFF"))
+                        .foregroundColor(Color(hex: group.colorHex ?? AppColors.defaultAvatarColorHex))
                 )
 
             VStack(alignment: .leading, spacing: Spacing.xs) {
@@ -658,12 +658,12 @@ private struct SearchSubscriptionRow: View {
     var body: some View {
         HStack(spacing: Spacing.md) {
             RoundedRectangle(cornerRadius: CornerRadius.sm)
-                .fill(Color(hex: subscription.colorHex ?? "#FF9500").opacity(0.2))
+                .fill(Color(hex: subscription.colorHex ?? AppColors.defaultAvatarColorHex).opacity(0.2))
                 .frame(width: AvatarSize.lg, height: AvatarSize.lg)
                 .overlay(
                     Image(systemName: subscription.iconName ?? "creditcard.fill")
                         .font(.system(size: IconSize.md, weight: .medium))
-                        .foregroundColor(Color(hex: subscription.colorHex ?? "#FF9500"))
+                        .foregroundColor(Color(hex: subscription.colorHex ?? AppColors.defaultAvatarColorHex))
                 )
 
             VStack(alignment: .leading, spacing: Spacing.xs) {

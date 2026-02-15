@@ -229,7 +229,7 @@ struct PersonConversationView: View {
         .sheet(item: $activeSheet) { sheet in
             switch sheet {
             case .addTransaction:
-                QuickActionSheetPresenter(initialPerson: person)
+                AddTransactionPresenter(initialPerson: person)
                     .onAppear { HapticManager.sheetPresent() }
             case .settlement:
                 SettlementView(person: person, currentBalance: balance)
@@ -335,7 +335,7 @@ struct PersonConversationView: View {
 
                     RoundedRectangle(cornerRadius: CornerRadius.card)
                         .fill(AppColors.backgroundTertiary)
-                        .frame(height: 60)
+                        .frame(height: Spacing.rowHeight)
                         .padding(.trailing, Spacing.lg)
                 }
             }
