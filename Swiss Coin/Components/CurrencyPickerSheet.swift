@@ -33,9 +33,9 @@ struct CurrencyPickerSheet: View {
                     }) {
                         HStack(spacing: Spacing.md) {
                             Text(currency.flag)
-                                .font(.system(size: 28))
+                                .font(.system(size: IconSize.category))
 
-                            VStack(alignment: .leading, spacing: 2) {
+                            VStack(alignment: .leading, spacing: Spacing.xxs) {
                                 Text(currency.name)
                                     .font(AppTypography.bodyDefault())
                                     .foregroundColor(AppColors.textPrimary)
@@ -53,11 +53,11 @@ struct CurrencyPickerSheet: View {
 
                             if selectedCurrency.id == currency.id {
                                 Image(systemName: "checkmark")
-                                    .font(.system(size: 16, weight: .semibold))
+                                    .font(AppTypography.headingSmall())
                                     .foregroundColor(AppColors.accent)
                             }
                         }
-                        .padding(.vertical, 4)
+                        .padding(.vertical, Spacing.xs)
                     }
                     .buttonStyle(.plain)
                 }

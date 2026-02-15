@@ -77,11 +77,13 @@ struct PeopleView: View {
                                 Image(systemName: "person.badge.plus")
                                     .font(AppTypography.buttonLarge())
                             }
+                            .accessibilityLabel("Add person")
                         } else {
                             NavigationLink(destination: AddGroupView()) {
                                 Image(systemName: "plus")
                                     .font(AppTypography.buttonLarge())
                             }
+                            .accessibilityLabel("Add group")
                             .simultaneousGesture(TapGesture().onEnded {
                                 HapticManager.lightTap()
                             })
@@ -638,7 +640,7 @@ struct PersonListRowView: View {
             }
         }
         .sheet(isPresented: $showingAddExpense) {
-            QuickActionSheetPresenter(initialPerson: person)
+            AddTransactionPresenter(initialPerson: person)
         }
         .sheet(isPresented: $showingReminder) {
             ReminderSheetView(person: person, amount: balance)
@@ -839,12 +841,12 @@ struct GroupListRowView: View {
     var body: some View {
         HStack(spacing: Spacing.md) {
             RoundedRectangle(cornerRadius: CornerRadius.sm)
-                .fill(Color(hex: group.colorHex ?? "#007AFF").opacity(0.2))
+                .fill(Color(hex: group.colorHex ?? AppColors.defaultAvatarColorHex).opacity(0.2))
                 .frame(width: AvatarSize.lg, height: AvatarSize.lg)
                 .overlay(
                     Image(systemName: "person.3.fill")
                         .font(AppTypography.headingMedium())
-                        .foregroundColor(Color(hex: group.colorHex ?? "#007AFF"))
+                        .foregroundColor(Color(hex: group.colorHex ?? AppColors.defaultAvatarColorHex))
                 )
                 .accessibilityHidden(true)
 
@@ -942,7 +944,7 @@ struct GroupListRowView: View {
             }
         }
         .sheet(isPresented: $showingAddExpense) {
-            QuickActionSheetPresenter(initialGroup: group)
+            AddTransactionPresenter(initialGroup: group)
         }
         .sheet(isPresented: $showingReminders) {
             GroupReminderSheetView(group: group)

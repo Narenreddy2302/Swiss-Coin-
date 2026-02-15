@@ -281,7 +281,7 @@ struct GroupConversationView: View {
                         .foregroundColor(Color(hex: group.colorHex ?? CurrentUser.defaultColorHex))
                 )
 
-            VStack(alignment: .leading, spacing: 1) {
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text(group.name ?? "Unknown Group")
                     .font(AppTypography.headingMedium())
                     .foregroundColor(AppColors.textPrimary)
@@ -296,7 +296,7 @@ struct GroupConversationView: View {
 
     @ViewBuilder
     private var toolbarTrailingContent: some View {
-        VStack(alignment: .trailing, spacing: 2) {
+        VStack(alignment: .trailing, spacing: Spacing.xxs) {
             Text(balanceLabel)
                 .font(AppTypography.caption())
                 .foregroundColor(AppColors.textSecondary)
@@ -333,7 +333,7 @@ struct GroupConversationView: View {
             Spacer()
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 60)
+        .padding(.vertical, Spacing.rowHeight)
     }
 
     // MARK: - Timeline Row
@@ -708,7 +708,7 @@ extension View {
 
 extension GroupConversationView {
     private var addTransactionSheet: some View {
-        QuickActionSheetPresenter(initialGroup: group)
+        AddTransactionPresenter(initialGroup: group)
             .onAppear { HapticManager.sheetPresent() }
     }
 

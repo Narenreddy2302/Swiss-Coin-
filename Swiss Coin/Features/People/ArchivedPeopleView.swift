@@ -125,7 +125,7 @@ private struct ArchivedPersonRow: View {
                 )
 
             // Info
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text(person.name ?? "Unknown")
                     .font(AppTypography.bodyLarge())
                     .foregroundColor(AppColors.textPrimary)

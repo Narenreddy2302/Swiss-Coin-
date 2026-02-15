@@ -125,16 +125,16 @@ private struct ArchivedSubscriptionRow: View {
         HStack(spacing: Spacing.md) {
             // Icon
             RoundedRectangle(cornerRadius: CornerRadius.md)
-                .fill(Color(hex: subscription.colorHex ?? "#808080").opacity(0.2))
+                .fill(Color(hex: subscription.colorHex ?? AppColors.defaultAvatarColorHex).opacity(0.2))
                 .frame(width: AvatarSize.lg, height: AvatarSize.lg)
                 .overlay(
                     Image(systemName: subscription.iconName ?? "creditcard.fill")
                         .font(.system(size: IconSize.md))
-                        .foregroundColor(Color(hex: subscription.colorHex ?? "#808080"))
+                        .foregroundColor(Color(hex: subscription.colorHex ?? AppColors.defaultAvatarColorHex))
                 )
 
             // Info
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text(subscription.name ?? "Unknown")
                     .font(AppTypography.bodyLarge())
                     .foregroundColor(AppColors.textPrimary)
@@ -154,7 +154,7 @@ private struct ArchivedSubscriptionRow: View {
                             .font(AppTypography.labelSmall())
                             .foregroundColor(AppColors.accent)
                             .padding(.horizontal, Spacing.xs)
-                            .padding(.vertical, 2)
+                            .padding(.vertical, Spacing.xxs)
                             .background(
                                 Capsule()
                                     .fill(AppColors.accent.opacity(0.1))

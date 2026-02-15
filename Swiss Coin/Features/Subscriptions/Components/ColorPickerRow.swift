@@ -39,7 +39,7 @@ struct ColorPickerRow: View {
 
                 Circle()
                     .fill(Color(hex: selectedColor))
-                    .frame(width: 28, height: 28)
+                    .frame(width: IconSize.category, height: IconSize.category)
 
                 Image(systemName: "chevron.right")
                     .font(.system(size: IconSize.sm, weight: .semibold))

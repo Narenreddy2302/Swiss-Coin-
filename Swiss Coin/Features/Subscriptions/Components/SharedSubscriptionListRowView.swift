@@ -55,12 +55,12 @@ struct SharedSubscriptionListRowView: View {
         HStack(spacing: Spacing.md) {
             // Subscription Icon
             RoundedRectangle(cornerRadius: CornerRadius.sm)
-                .fill(Color(hex: subscription.colorHex ?? "#007AFF").opacity(0.2))
+                .fill(Color(hex: subscription.colorHex ?? AppColors.defaultAvatarColorHex).opacity(0.2))
                 .frame(width: AvatarSize.lg, height: AvatarSize.lg)
                 .overlay(
                     Image(systemName: subscription.iconName ?? "person.2.circle.fill")
                         .font(AppTypography.headingMedium())
-                        .foregroundColor(Color(hex: subscription.colorHex ?? "#007AFF"))
+                        .foregroundColor(Color(hex: subscription.colorHex ?? AppColors.defaultAvatarColorHex))
                 )
                 .accessibilityHidden(true)
 

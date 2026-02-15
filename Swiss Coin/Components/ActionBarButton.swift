@@ -54,7 +54,7 @@ struct ActionBarButton: View {
                     .foregroundColor(textColor)
             }
             .frame(maxWidth: .infinity)
-            .frame(height: 44)
+            .frame(height: ButtonHeight.md)
             .padding(.horizontal, Spacing.sm)
             .background(buttonBackground)
             .cornerRadius(CornerRadius.md)

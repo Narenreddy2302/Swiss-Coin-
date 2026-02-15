@@ -50,12 +50,12 @@ struct MemberPickerView: View {
                         ForEach(Array(selectedMembers).sorted { ($0.name ?? "") < ($1.name ?? "") }) { member in
                             HStack {
                                 Circle()
-                                    .fill(Color(hex: member.colorHex ?? "#808080").opacity(0.3))
-                                    .frame(width: 36, height: 36)
+                                    .fill(Color(hex: member.colorHex ?? AppColors.defaultAvatarColorHex).opacity(0.3))
+                                    .frame(width: AvatarSize.sm, height: AvatarSize.sm)
                                     .overlay(
                                         Text(member.initials)
                                             .font(AppTypography.labelDefault())
-                                            .foregroundColor(Color(hex: member.colorHex ?? "#808080"))
+                                            .foregroundColor(Color(hex: member.colorHex ?? AppColors.defaultAvatarColorHex))
                                     )
 
                                 Text(member.displayName)
@@ -107,12 +107,12 @@ struct MemberPickerView: View {
                                 } label: {
                                     HStack {
                                         Circle()
-                                            .fill(Color(hex: person.colorHex ?? "#808080").opacity(0.3))
-                                            .frame(width: 36, height: 36)
+                                            .fill(Color(hex: person.colorHex ?? AppColors.defaultAvatarColorHex).opacity(0.3))
+                                            .frame(width: AvatarSize.sm, height: AvatarSize.sm)
                                             .overlay(
                                                 Text(person.initials)
                                                     .font(AppTypography.labelDefault())
-                                                    .foregroundColor(Color(hex: person.colorHex ?? "#808080"))
+                                                    .foregroundColor(Color(hex: person.colorHex ?? AppColors.defaultAvatarColorHex))
                                             )
 
                                         Text(person.displayName)

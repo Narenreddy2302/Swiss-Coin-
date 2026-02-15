@@ -98,7 +98,7 @@ struct LockScreenView: View {
             ZStack {
                 Circle()
                     .fill(AppColors.accent.opacity(0.12))
-                    .frame(width: 80, height: 80)
+                    .frame(width: AvatarSize.xl, height: AvatarSize.xl)
 
                 Image(systemName: "dollarsign.circle.fill")
                     .font(.system(size: IconSize.xxl))

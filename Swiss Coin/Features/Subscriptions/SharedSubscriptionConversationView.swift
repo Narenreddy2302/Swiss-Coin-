@@ -318,7 +318,7 @@ struct SharedSubscriptionConversationView: View {
     private var subscriptionHeaderContent: some View {
         HStack(spacing: Spacing.sm) {
             RoundedRectangle(cornerRadius: CornerRadius.sm)
-                .fill(Color(hex: subscription.colorHex ?? "#007AFF"))
+                .fill(Color(hex: subscription.colorHex ?? AppColors.defaultAvatarColorHex))
                 .frame(width: AvatarSize.sm, height: AvatarSize.sm)
                 .overlay(
                     Image(systemName: subscription.iconName ?? "person.2.circle.fill")
@@ -341,7 +341,7 @@ struct SharedSubscriptionConversationView: View {
 
     @ViewBuilder
     private var toolbarTrailingContent: some View {
-        VStack(alignment: .trailing, spacing: 2) {
+        VStack(alignment: .trailing, spacing: Spacing.xxs) {
             Text(balanceLabel)
                 .font(AppTypography.caption())
                 .foregroundColor(AppColors.textSecondary)
@@ -378,7 +378,7 @@ struct SharedSubscriptionConversationView: View {
             Spacer()
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 60)
+        .padding(.vertical, Spacing.rowHeight)
     }
 
     // MARK: - Conversation Item View

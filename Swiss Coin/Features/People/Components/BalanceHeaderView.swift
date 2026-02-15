@@ -55,10 +55,10 @@ struct BalanceHeaderView: View {
     }
 
     var body: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: Spacing.lg) {
             // Avatar and Name
             Button(action: onAvatarTap) {
-                VStack(spacing: 12) {
+                VStack(spacing: Spacing.md) {
                     Circle()
                         .fill(Color(hex: person.colorHex ?? AppColors.defaultAvatarColorHex))
                         .frame(width: AvatarSize.xl, height: AvatarSize.xl)
@@ -90,10 +90,10 @@ struct BalanceHeaderView: View {
                 RoundedRectangle(cornerRadius: CornerRadius.md)
                     .fill(balanceBackgroundColor)
             )
-            .padding(.horizontal, 40)
+            .padding(.horizontal, Spacing.xxxl + Spacing.sm)
         }
-        .padding(.top, 20)
-        .padding(.bottom, 16)
+        .padding(.top, Spacing.xl)
+        .padding(.bottom, Spacing.lg)
         .background(AppColors.backgroundSecondary)
     }
 }

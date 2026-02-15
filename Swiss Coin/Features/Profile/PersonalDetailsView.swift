@@ -124,21 +124,21 @@ struct PersonalDetailsView: View {
                             .frame(width: AvatarSize.xxl, height: AvatarSize.xxl)
                             .overlay(
                                 Text(viewModel.initials)
-                                    .font(.system(size: 38, weight: .semibold))
+                                    .font(AppTypography.displayHero())
                                     .foregroundColor(Color(hex: viewModel.profileColor))
                             )
                     }
 
                     Circle()
                         .fill(AppColors.accent)
-                        .frame(width: 28, height: 28)
+                        .frame(width: IconSize.category, height: IconSize.category)
                         .overlay(
                             Image(systemName: "camera.fill")
                                 .font(.system(size: IconSize.xs, weight: .semibold))
                                 .foregroundColor(AppColors.onAccent)
                         )
                         .shadow(color: AppColors.shadow, radius: 4, x: 0, y: 2)
-                        .offset(x: -2, y: -2)
+                        .offset(x: -Spacing.xxs, y: -Spacing.xxs)
                 }
             }
             .buttonStyle(.plain)

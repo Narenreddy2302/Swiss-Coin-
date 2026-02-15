@@ -19,9 +19,13 @@ struct AddTransactionView: View {
     @State private var showingCategoryPicker = false
 
     // MARK: - Initialization
-
+    
     init(context: NSManagedObjectContext) {
         _viewModel = StateObject(wrappedValue: TransactionViewModel(context: context))
+    }
+
+    init(viewModel: TransactionViewModel) {
+        _viewModel = StateObject(wrappedValue: viewModel)
     }
 
     // MARK: - Body
@@ -63,7 +67,7 @@ struct AddTransactionView: View {
         TextField("Transaction Name", text: $viewModel.title)
             .font(AppTypography.bodyDefault())
             .padding(.horizontal, Spacing.lg)
-            .padding(.vertical, 14)
+            .padding(.vertical, Spacing.md + Spacing.xxs)
             .background(AppColors.cardBackground)
             .cornerRadius(CornerRadius.medium)
             .overlay(
@@ -99,7 +103,7 @@ struct AddTransactionView: View {
             Text(currencySymbol)
                 .font(AppTypography.headingSmall())
                 .foregroundColor(AppColors.textPrimary)
-                .frame(width: 36, height: 36)
+                .frame(width: AvatarSize.sm, height: AvatarSize.sm)
                 .background(AppColors.backgroundTertiary)
                 .cornerRadius(CornerRadius.small)
 
@@ -252,7 +256,7 @@ struct AddTransactionView: View {
     // MARK: - Paid By Amounts Section
 
     private var paidByAmountsSection: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: Spacing.compactVertical) {
             Text("Paid By:")
                 .font(AppTypography.headingSmall())
                 .foregroundColor(AppColors.textPrimary)
@@ -279,7 +283,7 @@ struct AddTransactionView: View {
     // MARK: - Breakdown Section
 
     private var breakdownSection: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: Spacing.compactVertical) {
             Text("Breakdown:")
                 .font(AppTypography.headingSmall())
                 .foregroundColor(AppColors.textPrimary)
@@ -452,7 +456,7 @@ struct AddTransactionView: View {
                                     onRemove?(contact)
                                 }) {
                                     Image(systemName: "xmark.circle.fill")
-                                        .font(.system(size: 14))
+                                        .font(.system(size: IconSize.sm))
                                         .foregroundColor(AppColors.textTertiary)
                                 }
                                 .padding(.trailing, Spacing.xs)
@@ -475,7 +479,7 @@ struct AddTransactionView: View {
                 .foregroundColor(AppColors.textPrimary)
                 .lineLimit(1)
         }
-        .padding(.horizontal, 14)
+        .padding(.horizontal, Spacing.md + Spacing.xxs)
         .padding(.vertical, Spacing.sm)
         .background(AppColors.cardBackground)
         .cornerRadius(CornerRadius.extraLarge)
@@ -489,7 +493,7 @@ struct AddTransactionView: View {
         Text(name)
             .font(AppTypography.labelDefault())
             .foregroundColor(AppColors.textPrimary)
-            .padding(.horizontal, 14)
+            .padding(.horizontal, Spacing.md + Spacing.xxs)
             .padding(.vertical, Spacing.sm)
             .background(isSelected ? AppColors.accentMuted : AppColors.cardBackground)
             .cornerRadius(CornerRadius.extraLarge)
@@ -505,11 +509,11 @@ struct AddTransactionView: View {
             viewModel.splitMethod = method
             viewModel.initializeDefaultRawInputs(for: method)
         }) {
-            VStack(spacing: 6) {
+            VStack(spacing: Spacing.compactVertical) {
                 Image(systemName: systemImageForSplitMethod(method))
                     .font(.system(size: IconSize.sm, weight: .semibold))
                     .foregroundColor(AppColors.textPrimary)
-                    .frame(width: 56, height: 40)
+                    .frame(width: ButtonHeight.xl, height: ButtonHeight.sm + Spacing.xs)
                     .background(isActive ? AppColors.accentMuted : AppColors.cardBackground)
                     .cornerRadius(CornerRadius.full)
                     .overlay(
@@ -550,7 +554,7 @@ struct AddTransactionView: View {
                 .foregroundColor(AppColors.textPrimary)
                 .frame(width: 70, alignment: .trailing)
         }
-        .padding(.vertical, 6)
+        .padding(.vertical, Spacing.compactVertical)
         .padding(.horizontal, Spacing.sm)
     }
 
@@ -573,7 +577,7 @@ struct AddTransactionView: View {
                 .multilineTextAlignment(.trailing)
                 .frame(width: 70)
         }
-        .padding(.vertical, 6)
+        .padding(.vertical, Spacing.compactVertical)
         .padding(.horizontal, Spacing.sm)
     }
 
@@ -601,7 +605,7 @@ struct AddTransactionView: View {
                 .foregroundColor(AppColors.textSecondary)
                 .frame(width: 60, alignment: .trailing)
         }
-        .padding(.vertical, 6)
+        .padding(.vertical, Spacing.compactVertical)
         .padding(.horizontal, Spacing.sm)
     }
 
@@ -624,7 +628,7 @@ struct AddTransactionView: View {
                 .font(AppTypography.bodySmall())
                 .foregroundColor(AppColors.textSecondary)
         }
-        .padding(.vertical, 6)
+        .padding(.vertical, Spacing.compactVertical)
         .padding(.horizontal, Spacing.sm)
     }
 
@@ -656,7 +660,7 @@ struct AddTransactionView: View {
                 .foregroundColor(AppColors.textPrimary)
                 .frame(width: 60, alignment: .trailing)
         }
-        .padding(.vertical, 6)
+        .padding(.vertical, Spacing.compactVertical)
         .padding(.horizontal, Spacing.sm)
     }
 

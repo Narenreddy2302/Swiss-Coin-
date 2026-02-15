@@ -206,7 +206,7 @@ struct NotificationSettingsView: View {
                                 isOn: $viewModel.newExpenseAdded
                             )
 
-                            Divider().padding(.leading, 50)
+                            Divider().padding(.leading, Spacing.rowDividerInset)
 
                             NotificationToggle(
                                 title: "Someone paid you",
@@ -224,7 +224,7 @@ struct NotificationSettingsView: View {
                             )
 
                             if viewModel.paymentReminders {
-                                Divider().padding(.leading, 50)
+                                Divider().padding(.leading, Spacing.rowDividerInset)
 
                                 HStack {
                                     Text("Remind me")
@@ -251,7 +251,7 @@ struct NotificationSettingsView: View {
                             )
 
                             if viewModel.subscriptionDueSoon {
-                                Divider().padding(.leading, 50)
+                                Divider().padding(.leading, Spacing.rowDividerInset)
 
                                 HStack {
                                     Text("Notify me")
@@ -319,7 +319,7 @@ private struct SystemStatusCard: View {
             Image(systemName: icon)
                 .font(.system(size: IconSize.lg))
                 .foregroundColor(iconColor)
-                .frame(width: 44, height: 44)
+                .frame(width: AvatarSize.md, height: AvatarSize.md)
                 .background(iconColor.opacity(0.1))
                 .clipShape(RoundedRectangle(cornerRadius: CornerRadius.sm))
 
@@ -397,7 +397,7 @@ private struct NotificationToggle: View {
             Image(systemName: icon)
                 .font(.system(size: IconSize.sm))
                 .foregroundColor(AppColors.accent)
-                .frame(width: 28)
+                .frame(width: IconSize.category)
 
             Text(title)
                 .font(AppTypography.bodyLarge())

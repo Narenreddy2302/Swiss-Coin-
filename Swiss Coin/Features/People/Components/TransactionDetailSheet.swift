@@ -94,7 +94,7 @@ struct TransactionDetailSheet: View {
         VStack(spacing: Spacing.md) {
             Circle()
                 .fill(AppColors.info.opacity(0.15))
-                .frame(width: 64, height: 64)
+                .frame(width: AvatarSize.categoryHero, height: AvatarSize.categoryHero)
                 .overlay(
                     Image(systemName: "list.bullet.rectangle.portrait.fill")
                         .font(.system(size: IconSize.category, weight: .medium))
@@ -210,15 +210,11 @@ struct TransactionDetailSheet: View {
                     Text("Edit Transaction")
                         .font(AppTypography.buttonLarge())
                 }
-                .frame(maxWidth: .infinity)
-                .frame(height: ButtonHeight.lg)
-                .background(AppColors.accent)
-                .foregroundColor(AppColors.buttonForeground)
-                .cornerRadius(CornerRadius.button)
             }
+            .buttonStyle(PrimaryButtonStyle())
 
             Button {
-                HapticManager.tap()
+                HapticManager.destructiveAction()
                 showingDeleteAlert = true
             } label: {
                 HStack(spacing: Spacing.sm) {
@@ -237,6 +233,7 @@ struct TransactionDetailSheet: View {
                         .strokeBorder(AppColors.negative.opacity(0.3), lineWidth: 1)
                 )
             }
+            .buttonStyle(AppButtonStyle(haptic: .none))
         }
     }
 

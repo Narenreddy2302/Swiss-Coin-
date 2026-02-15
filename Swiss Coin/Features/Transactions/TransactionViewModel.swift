@@ -6,7 +6,7 @@ import os
 import SwiftUI
 
 @MainActor
-final class TransactionViewModel: ObservableObject {
+class TransactionViewModel: ObservableObject {
     @Published var title: String = ""
     @Published var totalAmount: String = ""
     @Published var date: Date = Date()
@@ -84,6 +84,23 @@ final class TransactionViewModel: ObservableObject {
 
         // Fetch phone contacts
         Task { await loadPhoneContacts() }
+    }
+
+    /// Convenience initializer for pre-selecting a person as participant
+    convenience init(context: NSManagedObjectContext, initialPerson: Person) {
+        self.init(context: context)
+        selectedParticipants.insert(initialPerson)
+    }
+
+    /// Convenience initializer for pre-selecting a group and its members
+    convenience init(context: NSManagedObjectContext, initialGroup: UserGroup) {
+        self.init(context: context)
+        selectedGroup = initialGroup
+        if let members = initialGroup.members as? Set<Person> {
+            for member in members {
+                selectedParticipants.insert(member)
+            }
+        }
     }
 
     private func loadPhoneContacts() async {

@@ -40,7 +40,7 @@ struct AddPersonView: View {
                                     Image(systemName: "person.fill")
                                         .font(.system(size: IconSize.sm))
                                         .foregroundColor(AppColors.accent)
-                                        .frame(width: 24)
+                                        .frame(width: IconSize.lg)
 
                                     TextField("Name", text: $name)
                                         .font(AppTypography.bodyLarge())
@@ -61,7 +61,7 @@ struct AddPersonView: View {
                                     Image(systemName: "phone.fill")
                                         .font(.system(size: IconSize.sm))
                                         .foregroundColor(AppColors.accent)
-                                        .frame(width: 24)
+                                        .frame(width: IconSize.lg)
 
                                     TextField("Phone Number", text: $phoneNumber)
                                         .font(AppTypography.bodyLarge())
@@ -131,7 +131,7 @@ struct AddPersonView: View {
                                     Image(systemName: "person.crop.circle.badge.plus")
                                         .font(.system(size: IconSize.sm))
                                         .foregroundColor(AppColors.accent)
-                                        .frame(width: 24)
+                                        .frame(width: IconSize.lg)
 
                                     Text("Import from Phone Contacts")
                                         .font(AppTypography.bodyLarge())

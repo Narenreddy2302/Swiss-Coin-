@@ -144,14 +144,9 @@ struct AddGroupView: View {
                             Task { await contactsManager.requestAccess() }
                         } label: {
                             Text("Grant Access")
-                                .font(AppTypography.headingMedium())
-                                .foregroundColor(AppColors.buttonForeground)
-                                .frame(maxWidth: .infinity)
-                                .frame(height: ButtonHeight.md)
-                                .background(AppColors.buttonBackground)
-                                .cornerRadius(CornerRadius.md)
+                                .font(AppTypography.buttonDefault())
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(PrimaryButtonStyle())
                     }
                     .padding(Spacing.xxl)
                     .listRowBackground(Color.clear)

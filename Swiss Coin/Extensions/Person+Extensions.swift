@@ -75,7 +75,7 @@ extension Person {
     
     /// Safe color hex with fallback
     var safeColorHex: String {
-        return colorHex ?? "#808080" // Default gray
+        return colorHex ?? AppColors.defaultAvatarColorHex
     }
     
     /// Color for UI display

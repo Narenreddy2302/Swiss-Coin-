@@ -162,14 +162,14 @@ struct GroupReminderSheetView: View {
                 // Send Button
                 if !membersWhoOweYou.isEmpty {
                     Button {
-                        HapticManager.tap()
+                        HapticManager.primaryAction()
                         sendReminders()
                     } label: {
                         HStack {
                             Image(systemName: "bell.fill")
                                 .font(.system(size: IconSize.sm))
                             Text(selectedCount == 1 ? "Send Reminder" : "Send \(selectedCount) Reminders")
-                                .font(AppTypography.headingMedium())
+                                .font(AppTypography.buttonDefault())
                         }
                         .foregroundColor(AppColors.onAccent)
                         .frame(maxWidth: .infinity)
@@ -188,7 +188,7 @@ struct GroupReminderSheetView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") {
-                        HapticManager.tap()
+                        HapticManager.cancel()
                         dismiss()
                     }
                 }

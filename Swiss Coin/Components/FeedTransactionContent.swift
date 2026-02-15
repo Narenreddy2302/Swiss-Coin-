@@ -132,7 +132,7 @@ struct FeedTransactionContent: View {
         HStack(spacing: 0) {
             // Left accent bar — contextual color
             amountColor
-                .frame(width: 4)
+                .frame(width: Spacing.xs)
 
             // Card content
             VStack(alignment: .leading, spacing: 0) {

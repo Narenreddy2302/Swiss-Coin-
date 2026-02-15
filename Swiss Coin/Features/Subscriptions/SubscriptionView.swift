@@ -76,6 +76,7 @@ struct SubscriptionView: View {
                         Image(systemName: "plus")
                             .font(AppTypography.buttonLarge())
                     }
+                    .accessibilityLabel("Add subscription")
                 }
             }
             .sheet(isPresented: $showingAddSubscription) {

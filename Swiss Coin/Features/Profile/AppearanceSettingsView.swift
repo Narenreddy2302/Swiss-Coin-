@@ -252,7 +252,7 @@ struct AppearanceSettingsView: View {
                                 Image(systemName: "waveform")
                                     .font(.system(size: IconSize.sm))
                                     .foregroundColor(AppColors.accent)
-                                    .frame(width: 28)
+                                    .frame(width: IconSize.category)
 
                                 Text("Haptic Feedback")
                                     .font(AppTypography.bodyLarge())
@@ -270,13 +270,13 @@ struct AppearanceSettingsView: View {
                             .padding(.vertical, Spacing.md)
 
                             Divider()
-                                .padding(.leading, 70)
+                                .padding(.leading, Spacing.rowDividerInset)
 
                             HStack {
                                 Image(systemName: "figure.walk.motion")
                                     .font(.system(size: IconSize.sm))
                                     .foregroundColor(AppColors.accent)
-                                    .frame(width: 28)
+                                    .frame(width: IconSize.category)
 
                                 Text("Reduce Motion")
                                     .font(AppTypography.bodyLarge())
@@ -372,8 +372,8 @@ private struct ThemePreview: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             RoundedRectangle(cornerRadius: CornerRadius.sm)
-                .fill(isDark ? Color(UIColor(hex: "#1C1C1E")) : Color.white)
-                .frame(height: 60)
+                .fill(AppColors.background)
+                .frame(height: Spacing.rowHeight)
                 .overlay(
                     VStack(alignment: .leading, spacing: Spacing.xs) {
                         RoundedRectangle(cornerRadius: CornerRadius.xs)
@@ -409,7 +409,7 @@ private struct ColorButton: View {
             VStack(spacing: Spacing.xs) {
                 Circle()
                     .fill(Color(hex: color))
-                    .frame(width: 44, height: 44)
+                    .frame(width: AvatarSize.md, height: AvatarSize.md)
                     .overlay(
                         Circle()
                             .stroke(isSelected ? AppColors.textPrimary : Color.clear, lineWidth: 3)

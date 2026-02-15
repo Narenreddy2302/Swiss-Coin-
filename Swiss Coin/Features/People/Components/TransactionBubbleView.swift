@@ -41,9 +41,9 @@ struct TransactionBubbleView: View {
                 Spacer(minLength: UIScreen.main.bounds.width * 0.25)
             }
 
-            VStack(alignment: isFromUser ? .trailing : .leading, spacing: 4) {
+            VStack(alignment: isFromUser ? .trailing : .leading, spacing: Spacing.xs) {
                 // Bubble content
-                VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading, spacing: Spacing.compactVertical) {
                     Text(transaction.title ?? "Unknown")
                         .font(AppTypography.labelLarge())
                         .foregroundColor(isFromUser ? AppColors.userBubbleText : AppColors.otherBubbleText)
@@ -52,8 +52,8 @@ struct TransactionBubbleView: View {
                         .font(AppTypography.financialSmall())
                         .foregroundColor(isFromUser ? AppColors.userBubbleText.opacity(0.7) : AppColors.otherBubbleText.opacity(0.7))
                 }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 10)
+                .padding(.horizontal, Spacing.md + Spacing.xxs)
+                .padding(.vertical, Spacing.sm + Spacing.xxs)
                 .background(
                     BubbleShape(isFromUser: isFromUser)
                         .fill(isFromUser ? AppColors.userBubble : AppColors.otherBubble)
@@ -64,7 +64,7 @@ struct TransactionBubbleView: View {
                     Text(transaction.date ?? Date(), style: .time)
                         .font(AppTypography.labelSmall())
                         .foregroundColor(AppColors.textSecondary)
-                        .padding(.horizontal, 4)
+                        .padding(.horizontal, Spacing.xs)
                 }
             }
 
@@ -72,7 +72,7 @@ struct TransactionBubbleView: View {
                 Spacer(minLength: UIScreen.main.bounds.width * 0.25)
             }
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, Spacing.lg)
     }
 }
 

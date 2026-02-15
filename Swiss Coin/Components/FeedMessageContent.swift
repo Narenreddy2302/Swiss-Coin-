@@ -131,7 +131,7 @@ struct FeedMessageContent: View {
 
             HStack(spacing: Spacing.sm) {
                 Button {
-                    HapticManager.navigationTap()
+                    HapticManager.cancel()
                     withAnimation(AppAnimation.standard) {
                         isEditing = false
                     }

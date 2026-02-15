@@ -68,9 +68,9 @@ struct CurrencySettingsView: View {
 
                             HStack(spacing: Spacing.md) {
                                 Text(selected.flag)
-                                    .font(.system(size: 40))
+                                    .font(.system(size: IconSize.xxl))
 
-                                VStack(alignment: .leading, spacing: 2) {
+                                VStack(alignment: .leading, spacing: Spacing.xxs) {
                                     Text(selected.name)
                                         .font(AppTypography.headingMedium())
                                         .foregroundColor(AppColors.textPrimary)
@@ -169,7 +169,7 @@ struct CurrencySettingsView: View {
 
                                     if index < filteredCurrencies.count - 1 {
                                         Divider()
-                                            .padding(.leading, 70)
+                                            .padding(.leading, Spacing.rowDividerInset)
                                     }
                                 }
                             }
@@ -218,7 +218,7 @@ private struct CurrencyRow: View {
                 Text(currency.flag)
                     .font(.system(size: IconSize.xl))
 
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: Spacing.xxs) {
                     Text(currency.name)
                         .font(AppTypography.bodyLarge())
                         .foregroundColor(AppColors.textPrimary)
