@@ -37,5 +37,6 @@ struct AddTransactionPresenter: View {
         NavigationStack {
             AddTransactionView(viewModel: viewModel)
         }
+        .presentationBackground(AppColors.backgroundSecondary)
     }
 }

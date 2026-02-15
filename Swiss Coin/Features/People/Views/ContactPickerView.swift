@@ -418,7 +418,12 @@ struct ContactPickerView: View {
         // If contact already exists, navigate directly to their conversation
         if let existingPerson = findExistingPerson(for: contact) {
             HapticManager.selectionChanged()
-            self.existingPerson = existingPerson
+            if let callback = onContactAdded {
+                callback(existingPerson)
+                dismiss()
+            } else {
+                self.existingPerson = existingPerson
+            }
             return
         }
         
@@ -480,12 +485,14 @@ struct ContactPickerView: View {
                 existingPhoneNumbers.insert(trimmedPhone.normalizedPhoneNumber())
             }
             
-            // Notify parent
-            onContactAdded?(newPerson)
-            
-            // Navigate to conversation
             isSaving = false
-            self.newlyCreatedPerson = newPerson
+
+            if let callback = onContactAdded {
+                callback(newPerson)
+                dismiss()
+            } else {
+                self.newlyCreatedPerson = newPerson
+            }
             
         } catch {
             viewContext.rollback()
