@@ -132,17 +132,13 @@ struct HomeView: View {
                             }
                             .padding(.horizontal)
 
-                            if recentTransactions.isEmpty {
-                                EmptyStateView()
-                            } else {
-                                LazyVStack(spacing: 0) {
-                                    ForEach(recentTransactions, id: \.id) { transaction in
-                                        TransactionRowView(
-                                            transaction: transaction,
-                                            selectedTransaction: $selectedTransaction
-                                        )
-                                        Divider()
-                                    }
+                            LazyVStack(spacing: 0) {
+                                ForEach(recentTransactions, id: \.id) { transaction in
+                                    TransactionRowView(
+                                        transaction: transaction,
+                                        selectedTransaction: $selectedTransaction
+                                    )
+                                    Divider()
                                 }
                             }
                         }
@@ -272,39 +268,6 @@ struct HomeView: View {
     }
 }
 
-struct EmptyStateView: View {
-    var body: some View {
-        VStack(spacing: Spacing.lg) {
-            Image(systemName: "sparkles")
-                .font(.system(size: IconSize.xxl))
-                .foregroundColor(AppColors.accent.opacity(0.7))
-                .accessibilityHidden(true)
-
-            Text("Welcome to Swiss Coin!")
-                .font(AppTypography.headingLarge())
-                .foregroundColor(AppColors.textPrimary)
-
-            Text("Start by adding your first expense.\nSplit bills with friends and keep track of who owes what.")
-                .font(AppTypography.bodyDefault())
-                .foregroundColor(AppColors.textSecondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, Spacing.lg)
-
-            HStack(spacing: Spacing.xs) {
-                Image(systemName: "plus.circle.fill")
-                    .font(.system(size: IconSize.sm))
-                Text("Tap Add Transaction to get started")
-                    .font(AppTypography.labelLarge())
-            }
-            .foregroundColor(AppColors.accent)
-            .padding(.top, Spacing.sm)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, Spacing.section)
-        .cardStyle()
-        .padding(.horizontal)
-    }
-}
 
 struct SummaryCard: View {
     let title: String

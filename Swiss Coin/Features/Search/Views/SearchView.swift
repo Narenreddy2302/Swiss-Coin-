@@ -252,16 +252,10 @@ struct SearchView: View {
                                             .fill(AppColors.buttonBackground)
                                             .matchedGeometryEffect(id: "activeFilter", in: chipNamespace)
                                             .shadow(color: AppColors.shadow, radius: 2, x: 0, y: 1)
-                                    } else {
-                                        Capsule()
-                                            .fill(AppColors.surface)
-                                            .overlay(
-                                                Capsule()
-                                                    .strokeBorder(AppColors.border, lineWidth: 1)
-                                            )
                                     }
                                 }
                             )
+                            .contentShape(Capsule())
                     }
                     .buttonStyle(AppButtonStyle(haptic: .none))
                     .accessibilityLabel("\(filter.rawValue) filter")

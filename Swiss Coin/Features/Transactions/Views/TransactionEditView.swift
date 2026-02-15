@@ -1,63 +1,74 @@
-import SwiftUI
 import CoreData
+import SwiftUI
 
-// MARK: - AddTransactionView
+// MARK: - Edit Transaction View
+// Single-page scrollable form matching AddTransactionView design
 
-struct AddTransactionView: View {
-
-    // MARK: - Environment
-
-    @Environment(\.managedObjectContext) private var viewContext
-    @Environment(\.dismiss) private var dismiss
-
-    // MARK: - State Properties
-
+struct TransactionEditView: View {
+    private let transaction: FinancialTransaction
     @StateObject private var viewModel: TransactionViewModel
-    @State private var showingValidationAlert = false
-    @State private var validationMessage = ""
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.managedObjectContext) private var viewContext
+
+    @State private var showSaveError = false
+    @State private var saveErrorMessage = ""
     @State private var showingDatePicker = false
-    @State private var showingCategoryPicker = false
 
-    // MARK: - Initialization
-    
-    init(context: NSManagedObjectContext) {
-        _viewModel = StateObject(wrappedValue: TransactionViewModel(context: context))
+    init(transaction: FinancialTransaction) {
+        self.transaction = transaction
+        let ctx = transaction.managedObjectContext
+            ?? PersistenceController.shared.container.viewContext
+        let vm = TransactionViewModel(context: ctx)
+        if !transaction.isDeleted {
+            vm.loadTransaction(transaction)
+        }
+        _viewModel = StateObject(wrappedValue: vm)
     }
-
-    init(viewModel: TransactionViewModel) {
-        _viewModel = StateObject(wrappedValue: viewModel)
-    }
-
-    // MARK: - Body
 
     var body: some View {
-        ScrollView(.vertical, showsIndicators: false) {
-            VStack(alignment: .leading, spacing: Spacing.lg) {
-                transactionNameField
-                dateAndAmountRow
-                paidBySection
-                splitWithSection
-                splitMethodSection
+        NavigationStack {
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(alignment: .leading, spacing: Spacing.lg) {
+                    transactionNameField
+                    dateAndAmountRow
+                    paidBySection
+                    splitWithSection
+                    splitMethodSection
 
-                if !viewModel.selectedPayerPersons.isEmpty {
-                    paidByAmountsSection
+                    if !viewModel.selectedPayerPersons.isEmpty {
+                        paidByAmountsSection
+                    }
+
+                    breakdownSection
+                    totalBalanceSection
+                    updateButton
                 }
-
-                breakdownSection
-                totalBalanceSection
-                saveButton
+                .padding(.horizontal, Spacing.xl)
+                .padding(.top, Spacing.screenTopPad)
+                .padding(.bottom, Spacing.xxxl)
             }
-            .padding(.horizontal, Spacing.xl)
-            .padding(.top, Spacing.screenTopPad)
-            .padding(.bottom, Spacing.xxxl)
-        }
-        .background(AppColors.backgroundSecondary)
-        .navigationTitle("New Transaction")
-        .navigationBarTitleDisplayMode(.inline)
-        .alert("Validation Error", isPresented: $showingValidationAlert) {
-            Button("OK", role: .cancel) { }
-        } message: {
-            Text(validationMessage)
+            .scrollDismissesKeyboard(.interactively)
+            .background(AppColors.backgroundSecondary)
+            .navigationTitle("Edit Transaction")
+            .navigationBarTitleDisplayMode(.large)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button {
+                        HapticManager.cancel()
+                        dismiss()
+                    } label: {
+                        Text("Cancel")
+                            .font(AppTypography.bodyLarge())
+                            .foregroundColor(AppColors.textPrimary)
+                    }
+                }
+            }
+            .presentationDetents([.large])
+            .alert("Update Failed", isPresented: $showSaveError) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(saveErrorMessage)
+            }
         }
     }
 
@@ -67,7 +78,7 @@ struct AddTransactionView: View {
         TextField("Transaction Name", text: $viewModel.title)
             .font(AppTypography.bodyDefault())
             .padding(.horizontal, Spacing.lg)
-            .padding(.vertical, Spacing.md + Spacing.xxs)
+            .frame(height: ButtonHeight.lg)
             .background(AppColors.cardBackground)
             .cornerRadius(CornerRadius.medium)
             .overlay(
@@ -83,7 +94,7 @@ struct AddTransactionView: View {
         HStack(spacing: 0) {
             Button(action: { showingDatePicker.toggle() }) {
                 Text(formattedDate)
-                    .font(AppTypography.headingMedium())
+                    .font(AppTypography.headingSmall())
                     .foregroundColor(AppColors.textPrimary)
             }
             .popover(isPresented: $showingDatePicker) {
@@ -101,16 +112,11 @@ struct AddTransactionView: View {
             Spacer()
 
             Text(currencySymbol)
-                .font(AppTypography.headingSmall())
-                .foregroundColor(AppColors.textPrimary)
-                .frame(width: AvatarSize.sm, height: AvatarSize.sm)
-                .background(AppColors.backgroundTertiary)
-                .cornerRadius(CornerRadius.small)
-
-            Spacer().frame(width: Spacing.lg)
+                .font(AppTypography.bodyDefault())
+                .foregroundColor(AppColors.textSecondary)
 
             TextField("0.00", text: $viewModel.totalAmount)
-                .font(AppTypography.displayMedium())
+                .font(AppTypography.headingMedium())
                 .foregroundColor(AppColors.textPrimary)
                 .keyboardType(.decimalPad)
                 .multilineTextAlignment(.trailing)
@@ -121,7 +127,7 @@ struct AddTransactionView: View {
                 .accessibilityLabel("Transaction amount")
         }
         .padding(.horizontal, Spacing.lg)
-        .padding(.vertical, Spacing.md)
+        .frame(height: ButtonHeight.lg)
         .background(AppColors.cardBackground)
         .cornerRadius(CornerRadius.medium)
         .overlay(
@@ -147,7 +153,6 @@ struct AddTransactionView: View {
                 if !viewModel.filteredPaidByContacts.isEmpty || !viewModel.filteredPaidByPhoneContacts.isEmpty {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: Spacing.sm) {
-                            // Existing persons
                             ForEach(viewModel.filteredPaidByContacts.prefix(10)) { contact in
                                 Button(action: {
                                     viewModel.togglePayer(contact)
@@ -159,7 +164,6 @@ struct AddTransactionView: View {
                                     )
                                 }
                             }
-                            // Phone contacts
                             ForEach(viewModel.filteredPaidByPhoneContacts.prefix(5)) { contact in
                                 Button(action: {
                                     viewModel.addPhoneContactAsPayer(contact)
@@ -201,7 +205,6 @@ struct AddTransactionView: View {
                 if !viewModel.filteredSplitWithContacts.isEmpty || !viewModel.filteredSplitWithPhoneContacts.isEmpty {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: Spacing.sm) {
-                            // Existing persons
                             ForEach(viewModel.filteredSplitWithContacts.prefix(10)) { contact in
                                 Button(action: {
                                     viewModel.toggleParticipant(contact)
@@ -213,7 +216,6 @@ struct AddTransactionView: View {
                                     )
                                 }
                             }
-                            // Phone contacts
                             ForEach(viewModel.filteredSplitWithPhoneContacts.prefix(5)) { contact in
                                 Button(action: {
                                     viewModel.addPhoneContactAsParticipant(contact)
@@ -245,24 +247,34 @@ struct AddTransactionView: View {
                 .font(AppTypography.headingSmall())
                 .foregroundColor(AppColors.textPrimary)
 
-            HStack(spacing: Spacing.sm) {
-                ForEach(SplitMethod.allCases) { method in
+            HStack(spacing: 0) {
+                ForEach(Array(SplitMethod.allCases.enumerated()), id: \.element) { index, method in
                     splitMethodButton(method: method)
+                    if index < SplitMethod.allCases.count - 1 && viewModel.splitMethod != method && viewModel.splitMethod != SplitMethod.allCases[index + 1] {
+                        Divider()
+                            .frame(height: IconSize.lg)
+                            .foregroundColor(AppColors.border)
+                    }
                 }
             }
+            .padding(Spacing.xs)
+            .background(AppColors.backgroundTertiary)
+            .cornerRadius(CornerRadius.medium)
         }
     }
 
     // MARK: - Paid By Amounts Section
 
     private var paidByAmountsSection: some View {
-        VStack(alignment: .leading, spacing: Spacing.compactVertical) {
-            Text("Paid By:")
-                .font(AppTypography.headingSmall())
-                .foregroundColor(AppColors.textPrimary)
+        VStack(alignment: .leading, spacing: Spacing.xs) {
+            Text("PAID BY")
+                .font(AppTypography.labelSmall())
+                .foregroundColor(AppColors.textSecondary)
+                .tracking(0.5)
 
-            VStack(spacing: Spacing.xs) {
-                ForEach(viewModel.selectedPayerPersons.sorted { ($0.name ?? "") < ($1.name ?? "") }, id: \.self) { payer in
+            let sortedPayers = viewModel.selectedPayerPersons.sorted { ($0.name ?? "") < ($1.name ?? "") }
+            VStack(spacing: 0) {
+                ForEach(Array(sortedPayers.enumerated()), id: \.element) { index, payer in
                     if viewModel.selectedPayerPersons.count > 1, let payerId = payer.id {
                         editableAmountRow(
                             name: payer.name ?? "Unknown",
@@ -274,28 +286,34 @@ struct AddTransactionView: View {
                     } else {
                         amountRow(name: payer.name ?? "Unknown", amount: viewModel.totalAmountDouble)
                     }
+                    if index < sortedPayers.count - 1 {
+                        AppColors.divider.frame(height: 0.5)
+                    }
                 }
             }
-            .padding(.leading, Spacing.sm)
         }
     }
 
     // MARK: - Breakdown Section
 
     private var breakdownSection: some View {
-        VStack(alignment: .leading, spacing: Spacing.compactVertical) {
-            Text("Breakdown:")
-                .font(AppTypography.headingSmall())
-                .foregroundColor(AppColors.textPrimary)
+        VStack(alignment: .leading, spacing: Spacing.xs) {
+            Text("SPLIT BREAKDOWN")
+                .font(AppTypography.labelSmall())
+                .foregroundColor(AppColors.textSecondary)
+                .tracking(0.5)
 
-            VStack(spacing: Spacing.xs) {
-                ForEach(viewModel.selectedParticipants.sorted { ($0.name ?? "") < ($1.name ?? "") }, id: \.self) { person in
+            let sortedParticipants = viewModel.selectedParticipants.sorted { ($0.name ?? "") < ($1.name ?? "") }
+            VStack(spacing: 0) {
+                ForEach(Array(sortedParticipants.enumerated()), id: \.element) { index, person in
                     if let personId = person.id {
                         breakdownRow(for: person, personId: personId)
                     }
+                    if index < sortedParticipants.count - 1 {
+                        AppColors.divider.frame(height: 0.5)
+                    }
                 }
             }
-            .padding(.leading, Spacing.sm)
         }
     }
 
@@ -359,46 +377,31 @@ struct AddTransactionView: View {
 
     private var totalBalanceSection: some View {
         VStack(spacing: 0) {
-            AppColors.accent.frame(height: 1)
-                .padding(.vertical, Spacing.xs)
+            AppColors.divider.frame(height: 0.5)
 
             HStack {
-                Text("Total Balance")
+                Text("Total")
                     .font(AppTypography.headingSmall())
                     .foregroundColor(AppColors.textPrimary)
 
                 Spacer()
 
-                Text(currencySymbol)
-                    .font(AppTypography.bodyDefault())
-                    .foregroundColor(AppColors.textSecondary)
-
-                Text(String(format: "%05.2f", abs(viewModel.totalBalance)))
-                    .font(AppTypography.financialDefault())
+                Text(FinancialFormatter.currency(abs(viewModel.totalBalance), currencyCode: viewModel.transactionCurrency))
+                    .font(AppTypography.headingSmall())
                     .foregroundColor(abs(viewModel.totalBalance) < 0.01 ? AppColors.positive : AppColors.negative)
-                    .frame(width: 70, alignment: .trailing)
             }
-            .padding(.vertical, Spacing.sm)
-            .padding(.horizontal, Spacing.sm)
-
-            AppColors.accent.frame(height: 1)
-                .padding(.vertical, Spacing.xs)
+            .padding(.vertical, Spacing.md)
         }
     }
 
-    // MARK: - Save Button
+    // MARK: - Update Button
 
-    private var saveButton: some View {
-        Button(action: saveTransaction) {
+    private var updateButton: some View {
+        Button(action: updateTransaction) {
             HStack {
-                if viewModel.isSaving {
-                    ProgressView()
-                        .progressViewStyle(CircularProgressViewStyle(tint: AppColors.onAccent))
-                } else {
-                    Text("Save Transaction")
-                        .font(AppTypography.buttonLarge())
-                        .foregroundColor(AppColors.onAccent)
-                }
+                Text("Update Transaction")
+                    .font(AppTypography.buttonLarge())
+                    .foregroundColor(AppColors.onAccent)
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, Spacing.lg)
@@ -415,10 +418,10 @@ struct AddTransactionView: View {
             .cornerRadius(CornerRadius.card)
             .shadow(color: AppColors.accent.opacity(0.3), radius: 6, x: 0, y: 4)
         }
-        .disabled(viewModel.isSaving || !viewModel.isValid)
-        .opacity(viewModel.isSaving || !viewModel.isValid ? 0.6 : 1.0)
+        .disabled(!viewModel.isValid)
+        .opacity(!viewModel.isValid ? 0.6 : 1.0)
         .padding(.top, Spacing.md)
-        .accessibilityLabel("Save transaction")
+        .accessibilityLabel("Update transaction")
     }
 
     // MARK: - Reusable Components
@@ -449,18 +452,16 @@ struct AddTransactionView: View {
                     contactChip(name: emptyText, isSelected: false)
                 } else {
                     ForEach(contacts, id: \.self) { contact in
-                        HStack(spacing: Spacing.xs) {
-                            contactChip(name: contact.name ?? "Unknown", isSelected: true)
-                            if isRemovable {
-                                Button(action: {
-                                    onRemove?(contact)
-                                }) {
-                                    Image(systemName: "xmark.circle.fill")
-                                        .font(.system(size: IconSize.sm))
-                                        .foregroundColor(AppColors.textTertiary)
-                                }
-                                .padding(.trailing, Spacing.xs)
+                        if isRemovable {
+                            Button(action: {
+                                HapticManager.lightTap()
+                                onRemove?(contact)
+                            }) {
+                                contactChip(name: contact.name ?? "Unknown", isSelected: true)
                             }
+                            .buttonStyle(AppButtonStyle())
+                        } else {
+                            contactChip(name: contact.name ?? "Unknown", isSelected: true)
                         }
                     }
                 }
@@ -476,30 +477,31 @@ struct AddTransactionView: View {
 
             Text(contact.fullName)
                 .font(AppTypography.labelDefault())
-                .foregroundColor(AppColors.textPrimary)
+                .foregroundColor(AppColors.textSecondary)
                 .lineLimit(1)
         }
-        .padding(.horizontal, Spacing.md + Spacing.xxs)
-        .padding(.vertical, Spacing.sm)
-        .background(AppColors.cardBackground)
-        .cornerRadius(CornerRadius.extraLarge)
+        .padding(.horizontal, Spacing.md)
+        .padding(.vertical, Spacing.compactVertical)
+        .background(AppColors.surface)
+        .cornerRadius(CornerRadius.full)
         .overlay(
-            RoundedRectangle(cornerRadius: CornerRadius.extraLarge)
-                .stroke(AppColors.accent.opacity(0.5), lineWidth: 1)
+            RoundedRectangle(cornerRadius: CornerRadius.full)
+                .stroke(AppColors.border, lineWidth: 1)
         )
     }
 
     private func contactChip(name: String, isSelected: Bool) -> some View {
         Text(name)
             .font(AppTypography.labelDefault())
-            .foregroundColor(AppColors.textPrimary)
-            .padding(.horizontal, Spacing.md + Spacing.xxs)
-            .padding(.vertical, Spacing.sm)
-            .background(isSelected ? AppColors.accentMuted : AppColors.cardBackground)
-            .cornerRadius(CornerRadius.extraLarge)
+            .foregroundColor(isSelected ? AppColors.textPrimary : AppColors.textTertiary)
+            .lineLimit(1)
+            .padding(.horizontal, Spacing.md)
+            .padding(.vertical, Spacing.compactVertical)
+            .background(isSelected ? AppColors.backgroundTertiary : AppColors.surface)
+            .cornerRadius(CornerRadius.full)
             .overlay(
-                RoundedRectangle(cornerRadius: CornerRadius.extraLarge)
-                    .stroke(isSelected ? AppColors.accent : AppColors.borderStrong, lineWidth: 1)
+                RoundedRectangle(cornerRadius: CornerRadius.full)
+                    .stroke(isSelected ? AppColors.borderStrong : AppColors.border, lineWidth: 1)
             )
     }
 
@@ -509,28 +511,14 @@ struct AddTransactionView: View {
             viewModel.splitMethod = method
             viewModel.initializeDefaultRawInputs(for: method)
         }) {
-            VStack(spacing: Spacing.compactVertical) {
-                Image(systemName: systemImageForSplitMethod(method))
-                    .font(.system(size: IconSize.sm, weight: .semibold))
-                    .foregroundColor(AppColors.textPrimary)
-                    .frame(width: ButtonHeight.xl, height: ButtonHeight.sm + Spacing.xs)
-                    .background(isActive ? AppColors.accentMuted : AppColors.cardBackground)
-                    .cornerRadius(CornerRadius.full)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: CornerRadius.full)
-                            .stroke(
-                                isActive ? AppColors.accent : AppColors.borderStrong,
-                                lineWidth: isActive ? 2 : 1
-                            )
-                    )
-
-                Text(method.displayName)
-                    .font(AppTypography.caption())
-                    .foregroundColor(AppColors.textSecondary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
-            }
-            .frame(maxWidth: .infinity)
+            Image(systemName: systemImageForSplitMethod(method))
+                .font(.system(size: IconSize.sm, weight: .semibold))
+                .foregroundColor(AppColors.textPrimary)
+                .frame(maxWidth: .infinity)
+                .frame(height: ButtonHeight.sm)
+                .background(isActive ? AppColors.cardBackground : Color.clear)
+                .cornerRadius(CornerRadius.small)
+                .shadow(color: isActive ? AppColors.shadow : Color.clear, radius: 2, y: 1)
         }
         .buttonStyle(.plain)
     }
@@ -540,128 +528,118 @@ struct AddTransactionView: View {
     private func amountRow(name: String, amount: Double) -> some View {
         HStack {
             Text(name)
-                .font(AppTypography.bodyDefault())
+                .font(AppTypography.headingSmall())
                 .foregroundColor(AppColors.textPrimary)
 
             Spacer()
 
-            Text(currencySymbol)
-                .font(AppTypography.bodyDefault())
-                .foregroundColor(AppColors.textSecondary)
-
-            Text(String(format: "%.2f", amount))
-                .font(AppTypography.financialSmall())
+            Text(FinancialFormatter.currency(amount, currencyCode: viewModel.transactionCurrency))
+                .font(AppTypography.headingSmall())
                 .foregroundColor(AppColors.textPrimary)
-                .frame(width: 70, alignment: .trailing)
         }
-        .padding(.vertical, Spacing.compactVertical)
-        .padding(.horizontal, Spacing.sm)
+        .padding(.vertical, Spacing.md)
     }
 
     private func editableAmountRow(name: String, amount: Binding<String>) -> some View {
         HStack {
             Text(name)
-                .font(AppTypography.bodyDefault())
+                .font(AppTypography.headingSmall())
                 .foregroundColor(AppColors.textPrimary)
 
             Spacer()
 
             Text(currencySymbol)
-                .font(AppTypography.bodyDefault())
+                .font(AppTypography.headingSmall())
                 .foregroundColor(AppColors.textSecondary)
 
             TextField("0.00", text: amount)
-                .font(AppTypography.financialSmall())
+                .font(AppTypography.headingSmall())
                 .foregroundColor(AppColors.textPrimary)
                 .keyboardType(.decimalPad)
                 .multilineTextAlignment(.trailing)
-                .frame(width: 70)
+                .frame(width: 80)
         }
-        .padding(.vertical, Spacing.compactVertical)
-        .padding(.horizontal, Spacing.sm)
+        .padding(.vertical, Spacing.md)
     }
 
     private func editablePercentageRow(name: String, percentage: Binding<String>) -> some View {
         HStack {
             Text(name)
-                .font(AppTypography.bodyDefault())
+                .font(AppTypography.headingSmall())
                 .foregroundColor(AppColors.textPrimary)
 
             Spacer()
 
             TextField("0", text: percentage)
-                .font(AppTypography.financialSmall())
+                .font(AppTypography.headingSmall())
                 .foregroundColor(AppColors.textPrimary)
                 .keyboardType(.decimalPad)
                 .multilineTextAlignment(.trailing)
-                .frame(width: 50)
+                .frame(width: 40)
 
             Text("%")
-                .font(AppTypography.bodyDefault())
+                .font(AppTypography.headingSmall())
                 .foregroundColor(AppColors.textSecondary)
 
-            Text(String(format: "%.2f", viewModel.totalAmountDouble * (Double(percentage.wrappedValue) ?? 0) / 100))
-                .font(AppTypography.bodySmall())
+            Text(FinancialFormatter.currency(viewModel.totalAmountDouble * (Double(percentage.wrappedValue) ?? 0) / 100, currencyCode: viewModel.transactionCurrency))
+                .font(AppTypography.headingSmall())
                 .foregroundColor(AppColors.textSecondary)
-                .frame(width: 60, alignment: .trailing)
+                .frame(minWidth: 60, alignment: .trailing)
         }
-        .padding(.vertical, Spacing.compactVertical)
-        .padding(.horizontal, Spacing.sm)
+        .padding(.vertical, Spacing.md)
     }
 
     private func editableSharesRow(name: String, shares: Binding<String>) -> some View {
         HStack {
             Text(name)
-                .font(AppTypography.bodyDefault())
+                .font(AppTypography.headingSmall())
                 .foregroundColor(AppColors.textPrimary)
 
             Spacer()
 
             TextField("1", text: shares)
-                .font(AppTypography.financialSmall())
+                .font(AppTypography.headingSmall())
                 .foregroundColor(AppColors.textPrimary)
                 .keyboardType(.numberPad)
                 .multilineTextAlignment(.trailing)
-                .frame(width: 50)
+                .frame(width: 40)
 
             Text("shares")
-                .font(AppTypography.bodySmall())
+                .font(AppTypography.headingSmall())
                 .foregroundColor(AppColors.textSecondary)
         }
-        .padding(.vertical, Spacing.compactVertical)
-        .padding(.horizontal, Spacing.sm)
+        .padding(.vertical, Spacing.md)
     }
 
     private func editableAdjustmentRow(name: String, adjustment: Binding<String>, calculatedAmount: Double) -> some View {
         HStack {
             Text(name)
-                .font(AppTypography.bodyDefault())
+                .font(AppTypography.headingSmall())
                 .foregroundColor(AppColors.textPrimary)
 
             Spacer()
 
             Text("+")
-                .font(AppTypography.bodySmall())
+                .font(AppTypography.headingSmall())
                 .foregroundColor(AppColors.textSecondary)
 
             TextField("0.00", text: adjustment)
-                .font(AppTypography.financialSmall())
+                .font(AppTypography.headingSmall())
                 .foregroundColor(AppColors.textPrimary)
                 .keyboardType(.decimalPad)
                 .multilineTextAlignment(.trailing)
                 .frame(width: 50)
 
             Text("=")
-                .font(AppTypography.bodySmall())
-                .foregroundColor(AppColors.textSecondary)
+                .font(AppTypography.headingSmall())
+                .foregroundColor(AppColors.textTertiary)
 
-            Text(String(format: "%.2f", calculatedAmount))
-                .font(AppTypography.financialSmall())
+            Text(FinancialFormatter.currency(calculatedAmount, currencyCode: viewModel.transactionCurrency))
+                .font(AppTypography.headingSmall())
                 .foregroundColor(AppColors.textPrimary)
-                .frame(width: 60, alignment: .trailing)
+                .frame(minWidth: 60, alignment: .trailing)
         }
-        .padding(.vertical, Spacing.compactVertical)
-        .padding(.horizontal, Spacing.sm)
+        .padding(.vertical, Spacing.md)
     }
 
     // MARK: - Helpers
@@ -710,16 +688,16 @@ struct AddTransactionView: View {
         }
     }
 
-    // MARK: - Save Transaction
+    // MARK: - Update Transaction
 
-    private func saveTransaction() {
-        viewModel.saveTransaction { success in
+    private func updateTransaction() {
+        HapticManager.tap()
+        viewModel.updateTransaction(transaction) { success in
             if success {
                 dismiss()
             } else {
-                let validation = viewModel.validate()
-                validationMessage = validation.message ?? "Unable to save transaction"
-                showingValidationAlert = true
+                saveErrorMessage = viewModel.validationMessage ?? "Failed to save changes. Please try again."
+                showSaveError = true
             }
         }
     }
@@ -728,7 +706,17 @@ struct AddTransactionView: View {
 // MARK: - Preview
 
 #Preview {
-    NavigationStack {
-        AddTransactionView(context: PersistenceController.preview.container.viewContext)
-    }
+    let context = PersistenceController.preview.container.viewContext
+    let transaction: FinancialTransaction = {
+        let t = FinancialTransaction(context: context)
+        t.id = UUID()
+        t.title = "Test Transaction"
+        t.amount = 100.00
+        t.date = Date()
+        t.splitMethod = "equal"
+        return t
+    }()
+
+    TransactionEditView(transaction: transaction)
+        .environment(\.managedObjectContext, context)
 }
