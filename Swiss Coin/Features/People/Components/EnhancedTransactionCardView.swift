@@ -152,16 +152,16 @@ struct EnhancedTransactionCardView: View {
             // Action Buttons
             actionButtons
         }
-        .padding(.vertical, Spacing.lg)
+        .padding(.vertical, Spacing.md)
         .background(AppColors.transactionCardBackground)
-        .clipShape(RoundedRectangle(cornerRadius: CornerRadius.card))
+        .clipShape(RoundedRectangle(cornerRadius: CornerRadius.md))
         .shadow(
             color: cardShadow.color,
             radius: cardShadow.radius,
             x: cardShadow.x,
             y: cardShadow.y
         )
-        .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: CornerRadius.card))
+        .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: CornerRadius.md))
         .contextMenu { contextMenuContent }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(transaction.title ?? "Expense"), \(CurrencyFormatter.format(displayAmount)), \(dateText)")
@@ -368,8 +368,8 @@ struct EnhancedTransactionCardView: View {
     private var divider: some View {
         AppColors.transactionCardDivider
             .frame(height: 0.5)
-            .padding(.horizontal, Spacing.lg)
-            .padding(.vertical, Spacing.sm)
+            .padding(.horizontal, Spacing.md)
+            .padding(.vertical, Spacing.xs)
     }
 
     // MARK: - Context Menu
