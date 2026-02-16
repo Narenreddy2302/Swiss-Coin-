@@ -20,6 +20,10 @@ struct EnhancedTransactionCardView: View {
 
     @Environment(\.colorScheme) var colorScheme
 
+    private var cardShadow: (color: Color, radius: CGFloat, x: CGFloat, y: CGFloat) {
+        AppShadow.card(for: colorScheme)
+    }
+
     // MARK: - Cached State (avoid recomputing on every body evaluation)
 
     @State private var cachedPairwiseResult: Double = 0
@@ -61,14 +65,6 @@ struct EnhancedTransactionCardView: View {
         return "\(payers.count) payers"
     }
 
-    private var creatorName: String {
-        let creator = transaction.createdBy ?? transaction.payer
-        if let creatorId = creator?.id, CurrentUser.isCurrentUser(creatorId) {
-            return "You"
-        }
-        return creator?.name ?? "Someone"
-    }
-
     private var splitCount: Int {
         (transaction.splits as? Set<TransactionSplit>)?.count ?? 0
     }
@@ -79,23 +75,12 @@ struct EnhancedTransactionCardView: View {
 
     private var splitMethodDisplay: String {
         switch transaction.splitMethod {
-        case "equal": return "= Equally"
-        case "amount": return "$ By Amount"
-        case "percentage": return "% By Percentage"
-        case "shares": return "÷ By Shares"
-        case "adjustment": return "± Adjusted"
-        default: return "= Equally"
-        }
-    }
-
-    private var splitMethodIcon: String {
-        switch transaction.splitMethod {
-        case "equal": return "="
-        case "amount": return "$"
-        case "percentage": return "%"
-        case "shares": return "÷"
-        case "adjustment": return "±"
-        default: return "="
+        case "equal": return "Equally"
+        case "amount": return "By Amount"
+        case "percentage": return "By Percentage"
+        case "shares": return "By Shares"
+        case "adjustment": return "Adjusted"
+        default: return "Equally"
         }
     }
 
@@ -106,14 +91,6 @@ struct EnhancedTransactionCardView: View {
 
     private var totalAmountText: String {
         CurrencyFormatter.format(transaction.amount, currencyCode: transaction.effectiveCurrency)
-    }
-
-    private var totalBalance: Double {
-        (transaction.splits as? Set<TransactionSplit> ?? []).reduce(0.0) { $0 + $1.amount }
-    }
-
-    private var isSettled: Bool {
-        abs(totalBalance - transaction.amount) < 0.01
     }
 
     private var commentCountDisplay: String {
@@ -151,10 +128,10 @@ struct EnhancedTransactionCardView: View {
         .background(AppColors.transactionCardBackground)
         .clipShape(RoundedRectangle(cornerRadius: CornerRadius.card))
         .shadow(
-            color: AppShadow.card(for: colorScheme).color,
-            radius: AppShadow.card(for: colorScheme).radius,
-            x: AppShadow.card(for: colorScheme).x,
-            y: AppShadow.card(for: colorScheme).y
+            color: cardShadow.color,
+            radius: cardShadow.radius,
+            x: cardShadow.x,
+            y: cardShadow.y
         )
         .animation(AppAnimation.standard, value: colorScheme)
         .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: CornerRadius.card))
@@ -209,16 +186,10 @@ struct EnhancedTransactionCardView: View {
             }
 
             HStack(alignment: .firstTextBaseline) {
-                HStack(spacing: Spacing.xs) {
-                    Text(splitMethodIcon)
-                        .font(AppTypography.labelSmall())
-                        .foregroundColor(AppColors.textTertiary)
-
-                    Text(dateText)
-                        .font(AppTypography.labelDefault())
-                        .foregroundColor(AppColors.textSecondary)
-                        .lineLimit(1)
-                }
+                Text(dateText)
+                    .font(AppTypography.labelDefault())
+                    .foregroundColor(AppColors.textSecondary)
+                    .lineLimit(1)
 
                 Spacer(minLength: Spacing.sm)
 
@@ -244,8 +215,6 @@ struct EnhancedTransactionCardView: View {
 
             VStack(spacing: Spacing.sm) {
                 receiptRow(label: "Paid by", value: payerName)
-                receiptRow(label: "Created by", value: creatorName)
-                receiptRow(label: "Participants", value: splitCountText)
                 receiptRow(label: "Split method", value: splitMethodDisplay)
             }
         }
@@ -282,22 +251,15 @@ struct EnhancedTransactionCardView: View {
     @ViewBuilder
     private var totalBalanceRow: some View {
         HStack {
-            Text("Total Balance")
+            Text("Total")
                 .font(AppTypography.labelLarge())
                 .foregroundColor(AppColors.textPrimary)
 
             Spacer()
 
-            HStack(spacing: Spacing.xs) {
-                Text(CurrencyFormatter.symbol(for: transaction.effectiveCurrency))
-                    .font(AppTypography.bodySmall())
-                    .foregroundColor(AppColors.textSecondary)
-
-                Text(CurrencyFormatter.formatDecimal(abs(transaction.amount - totalBalance), currencyCode: transaction.effectiveCurrency))
-                    .font(AppTypography.financialSmall())
-                    .foregroundColor(isSettled ? AppColors.positive : AppColors.textPrimary)
-                    .frame(minWidth: 50, alignment: .trailing)
-            }
+            Text(totalAmountText)
+                .font(AppTypography.financialDefault())
+                .foregroundColor(AppColors.textPrimary)
         }
         .padding(.horizontal, Spacing.lg)
     }
@@ -392,17 +354,9 @@ struct EnhancedTransactionCardView: View {
 
             Spacer()
 
-            HStack(spacing: Spacing.xs) {
-                Text(CurrencyFormatter.symbol(for: transaction.effectiveCurrency))
-                    .font(AppTypography.bodySmall())
-                    .foregroundColor(AppColors.textSecondary)
-                    .frame(width: 14, alignment: .trailing)
-
-                Text(CurrencyFormatter.formatDecimal(amount, currencyCode: transaction.effectiveCurrency))
-                    .font(AppTypography.financialSmall())
-                    .foregroundColor(AppColors.textPrimary)
-                    .frame(minWidth: 50, alignment: .trailing)
-            }
+            Text(CurrencyFormatter.format(amount, currencyCode: transaction.effectiveCurrency))
+                .font(AppTypography.financialSmall())
+                .foregroundColor(AppColors.textPrimary)
         }
     }
 
@@ -410,7 +364,7 @@ struct EnhancedTransactionCardView: View {
         AppColors.transactionCardDivider
             .frame(height: 0.5)
             .padding(.horizontal, Spacing.lg)
-            .padding(.vertical, Spacing.sm)
+            .padding(.vertical, Spacing.xs)
     }
 
     // MARK: - Context Menu

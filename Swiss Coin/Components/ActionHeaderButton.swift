@@ -12,34 +12,43 @@ struct ActionHeaderButton: View {
     let title: String
     let icon: String
     let color: Color
+    let expand: Bool
+    let compact: Bool
     let action: () -> Void
-    
+
     @State private var isPressed = false
-    
-    init(title: String, icon: String, color: Color, action: @escaping () -> Void) {
+
+    init(title: String, icon: String, color: Color, expand: Bool = true, compact: Bool = false, action: @escaping () -> Void) {
         self.title = title
         self.icon = icon
         self.color = color
+        self.expand = expand
+        self.compact = compact
         self.action = action
     }
     
     var body: some View {
         Button(action: action) {
-            HStack(spacing: Spacing.sm) {
+            HStack(spacing: compact ? Spacing.xs : Spacing.sm) {
                 Image(systemName: icon)
-                    .font(.system(size: IconSize.sm, weight: .medium))
+                    .font(.system(size: compact ? IconSize.xs : IconSize.sm, weight: .medium))
                     .foregroundColor(color == AppColors.accent ? AppColors.buttonForeground : color)
 
                 Text(title)
-                    .font(AppTypography.buttonDefault())
+                    .font(compact ? AppTypography.buttonSmall() : AppTypography.buttonDefault())
                     .foregroundColor(color == AppColors.accent ? AppColors.buttonForeground : color)
             }
-            .padding(.horizontal, Spacing.lg)
-            .padding(.vertical, Spacing.md)
-            .frame(maxWidth: .infinity)
+            .padding(.horizontal, compact ? Spacing.md : Spacing.lg)
+            .padding(.vertical, compact ? Spacing.sm : Spacing.md)
+            .frame(maxWidth: expand ? .infinity : nil)
+            .fixedSize(horizontal: !expand, vertical: false)
             .background(
                 RoundedRectangle(cornerRadius: CornerRadius.md)
-                    .fill(color == AppColors.accent ? AppColors.buttonBackground : AppColors.backgroundTertiary.opacity(0.6))
+                    .fill(color == AppColors.accent ? AppColors.buttonBackground : Color.clear)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: CornerRadius.md)
+                    .strokeBorder(color == AppColors.accent ? Color.clear : AppColors.border, lineWidth: 1)
             )
             .scaleEffect(isPressed ? 0.96 : 1.0)
             .animation(AppAnimation.buttonPress, value: isPressed)

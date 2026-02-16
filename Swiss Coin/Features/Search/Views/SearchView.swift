@@ -15,6 +15,15 @@ private enum TransactionFilter: String, CaseIterable {
     case incoming = "Incoming"
     case outgoing = "Outgoing"
     case subscriptions = "Subscriptions"
+
+    var icon: String {
+        switch self {
+        case .all: return "arrow.left.arrow.right"
+        case .incoming: return "arrow.down.left"
+        case .outgoing: return "arrow.up.right"
+        case .subscriptions: return "creditcard"
+        }
+    }
 }
 
 struct SearchView: View {
@@ -27,7 +36,6 @@ struct SearchView: View {
 
     @State private var selectedTransaction: FinancialTransaction?
     @State private var cachedDisplayedTransactions: [FinancialTransaction] = []
-    @Namespace private var chipNamespace
     @State private var cachedNetPositions: [NSManagedObjectID: Double] = [:]
     @State private var showRefreshFeedback = false
 
@@ -231,40 +239,25 @@ struct SearchView: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: Spacing.sm) {
                 ForEach(TransactionFilter.allCases, id: \.self) { filter in
-                    let isSelected = selectedFilter == filter
-
-                    Button {
+                    ActionHeaderButton(
+                        title: filter.rawValue,
+                        icon: filter.icon,
+                        color: selectedFilter == filter ? AppColors.accent : AppColors.textPrimary,
+                        expand: false,
+                        compact: true
+                    ) {
                         guard selectedFilter != filter else { return }
+                        HapticManager.selectionChanged()
                         withAnimation(AppAnimation.spring) {
                             selectedFilter = filter
                         }
-                        HapticManager.actionBarTap()
-                    } label: {
-                        Text(filter.rawValue)
-                            .font(AppTypography.buttonDefault())
-                            .foregroundColor(isSelected ? AppColors.buttonForeground : AppColors.textSecondary)
-                            .frame(height: ButtonHeight.sm)
-                            .padding(.horizontal, Spacing.md)
-                            .background(
-                                Group {
-                                    if isSelected {
-                                        Capsule()
-                                            .fill(AppColors.buttonBackground)
-                                            .matchedGeometryEffect(id: "activeFilter", in: chipNamespace)
-                                            .shadow(color: AppColors.shadow, radius: 2, x: 0, y: 1)
-                                    }
-                                }
-                            )
-                            .contentShape(Capsule())
                     }
-                    .buttonStyle(AppButtonStyle(haptic: .none))
-                    .accessibilityLabel("\(filter.rawValue) filter")
-                    .accessibilityAddTraits(isSelected ? .isSelected : [])
                 }
             }
             .padding(.horizontal, Spacing.lg)
             .padding(.vertical, Spacing.sm)
         }
+        .background(AppColors.backgroundSecondary)
     }
 
     // MARK: - Transaction List View (Default State)
@@ -473,12 +466,7 @@ struct SearchView: View {
     }
 
     private var filterEmptyIcon: String {
-        switch selectedFilter {
-        case .all: return "arrow.left.arrow.right"
-        case .incoming: return "arrow.down.left"
-        case .outgoing: return "arrow.up.right"
-        case .subscriptions: return "creditcard"
-        }
+        selectedFilter.icon
     }
 
     private var filterEmptyTitle: String {
