@@ -115,7 +115,6 @@ struct PersonConversationView: View {
                                         isLastItem: isLastItem
                                     )
                                     .id(item.id)
-                                    .transition(.opacity.combined(with: .scale(scale: 0.95)))
                                 }
                             }
                         }
@@ -138,10 +137,12 @@ struct PersonConversationView: View {
                 }
                 .onAppear {
                     HapticManager.prepare()
+                    // Scroll to bottom without animation on initial load
                     scrollToBottom(proxy)
                 }
                 .onChange(of: totalItemCount) { _, _ in
-                    withAnimation(AppAnimation.standard) {
+                    // Only animate scroll for new content, not initial load
+                    withAnimation(.easeOut(duration: 0.2)) {
                         scrollToBottom(proxy)
                     }
                 }
@@ -318,24 +319,15 @@ struct PersonConversationView: View {
 
     @ViewBuilder
     private func timelineConnector(isMessage: Bool, avatarInitials: String, avatarColor: String) -> some View {
-        VStack(spacing: 0) {
-            // Top offset to vertically align avatar with first line of content
-            Spacer()
-                .frame(height: isMessage ? Spacing.sm : Spacing.lg)
-
-            // Avatar marker
-            ConversationAvatarView(
-                initials: avatarInitials,
-                colorHex: avatarColor,
-                size: timelineCircleSize
-            )
-
-            // Spacer below avatar
-            Spacer(minLength: 0)
-        }
-        .frame(width: timelineCircleSize)
+        // Avatar only - no connecting line
+        ConversationAvatarView(
+            initials: avatarInitials,
+            colorHex: avatarColor,
+            size: timelineCircleSize
+        )
         .padding(.leading, timelineLeadingPad)
         .padding(.trailing, timelineToContent)
+        .padding(.top, isMessage ? Spacing.sm : Spacing.lg)
     }
 
     // MARK: - Toolbar Components
