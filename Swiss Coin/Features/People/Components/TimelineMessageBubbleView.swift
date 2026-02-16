@@ -101,7 +101,7 @@ struct TimelineMessageBubbleView: View {
                 RoundedRectangle(cornerRadius: CornerRadius.card)
                     .fill(bubbleColor)
                     .shadow(
-                        color: Color.black.opacity(colorScheme == .dark ? 0.2 : 0.05),
+                        color: AppColors.shadow,
                         radius: 2,
                         x: 0,
                         y: 1
@@ -239,10 +239,6 @@ struct TimelineMessageBubbleView: View {
         let edited = message.isEdited ? ", edited" : ""
         return "\(senderName): \(message.content ?? "")\(edited), \(timeText)"
     }
-
-    // MARK: - Environment
-
-    @Environment(\.colorScheme) private var colorScheme
 }
 
 // MARK: - Preview
