@@ -199,7 +199,7 @@ struct EnhancedTransactionCardView: View {
                     .foregroundColor(AppColors.textSecondary)
             }
         }
-        .padding(.horizontal, Spacing.lg)
+        .padding(.horizontal, Spacing.md)
     }
 
     // MARK: - Payment Section
@@ -221,7 +221,7 @@ struct EnhancedTransactionCardView: View {
                 receiptRow(label: "Split method", value: splitMethodDisplay)
             }
         }
-        .padding(.horizontal, Spacing.lg)
+        .padding(.horizontal, Spacing.md)
     }
 
     // MARK: - Split Breakdown Section
@@ -246,7 +246,7 @@ struct EnhancedTransactionCardView: View {
                 }
             }
         }
-        .padding(.horizontal, Spacing.lg)
+        .padding(.horizontal, Spacing.md)
     }
 
     // MARK: - Total Balance Row
@@ -271,7 +271,7 @@ struct EnhancedTransactionCardView: View {
                     .frame(minWidth: 40, alignment: .trailing)
             }
         }
-        .padding(.horizontal, Spacing.lg)
+        .padding(.horizontal, Spacing.md)
     }
 
     // MARK: - Action Buttons
@@ -321,8 +321,8 @@ struct EnhancedTransactionCardView: View {
                     )
             }
         }
-        .padding(.horizontal, Spacing.lg)
-        .padding(.top, Spacing.xs)
+        .padding(.horizontal, Spacing.md)
+        .padding(.top, Spacing.xxs)
     }
 
     // MARK: - Helper Views
