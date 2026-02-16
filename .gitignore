@@ -45,3 +45,7 @@ playground.xcworkspace
 # Temporary files
 *.swp
 *~
+-e 
+# Environment files
+*.env
+*.env.*
