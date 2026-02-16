@@ -175,27 +175,27 @@ struct EnhancedTransactionCardView: View {
         VStack(spacing: Spacing.xs) {
             HStack(alignment: .firstTextBaseline) {
                 Text(transaction.title ?? "Expense")
-                    .font(AppTypography.headingLarge())
+                    .font(AppTypography.headingMedium())
                     .foregroundColor(AppColors.textPrimary)
                     .lineLimit(2)
 
                 Spacer(minLength: Spacing.sm)
 
                 Text(CurrencyFormatter.format(displayAmount))
-                    .font(AppTypography.financialLarge())
+                    .font(AppTypography.financialDefault())
                     .foregroundColor(amountColor)
             }
 
             HStack(alignment: .firstTextBaseline) {
                 Text(dateText)
-                    .font(AppTypography.labelDefault())
+                    .font(AppTypography.bodySmall())
                     .foregroundColor(AppColors.textSecondary)
                     .lineLimit(1)
 
                 Spacer(minLength: Spacing.sm)
 
                 Text("\(totalAmountText) / \(splitCountText)")
-                    .font(AppTypography.labelDefault())
+                    .font(AppTypography.bodySmall())
                     .foregroundColor(AppColors.textSecondary)
             }
         }
@@ -206,15 +206,15 @@ struct EnhancedTransactionCardView: View {
 
     @ViewBuilder
     private var paymentSection: some View {
-        VStack(alignment: .leading, spacing: Spacing.sm) {
+        VStack(alignment: .leading, spacing: Spacing.xs) {
             // Section Label
             Text("PAYMENT")
-                .font(AppTypography.labelSmall())
+                .font(AppTypography.caption())
                 .foregroundColor(AppColors.textTertiary)
                 .tracking(0.5)
                 .padding(.bottom, Spacing.xxs)
 
-            VStack(spacing: Spacing.sm) {
+            VStack(spacing: Spacing.xs) {
                 receiptRow(label: "Paid by", value: payerName)
                 receiptRow(label: "Created by", value: creatorName)
                 receiptRow(label: "Participants", value: splitCountText)
@@ -228,15 +228,15 @@ struct EnhancedTransactionCardView: View {
 
     @ViewBuilder
     private var splitBreakdownSection: some View {
-        VStack(alignment: .leading, spacing: Spacing.sm) {
+        VStack(alignment: .leading, spacing: Spacing.xs) {
             // Section Label
             Text("SPLIT BREAKDOWN")
-                .font(AppTypography.labelSmall())
+                .font(AppTypography.caption())
                 .foregroundColor(AppColors.textTertiary)
                 .tracking(0.5)
                 .padding(.bottom, Spacing.xxs)
 
-            VStack(spacing: Spacing.sm) {
+            VStack(spacing: Spacing.xs) {
                 ForEach(sortedSplits, id: \.self) { split in
                     let owedBy = split.owedBy
                     let isMe = CurrentUser.isCurrentUser(owedBy?.id)
@@ -255,20 +255,20 @@ struct EnhancedTransactionCardView: View {
     private var totalBalanceRow: some View {
         HStack {
             Text("Total Balance")
-                .font(AppTypography.labelLarge())
+                .font(AppTypography.labelDefault())
                 .foregroundColor(AppColors.textPrimary)
 
             Spacer()
 
-            HStack(spacing: Spacing.xs) {
+            HStack(spacing: Spacing.xxs) {
                 Text(CurrencyFormatter.currencySymbol)
-                    .font(AppTypography.bodySmall())
+                    .font(AppTypography.caption())
                     .foregroundColor(AppColors.textSecondary)
 
                 Text(CurrencyFormatter.formatDecimal(abs(transaction.amount - totalBalance)))
                     .font(AppTypography.financialSmall())
                     .foregroundColor(isSettled ? AppColors.positive : AppColors.textPrimary)
-                    .frame(minWidth: 50, alignment: .trailing)
+                    .frame(minWidth: 40, alignment: .trailing)
             }
         }
         .padding(.horizontal, Spacing.lg)
@@ -284,19 +284,19 @@ struct EnhancedTransactionCardView: View {
                 HapticManager.selectionChanged()
                 onComment?()
             } label: {
-                HStack(spacing: Spacing.xs) {
+                HStack(spacing: Spacing.xxs) {
                     Text("Comment")
                     if commentCount > 0 {
                         Text("\(commentCount)")
-                            .font(AppTypography.labelSmall())
+                            .font(AppTypography.caption())
                     }
                 }
-                .font(AppTypography.buttonDefault())
+                .font(AppTypography.buttonSmall())
                 .foregroundColor(.white)
                 .frame(maxWidth: .infinity)
-                .frame(height: ButtonHeight.sm)
+                .frame(height: 32)
                 .background(
-                    RoundedRectangle(cornerRadius: CornerRadius.button)
+                    RoundedRectangle(cornerRadius: CornerRadius.sm)
                         .fill(AppColors.accent)
                 )
             }
@@ -307,15 +307,15 @@ struct EnhancedTransactionCardView: View {
                 onEdit?()
             } label: {
                 Text("Edit")
-                    .font(AppTypography.buttonDefault())
+                    .font(AppTypography.buttonSmall())
                     .foregroundColor(AppColors.textPrimary)
                     .frame(maxWidth: .infinity)
-                    .frame(height: ButtonHeight.sm)
+                    .frame(height: 32)
                     .background(
-                        RoundedRectangle(cornerRadius: CornerRadius.button)
+                        RoundedRectangle(cornerRadius: CornerRadius.sm)
                             .stroke(AppColors.border, lineWidth: 1)
                             .background(
-                                RoundedRectangle(cornerRadius: CornerRadius.button)
+                                RoundedRectangle(cornerRadius: CornerRadius.sm)
                                     .fill(AppColors.transactionCardBackground)
                             )
                     )
@@ -331,13 +331,13 @@ struct EnhancedTransactionCardView: View {
     private func receiptRow(label: String, value: String) -> some View {
         HStack(spacing: Spacing.xs) {
             Text(label)
-                .font(AppTypography.bodyDefault())
+                .font(AppTypography.bodySmall())
                 .foregroundColor(AppColors.textSecondary)
 
             Spacer()
 
             Text(value)
-                .font(AppTypography.labelLarge())
+                .font(AppTypography.labelDefault())
                 .foregroundColor(AppColors.textPrimary)
                 .lineLimit(1)
         }
@@ -352,16 +352,15 @@ struct EnhancedTransactionCardView: View {
 
             Spacer()
 
-            HStack(spacing: Spacing.xs) {
+            HStack(spacing: Spacing.xxs) {
                 Text(CurrencyFormatter.currencySymbol)
-                    .font(AppTypography.bodySmall())
+                    .font(AppTypography.caption())
                     .foregroundColor(AppColors.textSecondary)
-                    .frame(width: 14, alignment: .trailing)
 
                 Text(CurrencyFormatter.formatDecimal(amount))
                     .font(AppTypography.financialSmall())
                     .foregroundColor(AppColors.textPrimary)
-                    .frame(minWidth: 50, alignment: .trailing)
+                    .frame(minWidth: 40, alignment: .trailing)
             }
         }
     }
