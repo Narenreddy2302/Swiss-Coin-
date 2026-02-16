@@ -12,27 +12,33 @@ struct FeedSystemContent: View {
     let iconColor: Color
     let messageText: String
     var noteText: String? = nil
+    var backgroundColor: Color = AppColors.cardBackground
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.xxs) {
-            Text(messageText)
-                .font(AppTypography.bodyLarge())
-                .foregroundColor(AppColors.textPrimary)
+            HStack(spacing: Spacing.xs) {
+                Image(systemName: icon)
+                    .font(.system(size: IconSize.xs, weight: .semibold))
+                    .foregroundColor(iconColor)
+
+                Text(messageText)
+                    .font(AppTypography.labelDefault())
+                    .foregroundColor(AppColors.textPrimary)
+            }
 
             if let noteText, !noteText.isEmpty {
                 Text(noteText)
-                    .font(AppTypography.bodySmall())
+                    .font(AppTypography.caption())
                     .foregroundColor(AppColors.textSecondary)
                     .italic()
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, Spacing.lg)
-        .padding(.vertical, Spacing.md)
+        .padding(.vertical, Spacing.sm)
         .background(
             RoundedRectangle(cornerRadius: CornerRadius.card)
-                .fill(AppColors.cardBackground)
-                .shadow(color: Color.black.opacity(0.03), radius: 3, x: 0, y: 1)
+                .fill(backgroundColor)
         )
     }
 }

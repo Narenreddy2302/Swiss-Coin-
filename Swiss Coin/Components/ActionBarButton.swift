@@ -46,15 +46,15 @@ struct ActionBarButton: View {
         }) {
             HStack(spacing: Spacing.sm) {
                 Image(systemName: icon)
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.system(size: IconSize.sm, weight: .semibold))
                     .foregroundColor(iconColor)
 
                 Text(title)
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(AppTypography.buttonDefault())
                     .foregroundColor(textColor)
             }
             .frame(maxWidth: .infinity)
-            .frame(height: 44)
+            .frame(height: ButtonHeight.md)
             .padding(.horizontal, Spacing.sm)
             .background(buttonBackground)
             .cornerRadius(CornerRadius.md)

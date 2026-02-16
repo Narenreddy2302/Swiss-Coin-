@@ -1,5 +1,6 @@
 import Combine
 import Contacts
+import CoreData
 import os
 import SwiftUI
 
@@ -13,7 +14,7 @@ class ContactsManager: ObservableObject {
     /// Static cache for contacts to avoid reloading on every view appearance
     private static var cachedContacts: [PhoneContact]?
     private static var lastFetchTime: Date?
-    private static let cacheValidityDuration: TimeInterval = 60 // Cache valid for 60 seconds
+    private static let cacheValidityDuration: TimeInterval = 300 // Cache valid for 5 minutes
     
     /// Represents a phone contact with all necessary details
     struct PhoneContact: Identifiable, Hashable, Sendable {
@@ -165,5 +166,94 @@ class ContactsManager: ObservableObject {
     func refreshContacts() async {
         ContactsManager.clearCache()
         await fetchContacts()
+    }
+
+    // MARK: - Person Creation Helpers
+
+    /// Creates a Person entity from a PhoneContact
+    static func createPerson(from contact: PhoneContact, in context: NSManagedObjectContext) -> Person {
+        let newPerson = Person(context: context)
+        newPerson.id = UUID()
+        newPerson.name = contact.fullName
+        newPerson.phoneNumber = contact.phoneNumbers.first
+        newPerson.colorHex = String(format: "#%06X", Int.random(in: 0...0xFFFFFF))
+        newPerson.photoData = contact.thumbnailImageData
+        return newPerson
+    }
+
+    /// Finds an existing Person entity matching a PhoneContact's phone number
+    static func findExistingPerson(for contact: PhoneContact, in context: NSManagedObjectContext) -> Person? {
+        for phone in contact.phoneNumbers {
+            let normalized = phone.normalizedPhoneNumber()
+            let fetchRequest: NSFetchRequest<Person> = Person.fetchRequest()
+            fetchRequest.predicate = NSPredicate(
+                format: "phoneNumber == %@ OR phoneNumber == %@",
+                normalized, phone
+            )
+            fetchRequest.fetchLimit = 1
+            if let person = try? context.fetch(fetchRequest).first {
+                return person
+            }
+        }
+        return nil
+    }
+
+    /// Gets or creates a Person from a PhoneContact. Returns existing Person if phone matches.
+    static func getOrCreatePerson(from contact: PhoneContact, in context: NSManagedObjectContext) -> Person {
+        if let existing = findExistingPerson(for: contact, in: context) {
+            return existing
+        }
+        return createPerson(from: contact, in: context)
+    }
+
+    /// Loads all existing Person phone numbers for filtering
+    static func loadExistingPhoneNumbers(in context: NSManagedObjectContext) -> Set<String> {
+        let fetchRequest: NSFetchRequest<Person> = Person.fetchRequest()
+        fetchRequest.predicate = NSPredicate(format: "phoneNumber != nil AND phoneNumber != %@", "")
+
+        do {
+            let results = try context.fetch(fetchRequest)
+            var phones: Set<String> = []
+            for person in results {
+                if let phone = person.phoneNumber {
+                    phones.insert(phone.normalizedPhoneNumber())
+                    phones.insert(phone)
+                }
+            }
+            return phones
+        } catch {
+            return []
+        }
+    }
+
+    /// Filters contacts to only those not already saved as Person entities
+    func contactsNotInCoreData(existingPhoneNumbers: Set<String>) -> [PhoneContact] {
+        contacts.filter { contact in
+            // Keep contacts that have no phone numbers (can still be added by name)
+            guard !contact.phoneNumbers.isEmpty else { return true }
+            // Exclude if any phone number matches an existing Person
+            return !contact.phoneNumbers.contains(where: { phone in
+                let normalized = phone.normalizedPhoneNumber()
+                return existingPhoneNumbers.contains(normalized) || existingPhoneNumbers.contains(phone)
+            })
+        }
+    }
+
+    /// Searches phone contacts by name/phone, excluding those already in CoreData.
+    /// Combines filtering + search in a single pass for performance.
+    func searchContacts(query: String, excludingPhoneNumbers: Set<String>) -> [ContactsManager.PhoneContact] {
+        let search = query.lowercased()
+        return contacts.filter { contact in
+            // Must match search query
+            guard contact.fullName.lowercased().contains(search) ||
+                  contact.phoneNumbers.contains(where: { $0.contains(search) })
+            else { return false }
+            // Exclude contacts already in CoreData
+            guard !contact.phoneNumbers.isEmpty else { return true }
+            return !contact.phoneNumbers.contains(where: { phone in
+                let normalized = phone.normalizedPhoneNumber()
+                return excludingPhoneNumbers.contains(normalized) || excludingPhoneNumbers.contains(phone)
+            })
+        }
     }
 }

@@ -94,7 +94,7 @@ struct FeedTransactionContent: View {
     }
 
     private var totalAmountText: String {
-        CurrencyFormatter.format(transaction.amount)
+        CurrencyFormatter.format(transaction.amount, currencyCode: transaction.effectiveCurrency)
     }
 
     private var amountPrefix: String {
@@ -109,6 +109,10 @@ struct FeedTransactionContent: View {
     private var sortedSplits: [TransactionSplit] {
         let splitSet = transaction.splits as? Set<TransactionSplit> ?? []
         return splitSet.sorted { ($0.owedBy?.name ?? "") < ($1.owedBy?.name ?? "") }
+    }
+
+    private var commentCount: Int {
+        (transaction.comments as? Set<ChatMessage>)?.count ?? 0
     }
 
     // MARK: - Body
@@ -128,7 +132,7 @@ struct FeedTransactionContent: View {
         HStack(spacing: 0) {
             // Left accent bar — contextual color
             amountColor
-                .frame(width: 4)
+                .frame(width: Spacing.xs)
 
             // Card content
             VStack(alignment: .leading, spacing: 0) {
@@ -157,14 +161,14 @@ struct FeedTransactionContent: View {
         }
         .background(AppColors.transactionCardBackground)
         .clipShape(RoundedRectangle(cornerRadius: CornerRadius.card))
-        .shadow(color: Color.black.opacity(0.04), radius: 6, x: 0, y: 2)
-        .shadow(color: Color.black.opacity(0.02), radius: 2, x: 0, y: 1)
+        .shadow(color: AppColors.shadowSubtle, radius: 6, x: 0, y: 2)
+        .shadow(color: AppColors.shadowMicro, radius: 2, x: 0, y: 1)
         .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: CornerRadius.card))
         .contextMenu { contextMenuContent }
         .padding(.horizontal, Spacing.screenHorizontal)
         .onTapGesture { onViewDetails?() }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(transaction.title ?? "Expense"), \(CurrencyFormatter.format(displayAmount)), \(transaction.date?.receiptFormatted ?? "")")
+        .accessibilityLabel("\(transaction.title ?? "Expense"), \(CurrencyFormatter.format(displayAmount, currencyCode: transaction.effectiveCurrency)), \(transaction.date?.receiptFormatted ?? "")")
     }
 
     // MARK: - Card Header
@@ -180,20 +184,20 @@ struct FeedTransactionContent: View {
 
                 Spacer()
 
-                Text("\(amountPrefix)\(CurrencyFormatter.format(displayAmount))")
-                    .font(AppTypography.financialDefault())
+                Text("\(amountPrefix)\(CurrencyFormatter.format(displayAmount, currencyCode: transaction.effectiveCurrency))")
+                    .font(AppTypography.financialLarge())
                     .foregroundColor(amountColor)
             }
 
             HStack {
                 Text(transaction.date?.receiptFormatted ?? "")
-                    .font(AppTypography.bodySmall())
+                    .font(AppTypography.labelDefault())
                     .foregroundColor(AppColors.textSecondary)
 
                 Spacer()
 
                 Text("\(totalAmountText) / \(splitCountText)")
-                    .font(AppTypography.bodySmall())
+                    .font(AppTypography.labelDefault())
                     .foregroundColor(AppColors.textSecondary)
             }
         }
@@ -215,12 +219,13 @@ struct FeedTransactionContent: View {
     private func cardDetailRow(label: String, value: String) -> some View {
         HStack {
             Text(label)
-                .font(AppTypography.bodySmall())
+                .font(AppTypography.bodyDefault())
                 .foregroundColor(AppColors.textSecondary)
             Spacer()
             Text(value)
-                .font(AppTypography.bodySmall())
+                .font(AppTypography.labelLarge())
                 .foregroundColor(AppColors.textPrimary)
+                .lineLimit(1)
         }
     }
 
@@ -232,24 +237,24 @@ struct FeedTransactionContent: View {
             Text("SPLIT BREAKDOWN")
                 .font(AppTypography.labelSmall())
                 .foregroundColor(AppColors.textTertiary)
-                .tracking(1)
+                .tracking(AppTypography.Tracking.labelSmall)
                 .padding(.bottom, Spacing.xxs)
 
             ForEach(sortedSplits, id: \.objectID) { split in
                 HStack {
                     Text(TransactionDetailHelpers.personDisplayName(for: split))
-                        .font(AppTypography.bodySmall())
+                        .font(AppTypography.labelDefault())
                         .foregroundColor(AppColors.textPrimary)
                         .lineLimit(1)
 
                     Spacer()
 
                     HStack(spacing: Spacing.sm) {
-                        Text(CurrencyFormatter.currencySymbol)
+                        Text(CurrencyFormatter.symbol(for: transaction.effectiveCurrency))
                             .font(AppTypography.bodySmall())
                             .foregroundColor(AppColors.textSecondary)
 
-                        Text(CurrencyFormatter.formatDecimal(split.amount))
+                        Text(CurrencyFormatter.formatDecimal(split.amount, currencyCode: transaction.effectiveCurrency))
                             .font(AppTypography.financialSmall())
                             .foregroundColor(AppColors.textPrimary)
                             .frame(minWidth: 50, alignment: .trailing)
@@ -274,11 +279,11 @@ struct FeedTransactionContent: View {
             Spacer()
 
             HStack(spacing: Spacing.sm) {
-                Text(CurrencyFormatter.currencySymbol)
+                Text(CurrencyFormatter.symbol(for: transaction.effectiveCurrency))
                     .font(AppTypography.bodySmall())
                     .foregroundColor(AppColors.textSecondary)
 
-                Text(CurrencyFormatter.formatDecimal(transaction.amount))
+                Text(CurrencyFormatter.formatDecimal(transaction.amount, currencyCode: transaction.effectiveCurrency))
                     .font(AppTypography.financialSmall())
                     .foregroundColor(AppColors.textPrimary)
                     .padding(.horizontal, Spacing.sm)
@@ -292,26 +297,41 @@ struct FeedTransactionContent: View {
         .padding(.top, Spacing.sm)
     }
 
-    // MARK: - Card Action Buttons
+    // MARK: - Card Action Buttons (unified with EnhancedTransactionCardView)
 
     @ViewBuilder
     private var cardActionButtons: some View {
-        HStack(spacing: Spacing.md) {
+        HStack(spacing: Spacing.sm) {
             if onComment != nil {
                 Button {
                     HapticManager.selectionChanged()
                     onComment?()
                 } label: {
                     Text("Comment")
-                        .font(AppTypography.buttonSmall())
-                        .foregroundColor(AppColors.accent)
+                        .font(AppTypography.buttonDefault())
+                        .foregroundColor(AppColors.onAccent)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, Spacing.sm)
+                        .frame(height: ButtonHeight.sm)
                         .background(
                             RoundedRectangle(cornerRadius: CornerRadius.button)
-                                .stroke(AppColors.accent, lineWidth: 1)
+                                .fill(AppColors.accent)
                         )
+                        .overlay(alignment: .topTrailing) {
+                            if commentCount > 0 {
+                                Text(commentCount > 99 ? "99+" : "\(commentCount)")
+                                    .font(AppTypography.labelSmall())
+                                    .foregroundColor(AppColors.onAccent)
+                                    .frame(minWidth: 18, minHeight: 18)
+                                    .background(
+                                        Circle()
+                                            .fill(AppColors.negative)
+                                    )
+                                    .offset(x: -Spacing.sm, y: -Spacing.sm)
+                                    .transition(.scale.combined(with: .opacity))
+                            }
+                        }
                 }
+                .buttonStyle(AppButtonStyle(haptic: .none))
             }
 
             if onEdit != nil {
@@ -320,15 +340,20 @@ struct FeedTransactionContent: View {
                     onEdit?()
                 } label: {
                     Text("Edit")
-                        .font(AppTypography.buttonSmall())
-                        .foregroundColor(AppColors.accent)
+                        .font(AppTypography.buttonDefault())
+                        .foregroundColor(AppColors.textPrimary)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, Spacing.sm)
+                        .frame(height: ButtonHeight.sm)
                         .background(
                             RoundedRectangle(cornerRadius: CornerRadius.button)
-                                .stroke(AppColors.accent, lineWidth: 1)
+                                .stroke(AppColors.border, lineWidth: 1)
+                                .background(
+                                    RoundedRectangle(cornerRadius: CornerRadius.button)
+                                        .fill(AppColors.transactionCardBackground)
+                                )
                         )
                 }
+                .buttonStyle(AppButtonStyle(haptic: .none))
             }
         }
     }
@@ -346,8 +371,8 @@ struct FeedTransactionContent: View {
 
                 Spacer()
 
-                Text("\(amountPrefix)\(CurrencyFormatter.format(displayAmount))")
-                    .font(AppTypography.financialSmall())
+                Text("\(amountPrefix)\(CurrencyFormatter.format(displayAmount, currencyCode: transaction.effectiveCurrency))")
+                    .font(AppTypography.financialDefault())
                     .foregroundColor(amountColor)
             }
 
@@ -376,10 +401,19 @@ struct FeedTransactionContent: View {
                             HapticManager.selectionChanged()
                             onComment?()
                         } label: {
-                            Image(systemName: "bubble.right")
-                                .font(.system(size: IconSize.xs))
-                                .foregroundColor(AppColors.textTertiary)
+                            HStack(spacing: Spacing.xs) {
+                                Image(systemName: "bubble.right")
+                                    .font(.system(size: IconSize.xs))
+                                    .foregroundColor(AppColors.textTertiary)
+
+                                if commentCount > 0 {
+                                    Text("\(commentCount)")
+                                        .font(AppTypography.caption())
+                                        .foregroundColor(AppColors.textSecondary)
+                                }
+                            }
                         }
+                        .frame(minWidth: ButtonHeight.md, minHeight: ButtonHeight.md)
                     }
 
                     if onViewDetails != nil {
@@ -391,6 +425,7 @@ struct FeedTransactionContent: View {
                                 .font(.system(size: IconSize.xs))
                                 .foregroundColor(AppColors.textTertiary)
                         }
+                        .frame(minWidth: ButtonHeight.md, minHeight: ButtonHeight.md)
                     }
 
                     if onEdit != nil {
@@ -402,6 +437,7 @@ struct FeedTransactionContent: View {
                                 .font(.system(size: IconSize.xs))
                                 .foregroundColor(AppColors.textTertiary)
                         }
+                        .frame(minWidth: ButtonHeight.md, minHeight: ButtonHeight.md)
                     }
                 }
                 .padding(.top, Spacing.xxs)
@@ -412,7 +448,7 @@ struct FeedTransactionContent: View {
         .onTapGesture { onViewDetails?() }
         .contextMenu { contextMenuContent }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(transaction.title ?? "Expense"), \(CurrencyFormatter.format(displayAmount)), \(transaction.date?.receiptFormatted ?? "")")
+        .accessibilityLabel("\(transaction.title ?? "Expense"), \(CurrencyFormatter.format(displayAmount, currencyCode: transaction.effectiveCurrency)), \(transaction.date?.receiptFormatted ?? "")")
     }
 
     // MARK: - Shared Context Menu
@@ -420,7 +456,7 @@ struct FeedTransactionContent: View {
     @ViewBuilder
     private var contextMenuContent: some View {
         Button {
-            UIPasteboard.general.string = CurrencyFormatter.format(transaction.amount)
+            UIPasteboard.general.string = CurrencyFormatter.format(transaction.amount, currencyCode: transaction.effectiveCurrency)
             HapticManager.copyAction()
         } label: {
             Label("Copy Amount", systemImage: "doc.on.doc")
@@ -432,6 +468,15 @@ struct FeedTransactionContent: View {
                 onViewDetails()
             } label: {
                 Label("View Details", systemImage: "doc.text.magnifyingglass")
+            }
+        }
+
+        if let onComment {
+            Button {
+                HapticManager.selectionChanged()
+                onComment()
+            } label: {
+                Label("Comment", systemImage: "bubble.right")
             }
         }
 

@@ -39,10 +39,10 @@ struct ColorPickerRow: View {
 
                 Circle()
                     .fill(Color(hex: selectedColor))
-                    .frame(width: 28, height: 28)
+                    .frame(width: IconSize.category, height: IconSize.category)
 
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.system(size: IconSize.sm, weight: .semibold))
                     .foregroundColor(AppColors.textSecondary)
             }
         }
@@ -67,8 +67,8 @@ struct ColorPickerRow: View {
                                     )
                                     .overlay(
                                         Image(systemName: "checkmark")
-                                            .font(.system(size: 20, weight: .bold))
-                                            .foregroundColor(.white)
+                                            .font(.system(size: IconSize.md, weight: .bold))
+                                            .foregroundColor(AppColors.onAccent)
                                             .opacity(selectedColor == color ? 1 : 0)
                                     )
                             }

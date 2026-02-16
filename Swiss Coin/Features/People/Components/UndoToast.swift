@@ -20,7 +20,7 @@ struct UndoToastView: View {
                 .foregroundColor(AppColors.textSecondary)
 
             Text(message)
-                .font(AppTypography.subheadline())
+                .font(AppTypography.bodyDefault())
                 .foregroundColor(AppColors.textPrimary)
 
             Spacer()
@@ -30,7 +30,7 @@ struct UndoToastView: View {
                 onUndo()
             } label: {
                 Text("Undo")
-                    .font(AppTypography.subheadlineMedium())
+                    .font(AppTypography.labelLarge())
                     .foregroundColor(AppColors.accent)
             }
         }

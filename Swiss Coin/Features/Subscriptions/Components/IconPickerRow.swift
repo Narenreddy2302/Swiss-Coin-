@@ -47,15 +47,15 @@ struct IconPickerRow: View {
 
                 RoundedRectangle(cornerRadius: CornerRadius.xs)
                     .fill(AppColors.cardBackground)
-                    .frame(width: 36, height: 36)
+                    .frame(width: AvatarSize.sm, height: AvatarSize.sm)
                     .overlay(
                         Image(systemName: selectedIcon)
-                            .font(.system(size: 18))
+                            .font(.system(size: IconSize.md))
                             .foregroundColor(AppColors.accent)
                     )
 
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.system(size: IconSize.sm, weight: .semibold))
                     .foregroundColor(AppColors.textSecondary)
             }
         }
@@ -63,7 +63,7 @@ struct IconPickerRow: View {
             NavigationStack {
                 ScrollView {
                     LazyVGrid(columns: [
-                        GridItem(.adaptive(minimum: 60))
+                        GridItem(.adaptive(minimum: AvatarSize.profile))
                     ], spacing: Spacing.md) {
                         ForEach(popularIcons, id: \.self) { icon in
                             Button {
@@ -73,10 +73,10 @@ struct IconPickerRow: View {
                             } label: {
                                 RoundedRectangle(cornerRadius: CornerRadius.sm)
                                     .fill(selectedIcon == icon ? AppColors.accent.opacity(0.2) : AppColors.cardBackground)
-                                    .frame(width: 60, height: 60)
+                                    .frame(width: AvatarSize.profile, height: AvatarSize.profile)
                                     .overlay(
                                         Image(systemName: icon)
-                                            .font(.system(size: 24))
+                                            .font(.system(size: IconSize.lg))
                                             .foregroundColor(selectedIcon == icon ? AppColors.accent : AppColors.textSecondary)
                                     )
                                     .overlay(

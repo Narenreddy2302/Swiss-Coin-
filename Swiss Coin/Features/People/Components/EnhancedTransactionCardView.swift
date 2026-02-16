@@ -10,7 +10,7 @@ import SwiftUI
 import CoreData
 
 struct EnhancedTransactionCardView: View {
-    let transaction: FinancialTransaction
+    @ObservedObject var transaction: FinancialTransaction
     let person: Person
     var onEdit: (() -> Void)? = nil
     var onViewDetails: (() -> Void)? = nil
@@ -20,35 +20,29 @@ struct EnhancedTransactionCardView: View {
 
     @Environment(\.colorScheme) var colorScheme
 
-    // MARK: - Computed Properties
+    // MARK: - Cached State (avoid recomputing on every body evaluation)
 
-    private var cardShadow: (color: Color, radius: CGFloat, x: CGFloat, y: CGFloat) {
-        AppShadow.card(for: colorScheme)
-    }
+    @State private var cachedPairwiseResult: Double = 0
+    @State private var cachedSortedSplits: [TransactionSplit] = []
+    @State private var cachedCommentCount: Int = 0
 
-    /// Net balance for this transaction from current user's perspective
-    /// Positive = user is owed money (orange), Negative = user owes money (green)
-    private var pairwiseResult: Double {
-        guard let currentUserId = CurrentUser.currentUserId,
-              let personId = person.id else { return 0 }
-        return transaction.pairwiseBalance(personA: currentUserId, personB: personId)
-    }
+    // MARK: - Derived from cached state
 
     private var isUserPayer: Bool {
-        pairwiseResult > 0
+        cachedPairwiseResult > 0
     }
 
     private var isUserOwing: Bool {
-        pairwiseResult < 0
+        cachedPairwiseResult < 0
     }
 
     private var displayAmount: Double {
-        abs(pairwiseResult)
+        abs(cachedPairwiseResult)
     }
 
     /// Amount color: Orange when user is owed (positive), Green when user owes (negative)
     private var amountColor: Color {
-        if abs(pairwiseResult) < 0.01 { return AppColors.neutral }
+        if abs(cachedPairwiseResult) < 0.01 { return AppColors.neutral }
         return isUserPayer ? AppColors.positive : AppColors.negative
     }
 
@@ -75,20 +69,6 @@ struct EnhancedTransactionCardView: View {
         return creator?.name ?? "Someone"
     }
 
-    private var sortedSplits: [TransactionSplit] {
-        let splitsSet = transaction.splits as? Set<TransactionSplit> ?? []
-        return splitsSet.sorted { s1, s2 in
-            let isMe1 = CurrentUser.isCurrentUser(s1.owedBy?.id)
-            let isMe2 = CurrentUser.isCurrentUser(s2.owedBy?.id)
-            if isMe1 != isMe2 { return isMe1 }
-            return (s1.owedBy?.name ?? "") < (s2.owedBy?.name ?? "")
-        }
-    }
-
-    private var commentCount: Int {
-        (transaction.comments as? Set<ChatMessage>)?.count ?? 0
-    }
-
     private var splitCount: Int {
         (transaction.splits as? Set<TransactionSplit>)?.count ?? 0
     }
@@ -108,13 +88,24 @@ struct EnhancedTransactionCardView: View {
         }
     }
 
+    private var splitMethodIcon: String {
+        switch transaction.splitMethod {
+        case "equal": return "="
+        case "amount": return "$"
+        case "percentage": return "%"
+        case "shares": return "÷"
+        case "adjustment": return "±"
+        default: return "="
+        }
+    }
+
     private var dateText: String {
         guard let date = transaction.date else { return "" }
         return date.receiptFormatted
     }
 
     private var totalAmountText: String {
-        CurrencyFormatter.format(transaction.amount)
+        CurrencyFormatter.format(transaction.amount, currencyCode: transaction.effectiveCurrency)
     }
 
     private var totalBalance: Double {
@@ -123,6 +114,10 @@ struct EnhancedTransactionCardView: View {
 
     private var isSettled: Bool {
         abs(totalBalance - transaction.amount) < 0.01
+    }
+
+    private var commentCountDisplay: String {
+        cachedCommentCount > 99 ? "99+" : "\(cachedCommentCount)"
     }
 
     // MARK: - Body
@@ -152,20 +147,46 @@ struct EnhancedTransactionCardView: View {
             // Action Buttons
             actionButtons
         }
-        .padding(.vertical, Spacing.md)
+        .padding(.vertical, Spacing.lg)
         .background(AppColors.transactionCardBackground)
-        .clipShape(RoundedRectangle(cornerRadius: CornerRadius.md))
+        .clipShape(RoundedRectangle(cornerRadius: CornerRadius.card))
         .shadow(
-            color: cardShadow.color,
-            radius: cardShadow.radius,
-            x: cardShadow.x,
-            y: cardShadow.y
+            color: AppShadow.card(for: colorScheme).color,
+            radius: AppShadow.card(for: colorScheme).radius,
+            x: AppShadow.card(for: colorScheme).x,
+            y: AppShadow.card(for: colorScheme).y
         )
-        .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: CornerRadius.md))
+        .animation(AppAnimation.standard, value: colorScheme)
+        .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: CornerRadius.card))
         .contextMenu { contextMenuContent }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(transaction.title ?? "Expense"), \(CurrencyFormatter.format(displayAmount)), \(dateText)")
+        .accessibilityLabel("\(transaction.title ?? "Expense"), \(CurrencyFormatter.format(displayAmount, currencyCode: transaction.effectiveCurrency)), \(dateText)")
         .accessibilityHint("Double tap and hold for options")
+        .onAppear { recomputeCachedValues() }
+        .onReceive(NotificationCenter.default.publisher(for: .NSManagedObjectContextDidSave)) { _ in
+            recomputeCachedValues()
+        }
+    }
+
+    // MARK: - Cache Recomputation
+
+    private func recomputeCachedValues() {
+        if let currentUserId = CurrentUser.currentUserId,
+           let personId = person.id {
+            cachedPairwiseResult = transaction.pairwiseBalance(personA: currentUserId, personB: personId)
+        } else {
+            cachedPairwiseResult = 0
+        }
+
+        let splitsSet = transaction.splits as? Set<TransactionSplit> ?? []
+        cachedSortedSplits = splitsSet.sorted { s1, s2 in
+            let isMe1 = CurrentUser.isCurrentUser(s1.owedBy?.id)
+            let isMe2 = CurrentUser.isCurrentUser(s2.owedBy?.id)
+            if isMe1 != isMe2 { return isMe1 }
+            return (s1.owedBy?.name ?? "") < (s2.owedBy?.name ?? "")
+        }
+
+        cachedCommentCount = (transaction.comments as? Set<ChatMessage>)?.count ?? 0
     }
 
     // MARK: - Header Section
@@ -175,69 +196,76 @@ struct EnhancedTransactionCardView: View {
         VStack(spacing: Spacing.xs) {
             HStack(alignment: .firstTextBaseline) {
                 Text(transaction.title ?? "Expense")
-                    .font(AppTypography.headingMedium())
+                    .font(AppTypography.headingLarge())
                     .foregroundColor(AppColors.textPrimary)
                     .lineLimit(2)
+                    .truncationMode(.tail)
 
                 Spacer(minLength: Spacing.sm)
 
-                Text(CurrencyFormatter.format(displayAmount))
-                    .font(AppTypography.financialDefault())
+                Text(CurrencyFormatter.format(displayAmount, currencyCode: transaction.effectiveCurrency))
+                    .font(AppTypography.financialLarge())
                     .foregroundColor(amountColor)
             }
 
             HStack(alignment: .firstTextBaseline) {
-                Text(dateText)
-                    .font(AppTypography.bodySmall())
-                    .foregroundColor(AppColors.textSecondary)
-                    .lineLimit(1)
+                HStack(spacing: Spacing.xs) {
+                    Text(splitMethodIcon)
+                        .font(AppTypography.labelSmall())
+                        .foregroundColor(AppColors.textTertiary)
+
+                    Text(dateText)
+                        .font(AppTypography.labelDefault())
+                        .foregroundColor(AppColors.textSecondary)
+                        .lineLimit(1)
+                }
 
                 Spacer(minLength: Spacing.sm)
 
                 Text("\(totalAmountText) / \(splitCountText)")
-                    .font(AppTypography.bodySmall())
+                    .font(AppTypography.labelDefault())
                     .foregroundColor(AppColors.textSecondary)
             }
         }
-        .padding(.horizontal, Spacing.md)
+        .padding(.horizontal, Spacing.lg)
     }
 
     // MARK: - Payment Section
 
     @ViewBuilder
     private var paymentSection: some View {
-        VStack(alignment: .leading, spacing: Spacing.xs) {
+        VStack(alignment: .leading, spacing: Spacing.sm) {
             // Section Label
             Text("PAYMENT")
-                .font(AppTypography.caption())
+                .font(AppTypography.labelSmall())
                 .foregroundColor(AppColors.textTertiary)
-                .tracking(0.5)
+                .tracking(AppTypography.Tracking.caption)
                 .padding(.bottom, Spacing.xxs)
 
-            VStack(spacing: Spacing.xs) {
+            VStack(spacing: Spacing.sm) {
                 receiptRow(label: "Paid by", value: payerName)
                 receiptRow(label: "Created by", value: creatorName)
                 receiptRow(label: "Participants", value: splitCountText)
                 receiptRow(label: "Split method", value: splitMethodDisplay)
             }
         }
-        .padding(.horizontal, Spacing.md)
+        .padding(.horizontal, Spacing.lg)
     }
 
     // MARK: - Split Breakdown Section
 
     @ViewBuilder
     private var splitBreakdownSection: some View {
-        VStack(alignment: .leading, spacing: Spacing.xs) {
+        VStack(alignment: .leading, spacing: Spacing.sm) {
             // Section Label
             Text("SPLIT BREAKDOWN")
-                .font(AppTypography.caption())
+                .font(AppTypography.labelSmall())
                 .foregroundColor(AppColors.textTertiary)
-                .tracking(0.5)
+                .tracking(AppTypography.Tracking.caption)
                 .padding(.bottom, Spacing.xxs)
 
-            VStack(spacing: Spacing.xs) {
-                ForEach(sortedSplits, id: \.self) { split in
+            VStack(spacing: Spacing.sm) {
+                ForEach(cachedSortedSplits, id: \.self) { split in
                     let owedBy = split.owedBy
                     let isMe = CurrentUser.isCurrentUser(owedBy?.id)
                     let name = isMe ? "You" : (owedBy?.name ?? "Unknown")
@@ -246,7 +274,7 @@ struct EnhancedTransactionCardView: View {
                 }
             }
         }
-        .padding(.horizontal, Spacing.md)
+        .padding(.horizontal, Spacing.lg)
     }
 
     // MARK: - Total Balance Row
@@ -255,23 +283,23 @@ struct EnhancedTransactionCardView: View {
     private var totalBalanceRow: some View {
         HStack {
             Text("Total Balance")
-                .font(AppTypography.labelDefault())
+                .font(AppTypography.labelLarge())
                 .foregroundColor(AppColors.textPrimary)
 
             Spacer()
 
-            HStack(spacing: Spacing.xxs) {
-                Text(CurrencyFormatter.currencySymbol)
-                    .font(AppTypography.caption())
+            HStack(spacing: Spacing.xs) {
+                Text(CurrencyFormatter.symbol(for: transaction.effectiveCurrency))
+                    .font(AppTypography.bodySmall())
                     .foregroundColor(AppColors.textSecondary)
 
-                Text(CurrencyFormatter.formatDecimal(abs(transaction.amount - totalBalance)))
+                Text(CurrencyFormatter.formatDecimal(abs(transaction.amount - totalBalance), currencyCode: transaction.effectiveCurrency))
                     .font(AppTypography.financialSmall())
                     .foregroundColor(isSettled ? AppColors.positive : AppColors.textPrimary)
-                    .frame(minWidth: 40, alignment: .trailing)
+                    .frame(minWidth: 50, alignment: .trailing)
             }
         }
-        .padding(.horizontal, Spacing.md)
+        .padding(.horizontal, Spacing.lg)
     }
 
     // MARK: - Action Buttons
@@ -279,27 +307,38 @@ struct EnhancedTransactionCardView: View {
     @ViewBuilder
     private var actionButtons: some View {
         HStack(spacing: Spacing.sm) {
-            // Comment Button - Orange filled
+            // Comment Button - Orange filled with badge overlay
             Button {
                 HapticManager.selectionChanged()
                 onComment?()
             } label: {
-                HStack(spacing: Spacing.xxs) {
-                    Text("Comment")
-                    if commentCount > 0 {
-                        Text("\(commentCount)")
-                            .font(AppTypography.caption())
+                Text("Comment")
+                    .font(AppTypography.buttonDefault())
+                    .foregroundColor(AppColors.onAccent)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: ButtonHeight.sm)
+                    .background(
+                        RoundedRectangle(cornerRadius: CornerRadius.button)
+                            .fill(AppColors.accent)
+                    )
+                    .overlay(alignment: .topTrailing) {
+                        if cachedCommentCount > 0 {
+                            Text(commentCountDisplay)
+                                .font(AppTypography.labelSmall())
+                                .foregroundColor(AppColors.onAccent)
+                                .frame(minWidth: 18, minHeight: 18)
+                                .background(
+                                    Circle()
+                                        .fill(AppColors.negative)
+                                )
+                                .offset(x: -Spacing.sm, y: -Spacing.sm)
+                                .contentTransition(.numericText())
+                                .transition(.scale.combined(with: .opacity))
+                        }
                     }
-                }
-                .font(AppTypography.buttonSmall())
-                .foregroundColor(.white)
-                .frame(maxWidth: .infinity)
-                .frame(height: 32)
-                .background(
-                    RoundedRectangle(cornerRadius: CornerRadius.sm)
-                        .fill(AppColors.accent)
-                )
+                    .animation(AppAnimation.spring, value: cachedCommentCount)
             }
+            .buttonStyle(AppButtonStyle(haptic: .none))
 
             // Edit Button - Outlined
             Button {
@@ -307,22 +346,23 @@ struct EnhancedTransactionCardView: View {
                 onEdit?()
             } label: {
                 Text("Edit")
-                    .font(AppTypography.buttonSmall())
+                    .font(AppTypography.buttonDefault())
                     .foregroundColor(AppColors.textPrimary)
                     .frame(maxWidth: .infinity)
-                    .frame(height: 32)
+                    .frame(height: ButtonHeight.sm)
                     .background(
-                        RoundedRectangle(cornerRadius: CornerRadius.sm)
+                        RoundedRectangle(cornerRadius: CornerRadius.button)
                             .stroke(AppColors.border, lineWidth: 1)
                             .background(
-                                RoundedRectangle(cornerRadius: CornerRadius.sm)
+                                RoundedRectangle(cornerRadius: CornerRadius.button)
                                     .fill(AppColors.transactionCardBackground)
                             )
                     )
             }
+            .buttonStyle(AppButtonStyle(haptic: .none))
         }
-        .padding(.horizontal, Spacing.md)
-        .padding(.top, Spacing.xxs)
+        .padding(.horizontal, Spacing.lg)
+        .padding(.top, Spacing.xs)
     }
 
     // MARK: - Helper Views
@@ -331,13 +371,13 @@ struct EnhancedTransactionCardView: View {
     private func receiptRow(label: String, value: String) -> some View {
         HStack(spacing: Spacing.xs) {
             Text(label)
-                .font(AppTypography.bodySmall())
+                .font(AppTypography.bodyDefault())
                 .foregroundColor(AppColors.textSecondary)
 
             Spacer()
 
             Text(value)
-                .font(AppTypography.labelDefault())
+                .font(AppTypography.labelLarge())
                 .foregroundColor(AppColors.textPrimary)
                 .lineLimit(1)
         }
@@ -352,15 +392,16 @@ struct EnhancedTransactionCardView: View {
 
             Spacer()
 
-            HStack(spacing: Spacing.xxs) {
-                Text(CurrencyFormatter.currencySymbol)
-                    .font(AppTypography.caption())
+            HStack(spacing: Spacing.xs) {
+                Text(CurrencyFormatter.symbol(for: transaction.effectiveCurrency))
+                    .font(AppTypography.bodySmall())
                     .foregroundColor(AppColors.textSecondary)
+                    .frame(width: 14, alignment: .trailing)
 
-                Text(CurrencyFormatter.formatDecimal(amount))
+                Text(CurrencyFormatter.formatDecimal(amount, currencyCode: transaction.effectiveCurrency))
                     .font(AppTypography.financialSmall())
                     .foregroundColor(AppColors.textPrimary)
-                    .frame(minWidth: 40, alignment: .trailing)
+                    .frame(minWidth: 50, alignment: .trailing)
             }
         }
     }
@@ -368,8 +409,8 @@ struct EnhancedTransactionCardView: View {
     private var divider: some View {
         AppColors.transactionCardDivider
             .frame(height: 0.5)
-            .padding(.horizontal, Spacing.md)
-            .padding(.vertical, Spacing.xs)
+            .padding(.horizontal, Spacing.lg)
+            .padding(.vertical, Spacing.sm)
     }
 
     // MARK: - Context Menu
@@ -377,7 +418,7 @@ struct EnhancedTransactionCardView: View {
     @ViewBuilder
     private var contextMenuContent: some View {
         Button {
-            UIPasteboard.general.string = CurrencyFormatter.format(transaction.amount)
+            UIPasteboard.general.string = CurrencyFormatter.format(transaction.amount, currencyCode: transaction.effectiveCurrency)
             HapticManager.copyAction()
         } label: {
             Label("Copy Amount", systemImage: "doc.on.doc")
@@ -389,6 +430,15 @@ struct EnhancedTransactionCardView: View {
                 onViewDetails()
             } label: {
                 Label("View Details", systemImage: "doc.text.magnifyingglass")
+            }
+        }
+
+        if let onComment {
+            Button {
+                HapticManager.selectionChanged()
+                onComment()
+            } label: {
+                Label("Comment", systemImage: "bubble.right")
             }
         }
 

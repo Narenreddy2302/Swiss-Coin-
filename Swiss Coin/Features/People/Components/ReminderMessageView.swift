@@ -2,7 +2,7 @@
 //  ReminderMessageView.swift
 //  Swiss Coin
 //
-//  Full-width red notification strip for reminders in person conversations.
+//  Centered pill notification for reminders in person conversations.
 //
 
 import SwiftUI
@@ -20,13 +20,13 @@ struct ReminderMessageView: View {
     var body: some View {
         SystemMessageView(
             icon: "bell.fill",
-            iconColor: AppColors.stripText,
+            iconColor: AppColors.warning,
             messageText: messageText,
             noteText: reminder.message.flatMap { $0.isEmpty ? nil : "\"\($0)\"" },
             date: reminder.createdDate,
-            backgroundColor: AppColors.reminderStripBackground
+            backgroundColor: AppColors.reminderBackground
         )
-        .contentShape(Rectangle())
+        .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: CornerRadius.card))
         .contextMenu {
             Button {
                 onCopy?()

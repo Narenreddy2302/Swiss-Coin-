@@ -55,22 +55,22 @@ struct BalanceHeaderView: View {
     }
 
     var body: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: Spacing.lg) {
             // Avatar and Name
             Button(action: onAvatarTap) {
-                VStack(spacing: 12) {
+                VStack(spacing: Spacing.md) {
                     Circle()
                         .fill(Color(hex: person.colorHex ?? AppColors.defaultAvatarColorHex))
                         .frame(width: AvatarSize.xl, height: AvatarSize.xl)
                         .overlay(
                             Text(person.initials)
-                                .font(AppTypography.title1())
-                                .foregroundColor(.white)
+                                .font(AppTypography.displayLarge())
+                                .foregroundColor(AppColors.onAccent)
                         )
                         .shadow(color: AppColors.shadow, radius: 8, x: 0, y: 4)
 
                     Text(person.name ?? "Unknown")
-                        .font(AppTypography.title3())
+                        .font(AppTypography.headingLarge())
                         .foregroundColor(AppColors.textPrimary)
                 }
             }
@@ -80,7 +80,7 @@ struct BalanceHeaderView: View {
             HStack {
                 Spacer()
                 balanceTextView
-                    .font(AppTypography.subheadlineMedium())
+                    .font(AppTypography.labelLarge())
                     .foregroundColor(balanceColor)
                 Spacer()
             }
@@ -90,10 +90,10 @@ struct BalanceHeaderView: View {
                 RoundedRectangle(cornerRadius: CornerRadius.md)
                     .fill(balanceBackgroundColor)
             )
-            .padding(.horizontal, 40)
+            .padding(.horizontal, Spacing.xxxl + Spacing.sm)
         }
-        .padding(.top, 20)
-        .padding(.bottom, 16)
+        .padding(.top, Spacing.xl)
+        .padding(.bottom, Spacing.lg)
         .background(AppColors.backgroundSecondary)
     }
 }

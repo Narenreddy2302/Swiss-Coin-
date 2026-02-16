@@ -17,11 +17,11 @@ struct SharedSubscriptionSummaryCard: View {
             HStack {
                 VStack(alignment: .leading, spacing: Spacing.xs) {
                     Text("Your Monthly Share")
-                        .font(AppTypography.subheadline())
+                        .font(AppTypography.bodyDefault())
                         .foregroundColor(AppColors.textSecondary)
 
                     Text(CurrencyFormatter.format(myShare))
-                        .font(AppTypography.amountLarge())
+                        .font(AppTypography.financialLarge())
                         .foregroundColor(AppColors.textPrimary)
                 }
 
@@ -29,11 +29,11 @@ struct SharedSubscriptionSummaryCard: View {
 
                 VStack(alignment: .trailing, spacing: Spacing.xs) {
                     (Text("Total: ") + Text(CurrencyFormatter.format(totalMonthly)).fontWeight(.bold))
-                        .font(AppTypography.subheadline())
+                        .font(AppTypography.bodyDefault())
                         .foregroundColor(AppColors.textSecondary)
 
                     Text("\(activeCount) shared")
-                        .font(AppTypography.subheadlineMedium())
+                        .font(AppTypography.labelLarge())
                         .foregroundColor(AppColors.textSecondary)
                 }
             }
@@ -42,7 +42,7 @@ struct SharedSubscriptionSummaryCard: View {
             if totalMonthly > myShare {
                 HStack(spacing: Spacing.xs) {
                     Image(systemName: "arrow.down.circle.fill")
-                        .font(.system(size: 12))
+                        .font(.system(size: IconSize.xs))
                         .foregroundColor(AppColors.positive)
 
                     (Text("Saving ") + Text(CurrencyFormatter.format(totalMonthly - myShare)).fontWeight(.bold) + Text("/mo by sharing"))

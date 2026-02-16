@@ -20,6 +20,7 @@ extension FinancialTransaction {
     @NSManaged public var id: UUID?
     @NSManaged public var title: String?
     @NSManaged public var amount: Double
+    @NSManaged public var currency: String?  // ISO 4217 code, e.g., "USD", "EUR". nil = legacy (uses global default)
     @NSManaged public var date: Date?
     @NSManaged public var splitMethod: String?
     @NSManaged public var note: String?
@@ -79,6 +80,18 @@ extension FinancialTransaction {
 
 extension FinancialTransaction: Identifiable {
 
+}
+
+// MARK: - Currency Utilities
+extension FinancialTransaction {
+
+    /// Returns the currency code for this transaction, or the global default for legacy records.
+    var effectiveCurrency: String {
+        if let code = currency, !code.isEmpty {
+            return code
+        }
+        return UserDefaults.standard.string(forKey: "default_currency") ?? "USD"
+    }
 }
 
 // MARK: - Multi-Payer Utilities

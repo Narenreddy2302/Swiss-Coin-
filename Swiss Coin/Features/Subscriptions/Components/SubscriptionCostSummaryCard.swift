@@ -75,11 +75,11 @@ struct SubscriptionCostSummaryCard: View {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: Spacing.xxs) {
                     Text("Total Monthly Cost")
-                        .font(AppTypography.subheadline())
+                        .font(AppTypography.bodyDefault())
                         .foregroundColor(AppColors.textSecondary)
 
                     Text(CurrencyFormatter.format(totalMonthlyCost))
-                        .font(AppTypography.amountLarge())
+                        .font(AppTypography.financialLarge())
                         .foregroundColor(AppColors.textPrimary)
                 }
 
@@ -87,7 +87,7 @@ struct SubscriptionCostSummaryCard: View {
 
                 VStack(alignment: .trailing, spacing: Spacing.xxs) {
                     Text("\(activeCount) active")
-                        .font(AppTypography.subheadlineMedium())
+                        .font(AppTypography.labelLarge())
                         .foregroundColor(AppColors.accent)
                         .padding(.horizontal, Spacing.sm)
                         .padding(.vertical, Spacing.xxs)
@@ -118,7 +118,7 @@ struct SubscriptionCostSummaryCard: View {
                             .foregroundColor(AppColors.textSecondary)
                     }
                     Text(CurrencyFormatter.format(personalMonthlyTotal))
-                        .font(AppTypography.amountSmall())
+                        .font(AppTypography.financialSmall())
                         .foregroundColor(AppColors.textPrimary)
                 }
 
@@ -135,7 +135,7 @@ struct SubscriptionCostSummaryCard: View {
                             .foregroundColor(AppColors.textSecondary)
                     }
                     Text(CurrencyFormatter.format(sharedMonthlyShare))
-                        .font(AppTypography.amountSmall())
+                        .font(AppTypography.financialSmall())
                         .foregroundColor(AppColors.textPrimary)
                 }
 
@@ -152,7 +152,7 @@ struct SubscriptionCostSummaryCard: View {
                             .foregroundColor(AppColors.accent)
                     }
                     Text(CurrencyFormatter.format(yourTotalMonthly))
-                        .font(AppTypography.amountSmall())
+                        .font(AppTypography.financialSmall())
                         .foregroundColor(AppColors.accent)
                 }
             }

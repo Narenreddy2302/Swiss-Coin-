@@ -15,34 +15,34 @@ struct SubscriptionInfoCard: View {
             HStack {
                 // Icon
                 RoundedRectangle(cornerRadius: CornerRadius.sm)
-                    .fill(Color(hex: subscription.colorHex ?? "#007AFF").opacity(0.2))
-                    .frame(width: 44, height: 44)
+                    .fill(Color(hex: subscription.colorHex ?? AppColors.defaultAvatarColorHex).opacity(0.2))
+                    .frame(width: AvatarSize.md, height: AvatarSize.md)
                     .overlay(
                         Image(systemName: subscription.iconName ?? "person.2.circle.fill")
-                            .font(.system(size: 20))
-                            .foregroundColor(Color(hex: subscription.colorHex ?? "#007AFF"))
+                            .font(.system(size: IconSize.md))
+                            .foregroundColor(Color(hex: subscription.colorHex ?? AppColors.defaultAvatarColorHex))
                     )
 
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: Spacing.xxs) {
                     Text(subscription.name ?? "Subscription")
-                        .font(AppTypography.headline())
+                        .font(AppTypography.headingMedium())
                         .foregroundColor(AppColors.textPrimary)
 
                     (Text(CurrencyFormatter.format(subscription.amount)).fontWeight(.bold) + Text("/\(subscription.cycleAbbreviation)"))
-                        .font(AppTypography.subheadline())
+                        .font(AppTypography.bodyDefault())
                         .foregroundColor(AppColors.textSecondary)
                 }
 
                 Spacer()
 
                 // Next billing badge
-                VStack(alignment: .trailing, spacing: 2) {
+                VStack(alignment: .trailing, spacing: Spacing.xxs) {
                     Text("Next billing")
                         .font(AppTypography.caption())
                         .foregroundColor(AppColors.textSecondary)
 
                     Text(subscription.nextBillingDate?.formatted(.dateTime.month(.abbreviated).day()) ?? "")
-                        .font(AppTypography.subheadlineMedium())
+                        .font(AppTypography.labelLarge())
                         .foregroundColor(subscription.billingStatus.color)
                 }
             }
@@ -53,7 +53,7 @@ struct SubscriptionInfoCard: View {
             // Your share info
             HStack {
                 Text("Your share")
-                    .font(AppTypography.subheadline())
+                    .font(AppTypography.bodyDefault())
                     .foregroundColor(AppColors.textSecondary)
 
                 Spacer()
@@ -63,7 +63,7 @@ struct SubscriptionInfoCard: View {
                     .foregroundColor(AppColors.textPrimary)
 
                 Text("/\(subscription.cycleAbbreviation)")
-                    .font(AppTypography.subheadline())
+                    .font(AppTypography.bodyDefault())
                     .foregroundColor(AppColors.textSecondary)
             }
         }

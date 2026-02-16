@@ -16,8 +16,17 @@ struct TimelineMessageBubbleView: View {
     var onFocusInput: (() -> Void)? = nil
 
     @Environment(\.managedObjectContext) private var viewContext
+    @Environment(\.colorScheme) private var colorScheme
     @State private var isEditing = false
     @State private var editText = ""
+
+    // MARK: - Static Formatter
+
+    private static let timeFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "h:mm a"
+        return f
+    }()
 
     // MARK: - Computed Properties
 
@@ -46,9 +55,7 @@ struct TimelineMessageBubbleView: View {
 
     private var timeText: String {
         guard let timestamp = message.timestamp else { return "" }
-        let formatter = DateFormatter()
-        formatter.dateFormat = "h:mm a"
-        return formatter.string(from: timestamp)
+        return Self.timeFormatter.string(from: timestamp)
     }
 
     private var canSaveEdit: Bool {
@@ -91,6 +98,7 @@ struct TimelineMessageBubbleView: View {
     private var messageContent: some View {
         let bubbleColor = isFromUser ? AppColors.userBubble : AppColors.otherBubble
         let textColor = isFromUser ? AppColors.userBubbleText : AppColors.otherBubbleText
+        let bubbleShadow = AppShadow.bubble(for: colorScheme)
 
         Text(message.content ?? "")
             .font(AppTypography.bodyLarge())
@@ -101,10 +109,10 @@ struct TimelineMessageBubbleView: View {
                 RoundedRectangle(cornerRadius: CornerRadius.card)
                     .fill(bubbleColor)
                     .shadow(
-                        color: AppColors.shadow,
-                        radius: 2,
-                        x: 0,
-                        y: 1
+                        color: bubbleShadow.color,
+                        radius: bubbleShadow.radius,
+                        x: bubbleShadow.x,
+                        y: bubbleShadow.y
                     )
             )
             .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: CornerRadius.card))
@@ -130,6 +138,7 @@ struct TimelineMessageBubbleView: View {
         } label: {
             Label("Reply", systemImage: "arrow.turn.up.left")
         }
+        .accessibilityLabel("Reply to this message")
 
         // Edit — own messages within 15-minute window
         if canEdit {
