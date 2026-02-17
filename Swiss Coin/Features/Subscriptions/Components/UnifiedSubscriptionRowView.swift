@@ -45,10 +45,10 @@ struct UnifiedSubscriptionRowView: View {
     @State private var showingRecordPayment = false
     @State private var showingReminder = false
     @State private var showingDetail = false
+    @State private var cachedBillingStatus: BillingStatus = .upcoming
+    @State private var cachedBalanceInfo: BalanceDisplayInfo = BalanceDisplayInfo(balance: 0)
 
-    private var billingStatus: BillingStatus {
-        subscription.billingStatus
-    }
+    private var billingStatus: BillingStatus { cachedBillingStatus }
 
     private var statusText: String {
         switch billingStatus {
@@ -70,9 +70,7 @@ struct UnifiedSubscriptionRowView: View {
         }
     }
 
-    private var balanceInfo: BalanceDisplayInfo {
-        BalanceDisplayInfo(balance: subscription.calculateUserBalance())
-    }
+    private var balanceInfo: BalanceDisplayInfo { cachedBalanceInfo }
 
     private var memberCount: Int {
         subscription.memberCount
@@ -119,7 +117,7 @@ struct UnifiedSubscriptionRowView: View {
                 // Line 3: Shared balance info
                 if isShared {
                     Text(balanceInfo.text)
-                        .font(AppTypography.bodySmall())
+                        .font(AppTypography.labelSmall())
                         .foregroundColor(balanceInfo.color)
                         .lineLimit(1)
                 }
@@ -143,6 +141,23 @@ struct UnifiedSubscriptionRowView: View {
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilityDescription)
+        .onAppear {
+            cachedBillingStatus = subscription.billingStatus
+            if isShared {
+                cachedBalanceInfo = BalanceDisplayInfo(balance: subscription.calculateUserBalance())
+            }
+        }
+        .onChange(of: subscription.nextBillingDate) { _, _ in
+            cachedBillingStatus = subscription.billingStatus
+        }
+        .onChange(of: subscription.isActive) { _, _ in
+            cachedBillingStatus = subscription.billingStatus
+        }
+        .onChange(of: subscription.payments?.count) { _, _ in
+            if isShared {
+                cachedBalanceInfo = BalanceDisplayInfo(balance: subscription.calculateUserBalance())
+            }
+        }
         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
             if isShared {
                 Button {

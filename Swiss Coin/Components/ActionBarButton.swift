@@ -163,7 +163,7 @@ struct StandardActionBar: View {
 
 // MARK: - Subscription Action Bar
 
-/// Action bar for subscription conversations with Pay instead of Add
+/// Premium action bar for subscription conversations with balance summary and refined button styling
 struct SubscriptionActionBarView: View {
     let balance: Double
     let membersWhoOwe: [(member: Person, amount: Double)]
@@ -179,43 +179,111 @@ struct SubscriptionActionBarView: View {
         !membersWhoOwe.isEmpty
     }
 
+    private var balanceLabel: String {
+        if balance > 0.01 { return "you're owed" }
+        else if balance < -0.01 { return "you owe" }
+        else { return "settled up" }
+    }
+
+    private var balanceColor: Color {
+        if balance > 0.01 { return AppColors.positive }
+        else if balance < -0.01 { return AppColors.negative }
+        else { return AppColors.neutral }
+    }
+
     var body: some View {
-        ActionBarContainer {
-            // Record Payment Button (Primary)
-            ActionBarButton(
-                title: "Pay",
-                icon: "dollarsign.circle.fill",
-                isPrimary: true,
-                isEnabled: true,
-                action: onRecordPayment
-            )
+        VStack(spacing: 0) {
+            // Hairline top divider
+            Rectangle()
+                .fill(AppColors.divider)
+                .frame(height: 0.5)
 
-            // Remind Button
-            ActionBarButton(
-                title: "Remind",
-                icon: "bell.fill",
-                isPrimary: false,
-                isEnabled: canRemind,
-                action: {
-                    if canRemind {
-                        onRemind()
-                    }
-                }
-            )
+            // Balance summary (only when not settled)
+            if abs(balance) > 0.01 {
+                HStack {
+                    Text(balanceLabel)
+                        .font(AppTypography.bodySmall())
+                        .foregroundColor(AppColors.textSecondary)
 
-            // Settle Button
-            ActionBarButton(
-                title: "Settle",
-                icon: "checkmark",
-                isPrimary: false,
-                isEnabled: canSettle,
-                action: {
-                    if canSettle {
-                        onSettle()
-                    }
+                    Spacer()
+
+                    Text(CurrencyFormatter.formatAbsolute(balance))
+                        .font(AppTypography.financialSmall())
+                        .foregroundColor(balanceColor)
                 }
+                .padding(.horizontal, Spacing.lg)
+                .padding(.top, Spacing.sm)
+                .padding(.bottom, Spacing.xs)
+            }
+
+            // Button row
+            HStack(spacing: Spacing.sm) {
+                // Primary: Record Payment
+                ActionBarButton(
+                    title: "Pay",
+                    icon: "dollarsign.circle.fill",
+                    isPrimary: true,
+                    isEnabled: true,
+                    action: onRecordPayment
+                )
+
+                // Secondary outlined: Remind
+                outlinedButton(
+                    title: "Remind",
+                    icon: "bell.fill",
+                    isEnabled: canRemind,
+                    action: { if canRemind { onRemind() } }
+                )
+
+                // Secondary outlined: Settle
+                outlinedButton(
+                    title: "Settle",
+                    icon: "checkmark",
+                    isEnabled: canSettle,
+                    action: { if canSettle { onSettle() } }
+                )
+            }
+            .padding(.horizontal, Spacing.lg)
+            .padding(.top, Spacing.sm)
+            .padding(.bottom, Spacing.md)
+        }
+        .background(AppColors.actionBarBackground)
+        .onAppear { HapticManager.prepare() }
+    }
+
+    @ViewBuilder
+    private func outlinedButton(
+        title: String,
+        icon: String,
+        isEnabled: Bool,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: {
+            if isEnabled {
+                HapticManager.actionBarTap()
+                action()
+            }
+        }) {
+            HStack(spacing: Spacing.sm) {
+                Image(systemName: icon)
+                    .font(.system(size: IconSize.sm, weight: .semibold))
+
+                Text(title)
+                    .font(AppTypography.buttonDefault())
+            }
+            .foregroundColor(isEnabled ? AppColors.textPrimary : AppColors.textDisabled)
+            .frame(maxWidth: .infinity)
+            .frame(height: ButtonHeight.input)
+            .background(
+                RoundedRectangle(cornerRadius: CornerRadius.md)
+                    .stroke(
+                        isEnabled ? AppColors.border : AppColors.borderSubtle,
+                        lineWidth: 1
+                    )
             )
         }
+        .buttonStyle(ActionBarPressStyle())
+        .disabled(!isEnabled)
     }
 }
 

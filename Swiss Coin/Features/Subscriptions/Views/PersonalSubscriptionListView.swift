@@ -3,7 +3,7 @@
 //  Swiss Coin
 //
 //  List view for personal (non-shared) subscriptions with summary header
-//  and card-wrapped sections.
+//  and flat sections.
 //
 
 import CoreData
@@ -11,6 +11,7 @@ import SwiftUI
 
 struct PersonalSubscriptionListView: View {
     @Binding var showingAddSubscription: Bool
+    @Binding var searchText: String
     @Environment(\.managedObjectContext) private var viewContext
 
     @State private var showRefreshFeedback = false
@@ -24,32 +25,38 @@ struct PersonalSubscriptionListView: View {
     }(), animation: .default)
     private var subscriptions: FetchedResults<Subscription>
 
-    // MARK: - Grouped Subscriptions
+    // MARK: - Grouped Subscriptions (single-pass)
 
-    private var overdueSubscriptions: [Subscription] {
-        subscriptions.filter { $0.billingStatus == .overdue && $0.isActive }
-    }
+    private var categorizedSubscriptions: (attention: [Subscription], upcoming: [Subscription], paused: [Subscription]) {
+        var attention: [Subscription] = []
+        var upcoming: [Subscription] = []
+        var paused: [Subscription] = []
 
-    private var dueSubscriptions: [Subscription] {
-        subscriptions.filter { $0.billingStatus == .due && $0.isActive }
-    }
+        let source: [Subscription] = searchText.isEmpty
+            ? Array(subscriptions)
+            : subscriptions.filter { $0.name?.localizedCaseInsensitiveContains(searchText) ?? false }
 
-    private var attentionSubscriptions: [Subscription] {
-        overdueSubscriptions + dueSubscriptions
-    }
-
-    private var upcomingSubscriptions: [Subscription] {
-        subscriptions.filter { $0.billingStatus == .upcoming && $0.isActive }
-    }
-
-    private var pausedSubscriptions: [Subscription] {
-        subscriptions.filter { !$0.isActive }
+        for sub in source {
+            if !sub.isActive {
+                paused.append(sub)
+            } else {
+                switch sub.billingStatus {
+                case .overdue, .due:
+                    attention.append(sub)
+                case .upcoming:
+                    upcoming.append(sub)
+                case .paused:
+                    paused.append(sub)
+                }
+            }
+        }
+        return (attention, upcoming, paused)
     }
 
     // MARK: - Body
 
     var body: some View {
-        if subscriptions.isEmpty {
+        if subscriptions.isEmpty && searchText.isEmpty {
             ScrollView {
                 EmptySubscriptionView(isShared: false) {
                     showingAddSubscription = true
@@ -60,35 +67,39 @@ struct PersonalSubscriptionListView: View {
             }
         } else {
             ScrollView {
-                VStack(spacing: Spacing.xl) {
-                    // Summary Header
-                    SubscriptionSummaryHeader(isShared: false, subscriptions: Array(subscriptions))
+                let categories = categorizedSubscriptions
 
+                VStack(spacing: Spacing.xl) {
                     // Attention Required Section
-                    if !attentionSubscriptions.isEmpty {
+                    if !categories.attention.isEmpty {
                         subscriptionSection(
                             title: "Attention Required",
                             titleColor: AppColors.warning,
-                            subscriptions: attentionSubscriptions
+                            subscriptions: categories.attention
                         )
                     }
 
                     // Active Section
-                    if !upcomingSubscriptions.isEmpty {
+                    if !categories.upcoming.isEmpty {
                         subscriptionSection(
                             title: "Active",
                             titleColor: AppColors.textSecondary,
-                            subscriptions: upcomingSubscriptions
+                            subscriptions: categories.upcoming
                         )
                     }
 
                     // Paused Section
-                    if !pausedSubscriptions.isEmpty {
+                    if !categories.paused.isEmpty {
                         subscriptionSection(
                             title: "Paused",
                             titleColor: AppColors.textSecondary,
-                            subscriptions: pausedSubscriptions
+                            subscriptions: categories.paused
                         )
+                    }
+
+                    // No search results
+                    if !searchText.isEmpty && categories.attention.isEmpty && categories.upcoming.isEmpty && categories.paused.isEmpty {
+                        noSearchResultsView
                     }
 
                     Spacer()
@@ -96,6 +107,7 @@ struct PersonalSubscriptionListView: View {
                 }
                 .padding(.top, Spacing.lg)
             }
+            .scrollDismissesKeyboard(.interactively)
             .background(AppColors.backgroundSecondary)
             .refreshable {
                 await RefreshHelper.performStandardRefresh(context: viewContext)
@@ -109,6 +121,23 @@ struct PersonalSubscriptionListView: View {
         }
     }
 
+    // MARK: - No Search Results
+
+    private var noSearchResultsView: some View {
+        VStack(spacing: Spacing.md) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: IconSize.xl))
+                .foregroundColor(AppColors.textTertiary)
+
+            Text("No results for \"\(searchText)\"")
+                .font(AppTypography.headingMedium())
+                .foregroundColor(AppColors.textSecondary)
+                .multilineTextAlignment(.center)
+        }
+        .padding(Spacing.xxl)
+        .frame(maxWidth: .infinity)
+    }
+
     // MARK: - Section Helper
 
     @ViewBuilder
@@ -118,7 +147,7 @@ struct PersonalSubscriptionListView: View {
         subscriptions: [Subscription]
     ) -> some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
-            // Section header — outside card
+            // Section header
             HStack {
                 Text(title)
                     .font(AppTypography.labelLarge())
@@ -138,7 +167,7 @@ struct PersonalSubscriptionListView: View {
             }
             .padding(.horizontal, Spacing.lg)
 
-            // Rows — inside card
+            // Rows
             LazyVStack(spacing: 0) {
                 let count = subscriptions.count
                 ForEach(Array(subscriptions.enumerated()), id: \.element.id) { index, subscription in
@@ -153,12 +182,6 @@ struct PersonalSubscriptionListView: View {
                     }
                 }
             }
-            .background(
-                RoundedRectangle(cornerRadius: CornerRadius.card)
-                    .fill(AppColors.cardBackground)
-                    .shadow(color: AppColors.shadow, radius: 4, x: 0, y: 2)
-            )
-            .padding(.horizontal, Spacing.lg)
         }
     }
 }
