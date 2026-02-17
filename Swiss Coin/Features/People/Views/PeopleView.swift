@@ -9,6 +9,7 @@ struct PeopleView: View {
     @State private var showingManualEntry = false
     @State private var showingContactPicker = false
     @State private var showingArchivedPeople = false
+    @State private var searchText = ""
 
     // Navigation state for conversation view after adding contact
     @State private var selectedPersonForConversation: Person?
@@ -23,6 +24,7 @@ struct PeopleView: View {
                         color: selectedSegment == 0 ? AppColors.accent : AppColors.textPrimary
                     ) {
                         HapticManager.selectionChanged()
+                        searchText = ""
                         selectedSegment = 0
                     }
 
@@ -32,6 +34,7 @@ struct PeopleView: View {
                         color: selectedSegment == 1 ? AppColors.accent : AppColors.textPrimary
                     ) {
                         HapticManager.selectionChanged()
+                        searchText = ""
                         selectedSegment = 1
                     }
                 }
@@ -42,7 +45,7 @@ struct PeopleView: View {
 
                 Group {
                     if selectedSegment == 0 {
-                        PersonListView(selectedPersonForConversation: $selectedPersonForConversation)
+                        PersonListView(selectedPersonForConversation: $selectedPersonForConversation, searchText: $searchText)
                     } else {
                         GroupListView()
                     }
@@ -69,26 +72,24 @@ struct PeopleView: View {
                 }
 
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    HStack {
-                        if selectedSegment == 0 {
-                            Button {
-                                HapticManager.lightTap()
-                                showingContactPicker = true
-                            } label: {
-                                Image(systemName: "person.badge.plus")
-                                    .font(AppTypography.buttonLarge())
-                            }
-                            .accessibilityLabel("Add person")
-                        } else {
-                            NavigationLink(destination: AddGroupView()) {
-                                Image(systemName: "plus")
-                                    .font(AppTypography.buttonLarge())
-                            }
-                            .accessibilityLabel("Add group")
-                            .simultaneousGesture(TapGesture().onEnded {
-                                HapticManager.lightTap()
-                            })
+                    if selectedSegment == 0 {
+                        Button {
+                            HapticManager.lightTap()
+                            showingContactPicker = true
+                        } label: {
+                            Image(systemName: "person.badge.plus")
+                                .font(AppTypography.buttonLarge())
                         }
+                        .accessibilityLabel("Add person")
+                    } else {
+                        NavigationLink(destination: AddGroupView()) {
+                            Image(systemName: "plus")
+                                .font(AppTypography.buttonLarge())
+                        }
+                        .accessibilityLabel("Add group")
+                        .simultaneousGesture(TapGesture().onEnded {
+                            HapticManager.lightTap()
+                        })
                     }
                 }
             }
@@ -118,6 +119,11 @@ struct PeopleView: View {
                 removeNotifications()
             }
         }
+        .searchable(
+            text: $searchText,
+            placement: .navigationBarDrawer(displayMode: .always),
+            prompt: "Search contacts"
+        )
     }
 
     private func setupNotifications() {
@@ -140,10 +146,10 @@ struct PeopleView: View {
 struct PersonListView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @Binding var selectedPersonForConversation: Person?
+    @Binding var searchText: String
     @StateObject private var contactsManager = ContactsManager()
     @State private var showRefreshFeedback = false
     @State private var existingPhoneNumbers: Set<String> = []
-    @State private var searchText = ""
     @State private var filteredPhoneContacts: [ContactsManager.PhoneContact] = []
     @State private var hasLoadedContacts = false
 
@@ -275,7 +281,7 @@ struct PersonListView: View {
             }
             .padding(.top, Spacing.lg)
         }
-        .searchable(text: $searchText, prompt: "Search contacts")
+        .scrollDismissesKeyboard(.interactively)
         .refreshable {
             await refreshAll()
         }

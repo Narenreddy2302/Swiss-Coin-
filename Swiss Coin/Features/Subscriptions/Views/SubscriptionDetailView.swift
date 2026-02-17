@@ -3,8 +3,9 @@
 //  Swiss Coin
 //
 //  Detail view for viewing and managing a subscription.
-//  Card-based ScrollView layout with hero header, merged overview card,
-//  payment history, reminders, and stacked action rows.
+//  Card-based ScrollView layout with brand header, members card,
+//  merged overview card, collapsible payment history, reminders,
+//  and stacked action rows.
 //
 
 import CoreData
@@ -30,6 +31,11 @@ struct SubscriptionDetailView: View {
     @State private var csvFileURL: URL?
     @State private var showPaymentSuccess = false
     @State private var notesExpanded = false
+    @State private var paymentHistoryExpanded = true
+    @State private var paymentToEdit: SubscriptionPayment?
+    @State private var showingEditPayment = false
+    @State private var showingDeletePaymentAlert = false
+    @State private var paymentToDelete: SubscriptionPayment?
 
     // MARK: - Computed Properties
 
@@ -105,14 +111,28 @@ struct SubscriptionDetailView: View {
         }
     }
 
+    private var subtitleText: String {
+        let cycle = subscription.cycle ?? "Monthly"
+        if let category = subscription.category, !category.isEmpty {
+            return "\(category) \u{00B7} \(cycle)"
+        }
+        return cycle
+    }
+
     // MARK: - Body
 
     var body: some View {
         ScrollView(showsIndicators: false) {
             VStack(spacing: 0) {
-                heroHeaderCard
+                brandCard
                     .padding(.horizontal, Spacing.screenHorizontal)
                     .padding(.top, Spacing.lg)
+
+                if subscription.isShared {
+                    membersCard
+                        .padding(.horizontal, Spacing.screenHorizontal)
+                        .padding(.top, Spacing.sectionGap)
+                }
 
                 overviewCard
                     .padding(.horizontal, Spacing.screenHorizontal)
@@ -209,6 +229,22 @@ struct SubscriptionDetailView: View {
         } message: {
             Text("This subscription will be moved to the archive. You can restore it later from the archived subscriptions list.")
         }
+        .sheet(isPresented: $showingEditPayment) {
+            if let payment = paymentToEdit {
+                EditSubscriptionPaymentView(payment: payment)
+                    .environment(\.managedObjectContext, viewContext)
+            }
+        }
+        .alert("Delete Payment", isPresented: $showingDeletePaymentAlert) {
+            Button("Cancel", role: .cancel) {}
+            Button("Delete", role: .destructive) {
+                if let payment = paymentToDelete {
+                    deletePayment(payment)
+                }
+            }
+        } message: {
+            Text("Are you sure you want to delete this payment? This action cannot be undone.")
+        }
         .alert("Error", isPresented: $showingError) {
             Button("OK", role: .cancel) {
                 HapticManager.tap()
@@ -218,45 +254,87 @@ struct SubscriptionDetailView: View {
         }
     }
 
-    // MARK: - Section 1: Hero Header Card
+    // MARK: - Section 1: Brand Card
 
-    private var heroHeaderCard: some View {
-        VStack(spacing: 0) {
-            // Large icon
-            RoundedRectangle(cornerRadius: CornerRadius.large)
-                .fill(subscriptionColor.opacity(0.15))
-                .frame(width: AvatarSize.xl, height: AvatarSize.xl)
-                .overlay(
-                    Image(systemName: subscription.iconName ?? "creditcard.fill")
-                        .font(.system(size: IconSize.xl))
-                        .foregroundColor(subscriptionColor)
-                )
-                .padding(.top, Spacing.xxl)
+    private var brandCard: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            // Top row: icon + name/subtitle
+            HStack(spacing: Spacing.lg) {
+                RoundedRectangle(cornerRadius: CornerRadius.medium)
+                    .fill(subscriptionColor.opacity(0.15))
+                    .frame(width: AvatarSize.xl, height: AvatarSize.xl)
+                    .overlay(
+                        Image(systemName: subscription.iconName ?? "creditcard.fill")
+                            .font(.system(size: IconSize.xl))
+                            .foregroundColor(subscriptionColor)
+                    )
 
-            // Subscription name
-            Text(subscription.displayName)
-                .font(AppTypography.displayLarge())
-                .foregroundColor(AppColors.textPrimary)
-                .multilineTextAlignment(.center)
-                .padding(.top, Spacing.md)
+                VStack(alignment: .leading, spacing: Spacing.xs) {
+                    Text(subscription.displayName)
+                        .font(AppTypography.displayMedium())
+                        .foregroundColor(AppColors.textPrimary)
+                        .lineLimit(2)
 
-            // Amount with cycle
-            HStack(alignment: .firstTextBaseline, spacing: Spacing.xxs) {
-                Text(CurrencyFormatter.format(subscription.amount))
-                    .font(AppTypography.financialHero())
-                    .foregroundColor(AppColors.textPrimary)
-
-                Text("/ \(subscription.cycle?.lowercased() ?? "month")")
-                    .font(AppTypography.bodyDefault())
-                    .foregroundColor(AppColors.textSecondary)
+                    Text(subtitleText)
+                        .font(AppTypography.bodySmall())
+                        .foregroundColor(AppColors.textSecondary)
+                }
             }
-            .padding(.top, Spacing.sm)
+            .padding(.horizontal, Spacing.cardPadding)
+            .padding(.top, Spacing.cardPadding)
 
+            // Status pill
             StatusPill(status: subscription.billingStatus)
+                .padding(.horizontal, Spacing.cardPadding)
                 .padding(.top, Spacing.md)
+
+            // Divider
+            DetailDivider()
+                .padding(.horizontal, Spacing.cardPadding)
+                .padding(.top, Spacing.lg)
+
+            // Key metrics row
+            HStack(alignment: .top) {
+                // Left: Amount
+                VStack(alignment: .leading, spacing: Spacing.xs) {
+                    Text("Amount")
+                        .font(AppTypography.bodySmall())
+                        .foregroundColor(AppColors.textSecondary)
+
+                    HStack(alignment: .firstTextBaseline, spacing: Spacing.xxs) {
+                        Text(CurrencyFormatter.format(subscription.amount))
+                            .font(AppTypography.financialLarge())
+                            .foregroundColor(AppColors.textPrimary)
+
+                        Text("/ \(subscription.cycleAbbreviation)")
+                            .font(AppTypography.bodySmall())
+                            .foregroundColor(AppColors.textSecondary)
+                    }
+                }
+
+                Spacer()
+
+                // Right: Next Payment
+                VStack(alignment: .trailing, spacing: Spacing.xs) {
+                    Text("Next Payment")
+                        .font(AppTypography.bodySmall())
+                        .foregroundColor(AppColors.textSecondary)
+
+                    Text(subscription.nextBillingDate?.formatted(
+                        .dateTime.month(.abbreviated).day().year()
+                    ) ?? "Unknown")
+                        .font(AppTypography.labelLarge())
+                        .foregroundColor(AppColors.textPrimary)
+
+                    Text(countdownText)
+                        .font(AppTypography.bodySmall())
+                        .foregroundColor(countdownColor)
+                }
+            }
+            .padding(.horizontal, Spacing.cardPadding)
+            .padding(.top, Spacing.lg)
+            .padding(.bottom, Spacing.cardPadding)
         }
-        .padding(.bottom, Spacing.xxl)
-        .frame(maxWidth: .infinity)
         .background(
             RoundedRectangle(cornerRadius: CornerRadius.card)
                 .fill(AppColors.cardBackground)
@@ -264,6 +342,70 @@ struct SubscriptionDetailView: View {
         )
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(subscription.displayName), \(CurrencyFormatter.format(subscription.amount)) per \(subscription.cycle ?? "month"), \(subscription.billingStatus.label)")
+    }
+
+    // MARK: - Section 1B: Members Card (Shared Only)
+
+    private var membersCard: some View {
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            Text("MEMBERS")
+                .font(AppTypography.labelSmall())
+                .foregroundColor(AppColors.textTertiary)
+
+            FlowLayout(spacing: Spacing.sm) {
+                // Current user chip
+                memberChip(name: "You", colorHex: nil, isCurrentUser: true)
+
+                // Other members
+                let allMembers = (subscription.subscribers as? Set<Person> ?? [])
+                    .filter { !CurrentUser.isCurrentUser($0.id) }
+                    .sorted { ($0.name ?? "") < ($1.name ?? "") }
+
+                ForEach(allMembers, id: \.objectID) { member in
+                    memberChip(
+                        name: member.displayName,
+                        colorHex: member.colorHex,
+                        isCurrentUser: false
+                    )
+                }
+            }
+            .padding(Spacing.cardPadding)
+            .background(
+                RoundedRectangle(cornerRadius: CornerRadius.card)
+                    .fill(AppColors.cardBackground)
+                    .cardShadow(for: colorScheme)
+            )
+        }
+    }
+
+    private func memberChip(name: String, colorHex: String?, isCurrentUser: Bool) -> some View {
+        let chipColor = isCurrentUser
+            ? AppColors.accent
+            : Color(hex: colorHex ?? AppColors.defaultAvatarColorHex)
+        let initials = isCurrentUser
+            ? "Y"
+            : String(name.prefix(1)).uppercased()
+
+        return HStack(spacing: Spacing.xs) {
+            Circle()
+                .fill(chipColor.opacity(0.2))
+                .frame(width: IconSize.sm, height: IconSize.sm)
+                .overlay(
+                    Text(initials)
+                        .font(.system(size: 8, weight: .bold))
+                        .foregroundColor(chipColor)
+                )
+
+            Text(name)
+                .font(AppTypography.labelDefault())
+                .foregroundColor(AppColors.textPrimary)
+        }
+        .padding(.horizontal, Spacing.sm)
+        .padding(.vertical, Spacing.xs)
+        .background(
+            Capsule()
+                .fill(AppColors.backgroundTertiary)
+        )
     }
 
     // MARK: - Section 2: Overview Card
@@ -275,35 +417,6 @@ struct SubscriptionDetailView: View {
                 .foregroundColor(AppColors.textTertiary)
 
             VStack(spacing: 0) {
-                // Next Payment
-                HStack {
-                    Text("Next Payment")
-                        .font(AppTypography.bodyLarge())
-                        .foregroundColor(AppColors.textPrimary)
-
-                    Spacer()
-
-                    VStack(alignment: .trailing, spacing: Spacing.xxs) {
-                        Text(subscription.nextBillingDate?.formatted(
-                            .dateTime.month(.abbreviated).day().year()
-                        ) ?? "Unknown")
-                            .font(AppTypography.labelLarge())
-                            .foregroundColor(AppColors.textPrimary)
-
-                        Text(countdownText)
-                            .font(AppTypography.bodySmall())
-                            .foregroundColor(countdownColor)
-                    }
-                }
-                .padding(.vertical, Spacing.md)
-                .padding(.horizontal, Spacing.cardPadding)
-                .accessibilityElement(children: .combine)
-                .accessibilityLabel("Next payment \(subscription.nextBillingDate?.formatted(.dateTime.month(.abbreviated).day().year()) ?? "unknown"), \(countdownText)")
-
-                DetailDivider()
-                    .padding(.horizontal, Spacing.cardPadding)
-
-                // Detail rows
                 VStack(spacing: 0) {
                     DetailRow(label: "Monthly", value: CurrencyFormatter.format(subscription.monthlyEquivalent))
 
@@ -314,10 +427,6 @@ struct SubscriptionDetailView: View {
                     DetailDivider()
 
                     DetailRow(label: "Daily", value: CurrencyFormatter.format(dailyCost))
-
-                    DetailDivider()
-
-                    DetailRow(label: "Billing Cycle", value: subscription.cycle ?? "Monthly")
 
                     DetailDivider()
 
@@ -364,106 +473,129 @@ struct SubscriptionDetailView: View {
 
     private var paymentHistoryCard: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
-            // Section header with count badge and export button
-            HStack {
-                Text("PAYMENT HISTORY")
-                    .font(AppTypography.labelSmall())
-                    .foregroundColor(AppColors.textTertiary)
-
-                if !allPayments.isEmpty {
-                    Text("\(allPayments.count)")
-                        .font(AppTypography.caption())
-                        .foregroundColor(AppColors.textTertiary)
-                        .padding(.horizontal, Spacing.sm)
-                        .padding(.vertical, Spacing.xxs)
-                        .background(
-                            Capsule()
-                                .fill(AppColors.backgroundTertiary)
-                        )
-                }
-
-                Spacer()
-
-                if !allPayments.isEmpty {
-                    Button {
-                        HapticManager.tap()
-                        exportPaymentHistory()
-                    } label: {
-                        Image(systemName: "square.and.arrow.up")
-                            .font(.system(size: IconSize.sm))
-                            .foregroundColor(AppColors.accent)
-                    }
-                    .accessibilityLabel("Export payment history")
-                }
-            }
-
             VStack(spacing: 0) {
-                if allPayments.isEmpty {
-                    // Empty state
-                    VStack(spacing: Spacing.md) {
-                        Image(systemName: "clock.arrow.circlepath")
-                            .font(.system(size: IconSize.xl))
-                            .foregroundColor(AppColors.textTertiary)
-
-                        Text("No payments recorded")
-                            .font(AppTypography.headingSmall())
-                            .foregroundColor(AppColors.textSecondary)
-
-                        Text("Payments will appear here after you mark this subscription as paid")
-                            .font(AppTypography.bodySmall())
-                            .foregroundColor(AppColors.textTertiary)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, Spacing.lg)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, Spacing.xxl)
-                } else {
-                    let displayPayments = Array(allPayments.prefix(5))
-                    ForEach(Array(displayPayments.enumerated()), id: \.element.objectID) { index, payment in
-                        PaymentHistoryRow(payment: payment)
-
-                        if index < displayPayments.count - 1 {
-                            DetailDivider()
-                                .padding(.horizontal, Spacing.cardPadding)
-                        }
-                    }
-
-                    if allPayments.count > 5 {
-                        DetailDivider()
-                            .padding(.horizontal, Spacing.cardPadding)
-
-                        Button {
-                            HapticManager.tap()
-                        } label: {
-                            Text("View All \(allPayments.count) Payments")
-                                .font(AppTypography.labelLarge())
-                                .foregroundColor(AppColors.accent)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, Spacing.md)
-                        }
-                    }
-                }
-
-                // Record Payment button inside card
-                DetailDivider()
-                    .padding(.horizontal, Spacing.cardPadding)
-
+                // Tappable header row inside card
                 Button {
-                    HapticManager.tap()
-                    recordPayment()
+                    HapticManager.lightTap()
+                    withAnimation(AppAnimation.standard) {
+                        paymentHistoryExpanded.toggle()
+                    }
                 } label: {
                     HStack(spacing: Spacing.sm) {
-                        Image(systemName: showPaymentSuccess ? "checkmark.circle.fill" : "plus.circle.fill")
-                            .font(.system(size: IconSize.sm))
-                        Text(showPaymentSuccess ? "Payment Recorded" : "Record Payment")
-                            .font(AppTypography.labelLarge())
+                        Image(systemName: paymentHistoryExpanded ? "chevron.down" : "chevron.right")
+                            .font(.system(size: IconSize.xs))
+                            .foregroundColor(AppColors.textTertiary)
+
+                        Text("Payment History")
+                            .font(AppTypography.headingSmall())
+                            .foregroundColor(AppColors.textPrimary)
+
+                        if !allPayments.isEmpty {
+                            Text("(\(allPayments.count))")
+                                .font(AppTypography.labelDefault())
+                                .foregroundColor(AppColors.accent)
+                        }
+
+                        Spacer()
+
+                        if !allPayments.isEmpty {
+                            Button {
+                                HapticManager.tap()
+                                exportPaymentHistory()
+                            } label: {
+                                Image(systemName: "square.and.arrow.up")
+                                    .font(.system(size: IconSize.sm))
+                                    .foregroundColor(AppColors.accent)
+                            }
+                            .accessibilityLabel("Export payment history")
+                        }
                     }
-                    .foregroundColor(showPaymentSuccess ? AppColors.positive : AppColors.accent)
-                    .frame(maxWidth: .infinity)
                     .padding(.vertical, Spacing.md)
+                    .padding(.horizontal, Spacing.cardPadding)
                 }
-                .disabled(showPaymentSuccess)
-                .accessibilityLabel("Record a payment for this subscription")
+                .buttonStyle(AppButtonStyle())
+
+                if paymentHistoryExpanded {
+                    DetailDivider()
+                        .padding(.horizontal, Spacing.cardPadding)
+
+                    if allPayments.isEmpty {
+                        // Empty state
+                        VStack(spacing: Spacing.md) {
+                            Image(systemName: "clock.arrow.circlepath")
+                                .font(.system(size: IconSize.xl))
+                                .foregroundColor(AppColors.textTertiary)
+
+                            Text("No payments recorded")
+                                .font(AppTypography.headingSmall())
+                                .foregroundColor(AppColors.textSecondary)
+
+                            Text("Payments will appear here after you mark this subscription as paid")
+                                .font(AppTypography.bodySmall())
+                                .foregroundColor(AppColors.textTertiary)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, Spacing.lg)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, Spacing.xxl)
+                    } else {
+                        let displayPayments = Array(allPayments.prefix(5))
+                        ForEach(Array(displayPayments.enumerated()), id: \.element.objectID) { index, payment in
+                            PaymentHistoryRow(
+                                payment: payment,
+                                onEdit: { p in
+                                    paymentToEdit = p
+                                    showingEditPayment = true
+                                },
+                                onDelete: { p in
+                                    paymentToDelete = p
+                                    showingDeletePaymentAlert = true
+                                }
+                            )
+
+                            if index < displayPayments.count - 1 {
+                                DetailDivider()
+                                    .padding(.horizontal, Spacing.cardPadding)
+                            }
+                        }
+
+                        if allPayments.count > 5 {
+                            DetailDivider()
+                                .padding(.horizontal, Spacing.cardPadding)
+
+                            Button {
+                                HapticManager.tap()
+                            } label: {
+                                Text("View All \(allPayments.count) Payments")
+                                    .font(AppTypography.labelLarge())
+                                    .foregroundColor(AppColors.accent)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, Spacing.md)
+                            }
+                        }
+                    }
+
+                    // Record Payment button inside card
+                    DetailDivider()
+                        .padding(.horizontal, Spacing.cardPadding)
+
+                    Button {
+                        HapticManager.tap()
+                        recordPayment()
+                    } label: {
+                        HStack(spacing: Spacing.sm) {
+                            Image(systemName: showPaymentSuccess ? "checkmark.circle.fill" : "plus.circle.fill")
+                                .font(.system(size: IconSize.sm))
+                            Text(showPaymentSuccess ? "Payment Recorded" : "Record Payment")
+                                .font(AppTypography.labelLarge())
+                        }
+                        .foregroundColor(showPaymentSuccess ? AppColors.positive : AppColors.accent)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, Spacing.md)
+                    }
+                    .disabled(showPaymentSuccess)
+                    .accessibilityLabel("Record a payment for this subscription")
+                }
             }
             .background(
                 RoundedRectangle(cornerRadius: CornerRadius.card)
@@ -627,7 +759,7 @@ struct SubscriptionDetailView: View {
         }
     }
 
-    // MARK: - Section 6: Quick Actions (Stacked)
+    // MARK: - Section 6: Quick Actions
 
     private var quickActions: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
@@ -635,77 +767,69 @@ struct SubscriptionDetailView: View {
                 .font(AppTypography.labelSmall())
                 .foregroundColor(AppColors.textTertiary)
 
-            VStack(spacing: 0) {
-                actionRow(icon: "pencil", label: "Edit", color: AppColors.textPrimary) {
+            VStack(spacing: Spacing.md) {
+                // Primary: Edit
+                Button {
                     HapticManager.tap()
                     showingEditSheet = true
-                }
-
-                DetailDivider()
-                    .padding(.horizontal, Spacing.cardPadding)
-
-                actionRow(
-                    icon: subscription.isActive ? "pause.circle" : "play.circle",
-                    label: subscription.isActive ? "Pause" : "Resume",
-                    color: AppColors.textPrimary
-                ) {
-                    HapticManager.tap()
-                    togglePauseStatus()
-                }
-
-                DetailDivider()
-                    .padding(.horizontal, Spacing.cardPadding)
-
-                actionRow(
-                    icon: subscription.isArchived ? "tray.and.arrow.up" : "archivebox",
-                    label: subscription.isArchived ? "Restore" : "Archive",
-                    color: AppColors.textPrimary
-                ) {
-                    HapticManager.tap()
-                    if subscription.isArchived {
-                        restoreSubscription()
-                    } else {
-                        showingArchiveAlert = true
+                } label: {
+                    HStack(spacing: Spacing.sm) {
+                        Image(systemName: "pencil")
+                            .font(.system(size: IconSize.sm))
+                        Text("Edit Subscription")
                     }
                 }
+                .buttonStyle(PrimaryButtonStyle())
+                .accessibilityLabel("Edit subscription")
 
-                DetailDivider()
-                    .padding(.horizontal, Spacing.cardPadding)
+                // Secondary row: Pause/Resume + Archive/Restore
+                HStack(spacing: Spacing.md) {
+                    Button {
+                        HapticManager.tap()
+                        togglePauseStatus()
+                    } label: {
+                        HStack(spacing: Spacing.sm) {
+                            Image(systemName: subscription.isActive ? "pause.circle" : "play.circle")
+                                .font(.system(size: IconSize.sm))
+                            Text(subscription.isActive ? "Pause" : "Resume")
+                        }
+                    }
+                    .buttonStyle(SecondaryButtonStyle())
+                    .accessibilityLabel(subscription.isActive ? "Pause subscription" : "Resume subscription")
 
-                actionRow(icon: "trash", label: "Delete", color: AppColors.negative) {
-                    HapticManager.tap()
-                    showingDeleteAlert = true
+                    Button {
+                        HapticManager.tap()
+                        if subscription.isArchived {
+                            restoreSubscription()
+                        } else {
+                            showingArchiveAlert = true
+                        }
+                    } label: {
+                        HStack(spacing: Spacing.sm) {
+                            Image(systemName: subscription.isArchived ? "tray.and.arrow.up" : "archivebox")
+                                .font(.system(size: IconSize.sm))
+                            Text(subscription.isArchived ? "Restore" : "Archive")
+                        }
+                    }
+                    .buttonStyle(SecondaryButtonStyle())
+                    .accessibilityLabel(subscription.isArchived ? "Restore subscription" : "Archive subscription")
                 }
+
+                // Destructive: Delete
+                Button {
+                    HapticManager.destructiveAction()
+                    showingDeleteAlert = true
+                } label: {
+                    HStack(spacing: Spacing.sm) {
+                        Image(systemName: "trash")
+                            .font(.system(size: IconSize.sm))
+                        Text("Delete Subscription")
+                    }
+                }
+                .buttonStyle(DestructiveButtonStyle())
+                .accessibilityLabel("Delete subscription")
             }
-            .background(
-                RoundedRectangle(cornerRadius: CornerRadius.card)
-                    .fill(AppColors.cardBackground)
-                    .cardShadow(for: colorScheme)
-            )
         }
-    }
-
-    private func actionRow(icon: String, label: String, color: Color, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            HStack(spacing: Spacing.md) {
-                Image(systemName: icon)
-                    .font(.system(size: IconSize.sm))
-                    .foregroundColor(color)
-
-                Text(label)
-                    .font(AppTypography.bodyLarge())
-                    .foregroundColor(color)
-
-                Spacer()
-
-                Image(systemName: "chevron.right")
-                    .font(.system(size: IconSize.xs))
-                    .foregroundColor(AppColors.textTertiary)
-            }
-            .padding(.vertical, Spacing.md)
-            .padding(.horizontal, Spacing.cardPadding)
-        }
-        .buttonStyle(AppButtonStyle())
     }
 
     // MARK: - Section 7: Metadata Footer
@@ -830,15 +954,45 @@ struct SubscriptionDetailView: View {
         }
     }
 
-    private func exportPaymentHistory() {
-        guard let url = subscription.createPaymentHistoryCSVFile() else {
+    private func deletePayment(_ payment: SubscriptionPayment) {
+        HapticManager.delete()
+        viewContext.delete(payment)
+        do {
+            try viewContext.save()
+        } catch {
+            viewContext.rollback()
             HapticManager.error()
-            errorMessage = "Failed to create export file."
+            errorMessage = "Failed to delete payment."
             showingError = true
-            return
         }
-        csvFileURL = url
-        showingShareSheet = true
+    }
+
+    private func exportPaymentHistory() {
+        // Read CoreData properties on main thread
+        let csvContent = subscription.exportPaymentHistory()
+        let safeName = (subscription.name ?? "Subscription")
+            .replacingOccurrences(of: " ", with: "_")
+            .replacingOccurrences(of: "/", with: "-")
+
+        Task.detached(priority: .userInitiated) {
+            let fileName = "\(safeName)_Payment_History.csv"
+            let tempDir = FileManager.default.temporaryDirectory
+            let fileURL = tempDir.appendingPathComponent(fileName)
+
+            do {
+                try csvContent.write(to: fileURL, atomically: true, encoding: .utf8)
+                await MainActor.run {
+                    csvFileURL = fileURL
+                    showingShareSheet = true
+                }
+            } catch {
+                await MainActor.run {
+                    HapticManager.error()
+                    errorMessage = "Failed to create export file."
+                    showingError = true
+                }
+            }
+        }
     }
 }
 
@@ -879,6 +1033,8 @@ private struct DetailDivider: View {
 /// Restyled payment history row for the card layout
 private struct PaymentHistoryRow: View {
     let payment: SubscriptionPayment
+    var onEdit: ((SubscriptionPayment) -> Void)? = nil
+    var onDelete: ((SubscriptionPayment) -> Void)? = nil
 
     private var isUserPayer: Bool {
         CurrentUser.isCurrentUser(payment.payer?.id)
@@ -889,7 +1045,7 @@ private struct PaymentHistoryRow: View {
             // Payment icon
             Circle()
                 .fill(AppColors.positive.opacity(0.12))
-                .frame(width: AvatarSize.sm, height: AvatarSize.sm)
+                .frame(width: AvatarSize.xs, height: AvatarSize.xs)
                 .overlay(
                     Image(systemName: "checkmark.circle.fill")
                         .font(.system(size: IconSize.sm))
@@ -914,8 +1070,38 @@ private struct PaymentHistoryRow: View {
         }
         .padding(.vertical, Spacing.sm)
         .padding(.horizontal, Spacing.cardPadding)
+        .contentShape(Rectangle())
+        .contextMenu {
+            Button {
+                UIPasteboard.general.string = CurrencyFormatter.format(payment.amount)
+                HapticManager.copyAction()
+            } label: {
+                Label("Copy Amount", systemImage: "doc.on.doc")
+            }
+
+            if isUserPayer, let onEdit {
+                Button {
+                    HapticManager.lightTap()
+                    onEdit(payment)
+                } label: {
+                    Label("Edit Payment", systemImage: "pencil")
+                }
+            }
+
+            if isUserPayer, let onDelete {
+                Divider()
+
+                Button(role: .destructive) {
+                    HapticManager.delete()
+                    onDelete(payment)
+                } label: {
+                    Label("Delete Payment", systemImage: "trash")
+                }
+            }
+        }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(isUserPayer ? "You" : payment.payer?.displayName ?? "Someone") paid \(CurrencyFormatter.format(payment.amount)) on \(payment.date?.formatted(.dateTime.month(.abbreviated).day().year()) ?? "unknown date")")
+        .accessibilityHint("Double tap and hold for options")
     }
 }
 

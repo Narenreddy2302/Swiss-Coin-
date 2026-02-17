@@ -29,24 +29,38 @@ struct SharedSubscriptionConversationView: View {
     @State private var deletedMessageTimestamp: Date?
     @State private var deletedMessageIsEdited: Bool = false
 
+    // Payment edit/delete state
+    @State private var paymentToEdit: SubscriptionPayment?
+    @State private var showingEditPayment = false
+
+    // Undo toast state (payments)
+    @State private var showPaymentUndoToast = false
+    @State private var deletedPaymentAmount: Double = 0
+    @State private var deletedPaymentDate: Date?
+    @State private var deletedPaymentNote: String?
+    @State private var deletedPaymentPayer: Person?
+    @State private var deletedPaymentSubscription: Subscription?
+    @State private var deletedPaymentBillingStart: Date?
+    @State private var deletedPaymentBillingEnd: Date?
+
     // MARK: - Timeline Constants
 
     private let timelineCircleSize: CGFloat = AvatarSize.xs
     private let timelineLeadingPad: CGFloat = Spacing.lg
     private let timelineToContent: CGFloat = Spacing.md
 
+    // MARK: - Cached State
+
+    @State private var cachedGroupedItems: [SubscriptionConversationDateGroup] = []
+    @State private var cachedBalance: Double = 0
+
     // MARK: - Computed Properties
 
-    private var balance: Double {
-        subscription.calculateUserBalance()
-    }
-
-    private var groupedItems: [SubscriptionConversationDateGroup] {
-        subscription.getGroupedConversationItems()
-    }
+    private var balance: Double { cachedBalance }
+    private var groupedItems: [SubscriptionConversationDateGroup] { cachedGroupedItems }
 
     private var totalItemCount: Int {
-        groupedItems.reduce(0) { $0 + $1.items.count }
+        cachedGroupedItems.reduce(0) { $0 + $1.items.count }
     }
 
     private var balanceLabel: String {
@@ -78,10 +92,17 @@ struct SharedSubscriptionConversationView: View {
                 ScrollView {
                     LazyVStack(spacing: 0) {
                         // Merged Info + Balances Card
-                        SubscriptionInfoCard(subscription: subscription)
-                            .padding(.horizontal, Spacing.lg)
-                            .padding(.top, Spacing.lg)
-                            .padding(.bottom, Spacing.sm)
+                        Button {
+                            HapticManager.navigationTap()
+                            showingSubscriptionDetail = true
+                        } label: {
+                            SubscriptionInfoCard(subscription: subscription)
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.horizontal, Spacing.lg)
+                        .padding(.top, Spacing.lg)
+                        .padding(.bottom, Spacing.sm)
+                        .accessibilityLabel("View \(subscription.displayName) details")
 
                         if groupedItems.isEmpty {
                             emptyStateView
@@ -122,14 +143,16 @@ struct SharedSubscriptionConversationView: View {
                 .onTapGesture {
                     hideKeyboard()
                 }
-                .onAppear {
+                .task {
                     HapticManager.prepare()
+                    refreshCachedData()
                     scrollToBottom(proxy)
                 }
+                .onReceive(NotificationCenter.default.publisher(for: .NSManagedObjectContextDidSave)) { _ in
+                    refreshCachedData()
+                }
                 .onChange(of: totalItemCount) { _, _ in
-                    withAnimation(AppAnimation.standard) {
-                        scrollToBottom(proxy)
-                    }
+                    scrollToBottom(proxy)
                 }
             }
 
@@ -200,10 +223,22 @@ struct SharedSubscriptionConversationView: View {
         } message: {
             Text(errorMessage)
         }
+        .sheet(isPresented: $showingEditPayment) {
+            if let payment = paymentToEdit {
+                EditSubscriptionPaymentView(payment: payment)
+                    .environment(\.managedObjectContext, viewContext)
+                    .onAppear { HapticManager.sheetPresent() }
+            }
+        }
         .undoToast(
             isShowing: $showUndoToast,
             message: "Message deleted",
             onUndo: undoDeleteMessage
+        )
+        .undoToast(
+            isShowing: $showPaymentUndoToast,
+            message: "Payment deleted",
+            onUndo: undoDeletePayment
         )
     }
 
@@ -382,7 +417,17 @@ struct SharedSubscriptionConversationView: View {
     private func conversationItemView(for item: SubscriptionConversationItem) -> some View {
         switch item {
         case .payment(let payment):
-            SubscriptionPaymentCardView(payment: payment, subscription: subscription)
+            SubscriptionPaymentCardView(
+                payment: payment,
+                subscription: subscription,
+                onEdit: { p in
+                    paymentToEdit = p
+                    showingEditPayment = true
+                },
+                onDelete: { p in
+                    deletePaymentWithUndo(p)
+                }
+            )
 
         case .settlement(let settlement):
             SubscriptionSettlementMessageView(settlement: settlement)
@@ -452,8 +497,13 @@ struct SharedSubscriptionConversationView: View {
         }
     }
 
+    private func refreshCachedData() {
+        cachedGroupedItems = subscription.getGroupedConversationItems()
+        cachedBalance = subscription.calculateUserBalance()
+    }
+
     private func scrollToBottom(_ proxy: ScrollViewProxy) {
-        if let lastGroup = groupedItems.last,
+        if let lastGroup = cachedGroupedItems.last,
            let lastItem = lastGroup.items.last {
             proxy.scrollTo(lastItem.id, anchor: .bottom)
         }
@@ -537,5 +587,59 @@ struct SharedSubscriptionConversationView: View {
         deletedMessageContent = nil
         deletedMessageTimestamp = nil
         deletedMessageIsEdited = false
+    }
+
+    // MARK: - Payment Delete with Undo
+
+    private func deletePaymentWithUndo(_ payment: SubscriptionPayment) {
+        deletedPaymentAmount = payment.amount
+        deletedPaymentDate = payment.date
+        deletedPaymentNote = payment.note
+        deletedPaymentPayer = payment.payer
+        deletedPaymentSubscription = payment.subscription
+        deletedPaymentBillingStart = payment.billingPeriodStart
+        deletedPaymentBillingEnd = payment.billingPeriodEnd
+
+        viewContext.delete(payment)
+        do {
+            try viewContext.save()
+            HapticManager.destructiveAction()
+            withAnimation(AppAnimation.standard) {
+                showPaymentUndoToast = true
+            }
+        } catch {
+            viewContext.rollback()
+            HapticManager.errorAlert()
+            errorMessage = "Failed to delete payment."
+            showingError = true
+        }
+    }
+
+    private func undoDeletePayment() {
+        let restored = SubscriptionPayment(context: viewContext)
+        restored.id = UUID()
+        restored.amount = deletedPaymentAmount
+        restored.date = deletedPaymentDate ?? Date()
+        restored.note = deletedPaymentNote
+        restored.payer = deletedPaymentPayer
+        restored.subscription = deletedPaymentSubscription
+        restored.billingPeriodStart = deletedPaymentBillingStart
+        restored.billingPeriodEnd = deletedPaymentBillingEnd
+
+        do {
+            try viewContext.save()
+            HapticManager.undoAction()
+        } catch {
+            viewContext.rollback()
+            HapticManager.errorAlert()
+        }
+
+        deletedPaymentAmount = 0
+        deletedPaymentDate = nil
+        deletedPaymentNote = nil
+        deletedPaymentPayer = nil
+        deletedPaymentSubscription = nil
+        deletedPaymentBillingStart = nil
+        deletedPaymentBillingEnd = nil
     }
 }

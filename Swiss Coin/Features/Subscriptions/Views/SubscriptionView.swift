@@ -14,6 +14,7 @@ struct SubscriptionView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @State private var showingAddSubscription = false
     @State private var showingArchivedSubscriptions = false
+    @State private var searchText = ""
 
     var body: some View {
         NavigationStack {
@@ -26,6 +27,7 @@ struct SubscriptionView: View {
                         color: selectedSegment == 0 ? AppColors.accent : AppColors.textPrimary
                     ) {
                         HapticManager.selectionChanged()
+                        searchText = ""
                         selectedSegment = 0
                     }
 
@@ -35,6 +37,7 @@ struct SubscriptionView: View {
                         color: selectedSegment == 1 ? AppColors.accent : AppColors.textPrimary
                     ) {
                         HapticManager.selectionChanged()
+                        searchText = ""
                         selectedSegment = 1
                     }
                 }
@@ -46,9 +49,9 @@ struct SubscriptionView: View {
                 // Content
                 Group {
                     if selectedSegment == 0 {
-                        PersonalSubscriptionListView(showingAddSubscription: $showingAddSubscription)
+                        PersonalSubscriptionListView(showingAddSubscription: $showingAddSubscription, searchText: $searchText)
                     } else {
-                        SharedSubscriptionListView(showingAddSubscription: $showingAddSubscription)
+                        SharedSubscriptionListView(showingAddSubscription: $showingAddSubscription, searchText: $searchText)
                     }
                 }
             }
@@ -90,5 +93,10 @@ struct SubscriptionView: View {
                 HapticManager.prepare()
             }
         }
+        .searchable(
+            text: $searchText,
+            placement: .navigationBarDrawer(displayMode: .always),
+            prompt: "Search subscriptions"
+        )
     }
 }

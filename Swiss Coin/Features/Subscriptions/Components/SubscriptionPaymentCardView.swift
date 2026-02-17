@@ -10,6 +10,10 @@ import SwiftUI
 struct SubscriptionPaymentCardView: View {
     let payment: SubscriptionPayment
     let subscription: Subscription
+    var onEdit: ((SubscriptionPayment) -> Void)? = nil
+    var onDelete: ((SubscriptionPayment) -> Void)? = nil
+
+    @Environment(\.colorScheme) private var colorScheme
 
     private var isUserPayer: Bool {
         CurrentUser.isCurrentUser(payment.payer?.id)
@@ -17,62 +21,60 @@ struct SubscriptionPaymentCardView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            HStack(alignment: .center, spacing: Spacing.md) {
-                // Payer Avatar
+            // First line: Avatar + "You paid" + amount
+            HStack(alignment: .center, spacing: Spacing.sm) {
                 ConversationAvatarView(
                     initials: isUserPayer ? CurrentUser.initials : (payment.payer?.initials ?? "?"),
-                    colorHex: isUserPayer ? CurrentUser.defaultColorHex : (payment.payer?.colorHex ?? CurrentUser.defaultColorHex)
+                    colorHex: isUserPayer ? CurrentUser.defaultColorHex : (payment.payer?.colorHex ?? CurrentUser.defaultColorHex),
+                    size: AvatarSize.xs
                 )
 
-                VStack(alignment: .leading, spacing: Spacing.xxs) {
-                    Text(isUserPayer ? "You paid" : "\(payment.payer?.firstName ?? "Someone") paid")
-                        .font(AppTypography.headingMedium())
-                        .foregroundColor(AppColors.textPrimary)
-
-                    Text(subscription.name ?? "Subscription")
-                        .font(AppTypography.bodySmall())
-                        .foregroundColor(AppColors.textSecondary)
-                }
+                Text(isUserPayer ? "You paid" : "\(payment.payer?.firstName ?? "Someone") paid")
+                    .font(AppTypography.headingSmall())
+                    .foregroundColor(AppColors.textPrimary)
 
                 Spacer()
 
-                VStack(alignment: .trailing, spacing: Spacing.xxs) {
-                    Text(CurrencyFormatter.format(payment.amount))
-                        .font(AppTypography.financialLarge())
-                        .foregroundColor(AppColors.textPrimary)
-
-                    Text("\(subscription.subscriberCount) way split")
-                        .font(AppTypography.bodySmall())
-                        .foregroundColor(AppColors.textSecondary)
-                }
+                Text(CurrencyFormatter.format(payment.amount))
+                    .font(AppTypography.financialDefault())
+                    .foregroundColor(AppColors.textPrimary)
             }
             .padding(.horizontal, Spacing.lg)
-            .padding(.vertical, Spacing.md)
+            .padding(.top, Spacing.md)
 
-            // Display note if present
-            if let note = payment.note, !note.isEmpty {
-                HStack(spacing: Spacing.xs) {
-                    Image(systemName: "text.quote")
-                        .font(.system(size: IconSize.xs))
-                        .foregroundColor(AppColors.textSecondary)
-
-                    Text(note)
-                        .font(AppTypography.bodySmall())
-                        .foregroundColor(AppColors.textSecondary)
-                        .italic()
-                        .lineLimit(2)
-
-                    Spacer()
-                }
-                .padding(.horizontal, Spacing.lg)
+            // Second line: "for SubscriptionName · N way split"
+            Text("for \(subscription.name ?? "Subscription") · \(subscription.subscriberCount) way split")
+                .font(AppTypography.bodySmall())
+                .foregroundColor(AppColors.textSecondary)
+                .lineLimit(1)
+                .padding(.leading, Spacing.lg + AvatarSize.xs + Spacing.sm)
+                .padding(.trailing, Spacing.lg)
+                .padding(.top, Spacing.xxs)
                 .padding(.bottom, Spacing.md)
+
+            // Note section with divider
+            if let note = payment.note, !note.isEmpty {
+                Rectangle()
+                    .fill(AppColors.divider)
+                    .frame(height: 0.5)
+                    .padding(.horizontal, Spacing.lg)
+
+                Text("\"\(note)\"")
+                    .font(AppTypography.bodySmall())
+                    .foregroundColor(AppColors.textSecondary)
+                    .italic()
+                    .lineLimit(2)
+                    .padding(.horizontal, Spacing.lg)
+                    .padding(.top, Spacing.sm)
+                    .padding(.bottom, Spacing.md)
             }
         }
-        .background(
+        .background {
+            let s = AppShadow.bubble(for: colorScheme)
             RoundedRectangle(cornerRadius: CornerRadius.card)
                 .fill(AppColors.cardBackground)
-                .shadow(color: AppColors.shadow, radius: 4, x: 0, y: 2)
-        )
+                .shadow(color: s.color, radius: s.radius, x: s.x, y: s.y)
+        }
         .clipShape(RoundedRectangle(cornerRadius: CornerRadius.card))
         .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: CornerRadius.card))
         .contextMenu {
@@ -81,6 +83,26 @@ struct SubscriptionPaymentCardView: View {
                 HapticManager.copyAction()
             } label: {
                 Label("Copy Amount", systemImage: "doc.on.doc")
+            }
+
+            if isUserPayer, let onEdit {
+                Button {
+                    HapticManager.lightTap()
+                    onEdit(payment)
+                } label: {
+                    Label("Edit Payment", systemImage: "pencil")
+                }
+            }
+
+            if isUserPayer, let onDelete {
+                Divider()
+
+                Button(role: .destructive) {
+                    HapticManager.delete()
+                    onDelete(payment)
+                } label: {
+                    Label("Delete Payment", systemImage: "trash")
+                }
             }
         }
         .accessibilityElement(children: .combine)
