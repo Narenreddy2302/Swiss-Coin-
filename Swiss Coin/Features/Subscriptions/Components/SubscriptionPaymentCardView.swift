@@ -71,13 +71,9 @@ struct SubscriptionPaymentCardView: View {
         .background(
             RoundedRectangle(cornerRadius: CornerRadius.card)
                 .fill(AppColors.cardBackground)
-                .shadow(color: AppColors.shadowSubtle, radius: 4, x: 0, y: 2)
-                .shadow(color: AppColors.shadowMicro, radius: 1, x: 0, y: 1)
+                .shadow(color: AppColors.shadow, radius: 4, x: 0, y: 2)
         )
-        .overlay(
-            RoundedRectangle(cornerRadius: CornerRadius.card)
-                .stroke(AppColors.border.opacity(0.3), lineWidth: 0.5)
-        )
+        .clipShape(RoundedRectangle(cornerRadius: CornerRadius.card))
         .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: CornerRadius.card))
         .contextMenu {
             Button {

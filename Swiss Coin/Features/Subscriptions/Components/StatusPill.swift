@@ -11,19 +11,19 @@ struct StatusPill: View {
     let status: BillingStatus
 
     var body: some View {
-        HStack(spacing: Spacing.xs) {
+        HStack(spacing: Spacing.xxs) {
             Image(systemName: status.icon)
                 .font(.system(size: IconSize.xs, weight: .medium))
 
             Text(status.label)
-                .font(AppTypography.labelLarge())
+                .font(AppTypography.labelSmall())
         }
         .foregroundColor(status.color)
-        .padding(.horizontal, Spacing.md)
-        .padding(.vertical, Spacing.xs)
+        .padding(.horizontal, Spacing.sm)
+        .padding(.vertical, Spacing.xxs)
         .background(
             Capsule()
-                .fill(status.color.opacity(0.15))
+                .fill(status.color.opacity(0.12))
         )
     }
 }

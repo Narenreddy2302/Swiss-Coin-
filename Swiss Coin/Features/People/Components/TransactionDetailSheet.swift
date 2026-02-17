@@ -50,8 +50,8 @@ struct TransactionDetailSheet: View {
                         .padding(.top, Spacing.xl)
                 }
 
-                if let note = snapshot.note {
-                    noteSection(note: note)
+                if let cleanNote = snapshot.cleanNote {
+                    noteSection(note: cleanNote)
                         .padding(.horizontal, Spacing.screenHorizontal)
                         .padding(.top, Spacing.xl)
                 }
