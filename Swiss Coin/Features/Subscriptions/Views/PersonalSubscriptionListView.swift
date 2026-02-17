@@ -2,13 +2,15 @@
 //  PersonalSubscriptionListView.swift
 //  Swiss Coin
 //
-//  List view for personal (non-shared) subscriptions.
+//  List view for personal (non-shared) subscriptions with summary header
+//  and card-wrapped sections.
 //
 
 import CoreData
 import SwiftUI
 
 struct PersonalSubscriptionListView: View {
+    @Binding var showingAddSubscription: Bool
     @Environment(\.managedObjectContext) private var viewContext
 
     @State private var showRefreshFeedback = false
@@ -22,7 +24,8 @@ struct PersonalSubscriptionListView: View {
     }(), animation: .default)
     private var subscriptions: FetchedResults<Subscription>
 
-    // Group by billing status
+    // MARK: - Grouped Subscriptions
+
     private var overdueSubscriptions: [Subscription] {
         subscriptions.filter { $0.billingStatus == .overdue && $0.isActive }
     }
@@ -43,10 +46,14 @@ struct PersonalSubscriptionListView: View {
         subscriptions.filter { !$0.isActive }
     }
 
+    // MARK: - Body
+
     var body: some View {
         if subscriptions.isEmpty {
             ScrollView {
-                EmptySubscriptionView(isShared: false)
+                EmptySubscriptionView(isShared: false) {
+                    showingAddSubscription = true
+                }
             }
             .refreshable {
                 await RefreshHelper.performStandardRefresh(context: viewContext)
@@ -54,121 +61,34 @@ struct PersonalSubscriptionListView: View {
         } else {
             ScrollView {
                 VStack(spacing: Spacing.xl) {
-                    // Attention Required Section (Overdue + Due)
+                    // Summary Header
+                    SubscriptionSummaryHeader(isShared: false, subscriptions: Array(subscriptions))
+
+                    // Attention Required Section
                     if !attentionSubscriptions.isEmpty {
-                        VStack(alignment: .leading, spacing: Spacing.sm) {
-                            HStack {
-                                Text("Attention Required")
-                                    .font(AppTypography.labelLarge())
-                                    .foregroundColor(AppColors.warning)
-
-                                Spacer()
-
-                                Text("\(attentionSubscriptions.count)")
-                                    .font(AppTypography.caption())
-                                    .foregroundColor(AppColors.textTertiary)
-                                    .padding(.horizontal, Spacing.sm)
-                                    .padding(.vertical, Spacing.xxs)
-                                    .background(
-                                        Capsule()
-                                            .fill(AppColors.backgroundTertiary)
-                                    )
-                            }
-                            .padding(.horizontal, Spacing.lg)
-
-                            LazyVStack(spacing: 0) {
-                                let attentionCount = attentionSubscriptions.count
-                                ForEach(Array(attentionSubscriptions.enumerated()), id: \.element.id) { index, subscription in
-                                    NavigationLink(destination: SubscriptionDetailView(subscription: subscription)) {
-                                        SubscriptionListRowView(subscription: subscription)
-                                    }
-                                    .buttonStyle(.plain)
-
-                                    if index < attentionCount - 1 {
-                                        Divider()
-                                            .padding(.leading, Spacing.lg + AvatarSize.lg + Spacing.md)
-                                    }
-                                }
-                            }
-                        }
+                        subscriptionSection(
+                            title: "Attention Required",
+                            titleColor: AppColors.warning,
+                            subscriptions: attentionSubscriptions
+                        )
                     }
 
-                    // Active Subscriptions Section
+                    // Active Section
                     if !upcomingSubscriptions.isEmpty {
-                        VStack(alignment: .leading, spacing: Spacing.sm) {
-                            HStack {
-                                Text("Active")
-                                    .font(AppTypography.labelLarge())
-                                    .foregroundColor(AppColors.textSecondary)
-
-                                Spacer()
-
-                                Text("\(upcomingSubscriptions.count)")
-                                    .font(AppTypography.caption())
-                                    .foregroundColor(AppColors.textTertiary)
-                                    .padding(.horizontal, Spacing.sm)
-                                    .padding(.vertical, Spacing.xxs)
-                                    .background(
-                                        Capsule()
-                                            .fill(AppColors.backgroundTertiary)
-                                    )
-                            }
-                            .padding(.horizontal, Spacing.lg)
-
-                            LazyVStack(spacing: 0) {
-                                let upcomingCount = upcomingSubscriptions.count
-                                ForEach(Array(upcomingSubscriptions.enumerated()), id: \.element.id) { index, subscription in
-                                    NavigationLink(destination: SubscriptionDetailView(subscription: subscription)) {
-                                        SubscriptionListRowView(subscription: subscription)
-                                    }
-                                    .buttonStyle(.plain)
-
-                                    if index < upcomingCount - 1 {
-                                        Divider()
-                                            .padding(.leading, Spacing.lg + AvatarSize.lg + Spacing.md)
-                                    }
-                                }
-                            }
-                        }
+                        subscriptionSection(
+                            title: "Active",
+                            titleColor: AppColors.textSecondary,
+                            subscriptions: upcomingSubscriptions
+                        )
                     }
 
-                    // Paused Subscriptions Section
+                    // Paused Section
                     if !pausedSubscriptions.isEmpty {
-                        VStack(alignment: .leading, spacing: Spacing.sm) {
-                            HStack {
-                                Text("Paused")
-                                    .font(AppTypography.labelLarge())
-                                    .foregroundColor(AppColors.textSecondary)
-
-                                Spacer()
-
-                                Text("\(pausedSubscriptions.count)")
-                                    .font(AppTypography.caption())
-                                    .foregroundColor(AppColors.textTertiary)
-                                    .padding(.horizontal, Spacing.sm)
-                                    .padding(.vertical, Spacing.xxs)
-                                    .background(
-                                        Capsule()
-                                            .fill(AppColors.backgroundTertiary)
-                                    )
-                            }
-                            .padding(.horizontal, Spacing.lg)
-
-                            LazyVStack(spacing: 0) {
-                                let pausedCount = pausedSubscriptions.count
-                                ForEach(Array(pausedSubscriptions.enumerated()), id: \.element.id) { index, subscription in
-                                    NavigationLink(destination: SubscriptionDetailView(subscription: subscription)) {
-                                        SubscriptionListRowView(subscription: subscription)
-                                    }
-                                    .buttonStyle(.plain)
-
-                                    if index < pausedCount - 1 {
-                                        Divider()
-                                            .padding(.leading, Spacing.lg + AvatarSize.lg + Spacing.md)
-                                    }
-                                }
-                            }
-                        }
+                        subscriptionSection(
+                            title: "Paused",
+                            titleColor: AppColors.textSecondary,
+                            subscriptions: pausedSubscriptions
+                        )
                     }
 
                     Spacer()
@@ -186,6 +106,59 @@ struct PersonalSubscriptionListView: View {
                 }
             }
             .refreshFeedback(isShowing: $showRefreshFeedback)
+        }
+    }
+
+    // MARK: - Section Helper
+
+    @ViewBuilder
+    private func subscriptionSection(
+        title: String,
+        titleColor: Color,
+        subscriptions: [Subscription]
+    ) -> some View {
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            // Section header — outside card
+            HStack {
+                Text(title)
+                    .font(AppTypography.labelLarge())
+                    .foregroundColor(titleColor)
+
+                Spacer()
+
+                Text("\(subscriptions.count)")
+                    .font(AppTypography.caption())
+                    .foregroundColor(AppColors.textTertiary)
+                    .padding(.horizontal, Spacing.sm)
+                    .padding(.vertical, Spacing.xxs)
+                    .background(
+                        Capsule()
+                            .fill(AppColors.backgroundTertiary)
+                    )
+            }
+            .padding(.horizontal, Spacing.lg)
+
+            // Rows — inside card
+            LazyVStack(spacing: 0) {
+                let count = subscriptions.count
+                ForEach(Array(subscriptions.enumerated()), id: \.element.id) { index, subscription in
+                    NavigationLink(destination: SubscriptionDetailView(subscription: subscription)) {
+                        UnifiedSubscriptionRowView(subscription: subscription, isShared: false)
+                    }
+                    .buttonStyle(.plain)
+
+                    if index < count - 1 {
+                        Divider()
+                            .padding(.leading, Spacing.lg + AvatarSize.lg + Spacing.md)
+                    }
+                }
+            }
+            .background(
+                RoundedRectangle(cornerRadius: CornerRadius.card)
+                    .fill(AppColors.cardBackground)
+                    .shadow(color: AppColors.shadow, radius: 4, x: 0, y: 2)
+            )
+            .padding(.horizontal, Spacing.lg)
         }
     }
 }

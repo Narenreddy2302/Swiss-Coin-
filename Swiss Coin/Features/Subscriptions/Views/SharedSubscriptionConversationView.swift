@@ -77,15 +77,10 @@ struct SharedSubscriptionConversationView: View {
             ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack(spacing: 0) {
-                        // Subscription Info Header Card
+                        // Merged Info + Balances Card
                         SubscriptionInfoCard(subscription: subscription)
                             .padding(.horizontal, Spacing.lg)
                             .padding(.top, Spacing.lg)
-                            .padding(.bottom, Spacing.sm)
-
-                        // Member Balances Card
-                        MemberBalancesCard(subscription: subscription)
-                            .padding(.horizontal, Spacing.lg)
                             .padding(.bottom, Spacing.sm)
 
                         if groupedItems.isEmpty {
@@ -106,7 +101,7 @@ struct SharedSubscriptionConversationView: View {
                                         isLastItem: isLastItem
                                     )
                                     .id(item.id)
-                                    .transition(.opacity.combined(with: .scale(scale: 0.95)))
+                                    .transition(.identity)
                                 }
                             }
                         }
@@ -139,7 +134,7 @@ struct SharedSubscriptionConversationView: View {
             }
 
             // Action Bar
-            SubscriptionActionBar(
+            SubscriptionActionBarView(
                 balance: balance,
                 membersWhoOwe: subscription.getMembersWhoOweYou(),
                 onRecordPayment: { showingRecordPayment = true },
@@ -219,7 +214,7 @@ struct SharedSubscriptionConversationView: View {
         if item.isSystemStrip {
             // Reminders & settlements render as centered pill notifications — no avatar
             conversationItemView(for: item)
-                .padding(.bottom, isLastItem ? 0 : Spacing.lg)
+                .padding(.bottom, isLastItem ? 0 : Spacing.md)
         } else {
             let isMessage = isMessageItem(item)
             let avatar = itemAvatarInfo(for: item)
@@ -233,7 +228,7 @@ struct SharedSubscriptionConversationView: View {
 
                 conversationItemView(for: item)
                     .padding(.trailing, Spacing.lg)
-                    .padding(.bottom, isLastItem ? 0 : Spacing.lg)
+                    .padding(.bottom, isLastItem ? 0 : Spacing.md)
             }
         }
     }

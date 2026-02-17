@@ -43,15 +43,14 @@ struct SubscriptionView: View {
                 .padding(.bottom, Spacing.sm)
                 .background(AppColors.backgroundSecondary)
 
-                // Content with animation
+                // Content
                 Group {
                     if selectedSegment == 0 {
-                        PersonalSubscriptionListView()
+                        PersonalSubscriptionListView(showingAddSubscription: $showingAddSubscription)
                     } else {
-                        SharedSubscriptionListView()
+                        SharedSubscriptionListView(showingAddSubscription: $showingAddSubscription)
                     }
                 }
-                .animation(AppAnimation.standard, value: selectedSegment)
             }
             .background(AppColors.backgroundSecondary)
             .navigationTitle("Subscriptions")

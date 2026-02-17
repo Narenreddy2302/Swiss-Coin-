@@ -42,34 +42,3 @@ struct MemberChip: View {
         .cornerRadius(CornerRadius.full)
     }
 }
-
-#Preview {
-    // Preview requires creating a mock Person in preview context
-    // Using a simple text representation for preview purposes
-    HStack {
-        HStack(spacing: Spacing.xs) {
-            Circle()
-                .fill(AppColors.accent.opacity(0.2))
-                .frame(width: IconSize.category, height: IconSize.category)
-                .overlay(
-                    Text("JD")
-                        .font(AppTypography.labelSmall())
-                        .foregroundColor(AppColors.accent)
-                )
-            
-            Text("John Doe")
-                .font(AppTypography.bodyDefault())
-                .foregroundColor(AppColors.textPrimary)
-            
-            Image(systemName: "xmark.circle.fill")
-                .font(.system(size: IconSize.sm))
-                .foregroundColor(AppColors.textSecondary)
-        }
-        .padding(.leading, Spacing.xs)
-        .padding(.trailing, Spacing.sm)
-        .padding(.vertical, Spacing.xs)
-        .background(AppColors.backgroundSecondary)
-        .cornerRadius(CornerRadius.full)
-    }
-    .padding()
-}

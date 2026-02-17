@@ -1380,6 +1380,13 @@ extension View {
         self.modifier(CardStyleModifier(isElevated: true))
     }
 
+    /// Applies the standard card shadow for the given color scheme.
+    /// Use when `.cardStyle()` can't be used (cards with custom internal padding).
+    func cardShadow(for colorScheme: ColorScheme) -> some View {
+        let s = AppShadow.card(for: colorScheme)
+        return self.shadow(color: s.color, radius: s.radius, x: s.x, y: s.y)
+    }
+
     /// Adds haptic feedback on tap
     func withHaptic(_ style: AppButtonStyle.HapticStyle = .medium) -> some View {
         self.simultaneousGesture(
