@@ -173,7 +173,7 @@ struct EnhancedTransactionCardView: View {
         VStack(spacing: Spacing.xs) {
             HStack(alignment: .firstTextBaseline) {
                 Text(transaction.title ?? "Expense")
-                    .font(AppTypography.headingLarge())
+                    .font(AppTypography.headingMedium())
                     .foregroundColor(AppColors.textPrimary)
                     .lineLimit(2)
                     .truncationMode(.tail)
@@ -187,14 +187,14 @@ struct EnhancedTransactionCardView: View {
 
             HStack(alignment: .firstTextBaseline) {
                 Text(dateText)
-                    .font(AppTypography.labelDefault())
+                    .font(AppTypography.caption())
                     .foregroundColor(AppColors.textSecondary)
                     .lineLimit(1)
 
                 Spacer(minLength: Spacing.sm)
 
                 Text("\(totalAmountText) / \(splitCountText)")
-                    .font(AppTypography.labelDefault())
+                    .font(AppTypography.caption())
                     .foregroundColor(AppColors.textSecondary)
             }
         }
@@ -252,14 +252,14 @@ struct EnhancedTransactionCardView: View {
     private var totalBalanceRow: some View {
         HStack {
             Text("Total")
-                .font(AppTypography.labelLarge())
+                .font(AppTypography.headingSmall())
                 .foregroundColor(AppColors.textPrimary)
 
             Spacer()
 
             Text(totalAmountText)
                 .font(AppTypography.financialDefault())
-                .foregroundColor(AppColors.textPrimary)
+                .foregroundColor(amountColor)
         }
         .padding(.horizontal, Spacing.lg)
     }
@@ -275,7 +275,7 @@ struct EnhancedTransactionCardView: View {
                 onComment?()
             } label: {
                 Text("Comment")
-                    .font(AppTypography.buttonDefault())
+                    .font(AppTypography.buttonSmall())
                     .foregroundColor(AppColors.onAccent)
                     .frame(maxWidth: .infinity)
                     .frame(height: ButtonHeight.sm)
@@ -308,7 +308,7 @@ struct EnhancedTransactionCardView: View {
                 onEdit?()
             } label: {
                 Text("Edit")
-                    .font(AppTypography.buttonDefault())
+                    .font(AppTypography.buttonSmall())
                     .foregroundColor(AppColors.textPrimary)
                     .frame(maxWidth: .infinity)
                     .frame(height: ButtonHeight.sm)
@@ -333,13 +333,13 @@ struct EnhancedTransactionCardView: View {
     private func receiptRow(label: String, value: String) -> some View {
         HStack(spacing: Spacing.xs) {
             Text(label)
-                .font(AppTypography.bodyDefault())
+                .font(AppTypography.bodySmall())
                 .foregroundColor(AppColors.textSecondary)
 
             Spacer()
 
             Text(value)
-                .font(AppTypography.labelLarge())
+                .font(AppTypography.labelDefault())
                 .foregroundColor(AppColors.textPrimary)
                 .lineLimit(1)
         }

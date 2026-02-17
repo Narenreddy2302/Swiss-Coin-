@@ -134,7 +134,6 @@ struct PersonConversationView: View {
                                 loadingPlaceholder
                             } else if groupedItems.isEmpty {
                                 emptyStateView
-                                    .transition(.opacity)
                             } else {
                                 ForEach(Array(groupedItems.enumerated()), id: \.element.id) { groupIndex, group in
                                     // Date Header
@@ -152,13 +151,14 @@ struct PersonConversationView: View {
                                             isLastItem: isLastItem
                                         )
                                         .id(item.id)
-                                        .transition(hasAppeared ? .identity : .opacity.combined(with: .scale(scale: 0.95)))
+                                        .transition(.identity)
                                     }
                                 }
                             }
                         }
                         .padding(.vertical, Spacing.md)
                     }
+                    .defaultScrollAnchor(.bottom)
                     .scrollDismissesKeyboard(.interactively)
                     .background(
                         ZStack {
@@ -175,12 +175,7 @@ struct PersonConversationView: View {
                     }
                     .onAppear {
                         HapticManager.prepare()
-                        withAnimation(AppAnimation.standard) {
-                            scrollToBottom(proxy)
-                        }
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                            hasAppeared = true
-                        }
+                        hasAppeared = true
                     }
                     .onChange(of: totalItemCount) { _, _ in
                         withAnimation(AppAnimation.standard) {
@@ -304,9 +299,7 @@ struct PersonConversationView: View {
         )
         .task {
             loadConversationData()
-            withAnimation(AppAnimation.standard) {
-                isLoading = false
-            }
+            isLoading = false
         }
         .onReceive(NotificationCenter.default.publisher(for: .NSManagedObjectContextDidSave)) { notification in
             guard isRelevantSave(notification) else { return }
@@ -426,8 +419,7 @@ struct PersonConversationView: View {
                 timelineConnector(
                     isMessage: isMessage,
                     avatarInitials: avatar.initials,
-                    avatarColor: avatar.color,
-                    showLine: !isLastItem
+                    avatarColor: avatar.color
                 )
 
                 // Content column
@@ -466,7 +458,7 @@ struct PersonConversationView: View {
     // MARK: - Timeline Connector
 
     @ViewBuilder
-    private func timelineConnector(isMessage: Bool, avatarInitials: String, avatarColor: String, showLine: Bool) -> some View {
+    private func timelineConnector(isMessage: Bool, avatarInitials: String, avatarColor: String) -> some View {
         VStack(spacing: 0) {
             // Top offset to vertically align avatar with first line of content
             Spacer()
@@ -479,15 +471,7 @@ struct PersonConversationView: View {
                 size: timelineCircleSize
             )
 
-            // Connecting line below avatar
-            if showLine {
-                Rectangle()
-                    .fill(AppColors.timelineConnector)
-                    .frame(width: 1)
-                    .frame(maxHeight: .infinity)
-            } else {
-                Spacer(minLength: 0)
-            }
+            Spacer(minLength: 0)
         }
         .frame(width: timelineCircleSize)
         .padding(.leading, timelineLeadingPad)
