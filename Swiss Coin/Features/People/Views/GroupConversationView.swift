@@ -33,6 +33,15 @@ struct GroupConversationView: View {
     @State private var deletedMessageTimestamp: Date?
     @State private var deletedMessageIsEdited: Bool = false
 
+    // Undo toast state (settlements)
+    @State private var showUndoSettlementToast = false
+    @State private var cachedSettlementAmount: Double = 0
+    @State private var cachedSettlementDate: Date = Date()
+    @State private var cachedSettlementNote: String?
+    @State private var cachedSettlementIsFullSettlement: Bool = false
+    @State private var cachedSettlementFromPerson: Person?
+    @State private var cachedSettlementToPerson: Person?
+
     // Transaction edit state
     @State private var transactionToEdit: FinancialTransaction?
 
@@ -142,6 +151,11 @@ struct GroupConversationView: View {
             isShowing: $showUndoTransactionToast,
             message: "Transaction undone",
             onUndo: restoreUndoneTransaction
+        )
+        .undoToast(
+            isShowing: $showUndoSettlementToast,
+            message: "Settlement deleted",
+            onUndo: restoreUndoneSettlement
         )
         .task {
             loadGroupConversationData()
@@ -439,7 +453,12 @@ struct GroupConversationView: View {
             )
 
         case .settlement(let settlement):
-            GroupSettlementMessageView(settlement: settlement)
+            GroupSettlementMessageView(
+                settlement: settlement,
+                onDelete: {
+                    deleteSettlementWithUndo(settlement)
+                }
+            )
 
         case .reminder(let reminder):
             GroupReminderMessageView(reminder: reminder)
@@ -550,6 +569,54 @@ struct GroupConversationView: View {
             showingError = true
             AppLogger.coreData.error("Failed to delete transaction: \(error.localizedDescription)")
         }
+    }
+
+    // MARK: - Settlement Delete with Undo
+
+    private func deleteSettlementWithUndo(_ settlement: Settlement) {
+        cachedSettlementAmount = settlement.amount
+        cachedSettlementDate = settlement.date ?? Date()
+        cachedSettlementNote = settlement.note
+        cachedSettlementIsFullSettlement = settlement.isFullSettlement
+        cachedSettlementFromPerson = settlement.fromPerson
+        cachedSettlementToPerson = settlement.toPerson
+
+        viewContext.delete(settlement)
+        do {
+            try viewContext.save()
+            HapticManager.destructiveAction()
+            withAnimation(AppAnimation.standard) {
+                showUndoSettlementToast = true
+            }
+        } catch {
+            viewContext.rollback()
+            HapticManager.errorAlert()
+            errorMessage = "Failed to delete settlement."
+            showingError = true
+        }
+    }
+
+    private func restoreUndoneSettlement() {
+        let restored = Settlement(context: viewContext)
+        restored.id = UUID()
+        restored.amount = cachedSettlementAmount
+        restored.date = cachedSettlementDate
+        restored.note = cachedSettlementNote
+        restored.isFullSettlement = cachedSettlementIsFullSettlement
+        restored.fromPerson = cachedSettlementFromPerson
+        restored.toPerson = cachedSettlementToPerson
+
+        do {
+            try viewContext.save()
+            HapticManager.undoAction()
+        } catch {
+            viewContext.rollback()
+            HapticManager.errorAlert()
+        }
+
+        cachedSettlementFromPerson = nil
+        cachedSettlementToPerson = nil
+        cachedSettlementNote = nil
     }
 
     // MARK: - Message Delete with Undo

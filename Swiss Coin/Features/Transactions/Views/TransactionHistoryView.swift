@@ -26,7 +26,6 @@ struct TransactionHistoryView: View {
     @State private var transactionToDelete: FinancialTransaction?
 
     @State private var selectedTransaction: FinancialTransaction?
-    @State private var showRefreshFeedback = false
 
     // MARK: - Cached Computed Values (avoid O(n) per render)
 
@@ -165,13 +164,7 @@ struct TransactionHistoryView: View {
         .refreshable {
             await RefreshHelper.performStandardRefresh(context: viewContext)
             recomputeGroupedTransactions()
-            withAnimation(AppAnimation.standard) { showRefreshFeedback = true }
-            Task {
-                try? await Task.sleep(nanoseconds: 2_000_000_000)
-                withAnimation(AppAnimation.standard) { showRefreshFeedback = false }
-            }
         }
-        .refreshFeedback(isShowing: $showRefreshFeedback)
     }
 
     // MARK: - Summary Header

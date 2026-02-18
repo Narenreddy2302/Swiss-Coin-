@@ -12,6 +12,7 @@ struct SettlementMessageView: View {
     let person: Person
     var onCopy: (() -> Void)? = nil
     var onCopyAmount: (() -> Void)? = nil
+    var onDelete: (() -> Void)? = nil
 
     private var messageText: String {
         let formatted = CurrencyFormatter.format(settlement.amount)
@@ -58,6 +59,16 @@ struct SettlementMessageView: View {
                 onCopyAmount?()
             } label: {
                 Label("Copy Amount", systemImage: "dollarsign.circle")
+            }
+
+            if let onDelete {
+                Divider()
+
+                Button(role: .destructive) {
+                    onDelete()
+                } label: {
+                    Label("Delete Settlement", systemImage: "trash")
+                }
             }
         }
         .accessibilityElement(children: .combine)

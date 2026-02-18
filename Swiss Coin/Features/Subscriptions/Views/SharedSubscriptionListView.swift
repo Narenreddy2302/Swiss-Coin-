@@ -12,9 +12,8 @@ import SwiftUI
 struct SharedSubscriptionListView: View {
     @Binding var showingAddSubscription: Bool
     @Binding var searchText: String
+    @Binding var selectedSegment: Int
     @Environment(\.managedObjectContext) private var viewContext
-
-    @State private var showRefreshFeedback = false
 
     @FetchRequest(fetchRequest: {
         let request: NSFetchRequest<Subscription> = Subscription.fetchRequest()
@@ -60,10 +59,14 @@ struct SharedSubscriptionListView: View {
     var body: some View {
         if subscriptions.isEmpty && searchText.isEmpty {
             ScrollView {
-                EmptySubscriptionView(isShared: true) {
-                    showingAddSubscription = true
+                VStack(spacing: Spacing.xl) {
+                    SubscriptionScrollHeader(searchText: $searchText, selectedSegment: $selectedSegment)
+                    EmptySubscriptionView(isShared: true) {
+                        showingAddSubscription = true
+                    }
                 }
             }
+            .scrollDismissesKeyboard(.interactively)
             .refreshable {
                 await RefreshHelper.performStandardRefresh(context: viewContext)
             }
@@ -72,6 +75,7 @@ struct SharedSubscriptionListView: View {
                 let categories = categorizedSubscriptions
 
                 VStack(spacing: Spacing.xl) {
+                    SubscriptionScrollHeader(searchText: $searchText, selectedSegment: $selectedSegment)
                     // Attention Required Section
                     if !categories.attention.isEmpty {
                         subscriptionSection(
@@ -113,13 +117,7 @@ struct SharedSubscriptionListView: View {
             .background(AppColors.backgroundSecondary)
             .refreshable {
                 await RefreshHelper.performStandardRefresh(context: viewContext)
-                withAnimation(AppAnimation.standard) { showRefreshFeedback = true }
-                Task {
-                    try? await Task.sleep(nanoseconds: 2_000_000_000)
-                    withAnimation(AppAnimation.standard) { showRefreshFeedback = false }
-                }
             }
-            .refreshFeedback(isShowing: $showRefreshFeedback)
         }
     }
 

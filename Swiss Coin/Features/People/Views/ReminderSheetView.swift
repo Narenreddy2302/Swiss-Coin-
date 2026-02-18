@@ -111,7 +111,7 @@ struct ReminderSheetView: View {
         reminder.createdDate = Date()
         reminder.amount = amount
         reminder.message = message.isEmpty ? nil : message
-        reminder.isRead = false
+        reminder.isRead = true
         reminder.isCleared = false
         reminder.toPerson = person
 

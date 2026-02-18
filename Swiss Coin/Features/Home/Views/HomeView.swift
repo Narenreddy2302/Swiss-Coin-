@@ -41,7 +41,6 @@ struct HomeView: View {
     /// Tracks the last time data was refreshed to debounce rapid refreshes
     @State private var lastRefreshDate = Date.distantPast
     @State private var isRefreshing = false
-    @State private var showRefreshFeedback = false
     @State private var balanceRecalcTask: Task<Void, Never>?
 
     /// Cached balance totals computed asynchronously to avoid blocking the main thread
@@ -147,7 +146,6 @@ struct HomeView: View {
                     .padding(.bottom, Spacing.section + Spacing.sm)
                 }
                 .allowsHitTesting(selectedTransaction == nil)
-                .refreshFeedback(isShowing: $showRefreshFeedback)
 
             }
             .background(AppColors.backgroundSecondary)
@@ -212,11 +210,6 @@ struct HomeView: View {
         try? await Task.sleep(nanoseconds: 300_000_000)
         isRefreshing = false
         HapticManager.lightTap()
-        withAnimation(AppAnimation.standard) { showRefreshFeedback = true }
-        Task {
-            try? await Task.sleep(nanoseconds: 2_000_000_000)
-            withAnimation(AppAnimation.standard) { showRefreshFeedback = false }
-        }
     }
 
     /// Refresh only if enough time has elapsed since the last refresh (debounce).

@@ -9,6 +9,7 @@ import SwiftUI
 
 struct GroupSettlementMessageView: View {
     let settlement: Settlement
+    var onDelete: (() -> Void)? = nil
 
     private var messageText: String {
         let formatted = CurrencyFormatter.format(settlement.amount)
@@ -51,6 +52,16 @@ struct GroupSettlementMessageView: View {
                 HapticManager.copyAction()
             } label: {
                 Label("Copy Amount", systemImage: "dollarsign.circle")
+            }
+
+            if let onDelete {
+                Divider()
+
+                Button(role: .destructive) {
+                    onDelete()
+                } label: {
+                    Label("Delete Settlement", systemImage: "trash")
+                }
             }
         }
         .accessibilityElement(children: .combine)
