@@ -136,6 +136,36 @@ extension Person {
         return photoData != nil
     }
     
+    // MARK: - Badge Activity Detection
+
+    /// Whether this person has new transactions or settlements since last viewed
+    var hasNewActivity: Bool {
+        let cutoff = max(
+            lastViewedDate ?? .distantPast,
+            CurrentUser.badgeFeatureActivationDate
+        )
+        // Check transaction splits involving this person
+        if let splits = owedSplits as? Set<TransactionSplit> {
+            for split in splits {
+                if let txDate = split.transaction?.date, txDate > cutoff {
+                    return true
+                }
+            }
+        }
+        // Check settlements (sent + received)
+        if let sent = sentSettlements as? Set<Settlement> {
+            for s in sent {
+                if let d = s.date, d > cutoff { return true }
+            }
+        }
+        if let received = receivedSettlements as? Set<Settlement> {
+            for s in received {
+                if let d = s.date, d > cutoff { return true }
+            }
+        }
+        return false
+    }
+
     // MARK: - Comparison and Sorting
     
     /// Sort descriptor for alphabetical name sorting

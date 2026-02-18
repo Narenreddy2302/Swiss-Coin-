@@ -22,6 +22,7 @@ extension UserGroup {
     @NSManaged public var photoData: Data?
     @NSManaged public var colorHex: String?
     @NSManaged public var createdDate: Date?
+    @NSManaged public var lastViewedDate: Date?
     @NSManaged public var members: NSSet?
     @NSManaged public var transactions: NSSet?
     @NSManaged public var chatMessages: NSSet?
@@ -56,6 +57,23 @@ extension UserGroup {
 
     @objc(removeChatMessages:)
     @NSManaged public func removeFromChatMessages(_ values: NSSet)
+}
+
+// MARK: - Badge Activity Detection
+extension UserGroup {
+    /// Whether this group has new transactions since last viewed
+    var hasNewActivity: Bool {
+        let cutoff = max(
+            lastViewedDate ?? .distantPast,
+            CurrentUser.badgeFeatureActivationDate
+        )
+        if let txns = transactions as? Set<FinancialTransaction> {
+            for txn in txns {
+                if let d = txn.date, d > cutoff { return true }
+            }
+        }
+        return false
+    }
 }
 
 extension UserGroup: Identifiable {

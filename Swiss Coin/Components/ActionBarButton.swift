@@ -111,15 +111,11 @@ struct ActionBarContainer<Content: View>: View {
 
 /// Standard three-button action bar used across person, group, and subscription conversations
 struct StandardActionBar: View {
-    let balance: Double
+    let canSettle: Bool
     let canRemind: Bool
     let onAdd: () -> Void
     let onSettle: () -> Void
     let onRemind: () -> Void
-    
-    private var canSettle: Bool {
-        abs(balance) > 0.01
-    }
 
     var body: some View {
         ActionBarContainer {
@@ -305,7 +301,7 @@ private struct ActionBarPressStyle: ButtonStyle {
     VStack(spacing: Spacing.xl) {
         // Standard Action Bar
         StandardActionBar(
-            balance: 50.0,
+            canSettle: true,
             canRemind: true,
             onAdd: {},
             onSettle: {},
@@ -314,7 +310,7 @@ private struct ActionBarPressStyle: ButtonStyle {
         
         // Disabled state
         StandardActionBar(
-            balance: 0,
+            canSettle: false,
             canRemind: false,
             onAdd: {},
             onSettle: {},
@@ -337,7 +333,7 @@ private struct ActionBarPressStyle: ButtonStyle {
     VStack(spacing: Spacing.xl) {
         // Standard Action Bar
         StandardActionBar(
-            balance: 50.0,
+            canSettle: true,
             canRemind: true,
             onAdd: {},
             onSettle: {},
@@ -346,7 +342,7 @@ private struct ActionBarPressStyle: ButtonStyle {
         
         // Disabled state
         StandardActionBar(
-            balance: 0,
+            canSettle: false,
             canRemind: false,
             onAdd: {},
             onSettle: {},

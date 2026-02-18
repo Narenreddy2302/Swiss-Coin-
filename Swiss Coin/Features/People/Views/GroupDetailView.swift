@@ -12,12 +12,12 @@ struct GroupDetailView: View {
     @State private var showingDeleteConfirmation = false
     @State private var showingConversation = false
 
-    @State private var balance: Double = 0
-    @State private var memberBalances: [(member: Person, balance: Double)] = []
+    @State private var balance: CurrencyBalance = CurrencyBalance()
+    @State private var memberBalances: [(member: Person, balance: CurrencyBalance)] = []
 
     /// Enable settle if ANY member has a non-zero balance (not just net group total)
     private var canSettle: Bool {
-        memberBalances.contains { abs($0.balance) > 0.01 }
+        memberBalances.contains { !$0.balance.isSettled }
     }
 
     var body: some View {
@@ -44,22 +44,8 @@ struct GroupDetailView: View {
                             .foregroundColor(AppColors.textSecondary)
 
                         // Balance summary
-                        if abs(balance) > 0.01 {
-                            HStack(spacing: Spacing.xs) {
-                                if balance > 0 {
-                                    Text("You're owed")
-                                        .foregroundColor(AppColors.textSecondary)
-                                    Text(CurrencyFormatter.format(balance))
-                                        .fontWeight(.bold)
-                                        .foregroundColor(AppColors.positive)
-                                } else {
-                                    Text("You owe")
-                                        .foregroundColor(AppColors.textSecondary)
-                                    Text(CurrencyFormatter.format(abs(balance)))
-                                        .fontWeight(.bold)
-                                        .foregroundColor(AppColors.negative)
-                                }
-                            }
+                        if !balance.isSettled {
+                            MultiCurrencyBalanceView(balance: balance, style: .compact)
                         }
                     }
                 }
@@ -144,30 +130,12 @@ struct GroupDetailView: View {
                 .foregroundColor(AppColors.textSecondary)
 
             // Balance pill
-            if abs(balance) > 0.01 {
-                HStack(spacing: Spacing.xs) {
-                    if balance > 0 {
-                        Text("You're owed")
-                            .foregroundColor(AppColors.textSecondary)
-                        Text(CurrencyFormatter.format(balance))
-                            .font(AppTypography.headingSmall())
-                            .foregroundColor(AppColors.positive)
-                    } else {
-                        Text("You owe")
-                            .foregroundColor(AppColors.textSecondary)
-                        Text(CurrencyFormatter.format(abs(balance)))
-                            .font(AppTypography.headingSmall())
-                            .foregroundColor(AppColors.negative)
-                    }
-                }
-                .font(AppTypography.labelLarge())
-                .padding(.horizontal, Spacing.lg)
-                .padding(.vertical, Spacing.sm)
-                .background(
-                    Capsule()
-                        .fill(balance > 0 ? AppColors.positive.opacity(0.1) : AppColors.negative.opacity(0.1))
-                )
-                .padding(.top, Spacing.xs)
+            if !balance.isSettled {
+                MultiCurrencyBalanceView(balance: balance, style: .compact)
+                    .font(AppTypography.labelLarge())
+                    .padding(.horizontal, Spacing.lg)
+                    .padding(.vertical, Spacing.sm)
+                    .padding(.top, Spacing.xs)
             }
         }
         .frame(maxWidth: .infinity)
@@ -266,21 +234,7 @@ struct GroupDetailView: View {
 
                         Spacer()
 
-                        if abs(item.balance) > 0.01 {
-                            if item.balance > 0 {
-                                (Text("owes ") + Text(CurrencyFormatter.format(item.balance)).fontWeight(.bold))
-                                    .font(AppTypography.caption())
-                                    .foregroundColor(AppColors.positive)
-                            } else {
-                                (Text("owed ") + Text(CurrencyFormatter.format(abs(item.balance))).fontWeight(.bold))
-                                    .font(AppTypography.caption())
-                                    .foregroundColor(AppColors.negative)
-                            }
-                        } else {
-                            Text("settled")
-                                .font(AppTypography.bodySmall())
-                                .foregroundColor(AppColors.textSecondary)
-                        }
+                        MultiCurrencyBalanceView(balance: item.balance, style: .compact)
                     }
                     .padding(.vertical, Spacing.md)
                     .padding(.horizontal, Spacing.lg)

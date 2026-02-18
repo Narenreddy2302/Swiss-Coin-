@@ -36,6 +36,7 @@ struct GroupConversationView: View {
     // Undo toast state (settlements)
     @State private var showUndoSettlementToast = false
     @State private var cachedSettlementAmount: Double = 0
+    @State private var cachedSettlementCurrency: String?
     @State private var cachedSettlementDate: Date = Date()
     @State private var cachedSettlementNote: String?
     @State private var cachedSettlementIsFullSettlement: Bool = false
@@ -66,29 +67,13 @@ struct GroupConversationView: View {
 
     // MARK: - Cached Data (computed asynchronously to avoid blocking main thread)
 
-    @State private var balance: Double = 0
+    @State private var balance: CurrencyBalance = CurrencyBalance()
     @State private var groupedItems: [GroupConversationDateGroup] = []
-    @State private var cachedMemberBalances: [(member: Person, balance: Double)] = []
-    @State private var cachedMembersWhoOweYou: [(member: Person, amount: Double)] = []
+    @State private var cachedMemberBalances: [(member: Person, balance: CurrencyBalance)] = []
+    @State private var cachedMembersWhoOweYou: [(member: Person, balance: CurrencyBalance)] = []
 
     private var totalItemCount: Int {
         groupedItems.reduce(0) { $0 + $1.items.count }
-    }
-
-    private var balanceLabel: String {
-        if balance > 0.01 { return "you're owed" }
-        else if balance < -0.01 { return "you owe" }
-        else { return "settled" }
-    }
-
-    private var balanceAmount: String {
-        CurrencyFormatter.formatAbsolute(balance)
-    }
-
-    private var balanceColor: Color {
-        if balance > 0.01 { return AppColors.positive }
-        else if balance < -0.01 { return AppColors.negative }
-        else { return AppColors.neutral }
     }
 
     private var memberCount: Int {
@@ -105,7 +90,7 @@ struct GroupConversationView: View {
         }
         .background(AppColors.conversationBackground)
         .applyNavigationBar()
-        .applyToolbar(leading: { toolbarLeadingContent }, trailing: { toolbarTrailingContent })
+        .applyToolbar(leading: { toolbarLeadingContent }, trailing: { EmptyView() })
         .sheet(isPresented: $showingAddTransaction) {
             addTransactionSheet
         }
@@ -159,9 +144,11 @@ struct GroupConversationView: View {
         )
         .task {
             loadGroupConversationData()
+            markGroupViewed()
         }
         .onReceive(NotificationCenter.default.publisher(for: .NSManagedObjectContextDidSave)) { _ in
             loadGroupConversationData()
+            markGroupViewed()
         }
     }
 
@@ -232,7 +219,6 @@ struct GroupConversationView: View {
 
     private var actionBar: some View {
         GroupConversationActionBar(
-            balance: balance,
             memberBalances: cachedMemberBalances,
             membersWhoOweYou: cachedMembersWhoOweYou,
             onAdd: { showingAddTransaction = true },
@@ -246,6 +232,14 @@ struct GroupConversationView: View {
             messageText: $messageText,
             onSend: sendMessage
         )
+    }
+
+    /// Update lastViewedDate to clear the badge for this group
+    private func markGroupViewed() {
+        guard group.lastViewedDate == nil ||
+              Date().timeIntervalSince(group.lastViewedDate!) > 1.0 else { return }
+        group.lastViewedDate = Date()
+        try? viewContext.save()
     }
 
     /// Recompute balance, conversation items, and member balances. Called outside of body
@@ -267,10 +261,10 @@ struct GroupConversationView: View {
                 dismiss()
             } label: {
                 Image(systemName: "chevron.left")
-                    .font(AppTypography.headingMedium())
+                    .font(.system(size: IconSize.md, weight: .semibold))
                     .foregroundColor(AppColors.accent)
             }
-            .accessibilityLabel("Back")
+            .accessibilityLabel("Back to People")
 
             Button {
                 HapticManager.navigationTap()
@@ -285,7 +279,7 @@ struct GroupConversationView: View {
 
     @ViewBuilder
     private var groupHeaderContent: some View {
-        HStack(spacing: Spacing.sm) {
+        HStack(spacing: Spacing.md) {
             RoundedRectangle(cornerRadius: CornerRadius.sm)
                 .fill(Color(hex: group.colorHex ?? CurrentUser.defaultColorHex).opacity(0.2))
                 .frame(width: AvatarSize.sm, height: AvatarSize.sm)
@@ -296,31 +290,24 @@ struct GroupConversationView: View {
                 )
 
             VStack(alignment: .leading, spacing: Spacing.xxs) {
-                Text(group.name ?? "Unknown Group")
-                    .font(AppTypography.headingMedium())
-                    .foregroundColor(AppColors.textPrimary)
-                    .lineLimit(1)
+                HStack(spacing: Spacing.xs) {
+                    Text(group.name ?? "Unknown Group")
+                        .font(AppTypography.headingMedium())
+                        .foregroundColor(AppColors.textPrimary)
+                        .lineLimit(1)
 
-                Text("\(memberCount) members")
-                    .font(AppTypography.caption())
-                    .foregroundColor(AppColors.textSecondary)
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundColor(AppColors.textTertiary)
+                }
+
+                groupBalanceSubtitle
             }
         }
     }
 
-    @ViewBuilder
-    private var toolbarTrailingContent: some View {
-        VStack(alignment: .trailing, spacing: Spacing.xxs) {
-            Text(balanceLabel)
-                .font(AppTypography.caption())
-                .foregroundColor(AppColors.textSecondary)
-
-            Text(balanceAmount)
-                .font(AppTypography.financialSmall())
-                .foregroundColor(balanceColor)
-        }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("Balance: \(balanceLabel) \(balanceAmount)")
+    private var groupBalanceSubtitle: some View {
+        BalancePillView(balance: balance, prefixText: "\(memberCount) members")
     }
 
     // MARK: - Empty State
@@ -575,6 +562,7 @@ struct GroupConversationView: View {
 
     private func deleteSettlementWithUndo(_ settlement: Settlement) {
         cachedSettlementAmount = settlement.amount
+        cachedSettlementCurrency = settlement.currency
         cachedSettlementDate = settlement.date ?? Date()
         cachedSettlementNote = settlement.note
         cachedSettlementIsFullSettlement = settlement.isFullSettlement
@@ -600,6 +588,7 @@ struct GroupConversationView: View {
         let restored = Settlement(context: viewContext)
         restored.id = UUID()
         restored.amount = cachedSettlementAmount
+        restored.currency = cachedSettlementCurrency
         restored.date = cachedSettlementDate
         restored.note = cachedSettlementNote
         restored.isFullSettlement = cachedSettlementIsFullSettlement
@@ -617,6 +606,7 @@ struct GroupConversationView: View {
         cachedSettlementFromPerson = nil
         cachedSettlementToPerson = nil
         cachedSettlementNote = nil
+        cachedSettlementCurrency = nil
     }
 
     // MARK: - Message Delete with Undo

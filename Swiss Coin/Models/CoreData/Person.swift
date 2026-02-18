@@ -23,6 +23,7 @@ extension Person {
     @NSManaged public var photoData: Data?
     @NSManaged public var colorHex: String?
     @NSManaged public var isArchived: Bool
+    @NSManaged public var lastViewedDate: Date?
     @NSManaged public var toTransactions: NSSet?
     @NSManaged public var toGroups: NSSet?
     @NSManaged public var toSubscriptions: NSSet?

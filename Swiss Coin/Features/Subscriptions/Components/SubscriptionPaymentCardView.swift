@@ -23,12 +23,6 @@ struct SubscriptionPaymentCardView: View {
         VStack(alignment: .leading, spacing: 0) {
             // First line: Avatar + "You paid" + amount
             HStack(alignment: .center, spacing: Spacing.sm) {
-                ConversationAvatarView(
-                    initials: isUserPayer ? CurrentUser.initials : (payment.payer?.initials ?? "?"),
-                    colorHex: isUserPayer ? CurrentUser.defaultColorHex : (payment.payer?.colorHex ?? CurrentUser.defaultColorHex),
-                    size: AvatarSize.xs
-                )
-
                 Text(isUserPayer ? "You paid" : "\(payment.payer?.firstName ?? "Someone") paid")
                     .font(AppTypography.headingSmall())
                     .foregroundColor(AppColors.textPrimary)
@@ -47,7 +41,7 @@ struct SubscriptionPaymentCardView: View {
                 .font(AppTypography.bodySmall())
                 .foregroundColor(AppColors.textSecondary)
                 .lineLimit(1)
-                .padding(.leading, Spacing.lg + AvatarSize.xs + Spacing.sm)
+                .padding(.leading, Spacing.lg)
                 .padding(.trailing, Spacing.lg)
                 .padding(.top, Spacing.xxs)
                 .padding(.bottom, Spacing.md)

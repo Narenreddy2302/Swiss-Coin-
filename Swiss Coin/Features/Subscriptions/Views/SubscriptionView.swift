@@ -100,8 +100,8 @@ struct SubscriptionScrollHeader: View {
                 }
             }
             .padding(.horizontal)
-            .padding(.top, Spacing.sm)
-            .padding(.bottom, Spacing.sm)
+            .padding(.top, Spacing.md)
+            .padding(.bottom, Spacing.xs)
         }
     }
 }

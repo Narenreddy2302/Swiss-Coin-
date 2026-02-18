@@ -57,7 +57,7 @@ struct PersonalSubscriptionListView: View {
     var body: some View {
         if subscriptions.isEmpty && searchText.isEmpty {
             ScrollView {
-                VStack(spacing: Spacing.xl) {
+                VStack(spacing: Spacing.md) {
                     SubscriptionScrollHeader(searchText: $searchText, selectedSegment: $selectedSegment)
                     EmptySubscriptionView(isShared: false) {
                         showingAddSubscription = true
@@ -72,7 +72,7 @@ struct PersonalSubscriptionListView: View {
             ScrollView {
                 let categories = categorizedSubscriptions
 
-                VStack(spacing: Spacing.xl) {
+                VStack(spacing: Spacing.md) {
                     SubscriptionScrollHeader(searchText: $searchText, selectedSegment: $selectedSegment)
                     // Attention Required Section
                     if !categories.attention.isEmpty {
@@ -109,7 +109,6 @@ struct PersonalSubscriptionListView: View {
                     Spacer()
                         .frame(height: Spacing.section + Spacing.sm)
                 }
-                .padding(.top, Spacing.lg)
             }
             .scrollDismissesKeyboard(.interactively)
             .background(AppColors.backgroundSecondary)

@@ -15,53 +15,35 @@ struct PersonDetailView: View {
 
     // MARK: - Cached Data (computed asynchronously to avoid blocking main thread)
 
-    @State private var balance: Double = 0
+    @State private var balance: CurrencyBalance = CurrencyBalance()
     @State private var combinedTransactions: [FinancialTransaction] = []
 
-    private var balanceText: String {
-        let formatted = CurrencyFormatter.formatAbsolute(balance)
-        if balance > 0.01 {
-            return "\(person.firstName) owes you \(formatted)"
-        } else if balance < -0.01 {
-            return "You owe \(person.firstName) \(formatted)"
-        } else {
-            return "All settled up"
-        }
-    }
-
-    private var balanceTextView: Text {
-        let formatted = CurrencyFormatter.formatAbsolute(balance)
-        if balance > 0.01 {
-            return Text("\(person.firstName) owes you ") + Text(formatted).fontWeight(.bold)
-        } else if balance < -0.01 {
-            return Text("You owe \(person.firstName) ") + Text(formatted).fontWeight(.bold)
-        } else {
-            return Text("All settled up")
-        }
-    }
-
     private var balanceColor: Color {
-        if balance > 0.01 {
+        if balance.hasPositive && !balance.hasNegative {
             return AppColors.positive
-        } else if balance < -0.01 {
+        } else if balance.hasNegative && !balance.hasPositive {
             return AppColors.negative
-        } else {
+        } else if balance.isSettled {
             return AppColors.neutral
+        } else {
+            return AppColors.textPrimary
         }
     }
 
     private var balanceBackgroundColor: Color {
-        if balance > 0.01 {
+        if balance.hasPositive && !balance.hasNegative {
             return AppColors.positive.opacity(0.1)
-        } else if balance < -0.01 {
+        } else if balance.hasNegative && !balance.hasPositive {
             return AppColors.negative.opacity(0.1)
+        } else if balance.isSettled {
+            return AppColors.backgroundTertiary
         } else {
             return AppColors.backgroundTertiary
         }
     }
 
     private var canSettle: Bool {
-        abs(balance) > 0.01
+        !balance.isSettled
     }
 
     // MARK: - Body
@@ -140,7 +122,7 @@ struct PersonDetailView: View {
             }
         }
         .sheet(isPresented: $showingSettlement) {
-            SettlementView(person: person, currentBalance: balance)
+            SettlementView(person: person, currentBalance: balance.primaryAmount, currentCurrencyBalance: balance)
         }
         .sheet(isPresented: $showingEditPerson) {
             NavigationStack {
@@ -197,9 +179,8 @@ struct PersonDetailView: View {
             }
 
             // Balance pill
-            balanceTextView
+            MultiCurrencyBalanceView(balance: balance, style: .compact, personName: person.firstName)
                 .font(AppTypography.labelLarge())
-                .foregroundColor(balanceColor)
                 .padding(.horizontal, Spacing.lg)
                 .padding(.vertical, Spacing.sm)
                 .background(

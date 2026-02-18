@@ -10,17 +10,19 @@ extension Person {
     /// Calculate net balance with this person (mutual transactions only)
     /// Positive = they owe you, Negative = you owe them
     /// Uses net-position algorithm to support multi-payer transactions.
-    func calculateBalance() -> Double {
-        var balance: Double = 0
+    /// Returns per-currency breakdown.
+    func calculateBalance() -> CurrencyBalance {
+        var balance = CurrencyBalance()
 
         guard let currentUserId = CurrentUser.currentUserId,
-              let theirId = self.id else { return 0 }
+              let theirId = self.id else { return balance }
 
         // Get all mutual transactions (where both you and this person are involved)
         let allTransactions = getMutualTransactions()
 
         for transaction in allTransactions {
-            balance += transaction.pairwiseBalance(personA: currentUserId, personB: theirId)
+            let currency = transaction.effectiveCurrency
+            balance.add(transaction.pairwiseBalance(personA: currentUserId, personB: theirId), currency: currency)
         }
 
         // Get settlements ONLY between current user and this person
@@ -33,13 +35,13 @@ extension Person {
         // Settlements where this person paid the current user (fromPerson = self, toPerson = currentUser)
         // Their payment reduces their debt to you (balance decreases)
         for settlement in sentToCurrentUser {
-            balance -= settlement.amount
+            balance.subtract(settlement.amount, currency: settlement.effectiveCurrency)
         }
 
         // Settlements where the current user paid this person (fromPerson = currentUser, toPerson = self)
         // Your payment reduces your debt to them (balance increases toward zero)
         for settlement in receivedFromCurrentUser {
-            balance += settlement.amount
+            balance.add(settlement.amount, currency: settlement.effectiveCurrency)
         }
 
         return balance
