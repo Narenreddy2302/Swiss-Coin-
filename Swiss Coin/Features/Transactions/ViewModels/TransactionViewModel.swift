@@ -626,6 +626,7 @@ class TransactionViewModel: ObservableObject {
             // 8. Create splits for each participant
             for person in selectedParticipants {
                 let splitData = TransactionSplit(context: viewContext)
+                splitData.id = UUID()
                 splitData.owedBy = person
                 splitData.transaction = transaction
                 splitData.amount = calculateSplit(for: person)
@@ -665,12 +666,14 @@ class TransactionViewModel: ObservableObject {
         if selectedPayerPersons.isEmpty {
             // Default: "You" pays the full amount
             let payerRecord = TransactionPayer(context: viewContext)
+            payerRecord.id = UUID()
             payerRecord.paidBy = currentUser
             payerRecord.transaction = transaction
             payerRecord.amount = totalAmountDouble
         } else if selectedPayerPersons.count == 1, let singlePayer = selectedPayerPersons.first {
             // Single payer: auto-fill to total
             let payerRecord = TransactionPayer(context: viewContext)
+            payerRecord.id = UUID()
             payerRecord.paidBy = singlePayer
             payerRecord.transaction = transaction
             payerRecord.amount = totalAmountDouble
@@ -678,6 +681,7 @@ class TransactionViewModel: ObservableObject {
             // Multi-payer: use entered amounts
             for person in selectedPayerPersons {
                 let payerRecord = TransactionPayer(context: viewContext)
+                payerRecord.id = UUID()
                 payerRecord.paidBy = person
                 payerRecord.transaction = transaction
                 let amountStr = payerAmounts[person.id ?? UUID()] ?? "0"
@@ -895,6 +899,7 @@ class TransactionViewModel: ObservableObject {
             // Create new split records
             for person in selectedParticipants {
                 let splitData = TransactionSplit(context: viewContext)
+                splitData.id = UUID()
                 splitData.owedBy = person
                 splitData.transaction = transaction
                 splitData.amount = calculateSplit(for: person)

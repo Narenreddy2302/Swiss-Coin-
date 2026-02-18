@@ -8,7 +8,16 @@ import Foundation
 
 @objc(FinancialTransaction)
 public class FinancialTransaction: NSManagedObject {
-
+    override public func willSave() {
+        super.willSave()
+        if hasChanges && !isDeleted {
+            let now = Date()
+            let current = primitiveValue(forKey: "updatedAt") as? Date
+            if current == nil || now.timeIntervalSince(current!) > 1 {
+                setPrimitiveValue(now, forKey: "updatedAt")
+            }
+        }
+    }
 }
 
 extension FinancialTransaction {
@@ -24,6 +33,8 @@ extension FinancialTransaction {
     @NSManaged public var date: Date?
     @NSManaged public var splitMethod: String?
     @NSManaged public var note: String?
+    @NSManaged public var updatedAt: Date?
+    @NSManaged public var deletedAt: Date?
     @NSManaged public var payer: Person?
     @NSManaged public var createdBy: Person?
     @NSManaged public var group: UserGroup?

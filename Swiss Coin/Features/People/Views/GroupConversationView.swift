@@ -706,6 +706,7 @@ struct GroupConversationView: View {
         // Restore splits
         for i in 0..<cachedTxnSplitPersons.count {
             let split = TransactionSplit(context: viewContext)
+            split.id = UUID()
             split.owedBy = cachedTxnSplitPersons[i]
             split.amount = cachedTxnSplitAmounts[i]
             if i < cachedTxnSplitRawAmounts.count {

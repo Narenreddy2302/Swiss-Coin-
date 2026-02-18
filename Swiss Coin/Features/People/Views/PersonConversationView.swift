@@ -890,6 +890,7 @@ struct PersonConversationView: View {
         // Restore splits
         for i in 0..<undoTransaction.splitPersons.count {
             let split = TransactionSplit(context: viewContext)
+            split.id = UUID()
             split.owedBy = undoTransaction.splitPersons[i]
             split.amount = undoTransaction.splitAmounts[i]
             if i < undoTransaction.splitRawAmounts.count {

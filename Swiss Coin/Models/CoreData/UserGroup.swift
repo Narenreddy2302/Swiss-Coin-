@@ -8,7 +8,16 @@ import Foundation
 
 @objc(UserGroup)
 public class UserGroup: NSManagedObject {
-
+    override public func willSave() {
+        super.willSave()
+        if hasChanges && !isDeleted {
+            let now = Date()
+            let current = primitiveValue(forKey: "updatedAt") as? Date
+            if current == nil || now.timeIntervalSince(current!) > 1 {
+                setPrimitiveValue(now, forKey: "updatedAt")
+            }
+        }
+    }
 }
 
 extension UserGroup {
@@ -20,9 +29,12 @@ extension UserGroup {
     @NSManaged public var id: UUID?
     @NSManaged public var name: String?
     @NSManaged public var photoData: Data?
+    @NSManaged public var photoURL: String?
     @NSManaged public var colorHex: String?
     @NSManaged public var createdDate: Date?
     @NSManaged public var lastViewedDate: Date?
+    @NSManaged public var updatedAt: Date?
+    @NSManaged public var deletedAt: Date?
     @NSManaged public var members: NSSet?
     @NSManaged public var transactions: NSSet?
     @NSManaged public var chatMessages: NSSet?

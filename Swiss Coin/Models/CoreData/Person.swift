@@ -8,7 +8,16 @@ import Foundation
 
 @objc(Person)
 public class Person: NSManagedObject {
-
+    override public func willSave() {
+        super.willSave()
+        if hasChanges && !isDeleted {
+            let now = Date()
+            let current = primitiveValue(forKey: "updatedAt") as? Date
+            if current == nil || now.timeIntervalSince(current!) > 1 {
+                setPrimitiveValue(now, forKey: "updatedAt")
+            }
+        }
+    }
 }
 
 extension Person {
@@ -22,8 +31,11 @@ extension Person {
     @NSManaged public var phoneNumber: String?
     @NSManaged public var photoData: Data?
     @NSManaged public var colorHex: String?
+    @NSManaged public var photoURL: String?
     @NSManaged public var isArchived: Bool
     @NSManaged public var lastViewedDate: Date?
+    @NSManaged public var updatedAt: Date?
+    @NSManaged public var deletedAt: Date?
     @NSManaged public var toTransactions: NSSet?
     @NSManaged public var toGroups: NSSet?
     @NSManaged public var toSubscriptions: NSSet?

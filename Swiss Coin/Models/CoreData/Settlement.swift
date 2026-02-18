@@ -8,7 +8,16 @@ import Foundation
 
 @objc(Settlement)
 public class Settlement: NSManagedObject {
-
+    override public func willSave() {
+        super.willSave()
+        if hasChanges && !isDeleted {
+            let now = Date()
+            let current = primitiveValue(forKey: "updatedAt") as? Date
+            if current == nil || now.timeIntervalSince(current!) > 1 {
+                setPrimitiveValue(now, forKey: "updatedAt")
+            }
+        }
+    }
 }
 
 extension Settlement {
@@ -23,6 +32,8 @@ extension Settlement {
     @NSManaged public var date: Date?
     @NSManaged public var note: String?
     @NSManaged public var isFullSettlement: Bool
+    @NSManaged public var updatedAt: Date?
+    @NSManaged public var deletedAt: Date?
     @NSManaged public var fromPerson: Person?
     @NSManaged public var toPerson: Person?
 

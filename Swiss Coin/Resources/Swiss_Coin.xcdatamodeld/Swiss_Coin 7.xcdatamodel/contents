@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="1" systemVersion="11A491" minimumToolsVersion="Automatic" sourceLanguage="Swift" usedWithCloudKit="false" userDefinedModelVersionIdentifier="">
+    <entity name="Person" representedClassName="Person" syncable="YES">
+        <attribute name="id" optional="NO" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="name" optional="NO" attributeType="String"/>
+        <attribute name="phoneNumber" optional="YES" attributeType="String"/>
+        <attribute name="photoData" optional="YES" attributeType="Binary"/>
+        <attribute name="photoURL" optional="YES" attributeType="String"/>
+        <attribute name="colorHex" optional="YES" attributeType="String"/>
+        <attribute name="isArchived" optional="YES" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="lastViewedDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="updatedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="deletedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <relationship name="toTransactions" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="FinancialTransaction" inverseName="payer" inverseEntity="FinancialTransaction"/>
+        <relationship name="toGroups" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="UserGroup" inverseName="members" inverseEntity="UserGroup"/>
+        <relationship name="toSubscriptions" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="Subscription" inverseName="subscribers" inverseEntity="Subscription"/>
+        <relationship name="owedSplits" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="TransactionSplit" inverseName="owedBy" inverseEntity="TransactionSplit"/>
+        <relationship name="sentSettlements" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="Settlement" inverseName="fromPerson" inverseEntity="Settlement"/>
+        <relationship name="receivedSettlements" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="Settlement" inverseName="toPerson" inverseEntity="Settlement"/>
+        <relationship name="receivedReminders" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="Reminder" inverseName="toPerson" inverseEntity="Reminder"/>
+        <relationship name="chatMessages" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="ChatMessage" inverseName="withPerson" inverseEntity="ChatMessage"/>
+        <relationship name="subscriptionPayments" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="SubscriptionPayment" inverseName="payer" inverseEntity="SubscriptionPayment"/>
+        <relationship name="sentSubscriptionSettlements" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="SubscriptionSettlement" inverseName="fromPerson" inverseEntity="SubscriptionSettlement"/>
+        <relationship name="receivedSubscriptionSettlements" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="SubscriptionSettlement" inverseName="toPerson" inverseEntity="SubscriptionSettlement"/>
+        <relationship name="receivedSubscriptionReminders" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="SubscriptionReminder" inverseName="toPerson" inverseEntity="SubscriptionReminder"/>
+        <relationship name="createdTransactions" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="FinancialTransaction" inverseName="createdBy" inverseEntity="FinancialTransaction"/>
+        <relationship name="payerSplits" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="TransactionPayer" inverseName="paidBy" inverseEntity="TransactionPayer"/>
+    </entity>
+    <entity name="ChatMessage" representedClassName="ChatMessage" syncable="YES">
+        <attribute name="id" optional="NO" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="content" optional="NO" attributeType="String"/>
+        <attribute name="timestamp" optional="NO" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="isFromUser" optional="NO" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="isEdited" optional="YES" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <relationship name="withPerson" optional="YES" maxCount="1" toMany="NO" deletionRule="Nullify" destinationEntity="Person" inverseName="chatMessages" inverseEntity="Person"/>
+        <relationship name="withGroup" optional="YES" maxCount="1" toMany="NO" deletionRule="Nullify" destinationEntity="UserGroup" inverseName="chatMessages" inverseEntity="UserGroup"/>
+        <relationship name="withSubscription" optional="YES" maxCount="1" toMany="NO" deletionRule="Nullify" destinationEntity="Subscription" inverseName="chatMessages" inverseEntity="Subscription"/>
+        <relationship name="onTransaction" optional="YES" maxCount="1" toMany="NO" deletionRule="Nullify" destinationEntity="FinancialTransaction" inverseName="comments" inverseEntity="FinancialTransaction"/>
+    </entity>
+    <entity name="UserGroup" representedClassName="UserGroup" syncable="YES">
+        <attribute name="id" optional="NO" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="name" optional="NO" attributeType="String"/>
+        <attribute name="photoData" optional="YES" attributeType="Binary"/>
+        <attribute name="photoURL" optional="YES" attributeType="String"/>
+        <attribute name="colorHex" optional="YES" attributeType="String"/>
+        <attribute name="createdDate" optional="NO" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="lastViewedDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="updatedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="deletedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <relationship name="members" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="Person" inverseName="toGroups" inverseEntity="Person"/>
+        <relationship name="transactions" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="FinancialTransaction" inverseName="group" inverseEntity="FinancialTransaction"/>
+        <relationship name="chatMessages" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="ChatMessage" inverseName="withGroup" inverseEntity="ChatMessage"/>
+    </entity>
+    <entity name="Subscription" representedClassName="Subscription" syncable="YES">
+        <attribute name="id" optional="NO" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="name" optional="NO" attributeType="String"/>
+        <attribute name="amount" optional="NO" attributeType="Double" usesScalarValueType="YES"/>
+        <attribute name="cycle" optional="NO" attributeType="String"/>
+        <attribute name="customCycleDays" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="startDate" optional="NO" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="nextBillingDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="isShared" optional="NO" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="isActive" optional="NO" attributeType="Boolean" defaultValueString="YES" usesScalarValueType="YES"/>
+        <attribute name="category" optional="YES" attributeType="String"/>
+        <attribute name="iconName" optional="YES" attributeType="String"/>
+        <attribute name="colorHex" optional="YES" attributeType="String"/>
+        <attribute name="notes" optional="YES" attributeType="String"/>
+        <attribute name="notificationEnabled" optional="NO" attributeType="Boolean" defaultValueString="YES" usesScalarValueType="YES"/>
+        <attribute name="notificationDaysBefore" optional="NO" attributeType="Integer 16" defaultValueString="3" usesScalarValueType="YES"/>
+        <attribute name="isArchived" optional="NO" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="updatedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="deletedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <relationship name="subscribers" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="Person" inverseName="toSubscriptions" inverseEntity="Person"/>
+        <relationship name="payments" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="SubscriptionPayment" inverseName="subscription" inverseEntity="SubscriptionPayment"/>
+        <relationship name="chatMessages" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="ChatMessage" inverseName="withSubscription" inverseEntity="ChatMessage"/>
+        <relationship name="reminders" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="SubscriptionReminder" inverseName="subscription" inverseEntity="SubscriptionReminder"/>
+        <relationship name="settlements" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="SubscriptionSettlement" inverseName="subscription" inverseEntity="SubscriptionSettlement"/>
+    </entity>
+    <entity name="SubscriptionPayment" representedClassName="SubscriptionPayment" syncable="YES">
+        <attribute name="id" optional="NO" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="amount" optional="NO" attributeType="Double" usesScalarValueType="YES"/>
+        <attribute name="date" optional="NO" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="billingPeriodStart" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="billingPeriodEnd" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="note" optional="YES" attributeType="String"/>
+        <relationship name="subscription" optional="YES" maxCount="1" toMany="NO" deletionRule="Nullify" destinationEntity="Subscription" inverseName="payments" inverseEntity="Subscription"/>
+        <relationship name="payer" optional="YES" maxCount="1" toMany="NO" deletionRule="Nullify" destinationEntity="Person" inverseName="subscriptionPayments" inverseEntity="Person"/>
+    </entity>
+    <entity name="SubscriptionSettlement" representedClassName="SubscriptionSettlement" syncable="YES">
+        <attribute name="id" optional="NO" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="amount" optional="NO" attributeType="Double" usesScalarValueType="YES"/>
+        <attribute name="date" optional="NO" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="note" optional="YES" attributeType="String"/>
+        <relationship name="subscription" optional="YES" maxCount="1" toMany="NO" deletionRule="Nullify" destinationEntity="Subscription" inverseName="settlements" inverseEntity="Subscription"/>
+        <relationship name="fromPerson" optional="YES" maxCount="1" toMany="NO" deletionRule="Nullify" destinationEntity="Person" inverseName="sentSubscriptionSettlements" inverseEntity="Person"/>
+        <relationship name="toPerson" optional="YES" maxCount="1" toMany="NO" deletionRule="Nullify" destinationEntity="Person" inverseName="receivedSubscriptionSettlements" inverseEntity="Person"/>
+    </entity>
+    <entity name="SubscriptionReminder" representedClassName="SubscriptionReminder" syncable="YES">
+        <attribute name="id" optional="NO" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="createdDate" optional="NO" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="amount" optional="NO" attributeType="Double" usesScalarValueType="YES"/>
+        <attribute name="message" optional="YES" attributeType="String"/>
+        <attribute name="isRead" optional="NO" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <relationship name="subscription" optional="YES" maxCount="1" toMany="NO" deletionRule="Nullify" destinationEntity="Subscription" inverseName="reminders" inverseEntity="Subscription"/>
+        <relationship name="toPerson" optional="YES" maxCount="1" toMany="NO" deletionRule="Nullify" destinationEntity="Person" inverseName="receivedSubscriptionReminders" inverseEntity="Person"/>
+    </entity>
+    <entity name="FinancialTransaction" representedClassName="FinancialTransaction" syncable="YES">
+        <attribute name="id" optional="NO" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="title" optional="NO" attributeType="String"/>
+        <attribute name="amount" optional="NO" attributeType="Double" usesScalarValueType="YES"/>
+        <attribute name="currency" optional="YES" attributeType="String"/>
+        <attribute name="date" optional="NO" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="splitMethod" optional="YES" attributeType="String"/>
+        <attribute name="note" optional="YES" attributeType="String"/>
+        <attribute name="updatedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="deletedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <relationship name="payer" optional="YES" maxCount="1" toMany="NO" deletionRule="Nullify" destinationEntity="Person" inverseName="toTransactions" inverseEntity="Person"/>
+        <relationship name="createdBy" optional="YES" maxCount="1" toMany="NO" deletionRule="Nullify" destinationEntity="Person" inverseName="createdTransactions" inverseEntity="Person"/>
+        <relationship name="group" optional="YES" maxCount="1" toMany="NO" deletionRule="Nullify" destinationEntity="UserGroup" inverseName="transactions" inverseEntity="UserGroup"/>
+        <relationship name="splits" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="TransactionSplit" inverseName="transaction" inverseEntity="TransactionSplit"/>
+        <relationship name="payers" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="TransactionPayer" inverseName="transaction" inverseEntity="TransactionPayer"/>
+        <relationship name="comments" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="ChatMessage" inverseName="onTransaction" inverseEntity="ChatMessage"/>
+    </entity>
+    <entity name="TransactionSplit" representedClassName="TransactionSplit" syncable="YES">
+        <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="amount" optional="NO" attributeType="Double" usesScalarValueType="YES"/>
+        <attribute name="rawAmount" optional="YES" attributeType="Double" usesScalarValueType="YES"/>
+        <relationship name="owedBy" optional="YES" maxCount="1" toMany="NO" deletionRule="Nullify" destinationEntity="Person" inverseName="owedSplits" inverseEntity="Person"/>
+        <relationship name="transaction" optional="YES" maxCount="1" toMany="NO" deletionRule="Nullify" destinationEntity="FinancialTransaction" inverseName="splits" inverseEntity="FinancialTransaction"/>
+    </entity>
+    <entity name="TransactionPayer" representedClassName="TransactionPayer" syncable="YES">
+        <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="amount" optional="NO" attributeType="Double" usesScalarValueType="YES"/>
+        <relationship name="paidBy" optional="YES" maxCount="1" toMany="NO" deletionRule="Nullify" destinationEntity="Person" inverseName="payerSplits" inverseEntity="Person"/>
+        <relationship name="transaction" optional="YES" maxCount="1" toMany="NO" deletionRule="Nullify" destinationEntity="FinancialTransaction" inverseName="payers" inverseEntity="FinancialTransaction"/>
+    </entity>
+    <entity name="Settlement" representedClassName="Settlement" syncable="YES">
+        <attribute name="id" optional="NO" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="amount" optional="NO" attributeType="Double" usesScalarValueType="YES"/>
+        <attribute name="currency" optional="YES" attributeType="String"/>
+        <attribute name="date" optional="NO" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="note" optional="YES" attributeType="String"/>
+        <attribute name="isFullSettlement" optional="NO" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="updatedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="deletedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <relationship name="fromPerson" optional="YES" maxCount="1" toMany="NO" deletionRule="Nullify" destinationEntity="Person" inverseName="sentSettlements" inverseEntity="Person"/>
+        <relationship name="toPerson" optional="YES" maxCount="1" toMany="NO" deletionRule="Nullify" destinationEntity="Person" inverseName="receivedSettlements" inverseEntity="Person"/>
+    </entity>
+    <entity name="Reminder" representedClassName="Reminder" syncable="YES">
+        <attribute name="id" optional="NO" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="createdDate" optional="NO" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="amount" optional="NO" attributeType="Double" usesScalarValueType="YES"/>
+        <attribute name="message" optional="YES" attributeType="String"/>
+        <attribute name="isRead" optional="NO" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="isCleared" optional="NO" attributeType="Boolean" usesScalarValueType="YES"/>
+        <relationship name="toPerson" optional="YES" maxCount="1" toMany="NO" deletionRule="Nullify" destinationEntity="Person" inverseName="receivedReminders" inverseEntity="Person"/>
+    </entity>
+    <elements>
+        <element name="Person" positionX="0" positionY="0" width="128" height="389"/>
+        <element name="UserGroup" positionX="200" positionY="0" width="128" height="224"/>
+        <element name="Subscription" positionX="400" positionY="0" width="128" height="389"/>
+        <element name="SubscriptionPayment" positionX="600" positionY="0" width="128" height="165"/>
+        <element name="SubscriptionSettlement" positionX="600" positionY="200" width="128" height="150"/>
+        <element name="SubscriptionReminder" positionX="600" positionY="400" width="128" height="150"/>
+        <element name="FinancialTransaction" positionX="0" positionY="300" width="128" height="284"/>
+        <element name="TransactionSplit" positionX="200" positionY="300" width="128" height="120"/>
+        <element name="TransactionPayer" positionX="200" positionY="420" width="128" height="105"/>
+        <element name="Settlement" positionX="400" positionY="400" width="128" height="195"/>
+        <element name="Reminder" positionX="0" positionY="500" width="128" height="150"/>
+        <element name="ChatMessage" positionX="200" positionY="500" width="128" height="164"/>
+    </elements>
+</model>
