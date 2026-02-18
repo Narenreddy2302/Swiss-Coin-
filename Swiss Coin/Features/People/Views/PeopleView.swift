@@ -17,37 +17,11 @@ struct PeopleView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                HStack(spacing: Spacing.md) {
-                    ActionHeaderButton(
-                        title: "People",
-                        icon: "person.2.fill",
-                        color: selectedSegment == 0 ? AppColors.accent : AppColors.textPrimary
-                    ) {
-                        HapticManager.selectionChanged()
-                        searchText = ""
-                        selectedSegment = 0
-                    }
-
-                    ActionHeaderButton(
-                        title: "Groups",
-                        icon: "person.3.fill",
-                        color: selectedSegment == 1 ? AppColors.accent : AppColors.textPrimary
-                    ) {
-                        HapticManager.selectionChanged()
-                        searchText = ""
-                        selectedSegment = 1
-                    }
-                }
-                .padding(.horizontal)
-                .padding(.top, Spacing.sm)
-                .padding(.bottom, Spacing.sm)
-                .background(AppColors.backgroundSecondary)
-
                 Group {
                     if selectedSegment == 0 {
-                        PersonListView(selectedPersonForConversation: $selectedPersonForConversation, searchText: $searchText)
+                        PersonListView(selectedPersonForConversation: $selectedPersonForConversation, searchText: $searchText, selectedSegment: $selectedSegment)
                     } else {
-                        GroupListView()
+                        GroupListView(searchText: $searchText, selectedSegment: $selectedSegment)
                     }
                 }
                 .animation(AppAnimation.standard, value: selectedSegment)
@@ -119,11 +93,6 @@ struct PeopleView: View {
                 removeNotifications()
             }
         }
-        .searchable(
-            text: $searchText,
-            placement: .navigationBarDrawer(displayMode: .always),
-            prompt: "Search contacts"
-        )
     }
 
     private func setupNotifications() {
@@ -147,8 +116,8 @@ struct PersonListView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @Binding var selectedPersonForConversation: Person?
     @Binding var searchText: String
+    @Binding var selectedSegment: Int
     @StateObject private var contactsManager = ContactsManager()
-    @State private var showRefreshFeedback = false
     @State private var existingPhoneNumbers: Set<String> = []
     @State private var filteredPhoneContacts: [ContactsManager.PhoneContact] = []
     @State private var hasLoadedContacts = false
@@ -182,6 +151,9 @@ struct PersonListView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: Spacing.xl) {
+                // MARK: - Scrollable Header
+                ContactsScrollHeader(searchText: $searchText, selectedSegment: $selectedSegment)
+
                 // MARK: - Recent / With Balances Section
                 if !filteredPeople.isEmpty {
                     VStack(alignment: .leading, spacing: Spacing.sm) {
@@ -285,7 +257,6 @@ struct PersonListView: View {
         .refreshable {
             await refreshAll()
         }
-        .refreshFeedback(isShowing: $showRefreshFeedback)
         .task {
             existingPhoneNumbers = ContactsManager.loadExistingPhoneNumbers(in: viewContext)
         }
@@ -429,11 +400,6 @@ struct PersonListView: View {
         // Reset lazy-load flag so next search fetches fresh contacts
         hasLoadedContacts = false
         filteredPhoneContacts = []
-        withAnimation(AppAnimation.standard) { showRefreshFeedback = true }
-        Task {
-            try? await Task.sleep(nanoseconds: 2_000_000_000)
-            withAnimation(AppAnimation.standard) { showRefreshFeedback = false }
-        }
     }
 }
 
@@ -704,8 +670,9 @@ struct PersonListRowView: View {
 // MARK: - Group List
 
 struct GroupListView: View {
+    @Binding var searchText: String
+    @Binding var selectedSegment: Int
     @Environment(\.managedObjectContext) private var viewContext
-    @State private var showRefreshFeedback = false
 
     @FetchRequest(fetchRequest: {
         let request: NSFetchRequest<UserGroup> = UserGroup.fetchRequest()
@@ -715,18 +682,31 @@ struct GroupListView: View {
     }(), animation: .default)
     private var groups: FetchedResults<UserGroup>
 
+    private var filteredGroups: [UserGroup] {
+        if searchText.isEmpty { return Array(groups) }
+        let search = searchText.lowercased()
+        return groups.filter { ($0.name?.lowercased().contains(search) ?? false) }
+    }
+
     var body: some View {
         Group {
-            if groups.isEmpty {
+            if groups.isEmpty && searchText.isEmpty {
                 ScrollView {
-                    GroupEmptyStateView()
+                    VStack(spacing: Spacing.xl) {
+                        ContactsScrollHeader(searchText: $searchText, selectedSegment: $selectedSegment)
+                        GroupEmptyStateView()
+                    }
                 }
+                .scrollDismissesKeyboard(.interactively)
                 .refreshable {
                     await RefreshHelper.performStandardRefresh(context: viewContext)
                 }
             } else {
                 ScrollView {
                     VStack(spacing: Spacing.xl) {
+                        // Scrollable Header
+                        ContactsScrollHeader(searchText: $searchText, selectedSegment: $selectedSegment)
+
                         // Section
                         VStack(alignment: .leading, spacing: Spacing.sm) {
                             // Section header
@@ -737,7 +717,7 @@ struct GroupListView: View {
 
                                 Spacer()
 
-                                Text("\(groups.count)")
+                                Text("\(filteredGroups.count)")
                                     .font(AppTypography.caption())
                                     .foregroundColor(AppColors.textTertiary)
                                     .padding(.horizontal, Spacing.sm)
@@ -750,36 +730,45 @@ struct GroupListView: View {
                             .padding(.horizontal, Spacing.lg)
 
                             // Group rows
-                            LazyVStack(spacing: 0) {
-                                ForEach(groups) { group in
-                                    NavigationLink(destination: GroupConversationView(group: group)) {
-                                        GroupListRowView(group: group)
-                                    }
-                                    .buttonStyle(.plain)
+                            if filteredGroups.isEmpty {
+                                VStack(spacing: Spacing.md) {
+                                    Image(systemName: "magnifyingglass")
+                                        .font(.system(size: IconSize.xl))
+                                        .foregroundColor(AppColors.textTertiary)
 
-                                    if group.objectID != groups.last?.objectID {
-                                        Divider()
-                                            .padding(.leading, Spacing.lg + AvatarSize.lg + Spacing.md)
+                                    Text("No results for \"\(searchText)\"")
+                                        .font(AppTypography.headingMedium())
+                                        .foregroundColor(AppColors.textSecondary)
+                                        .multilineTextAlignment(.center)
+                                }
+                                .padding(Spacing.xxl)
+                                .frame(maxWidth: .infinity)
+                            } else {
+                                LazyVStack(spacing: 0) {
+                                    ForEach(filteredGroups, id: \.objectID) { group in
+                                        NavigationLink(destination: GroupConversationView(group: group)) {
+                                            GroupListRowView(group: group)
+                                        }
+                                        .buttonStyle(.plain)
+
+                                        if group.objectID != filteredGroups.last?.objectID {
+                                            Divider()
+                                                .padding(.leading, Spacing.lg + AvatarSize.lg + Spacing.md)
+                                        }
                                     }
                                 }
+                                .padding(.horizontal, Spacing.lg)
                             }
-                            .padding(.horizontal, Spacing.lg)
                         }
 
                         Spacer()
                             .frame(height: Spacing.section + Spacing.sm)
                     }
-                    .padding(.top, Spacing.lg)
                 }
+                .scrollDismissesKeyboard(.interactively)
                 .refreshable {
                     await RefreshHelper.performStandardRefresh(context: viewContext)
-                    withAnimation(AppAnimation.standard) { showRefreshFeedback = true }
-                    Task {
-                        try? await Task.sleep(nanoseconds: 2_000_000_000)
-                        withAnimation(AppAnimation.standard) { showRefreshFeedback = false }
-                    }
                 }
-                .refreshFeedback(isShowing: $showRefreshFeedback)
             }
         }
     }
@@ -989,6 +978,44 @@ struct GroupListRowView: View {
             viewContext.rollback()
             HapticManager.error()
             AppLogger.coreData.error("Failed to delete group: \(error.localizedDescription)")
+        }
+    }
+}
+
+// MARK: - Contacts Scroll Header
+
+private struct ContactsScrollHeader: View {
+    @Binding var searchText: String
+    @Binding var selectedSegment: Int
+
+    var body: some View {
+        VStack(spacing: 0) {
+            InlineSearchBar(text: $searchText, placeholder: "Search contacts")
+
+            HStack(spacing: Spacing.md) {
+                ActionHeaderButton(
+                    title: "People",
+                    icon: "person.2.fill",
+                    color: selectedSegment == 0 ? AppColors.accent : AppColors.textPrimary
+                ) {
+                    HapticManager.selectionChanged()
+                    searchText = ""
+                    selectedSegment = 0
+                }
+
+                ActionHeaderButton(
+                    title: "Groups",
+                    icon: "person.3.fill",
+                    color: selectedSegment == 1 ? AppColors.accent : AppColors.textPrimary
+                ) {
+                    HapticManager.selectionChanged()
+                    searchText = ""
+                    selectedSegment = 1
+                }
+            }
+            .padding(.horizontal)
+            .padding(.top, Spacing.sm)
+            .padding(.bottom, Spacing.sm)
         }
     }
 }

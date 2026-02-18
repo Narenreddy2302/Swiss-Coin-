@@ -19,39 +19,11 @@ struct SubscriptionView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                // Segment Header (matching People's page)
-                HStack(spacing: Spacing.md) {
-                    ActionHeaderButton(
-                        title: "Personal",
-                        icon: "person.fill",
-                        color: selectedSegment == 0 ? AppColors.accent : AppColors.textPrimary
-                    ) {
-                        HapticManager.selectionChanged()
-                        searchText = ""
-                        selectedSegment = 0
-                    }
-
-                    ActionHeaderButton(
-                        title: "Shared",
-                        icon: "person.2.fill",
-                        color: selectedSegment == 1 ? AppColors.accent : AppColors.textPrimary
-                    ) {
-                        HapticManager.selectionChanged()
-                        searchText = ""
-                        selectedSegment = 1
-                    }
-                }
-                .padding(.horizontal)
-                .padding(.top, Spacing.sm)
-                .padding(.bottom, Spacing.sm)
-                .background(AppColors.backgroundSecondary)
-
-                // Content
                 Group {
                     if selectedSegment == 0 {
-                        PersonalSubscriptionListView(showingAddSubscription: $showingAddSubscription, searchText: $searchText)
+                        PersonalSubscriptionListView(showingAddSubscription: $showingAddSubscription, searchText: $searchText, selectedSegment: $selectedSegment)
                     } else {
-                        SharedSubscriptionListView(showingAddSubscription: $showingAddSubscription, searchText: $searchText)
+                        SharedSubscriptionListView(showingAddSubscription: $showingAddSubscription, searchText: $searchText, selectedSegment: $selectedSegment)
                     }
                 }
             }
@@ -93,10 +65,43 @@ struct SubscriptionView: View {
                 HapticManager.prepare()
             }
         }
-        .searchable(
-            text: $searchText,
-            placement: .navigationBarDrawer(displayMode: .always),
-            prompt: "Search subscriptions"
-        )
+    }
+}
+
+// MARK: - Subscription Scroll Header
+
+struct SubscriptionScrollHeader: View {
+    @Binding var searchText: String
+    @Binding var selectedSegment: Int
+
+    var body: some View {
+        VStack(spacing: 0) {
+            InlineSearchBar(text: $searchText, placeholder: "Search subscriptions")
+
+            HStack(spacing: Spacing.md) {
+                ActionHeaderButton(
+                    title: "Personal",
+                    icon: "person.fill",
+                    color: selectedSegment == 0 ? AppColors.accent : AppColors.textPrimary
+                ) {
+                    HapticManager.selectionChanged()
+                    searchText = ""
+                    selectedSegment = 0
+                }
+
+                ActionHeaderButton(
+                    title: "Shared",
+                    icon: "person.2.fill",
+                    color: selectedSegment == 1 ? AppColors.accent : AppColors.textPrimary
+                ) {
+                    HapticManager.selectionChanged()
+                    searchText = ""
+                    selectedSegment = 1
+                }
+            }
+            .padding(.horizontal)
+            .padding(.top, Spacing.sm)
+            .padding(.bottom, Spacing.sm)
+        }
     }
 }

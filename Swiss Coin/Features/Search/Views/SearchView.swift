@@ -37,7 +37,6 @@ struct SearchView: View {
     @State private var selectedTransaction: FinancialTransaction?
     @State private var cachedDisplayedTransactions: [FinancialTransaction] = []
     @State private var cachedNetPositions: [NSManagedObjectID: Double] = [:]
-    @State private var showRefreshFeedback = false
 
     // MARK: - Fetch Requests
 
@@ -178,17 +177,26 @@ struct SearchView: View {
                     .ignoresSafeArea()
 
                 VStack(spacing: 0) {
-                    filterChipsBar
+                    ScrollView {
+                        VStack(spacing: 0) {
+                            InlineSearchBar(text: $searchText, placeholder: "Transactions, people, groups...")
+                                .padding(.top, Spacing.sm)
 
-                    Group {
-                        if selectedFilter == .subscriptions {
-                            subscriptionsListView
-                        } else if isSearching {
-                            searchResultsView
-                        } else {
-                            transactionListView
+                            filterChipsBar
+
+                            Group {
+                                if selectedFilter == .subscriptions {
+                                    subscriptionsContent
+                                } else if isSearching {
+                                    searchResultsContent
+                                } else {
+                                    transactionContent
+                                }
+                            }
                         }
                     }
+                    .scrollDismissesKeyboard(.interactively)
+                    .refreshable { await performSearchRefresh() }
                     .allowsHitTesting(selectedTransaction == nil)
                 }
 
@@ -207,11 +215,6 @@ struct SearchView: View {
                 }
             }
         }
-        .searchable(
-            text: $searchText,
-            placement: .navigationBarDrawer(displayMode: .always),
-            prompt: "Transactions, people, groups…"
-        )
         .onAppear {
             HapticManager.prepare()
             cacheNetPositions()
@@ -257,182 +260,163 @@ struct SearchView: View {
             .padding(.horizontal, Spacing.lg)
             .padding(.vertical, Spacing.sm)
         }
-        .background(AppColors.backgroundSecondary)
     }
 
-    // MARK: - Transaction List View (Default State)
+    // MARK: - Transaction Content (no ScrollView wrapper)
 
-    private var transactionListView: some View {
+    private var transactionContent: some View {
         Group {
             if cachedDisplayedTransactions.isEmpty {
-                ScrollView {
-                    filterEmptyView
-                }
-                .refreshable { await performSearchRefresh() }
+                filterEmptyView
             } else {
-                ScrollView {
-                    LazyVStack(spacing: 0) {
-                        ForEach(cachedDisplayedTransactions, id: \.id) { transaction in
-                            TransactionRowView(
-                                transaction: transaction,
-                                selectedTransaction: $selectedTransaction
-                            )
-                            if transaction.id != cachedDisplayedTransactions.last?.id {
-                                Divider()
-                            }
+                LazyVStack(spacing: 0) {
+                    ForEach(cachedDisplayedTransactions, id: \.id) { transaction in
+                        TransactionRowView(
+                            transaction: transaction,
+                            selectedTransaction: $selectedTransaction
+                        )
+                        if transaction.id != cachedDisplayedTransactions.last?.id {
+                            Divider()
                         }
                     }
-                    .padding(.bottom, Spacing.section)
-                    .animation(AppAnimation.standard, value: cachedDisplayedTransactions.count)
                 }
-                .refreshable { await performSearchRefresh() }
-                .refreshFeedback(isShowing: $showRefreshFeedback)
+                .padding(.bottom, Spacing.section)
+                .animation(AppAnimation.standard, value: cachedDisplayedTransactions.count)
             }
         }
     }
 
-    // MARK: - Subscriptions List View
+    // MARK: - Subscriptions Content (no ScrollView wrapper)
 
-    private var subscriptionsListView: some View {
+    private var subscriptionsContent: some View {
         Group {
             if displayedSubscriptions.isEmpty {
-                ScrollView {
-                    filterEmptyView
-                }
-                .refreshable { await performSearchRefresh() }
+                filterEmptyView
             } else {
-                ScrollView {
-                    LazyVStack(spacing: 0) {
-                        ForEach(displayedSubscriptions) { subscription in
-                            NavigationLink(destination: SubscriptionDetailView(subscription: subscription)) {
-                                SearchSubscriptionRow(subscription: subscription)
-                            }
-                            .buttonStyle(PlainButtonStyle())
-                            .simultaneousGesture(TapGesture().onEnded {
-                                HapticManager.selectionChanged()
-                            })
+                LazyVStack(spacing: 0) {
+                    ForEach(displayedSubscriptions) { subscription in
+                        NavigationLink(destination: SubscriptionDetailView(subscription: subscription)) {
+                            SearchSubscriptionRow(subscription: subscription)
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        .simultaneousGesture(TapGesture().onEnded {
+                            HapticManager.selectionChanged()
+                        })
 
-                            if subscription.id != displayedSubscriptions.last?.id {
-                                Divider()
-                                    .padding(.leading, AvatarSize.lg + Spacing.md + Spacing.lg)
-                            }
+                        if subscription.id != displayedSubscriptions.last?.id {
+                            Divider()
+                                .padding(.leading, AvatarSize.lg + Spacing.md + Spacing.lg)
                         }
                     }
-                    .padding(.bottom, Spacing.section)
                 }
-                .refreshable { await performSearchRefresh() }
-                .refreshFeedback(isShowing: $showRefreshFeedback)
+                .padding(.bottom, Spacing.section)
             }
         }
     }
 
-    // MARK: - Search Results View
+    // MARK: - Search Results Content (no ScrollView wrapper)
 
-    private var searchResultsView: some View {
+    private var searchResultsContent: some View {
         Group {
             if hasSearchResults {
-                ScrollView {
-                    LazyVStack(alignment: .leading, spacing: Spacing.xxl) {
-                        // Transactions Results
-                        if !cachedDisplayedTransactions.isEmpty {
-                            SearchResultSection(
-                                title: "Transactions",
-                                icon: "arrow.left.arrow.right",
-                                count: cachedDisplayedTransactions.count
-                            ) {
-                                ForEach(cachedDisplayedTransactions, id: \.id) { transaction in
-                                    TransactionRowView(
-                                        transaction: transaction,
-                                        selectedTransaction: $selectedTransaction
-                                    )
-                                    if transaction.id != cachedDisplayedTransactions.last?.id {
-                                        Divider()
-                                    }
-                                }
-                            }
-                        }
-
-                        // People Results
-                        if !filteredPeople.isEmpty {
-                            SearchResultSection(
-                                title: "People",
-                                icon: "person.2.fill",
-                                count: filteredPeople.count
-                            ) {
-                                ForEach(filteredPeople) { person in
-                                    NavigationLink(destination: PersonConversationView(person: person)) {
-                                        SearchPersonRow(person: person)
-                                    }
-                                    .buttonStyle(PlainButtonStyle())
-                                    .simultaneousGesture(TapGesture().onEnded {
-                                        HapticManager.selectionChanged()
-                                    })
-
-                                    if person.id != filteredPeople.last?.id {
-                                        Divider()
-                                            .padding(.leading, AvatarSize.lg + Spacing.md + Spacing.lg)
-                                    }
-                                }
-                            }
-                        }
-
-                        // Groups Results
-                        if !filteredGroups.isEmpty {
-                            SearchResultSection(
-                                title: "Groups",
-                                icon: "person.3.fill",
-                                count: filteredGroups.count
-                            ) {
-                                ForEach(filteredGroups) { group in
-                                    NavigationLink(destination: GroupConversationView(group: group)) {
-                                        SearchGroupRow(group: group)
-                                    }
-                                    .buttonStyle(PlainButtonStyle())
-                                    .simultaneousGesture(TapGesture().onEnded {
-                                        HapticManager.selectionChanged()
-                                    })
-
-                                    if group.id != filteredGroups.last?.id {
-                                        Divider()
-                                            .padding(.leading, AvatarSize.lg + Spacing.md + Spacing.lg)
-                                    }
-                                }
-                            }
-                        }
-
-                        // Subscriptions Results (only when not in subscriptions filter)
-                        if !filteredSubscriptions.isEmpty {
-                            SearchResultSection(
-                                title: "Subscriptions",
-                                icon: "creditcard.fill",
-                                count: filteredSubscriptions.count
-                            ) {
-                                ForEach(filteredSubscriptions) { subscription in
-                                    NavigationLink(destination: SubscriptionDetailView(subscription: subscription)) {
-                                        SearchSubscriptionRow(subscription: subscription)
-                                    }
-                                    .buttonStyle(PlainButtonStyle())
-                                    .simultaneousGesture(TapGesture().onEnded {
-                                        HapticManager.selectionChanged()
-                                    })
-
-                                    if subscription.id != filteredSubscriptions.last?.id {
-                                        Divider()
-                                            .padding(.leading, AvatarSize.lg + Spacing.md + Spacing.lg)
-                                    }
+                LazyVStack(alignment: .leading, spacing: Spacing.xxl) {
+                    // Transactions Results
+                    if !cachedDisplayedTransactions.isEmpty {
+                        SearchResultSection(
+                            title: "Transactions",
+                            icon: "arrow.left.arrow.right",
+                            count: cachedDisplayedTransactions.count
+                        ) {
+                            ForEach(cachedDisplayedTransactions, id: \.id) { transaction in
+                                TransactionRowView(
+                                    transaction: transaction,
+                                    selectedTransaction: $selectedTransaction
+                                )
+                                if transaction.id != cachedDisplayedTransactions.last?.id {
+                                    Divider()
                                 }
                             }
                         }
                     }
-                    .padding(.top, Spacing.lg)
-                    .padding(.bottom, Spacing.section)
-                    .animation(AppAnimation.standard, value: cachedDisplayedTransactions.count)
-                    .animation(AppAnimation.standard, value: filteredPeople.count)
-                    .animation(AppAnimation.standard, value: filteredGroups.count)
-                    .animation(AppAnimation.standard, value: filteredSubscriptions.count)
+
+                    // People Results
+                    if !filteredPeople.isEmpty {
+                        SearchResultSection(
+                            title: "People",
+                            icon: "person.2.fill",
+                            count: filteredPeople.count
+                        ) {
+                            ForEach(filteredPeople) { person in
+                                NavigationLink(destination: PersonConversationView(person: person)) {
+                                    SearchPersonRow(person: person)
+                                }
+                                .buttonStyle(PlainButtonStyle())
+                                .simultaneousGesture(TapGesture().onEnded {
+                                    HapticManager.selectionChanged()
+                                })
+
+                                if person.id != filteredPeople.last?.id {
+                                    Divider()
+                                        .padding(.leading, AvatarSize.lg + Spacing.md + Spacing.lg)
+                                }
+                            }
+                        }
+                    }
+
+                    // Groups Results
+                    if !filteredGroups.isEmpty {
+                        SearchResultSection(
+                            title: "Groups",
+                            icon: "person.3.fill",
+                            count: filteredGroups.count
+                        ) {
+                            ForEach(filteredGroups) { group in
+                                NavigationLink(destination: GroupConversationView(group: group)) {
+                                    SearchGroupRow(group: group)
+                                }
+                                .buttonStyle(PlainButtonStyle())
+                                .simultaneousGesture(TapGesture().onEnded {
+                                    HapticManager.selectionChanged()
+                                })
+
+                                if group.id != filteredGroups.last?.id {
+                                    Divider()
+                                        .padding(.leading, AvatarSize.lg + Spacing.md + Spacing.lg)
+                                }
+                            }
+                        }
+                    }
+
+                    // Subscriptions Results (only when not in subscriptions filter)
+                    if !filteredSubscriptions.isEmpty {
+                        SearchResultSection(
+                            title: "Subscriptions",
+                            icon: "creditcard.fill",
+                            count: filteredSubscriptions.count
+                        ) {
+                            ForEach(filteredSubscriptions) { subscription in
+                                NavigationLink(destination: SubscriptionDetailView(subscription: subscription)) {
+                                    SearchSubscriptionRow(subscription: subscription)
+                                }
+                                .buttonStyle(PlainButtonStyle())
+                                .simultaneousGesture(TapGesture().onEnded {
+                                    HapticManager.selectionChanged()
+                                })
+
+                                if subscription.id != filteredSubscriptions.last?.id {
+                                    Divider()
+                                        .padding(.leading, AvatarSize.lg + Spacing.md + Spacing.lg)
+                                }
+                            }
+                        }
+                    }
                 }
-                .refreshable { await performSearchRefresh() }
-                .refreshFeedback(isShowing: $showRefreshFeedback)
+                .padding(.top, Spacing.lg)
+                .padding(.bottom, Spacing.section)
+                .animation(AppAnimation.standard, value: cachedDisplayedTransactions.count)
+                .animation(AppAnimation.standard, value: filteredPeople.count)
+                .animation(AppAnimation.standard, value: filteredGroups.count)
+                .animation(AppAnimation.standard, value: filteredSubscriptions.count)
             } else {
                 SearchNoResultsView(searchText: searchText)
             }
@@ -443,8 +427,6 @@ struct SearchView: View {
 
     private var filterEmptyView: some View {
         VStack(spacing: Spacing.lg) {
-            Spacer()
-
             Image(systemName: filterEmptyIcon)
                 .font(.system(size: IconSize.xxl))
                 .foregroundColor(AppColors.textSecondary.opacity(0.5))
@@ -459,10 +441,8 @@ struct SearchView: View {
                 .foregroundColor(AppColors.textSecondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, Spacing.xxl)
-
-            Spacer()
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .frame(maxWidth: .infinity, minHeight: UIScreen.main.bounds.height * 0.4)
     }
 
     private var filterEmptyIcon: String {
@@ -492,11 +472,6 @@ struct SearchView: View {
         cacheNetPositions()
         withAnimation(.none) {
             updateDisplayedTransactions()
-        }
-        withAnimation(AppAnimation.standard) { showRefreshFeedback = true }
-        Task {
-            try? await Task.sleep(nanoseconds: 2_000_000_000)
-            withAnimation(AppAnimation.standard) { showRefreshFeedback = false }
         }
     }
 }
@@ -682,8 +657,6 @@ private struct SearchNoResultsView: View {
 
     var body: some View {
         VStack(spacing: Spacing.lg) {
-            Spacer()
-
             Image(systemName: "magnifyingglass")
                 .font(.system(size: IconSize.xxl))
                 .foregroundColor(AppColors.textSecondary.opacity(0.5))
@@ -698,9 +671,7 @@ private struct SearchNoResultsView: View {
                 .foregroundColor(AppColors.textSecondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, Spacing.xxl)
-
-            Spacer()
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .frame(maxWidth: .infinity, minHeight: UIScreen.main.bounds.height * 0.4)
     }
 }

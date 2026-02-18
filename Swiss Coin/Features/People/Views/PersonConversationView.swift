@@ -39,6 +39,9 @@ struct PersonConversationView: View {
     // Undo state (transactions)
     @State private var undoTransaction = UndoTransactionState()
 
+    // Undo state (settlements)
+    @State private var undoSettlement = UndoSettlementState()
+
     // Loading state
     @State private var isLoading = true
 
@@ -84,6 +87,16 @@ struct PersonConversationView: View {
         var splitPersons: [Person?] = []
         var splitAmounts: [Double] = []
         var splitRawAmounts: [Double] = []
+    }
+
+    struct UndoSettlementState {
+        var isShowing = false
+        var amount: Double = 0
+        var date = Date()
+        var note: String?
+        var isFullSettlement = false
+        var fromPerson: Person?
+        var toPerson: Person?
     }
 
     // MARK: - Timeline Constants
@@ -296,6 +309,11 @@ struct PersonConversationView: View {
             isShowing: $undoTransaction.isShowing,
             message: "Transaction undone",
             onUndo: restoreUndoneTransaction
+        )
+        .undoToast(
+            isShowing: $undoSettlement.isShowing,
+            message: "Settlement deleted",
+            onUndo: restoreUndoneSettlement
         )
         .task {
             loadConversationData()
@@ -627,6 +645,9 @@ struct PersonConversationView: View {
                 onCopyAmount: {
                     UIPasteboard.general.string = CurrencyFormatter.format(settlement.amount)
                     HapticManager.copyAction()
+                },
+                onDelete: {
+                    deleteSettlementWithUndo(settlement)
                 }
             )
 
@@ -751,6 +772,49 @@ struct PersonConversationView: View {
             showingError = true
             AppLogger.coreData.error("Failed to delete message: \(error.localizedDescription)")
         }
+    }
+
+    private func deleteSettlementWithUndo(_ settlement: Settlement) {
+        undoSettlement.amount = settlement.amount
+        undoSettlement.date = settlement.date ?? Date()
+        undoSettlement.note = settlement.note
+        undoSettlement.isFullSettlement = settlement.isFullSettlement
+        undoSettlement.fromPerson = settlement.fromPerson
+        undoSettlement.toPerson = settlement.toPerson
+
+        viewContext.delete(settlement)
+        do {
+            try viewContext.save()
+            HapticManager.destructiveAction()
+            withAnimation(AppAnimation.standard) {
+                undoSettlement.isShowing = true
+            }
+        } catch {
+            viewContext.rollback()
+            HapticManager.errorAlert()
+            errorMessage = "Failed to delete settlement."
+            showingError = true
+        }
+    }
+
+    private func restoreUndoneSettlement() {
+        let restored = Settlement(context: viewContext)
+        restored.id = UUID()
+        restored.amount = undoSettlement.amount
+        restored.date = undoSettlement.date
+        restored.note = undoSettlement.note
+        restored.isFullSettlement = undoSettlement.isFullSettlement
+        restored.fromPerson = undoSettlement.fromPerson
+        restored.toPerson = undoSettlement.toPerson
+
+        do {
+            try viewContext.save()
+            HapticManager.undoAction()
+        } catch {
+            viewContext.rollback()
+            HapticManager.errorAlert()
+        }
+        undoSettlement = UndoSettlementState()
     }
 
     private func undoDeleteMessage() {

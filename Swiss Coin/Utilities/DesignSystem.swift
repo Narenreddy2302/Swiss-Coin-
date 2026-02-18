@@ -428,6 +428,13 @@ enum AppColors {
             : UIColor(hex: "#F7F5F3")
     })
 
+    /// Search bar field background — high contrast against backgroundSecondary
+    static let searchBarBackground = Color(UIColor { tc in
+        tc.userInterfaceStyle == .dark
+            ? UIColor(hex: "#1C1C1E")
+            : UIColor(hex: "#FFFFFF")
+    })
+
     // MARK: - Borders & Dividers
 
     /// Default border
