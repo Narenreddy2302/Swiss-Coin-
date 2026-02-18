@@ -130,7 +130,6 @@ struct ContactPickerView: View {
                     VStack(spacing: Spacing.xl) {
                         contactsSection
                     }
-                    .padding(.horizontal, Spacing.lg)
                     .padding(.top, Spacing.lg)
                     .padding(.bottom, Spacing.section + Spacing.sm)
                 }
@@ -174,11 +173,6 @@ struct ContactPickerView: View {
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, Spacing.xxxl)
-                .background(
-                    RoundedRectangle(cornerRadius: CornerRadius.card)
-                        .fill(AppColors.cardBackground)
-                        .shadow(color: AppColors.shadowSubtle, radius: 8, x: 0, y: 2)
-                )
             } else {
                 LazyVStack(spacing: 0) {
                     ForEach(filteredContacts) { contact in
@@ -196,16 +190,10 @@ struct ContactPickerView: View {
 
                         if contact.id != filteredContacts.last?.id {
                             Divider()
-                                .padding(.leading, Spacing.lg)
+                                .padding(.leading, Spacing.lg + AvatarSize.md + Spacing.md)
                         }
                     }
                 }
-                .background(
-                    RoundedRectangle(cornerRadius: CornerRadius.card)
-                        .fill(AppColors.cardBackground)
-                        .shadow(color: AppColors.shadowSubtle, radius: 8, x: 0, y: 2)
-                )
-                .clipShape(RoundedRectangle(cornerRadius: CornerRadius.card))
             }
         }
     }
