@@ -192,7 +192,7 @@ All accept `isEnabled:` parameter. All use `CornerRadius.button`(12), `ButtonHei
 
 ## Button System
 
-See **[BUTTONS.md](BUTTONS.md)** for the complete button standard.
+See **[BUTTONS.md](docs/design-system/BUTTONS.md)** for the complete button standard.
 
 ### Quick Rules (MANDATORY)
 1. **Always use button styles** — `PrimaryButtonStyle`, `SecondaryButtonStyle`, `GhostButtonStyle`, `DestructiveButtonStyle`, or `AppButtonStyle`
