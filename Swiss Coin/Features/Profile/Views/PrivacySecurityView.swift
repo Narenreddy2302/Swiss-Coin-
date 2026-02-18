@@ -122,7 +122,7 @@ class PrivacySecurityViewModel: ObservableObject {
         KeychainHelper.delete(key: "swiss_coin_access_token")
         KeychainHelper.delete(key: "swiss_coin_refresh_token")
         CurrentUser.reset()
-        AuthManager.shared.signOut()
+        Task { await AuthManager.shared.signOut() }
         HapticManager.success()
     }
 }

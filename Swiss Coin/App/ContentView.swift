@@ -13,7 +13,9 @@ import SwiftUI
 struct ContentView: View {
     @StateObject private var authManager = AuthManager.shared
     @StateObject private var lockManager = AppLockManager.shared
+    @StateObject private var migrationService = MigrationService.shared
     @AppStorage("has_seen_onboarding") private var hasSeenOnboarding = false
+    @Environment(\.managedObjectContext) private var viewContext
 
     var body: some View {
         ZStack {
@@ -48,6 +50,13 @@ struct ContentView: View {
                     .transition(.opacity)
                     .zIndex(100)
             }
+
+            // Layer 3: Migration overlay (first sign-in with existing local data)
+            if migrationService.progress == .inProgress {
+                MigrationOverlayView(migrationService: migrationService)
+                    .transition(.opacity)
+                    .zIndex(200)
+            }
         }
         .animation(AppAnimation.standard, value: authManager.authState)
         .animation(AppAnimation.standard, value: hasSeenOnboarding)
@@ -60,6 +69,19 @@ struct ContentView: View {
         .onChange(of: authManager.authState) { _, newState in
             if newState == .authenticated {
                 lockManager.performInitialLockCheck()
+                Task {
+                    // Migrate local data to Supabase if needed (first sign-in with existing data)
+                    if MigrationService.shared.needsMigration {
+                        await MigrationService.shared.migrate(context: viewContext)
+                    }
+                    // Start realtime subscription and initial sync
+                    await RealtimeService.shared.subscribe()
+                    await SyncManager.shared.syncNow(context: viewContext)
+                }
+            } else if newState == .unauthenticated {
+                Task {
+                    await RealtimeService.shared.unsubscribe()
+                }
             }
         }
     }

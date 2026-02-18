@@ -493,7 +493,7 @@ struct ProfileView: View {
 
     private func logOut() {
         HapticManager.warning()
-        AuthManager.shared.signOut()
+        Task { await AuthManager.shared.signOut() }
         dismiss()
     }
 

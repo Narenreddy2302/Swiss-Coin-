@@ -2,12 +2,13 @@
 //  SupabaseManager.swift
 //  Swiss Coin
 //
-//  Local authentication manager. Handles auth state for the app.
-//  No external dependencies or network calls — fully offline.
+//  Authentication manager backed by Supabase Auth.
+//  Supports phone OTP login. Apple Sign-In deferred to Phase 2.
 //
 
 import Combine
 import Foundation
+import Supabase
 
 // MARK: - Auth State
 
@@ -28,36 +29,114 @@ final class AuthManager: ObservableObject {
     @Published private(set) var authState: AuthState = .unknown
     @Published private(set) var isLoading = false
     @Published private(set) var currentUserId: UUID?
+    @Published var errorMessage: String?
+
+    private var authListenerTask: Task<Void, Never>?
 
     // MARK: - Init
 
     private init() {
+        listenToAuthChanges()
         Task {
             await restoreSession()
         }
     }
 
-    // MARK: - Session Management
+    deinit {
+        authListenerTask?.cancel()
+    }
 
-    /// Restore previous session or auto-authenticate
-    private func restoreSession() async {
-        // Brief loading state for smooth UX transition
-        try? await Task.sleep(nanoseconds: 400_000_000) // 0.4s
+    // MARK: - Auth State Listener
 
-        if UserDefaults.standard.bool(forKey: "swiss_coin_signed_out") {
-            authState = .unauthenticated
-        } else {
-            // Auto-authenticate returning users
-            authenticate()
+    /// Listen for auth state changes from the Supabase SDK
+    private func listenToAuthChanges() {
+        authListenerTask = Task { [weak self] in
+            for await (event, session) in SupabaseConfig.client.auth.authStateChanges {
+                guard let self else { return }
+                switch event {
+                case .signedIn:
+                    if let userId = session?.user.id {
+                        self.currentUserId = userId
+                        CurrentUser.setCurrentUser(id: userId)
+                        self.authState = .authenticated
+                    }
+                case .signedOut:
+                    self.currentUserId = nil
+                    self.authState = .unauthenticated
+                case .tokenRefreshed:
+                    break // SDK handles token refresh automatically
+                default:
+                    break
+                }
+            }
         }
     }
 
-    /// Authenticate the user locally
-    func authenticate() {
+    // MARK: - Session Management
+
+    /// Restore previous session or transition to unauthenticated
+    private func restoreSession() async {
+        do {
+            let session = try await SupabaseConfig.client.auth.session
+            currentUserId = session.user.id
+            CurrentUser.setCurrentUser(id: session.user.id)
+            authState = .authenticated
+        } catch {
+            // No valid session — check for legacy local user
+            if UserDefaults.standard.string(forKey: "currentUserId") != nil {
+                // User had local data — show login so they can link their account
+                authState = .unauthenticated
+            } else {
+                authState = .unauthenticated
+            }
+        }
+    }
+
+    // MARK: - Phone OTP Authentication
+
+    /// Send a one-time password to the given phone number
+    /// - Parameter phone: Phone number in E.164 format (e.g., "+1234567890")
+    func sendPhoneOTP(phone: String) async {
+        isLoading = true
+        errorMessage = nil
+        defer { isLoading = false }
+
+        do {
+            try await SupabaseConfig.client.auth.signInWithOTP(phone: phone)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    /// Verify the OTP code sent to the phone number
+    /// - Parameters:
+    ///   - phone: Phone number in E.164 format
+    ///   - token: 6-digit OTP code
+    func verifyPhoneOTP(phone: String, token: String) async {
+        isLoading = true
+        errorMessage = nil
+        defer { isLoading = false }
+
+        do {
+            try await SupabaseConfig.client.auth.verifyOTP(
+                phone: phone,
+                token: token,
+                type: .sms
+            )
+            // Auth state change listener handles the rest
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    // MARK: - Legacy Compatibility
+
+    /// Authenticate locally for offline mode or development
+    /// Falls back to local UUID if Supabase is unavailable
+    func authenticateLocally() {
         isLoading = true
         defer { isLoading = false }
 
-        // Get existing user ID or create a new one
         let userId: UUID
         if let existingId = CurrentUser.currentUserId {
             userId = existingId
@@ -71,15 +150,30 @@ final class AuthManager: ObservableObject {
         authState = .authenticated
     }
 
-    /// Sign out the current user
-    func signOut() {
+    // MARK: - Sign Out
+
+    /// Sign out the current user from Supabase and clear local state
+    func signOut() async {
         isLoading = true
         defer { isLoading = false }
+
+        do {
+            try await SupabaseConfig.client.auth.signOut()
+        } catch {
+            // Sign out locally even if Supabase call fails
+        }
 
         currentUserId = nil
         CurrentUser.reset()
         UserDefaults.standard.set(true, forKey: "swiss_coin_signed_out")
         authState = .unauthenticated
+    }
+
+    /// Check if the current user has existing local data that needs migration
+    var needsDataMigration: Bool {
+        let hasLocalData = UserDefaults.standard.string(forKey: "currentUserId") != nil
+        let migrationDone = UserDefaults.standard.bool(forKey: "supabase_migration_completed")
+        return hasLocalData && !migrationDone
     }
 }
 

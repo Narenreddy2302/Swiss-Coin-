@@ -17,6 +17,7 @@ extension TransactionPayer {
         return NSFetchRequest<TransactionPayer>(entityName: "TransactionPayer")
     }
 
+    @NSManaged public var id: UUID?
     @NSManaged public var amount: Double
     @NSManaged public var paidBy: Person?
     @NSManaged public var transaction: FinancialTransaction?

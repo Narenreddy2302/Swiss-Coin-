@@ -62,7 +62,7 @@ struct PersistenceController {
                             }
                             // Configure viewContext after retry
                             DispatchQueue.main.async {
-                                container.viewContext.automaticallyMergesChangesFromParent = true
+                                Self.configureViewContext(container.viewContext)
                             }
                         }
                         return
@@ -87,8 +87,22 @@ struct PersistenceController {
 
             // Configure viewContext after store loads (on main thread since it's a main queue context)
             DispatchQueue.main.async {
-                container.viewContext.automaticallyMergesChangesFromParent = true
+                Self.configureViewContext(container.viewContext)
             }
         }
+    }
+
+    /// Configure the view context for sync-friendly merge behavior
+    private static func configureViewContext(_ context: NSManagedObjectContext) {
+        context.automaticallyMergesChangesFromParent = true
+        // Favor in-memory (local) changes when sync pulls conflict with local edits
+        context.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
+    }
+
+    /// Create a background context for sync operations
+    func newBackgroundContext() -> NSManagedObjectContext {
+        let context = container.newBackgroundContext()
+        context.mergePolicy = NSMergeByPropertyStoreTrumpMergePolicy
+        return context
     }
 }

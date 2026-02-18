@@ -17,6 +17,7 @@ extension TransactionSplit {
         return NSFetchRequest<TransactionSplit>(entityName: "TransactionSplit")
     }
 
+    @NSManaged public var id: UUID?
     @NSManaged public var amount: Double
     @NSManaged public var rawAmount: Double
     @NSManaged public var owedBy: Person?
