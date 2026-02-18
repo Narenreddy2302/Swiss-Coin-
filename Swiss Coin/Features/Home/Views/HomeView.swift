@@ -44,8 +44,8 @@ struct HomeView: View {
     @State private var balanceRecalcTask: Task<Void, Never>?
 
     /// Cached balance totals computed asynchronously to avoid blocking the main thread
-    @State private var cachedYouOwe: Double = 0
-    @State private var cachedOwedToYou: Double = 0
+    @State private var cachedYouOwe: [(code: String, amount: Double)] = []
+    @State private var cachedOwedToYou: [(code: String, amount: Double)] = []
 
     // MARK: - Computed Properties
 
@@ -78,17 +78,18 @@ struct HomeView: View {
                                 HStack(spacing: Spacing.lg) {
                                     SummaryCard(
                                         title: "You Owe",
-                                        amount: cachedYouOwe,
+                                        amounts: cachedYouOwe,
                                         color: AppColors.negative,
                                         icon: "arrow.down.left.circle.fill")
                                     SummaryCard(
                                         title: "You are Owed",
-                                        amount: cachedOwedToYou,
+                                        amounts: cachedOwedToYou,
                                         color: AppColors.positive,
                                         icon: "arrow.up.right.circle.fill")
                                     SummaryCard(
                                         title: "Subscriptions",
-                                        amount: totalMonthlySubscriptions,
+                                        amounts: [],
+                                        singleAmount: totalMonthlySubscriptions,
                                         color: AppColors.assetRealEstate,
                                         icon: "repeat.circle.fill")
                                 }
@@ -233,25 +234,32 @@ struct HomeView: View {
         let container = PersistenceController.shared.container
         let backgroundContext = container.newBackgroundContext()
 
-        let result: (owe: Double, owed: Double) = await backgroundContext.perform {
+        let result: (owe: [(code: String, amount: Double)], owed: [(code: String, amount: Double)]) = await backgroundContext.perform {
             let fetchRequest: NSFetchRequest<Person> = Person.fetchRequest()
             fetchRequest.sortDescriptors = [NSSortDescriptor(keyPath: \Person.name, ascending: true)]
             let people = (try? backgroundContext.fetch(fetchRequest)) ?? []
 
-            var totalOwe: Double = 0
-            var totalOwed: Double = 0
+            var oweByCurrency: [String: Double] = [:]
+            var owedByCurrency: [String: Double] = [:]
 
             for person in people {
                 guard !CurrentUser.isCurrentUser(person.id) else { continue }
                 let balance = person.calculateBalance()
-                if balance < 0 {
-                    totalOwe += abs(balance)
-                } else if balance > 0 {
-                    totalOwed += balance
+                for (code, amount) in balance.nonZero {
+                    if amount < 0 {
+                        oweByCurrency[code, default: 0] += abs(amount)
+                    } else if amount > 0 {
+                        owedByCurrency[code, default: 0] += amount
+                    }
                 }
             }
 
-            return (totalOwe, totalOwed)
+            let sortedOwe = oweByCurrency.map { (code: $0.key, amount: $0.value) }
+                .sorted { $0.amount > $1.amount }
+            let sortedOwed = owedByCurrency.map { (code: $0.key, amount: $0.value) }
+                .sorted { $0.amount > $1.amount }
+
+            return (sortedOwe, sortedOwed)
         }
 
         await MainActor.run {
@@ -264,9 +272,26 @@ struct HomeView: View {
 
 struct SummaryCard: View {
     let title: String
-    let amount: Double
+    let amounts: [(code: String, amount: Double)]
+    var singleAmount: Double? = nil
     let color: Color
     let icon: String
+
+    private var displayAmount: Double {
+        if let single = singleAmount { return single }
+        return amounts.first?.amount ?? 0
+    }
+
+    private var accessibilityText: String {
+        if let single = singleAmount {
+            return "\(title): \(CurrencyFormatter.format(single))"
+        }
+        if amounts.isEmpty {
+            return "\(title): \(CurrencyFormatter.format(0))"
+        }
+        let parts = amounts.map { CurrencyFormatter.format($0.amount, currencyCode: $0.code) }
+        return "\(title): \(parts.joined(separator: ", "))"
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
@@ -282,19 +307,47 @@ struct SummaryCard: View {
                 Text(title)
                     .font(AppTypography.labelLarge())
                     .foregroundColor(AppColors.textSecondary)
-                Text(CurrencyFormatter.format(amount))
-                    .font(AppTypography.financialLarge())
-                    .tracking(AppTypography.Tracking.financialLarge)
-                    .foregroundColor(AppColors.textPrimary)
-                    .contentTransition(.numericText())
-                    .animation(AppAnimation.standard, value: amount)
+
+                if let single = singleAmount {
+                    Text(CurrencyFormatter.format(single))
+                        .font(AppTypography.financialLarge())
+                        .tracking(AppTypography.Tracking.financialLarge)
+                        .foregroundColor(AppColors.textPrimary)
+                        .contentTransition(.numericText())
+                        .animation(AppAnimation.standard, value: single)
+                } else if amounts.isEmpty {
+                    Text(CurrencyFormatter.format(0))
+                        .font(AppTypography.financialLarge())
+                        .tracking(AppTypography.Tracking.financialLarge)
+                        .foregroundColor(AppColors.textPrimary)
+                } else if amounts.count == 1 {
+                    let entry = amounts[0]
+                    Text(CurrencyFormatter.format(entry.amount, currencyCode: entry.code))
+                        .font(AppTypography.financialLarge())
+                        .tracking(AppTypography.Tracking.financialLarge)
+                        .foregroundColor(AppColors.textPrimary)
+                        .contentTransition(.numericText())
+                        .animation(AppAnimation.standard, value: entry.amount)
+                } else {
+                    VStack(alignment: .leading, spacing: Spacing.xxs) {
+                        ForEach(amounts, id: \.code) { entry in
+                            HStack(spacing: Spacing.xs) {
+                                Text(CurrencyFormatter.flag(for: entry.code))
+                                    .font(.system(size: 12))
+                                Text(CurrencyFormatter.format(entry.amount, currencyCode: entry.code))
+                                    .font(AppTypography.financialDefault())
+                                    .foregroundColor(AppColors.textPrimary)
+                            }
+                        }
+                    }
+                }
             }
         }
         .frame(width: 160)
         .padding(Spacing.cardPadding)
         .cardStyle()
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(title): \(CurrencyFormatter.format(amount))")
+        .accessibilityLabel(accessibilityText)
     }
 }
 

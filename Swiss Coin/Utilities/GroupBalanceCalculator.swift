@@ -12,19 +12,21 @@ extension UserGroup {
     /// Calculate net balance for the current user in this group based on group transactions only.
     /// Positive = members owe you, Negative = you owe members.
     /// Uses net-position algorithm to support multi-payer transactions.
-    func calculateBalance() -> Double {
-        var balance: Double = 0
+    /// Returns per-currency breakdown.
+    func calculateBalance() -> CurrencyBalance {
+        var balance = CurrencyBalance()
 
-        guard let currentUserId = CurrentUser.currentUserId else { return 0 }
+        guard let currentUserId = CurrentUser.currentUserId else { return balance }
 
         let groupTransactions = transactions as? Set<FinancialTransaction> ?? []
         let membersSet = members as? Set<Person> ?? []
 
         for transaction in groupTransactions {
+            let currency = transaction.effectiveCurrency
             // Sum pairwise balance with each other member
             for member in membersSet {
                 guard let memberId = member.id, !CurrentUser.isCurrentUser(memberId) else { continue }
-                balance += transaction.pairwiseBalance(personA: currentUserId, personB: memberId)
+                balance.add(transaction.pairwiseBalance(personA: currentUserId, personB: memberId), currency: currency)
             }
         }
 
@@ -34,24 +36,26 @@ extension UserGroup {
     /// Calculate balance between current user and a specific group member based on group transactions only.
     /// Positive = they owe you, Negative = you owe them.
     /// Uses net-position algorithm to support multi-payer transactions.
-    func calculateBalanceWith(member: Person) -> Double {
+    /// Returns per-currency breakdown.
+    func calculateBalanceWith(member: Person) -> CurrencyBalance {
         guard let currentUserId = CurrentUser.currentUserId,
               let memberId = member.id,
-              !CurrentUser.isCurrentUser(memberId) else { return 0 }
+              !CurrentUser.isCurrentUser(memberId) else { return CurrencyBalance() }
 
-        var balance: Double = 0
+        var balance = CurrencyBalance()
 
         let groupTransactions = transactions as? Set<FinancialTransaction> ?? []
 
         for transaction in groupTransactions {
-            balance += transaction.pairwiseBalance(personA: currentUserId, personB: memberId)
+            let currency = transaction.effectiveCurrency
+            balance.add(transaction.pairwiseBalance(personA: currentUserId, personB: memberId), currency: currency)
         }
 
         return balance
     }
 
     /// Get all member balances for this group (excluding current user)
-    func getMemberBalances() -> [(member: Person, balance: Double)] {
+    func getMemberBalances() -> [(member: Person, balance: CurrencyBalance)] {
         let membersSet = members as? Set<Person> ?? []
 
         return membersSet
@@ -60,18 +64,16 @@ extension UserGroup {
             .sorted { $0.member.name ?? "" < $1.member.name ?? "" }
     }
 
-    /// Get members who owe the current user
-    func getMembersWhoOweYou() -> [(member: Person, amount: Double)] {
+    /// Get members who owe the current user (any currency with positive balance)
+    func getMembersWhoOweYou() -> [(member: Person, balance: CurrencyBalance)] {
         return getMemberBalances()
-            .filter { $0.balance > 0.01 }
-            .map { (member: $0.member, amount: $0.balance) }
+            .filter { $0.balance.hasPositive }
     }
 
-    /// Get members the current user owes
-    func getMembersYouOwe() -> [(member: Person, amount: Double)] {
+    /// Get members the current user owes (any currency with negative balance)
+    func getMembersYouOwe() -> [(member: Person, balance: CurrencyBalance)] {
         return getMemberBalances()
-            .filter { $0.balance < -0.01 }
-            .map { (member: $0.member, amount: abs($0.balance)) }
+            .filter { $0.balance.hasNegative }
     }
 
     /// Get all conversation items for the group (transactions + messages) sorted by date

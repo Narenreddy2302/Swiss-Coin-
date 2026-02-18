@@ -19,7 +19,7 @@ struct GroupReminderSheetView: View {
     @State private var showingError = false
     @State private var errorMessage = ""
 
-    private var membersWhoOweYou: [(member: Person, amount: Double)] {
+    private var membersWhoOweYou: [(member: Person, balance: CurrencyBalance)] {
         group.getMembersWhoOweYou()
     }
 
@@ -30,7 +30,7 @@ struct GroupReminderSheetView: View {
     private var totalSelectedAmount: Double {
         membersWhoOweYou
             .filter { selectedMembers.contains($0.member.id ?? UUID()) }
-            .reduce(0) { $0 + $1.amount }
+            .reduce(0) { $0 + $1.balance.primaryAmount }
     }
 
     private var formattedTotalAmount: String {
@@ -104,7 +104,7 @@ struct GroupReminderSheetView: View {
                                 ForEach(membersWhoOweYou, id: \.member.id) { item in
                                     MemberReminderRow(
                                         member: item.member,
-                                        amount: item.amount,
+                                        amount: item.balance.primaryAmount,
                                         isSelected: selectedMembers.contains(item.member.id ?? UUID()),
                                         onToggle: {
                                             HapticManager.selectionChanged()
@@ -226,7 +226,7 @@ struct GroupReminderSheetView: View {
             let reminder = Reminder(context: viewContext)
             reminder.id = UUID()
             reminder.createdDate = Date()
-            reminder.amount = item.amount
+            reminder.amount = item.balance.primaryAmount
             reminder.message = message.isEmpty ? nil : message
             reminder.isRead = true
             reminder.isCleared = false

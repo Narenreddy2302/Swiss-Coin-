@@ -519,13 +519,7 @@ private struct SearchResultSection<Content: View>: View {
 private struct SearchPersonRow: View {
     @ObservedObject var person: Person
 
-    @State private var balance: Double = 0
-
-    private var balanceColor: Color {
-        if balance > 0.01 { return AppColors.positive }
-        else if balance < -0.01 { return AppColors.negative }
-        return AppColors.neutral
-    }
+    @State private var balance: CurrencyBalance = CurrencyBalance()
 
     var body: some View {
         HStack(spacing: Spacing.md) {
@@ -544,17 +538,7 @@ private struct SearchPersonRow: View {
                     .foregroundColor(AppColors.textPrimary)
                     .lineLimit(1)
 
-                if abs(balance) > 0.01 {
-                    (balance > 0
-                        ? Text("owes you ") + Text(CurrencyFormatter.formatAbsolute(balance)).fontWeight(.bold)
-                        : Text("you owe ") + Text(CurrencyFormatter.formatAbsolute(balance)).fontWeight(.bold))
-                        .font(AppTypography.bodySmall())
-                        .foregroundColor(balanceColor)
-                } else {
-                    Text("settled up")
-                        .font(AppTypography.bodySmall())
-                        .foregroundColor(AppColors.neutral)
-                }
+                MultiCurrencyBalanceView(balance: balance, style: .compact)
             }
 
             Spacer()

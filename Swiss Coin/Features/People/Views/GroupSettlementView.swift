@@ -15,26 +15,32 @@ struct GroupSettlementView: View {
     let group: UserGroup
 
     @State private var selectedMember: Person?
+    @State private var selectedCurrency: String?
     @State private var customAmount: String = ""
     @State private var note: String = ""
     @State private var showingError = false
     @State private var errorMessage = ""
 
-    private var memberBalances: [(member: Person, balance: Double)] {
-        group.getMemberBalances().filter { abs($0.balance) > 0.01 }
+    private var memberBalances: [(member: Person, balance: CurrencyBalance)] {
+        group.getMemberBalances().filter { !$0.balance.isSettled }
     }
 
-    private var membersYouOwe: [(member: Person, amount: Double)] {
-        group.getMembersYouOwe()
-    }
-
-    private var membersWhoOweYou: [(member: Person, amount: Double)] {
-        group.getMembersWhoOweYou()
-    }
-
-    private var selectedMemberBalance: Double {
-        guard let member = selectedMember else { return 0 }
+    private var selectedMemberBalance: CurrencyBalance {
+        guard let member = selectedMember else { return CurrencyBalance() }
         return group.calculateBalanceWith(member: member)
+    }
+
+    private var selectedCurrencyAmount: Double {
+        guard let code = selectedCurrency else { return selectedMemberBalance.primaryAmount }
+        return selectedMemberBalance.nonZero[code] ?? 0
+    }
+
+    private var sortedMemberCurrencies: [(code: String, amount: Double)] {
+        selectedMemberBalance.sortedCurrencies
+    }
+
+    private var isMultiCurrency: Bool {
+        sortedMemberCurrencies.count > 1
     }
 
     private var parsedAmount: Double? {
@@ -43,14 +49,14 @@ struct GroupSettlementView: View {
 
     private var isValidAmount: Bool {
         guard let amount = parsedAmount else { return false }
-        return amount > 0.001 && amount <= abs(selectedMemberBalance) + 0.001
+        return amount > 0.001 && amount <= abs(selectedCurrencyAmount) + 0.001
     }
 
     private var directionText: String {
         guard let member = selectedMember else { return "Select a member to settle" }
 
         let memberName = member.name?.components(separatedBy: " ").first ?? "them"
-        if selectedMemberBalance > 0 {
+        if selectedCurrencyAmount > 0 {
             return "Record payment from \(memberName)"
         } else {
             return "Record payment to \(memberName)"
@@ -58,7 +64,10 @@ struct GroupSettlementView: View {
     }
 
     private var formattedBalance: String {
-        CurrencyFormatter.formatAbsolute(selectedMemberBalance)
+        if let code = selectedCurrency {
+            return CurrencyFormatter.formatAbsolute(selectedCurrencyAmount, currencyCode: code)
+        }
+        return CurrencyFormatter.formatAbsolute(selectedMemberBalance.primaryAmount)
     }
 
     var body: some View {
@@ -111,7 +120,15 @@ struct GroupSettlementView: View {
                                                 HapticManager.selectionChanged()
                                                 withAnimation(.easeInOut(duration: 0.2)) {
                                                     selectedMember = item.member
+                                                    selectedCurrency = nil
                                                     customAmount = ""
+                                                    // Auto-select currency for this member
+                                                    let memberCurrencies = item.balance.sortedCurrencies
+                                                    if let single = item.balance.singleCurrency {
+                                                        selectedCurrency = single
+                                                    } else if let first = memberCurrencies.first {
+                                                        selectedCurrency = first.code
+                                                    }
                                                 }
                                             }
                                         )
@@ -122,6 +139,11 @@ struct GroupSettlementView: View {
                         }
 
                         if selectedMember != nil {
+                            // Currency selector (if multi-currency for this member)
+                            if isMultiCurrency {
+                                currencySelector
+                            }
+
                             // Settlement Options
                             VStack(spacing: Spacing.xl) {
                                 // Direction and Balance Info
@@ -182,7 +204,7 @@ struct GroupSettlementView: View {
 
                                     // Validation hint
                                     if let amount = parsedAmount {
-                                        if amount > abs(selectedMemberBalance) + 0.001 {
+                                        if amount > abs(selectedCurrencyAmount) + 0.001 {
                                             Text("Amount cannot exceed \(formattedBalance)")
                                                 .font(AppTypography.caption())
                                                 .foregroundColor(AppColors.negative)
@@ -253,7 +275,44 @@ struct GroupSettlementView: View {
                 // Auto-select first member if available
                 if let first = memberBalances.first {
                     selectedMember = first.member
+                    if let single = first.balance.singleCurrency {
+                        selectedCurrency = single
+                    } else if let firstCurrency = first.balance.sortedCurrencies.first {
+                        selectedCurrency = firstCurrency.code
+                    }
                 }
+            }
+        }
+    }
+
+    // MARK: - Currency Selector
+
+    @ViewBuilder
+    private var currencySelector: some View {
+        VStack(alignment: .leading, spacing: Spacing.md) {
+            Text("Currency")
+                .font(AppTypography.labelLarge())
+                .foregroundColor(AppColors.textSecondary)
+                .padding(.horizontal, Spacing.xxl)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: Spacing.md) {
+                    ForEach(sortedMemberCurrencies, id: \.code) { entry in
+                        CurrencyChip(
+                            currencyCode: entry.code,
+                            amount: entry.amount,
+                            isSelected: selectedCurrency == entry.code,
+                            onTap: {
+                                HapticManager.selectionChanged()
+                                withAnimation(.easeInOut(duration: 0.2)) {
+                                    selectedCurrency = entry.code
+                                    customAmount = ""
+                                }
+                            }
+                        )
+                    }
+                }
+                .padding(.horizontal, Spacing.xxl)
             }
         }
     }
@@ -262,7 +321,7 @@ struct GroupSettlementView: View {
 
     private func settleFullAmount() {
         guard selectedMember != nil else { return }
-        createSettlement(amount: abs(selectedMemberBalance), isFullSettlement: true)
+        createSettlement(amount: abs(selectedCurrencyAmount), isFullSettlement: true)
     }
 
     private func settleCustomAmount() {
@@ -295,11 +354,12 @@ struct GroupSettlementView: View {
         let settlement = Settlement(context: viewContext)
         settlement.id = UUID()
         settlement.amount = amount
+        settlement.currency = selectedCurrency
         settlement.date = Date()
         settlement.note = note.isEmpty ? nil : note
         settlement.isFullSettlement = isFullSettlement
 
-        if selectedMemberBalance > 0 {
+        if selectedCurrencyAmount > 0 {
             // They owe you - they're paying you
             settlement.fromPerson = member
             settlement.toPerson = currentUser
@@ -326,36 +386,9 @@ struct GroupSettlementView: View {
 
 private struct MemberBalanceChip: View {
     let member: Person
-    let balance: Double
+    let balance: CurrencyBalance
     let isSelected: Bool
     let onTap: () -> Void
-
-    private var balanceText: String {
-        let formatted = CurrencyFormatter.formatAbsolute(balance)
-        if balance > 0 {
-            return "owes \(formatted)"
-        } else {
-            return "owed \(formatted)"
-        }
-    }
-
-    private var balanceTextView: Text {
-        let formatted = CurrencyFormatter.formatAbsolute(balance)
-        if balance > 0 {
-            return Text("owes ") + Text(formatted).fontWeight(.bold)
-        } else {
-            return Text("owed ") + Text(formatted).fontWeight(.bold)
-        }
-    }
-
-    private var balanceColor: Color {
-        if balance > 0.01 {
-            return AppColors.positive
-        } else if balance < -0.01 {
-            return AppColors.negative
-        }
-        return AppColors.neutral
-    }
 
     var body: some View {
         Button(action: onTap) {
@@ -378,13 +411,56 @@ private struct MemberBalanceChip: View {
                     .foregroundColor(AppColors.textPrimary)
                     .lineLimit(1)
 
-                balanceTextView
-                    .font(AppTypography.labelSmall())
-                    .foregroundColor(balanceColor)
+                // Show compact multi-currency info
+                MultiCurrencyBalanceView(balance: balance, style: .compact)
                     .lineLimit(1)
             }
             .frame(width: 80)
             .padding(.vertical, Spacing.sm)
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+// MARK: - Currency Chip
+
+private struct CurrencyChip: View {
+    let currencyCode: String
+    let amount: Double
+    let isSelected: Bool
+    let onTap: () -> Void
+
+    private var balanceColor: Color {
+        if amount > 0.01 { return AppColors.positive }
+        else if amount < -0.01 { return AppColors.negative }
+        else { return AppColors.neutral }
+    }
+
+    var body: some View {
+        Button(action: onTap) {
+            VStack(spacing: Spacing.xs) {
+                Text(CurrencyFormatter.flag(for: currencyCode))
+                    .font(.system(size: 28))
+
+                Text(currencyCode)
+                    .font(AppTypography.labelDefault())
+                    .foregroundColor(AppColors.textPrimary)
+
+                Text(CurrencyFormatter.formatAbsolute(amount, currencyCode: currencyCode))
+                    .font(AppTypography.financialSmall())
+                    .foregroundColor(balanceColor)
+            }
+            .frame(width: 80)
+            .padding(.vertical, Spacing.md)
+            .padding(.horizontal, Spacing.sm)
+            .background(
+                RoundedRectangle(cornerRadius: CornerRadius.md)
+                    .fill(isSelected ? AppColors.accentMuted : AppColors.backgroundTertiary)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: CornerRadius.md)
+                    .stroke(isSelected ? AppColors.accent : Color.clear, lineWidth: 2)
+            )
         }
         .buttonStyle(.plain)
     }

@@ -13,8 +13,8 @@ struct QuickSettleSheetView: View {
     let people: [Person]
 
     @State private var selectedPerson: Person?
-    @State private var selectedBalance: Double = 0
-    @State private var peopleYouOwe: [(person: Person, amount: Double)] = []
+    @State private var selectedBalance: CurrencyBalance = CurrencyBalance()
+    @State private var peopleYouOwe: [(person: Person, balance: CurrencyBalance)] = []
 
     var body: some View {
         NavigationStack {
@@ -42,7 +42,7 @@ struct QuickSettleSheetView: View {
                                 Button {
                                     HapticManager.tap()
                                     selectedPerson = item.person
-                                    selectedBalance = item.amount
+                                    selectedBalance = item.balance
                                 } label: {
                                     HStack(spacing: Spacing.md) {
                                         // Avatar
@@ -70,9 +70,7 @@ struct QuickSettleSheetView: View {
                                         Spacer()
 
                                         // Amount
-                                        Text(CurrencyFormatter.formatAbsolute(item.amount))
-                                            .font(AppTypography.financialDefault())
-                                            .foregroundColor(AppColors.negative)
+                                        MultiCurrencyBalanceView(balance: item.balance, style: .compact)
 
                                         Image(systemName: "chevron.right")
                                             .font(.system(size: IconSize.xs, weight: .semibold))
@@ -103,17 +101,17 @@ struct QuickSettleSheetView: View {
                 }
             }
             .sheet(item: $selectedPerson) { person in
-                SettlementView(person: person, currentBalance: selectedBalance)
+                SettlementView(person: person, currentBalance: selectedBalance.primaryAmount, currentCurrencyBalance: selectedBalance)
             }
             .task {
                 peopleYouOwe = people
                     .filter { !CurrentUser.isCurrentUser($0.id) }
                     .compactMap { person in
                         let balance = person.calculateBalance()
-                        guard balance < -0.01 else { return nil }
-                        return (person: person, amount: balance)
+                        guard balance.hasNegative else { return nil }
+                        return (person: person, balance: balance)
                     }
-                    .sorted { abs($0.amount) > abs($1.amount) }
+                    .sorted { abs($0.balance.primaryAmount) > abs($1.balance.primaryAmount) }
             }
         }
     }

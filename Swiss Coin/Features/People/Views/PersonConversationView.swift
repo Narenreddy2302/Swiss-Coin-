@@ -92,6 +92,7 @@ struct PersonConversationView: View {
     struct UndoSettlementState {
         var isShowing = false
         var amount: Double = 0
+        var currency: String?
         var date = Date()
         var note: String?
         var isFullSettlement = false
@@ -107,7 +108,7 @@ struct PersonConversationView: View {
 
     // MARK: - Cached Data (computed asynchronously to avoid blocking main thread)
 
-    @State private var balance: Double = 0
+    @State private var balance: CurrencyBalance = CurrencyBalance()
     @State private var groupedItems: [ConversationDateGroup] = []
 
     private var allItems: [ConversationItem] {
@@ -116,22 +117,6 @@ struct PersonConversationView: View {
 
     private var totalItemCount: Int {
         groupedItems.reduce(0) { $0 + $1.items.count }
-    }
-
-    private var balanceLabel: String {
-        if balance > 0.01 { return "owes you" }
-        else if balance < -0.01 { return "you owe" }
-        else { return "settled" }
-    }
-
-    private var balanceAmount: String {
-        CurrencyFormatter.formatAbsolute(balance)
-    }
-
-    private var balanceColor: Color {
-        if balance > 0.01 { return AppColors.positive }
-        else if balance < -0.01 { return AppColors.negative }
-        else { return AppColors.neutral }
     }
 
     // MARK: - Body
@@ -205,7 +190,8 @@ struct PersonConversationView: View {
 
             // Action Bar
             ConversationActionBar(
-                balance: balance,
+                canSettle: !balance.isSettled,
+                canRemind: balance.hasPositive,
                 onAdd: { activeSheet = .addTransaction },
                 onSettle: { activeSheet = .settlement },
                 onRemind: { activeSheet = .reminder }
@@ -230,9 +216,6 @@ struct PersonConversationView: View {
             ToolbarItem(placement: .topBarLeading) {
                 toolbarLeadingContent
             }
-            ToolbarItem(placement: .topBarTrailing) {
-                toolbarTrailingContent
-            }
         }
         .sheet(item: $activeSheet) { sheet in
             switch sheet {
@@ -240,10 +223,10 @@ struct PersonConversationView: View {
                 AddTransactionPresenter(initialPerson: person)
                     .onAppear { HapticManager.sheetPresent() }
             case .settlement:
-                SettlementView(person: person, currentBalance: balance)
+                SettlementView(person: person, currentBalance: balance.primaryAmount, currentCurrencyBalance: balance)
                     .onAppear { HapticManager.sheetPresent() }
             case .reminder:
-                ReminderSheetView(person: person, amount: balance)
+                ReminderSheetView(person: person, amount: balance.primaryAmount)
                     .onAppear { HapticManager.sheetPresent() }
             case .personDetail:
                 NavigationStack {
@@ -317,11 +300,13 @@ struct PersonConversationView: View {
         )
         .task {
             loadConversationData()
+            markConversationViewed()
             isLoading = false
         }
         .onReceive(NotificationCenter.default.publisher(for: .NSManagedObjectContextDidSave)) { notification in
             guard isRelevantSave(notification) else { return }
             loadConversationData()
+            markConversationViewed()
         }
         .onChange(of: person.isDeleted) { _, isDeleted in
             if isDeleted { dismiss() }
@@ -378,6 +363,14 @@ struct PersonConversationView: View {
         .padding(.trailing, Spacing.lg)
         .padding(.bottom, Spacing.sm)
         .transition(.scale.combined(with: .opacity))
+    }
+
+    /// Update lastViewedDate to clear the badge for this person
+    private func markConversationViewed() {
+        guard person.lastViewedDate == nil ||
+              Date().timeIntervalSince(person.lastViewedDate!) > 1.0 else { return }
+        person.lastViewedDate = Date()
+        try? viewContext.save()
     }
 
     /// Recompute balance and conversation items. Called outside of body evaluation
@@ -506,10 +499,10 @@ struct PersonConversationView: View {
                 dismiss()
             } label: {
                 Image(systemName: "chevron.left")
-                    .font(AppTypography.headingMedium())
+                    .font(.system(size: IconSize.md, weight: .semibold))
                     .foregroundColor(AppColors.accent)
             }
-            .accessibilityLabel("Back")
+            .accessibilityLabel("Back to People")
 
             Button {
                 HapticManager.navigationTap()
@@ -524,7 +517,7 @@ struct PersonConversationView: View {
 
     @ViewBuilder
     private var personHeaderContent: some View {
-        HStack(spacing: Spacing.sm) {
+        HStack(spacing: Spacing.md) {
             Circle()
                 .fill(Color(hex: person.colorHex ?? CurrentUser.defaultColorHex).opacity(0.2))
                 .frame(width: AvatarSize.sm, height: AvatarSize.sm)
@@ -534,37 +527,25 @@ struct PersonConversationView: View {
                         .foregroundColor(Color(hex: person.colorHex ?? CurrentUser.defaultColorHex))
                 )
 
-            Text(person.name ?? "Unknown")
-                .font(AppTypography.headingMedium())
-                .foregroundColor(AppColors.textPrimary)
-                .lineLimit(1)
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
+                HStack(spacing: Spacing.xs) {
+                    Text(person.name ?? "Unknown")
+                        .font(AppTypography.headingMedium())
+                        .foregroundColor(AppColors.textPrimary)
+                        .lineLimit(1)
 
-            Image(systemName: "chevron.right")
-                .font(AppTypography.caption())
-                .foregroundColor(AppColors.textTertiary)
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundColor(AppColors.textTertiary)
+                }
+
+                personBalanceSubtitle
+            }
         }
     }
 
-    @ViewBuilder
-    private var toolbarTrailingContent: some View {
-        VStack(alignment: .trailing, spacing: Spacing.xxs) {
-            Text(balanceLabel)
-                .font(AppTypography.labelSmall())
-                .foregroundColor(AppColors.textSecondary)
-
-            Text(balanceAmount)
-                .font(AppTypography.financialSmall())
-                .foregroundColor(balanceColor)
-                .contentTransition(.numericText())
-        }
-        .padding(.horizontal, Spacing.sm)
-        .padding(.vertical, Spacing.xs)
-        .background(
-            Capsule()
-                .fill(balanceColor.opacity(0.1))
-        )
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("Balance: \(balanceLabel) \(balanceAmount)")
+    private var personBalanceSubtitle: some View {
+        BalancePillView(balance: balance)
     }
 
     // MARK: - Empty State
@@ -643,7 +624,7 @@ struct PersonConversationView: View {
                     HapticManager.copyAction()
                 },
                 onCopyAmount: {
-                    UIPasteboard.general.string = CurrencyFormatter.format(settlement.amount)
+                    UIPasteboard.general.string = CurrencyFormatter.format(settlement.amount, currencyCode: settlement.effectiveCurrency)
                     HapticManager.copyAction()
                 },
                 onDelete: {
@@ -681,7 +662,7 @@ struct PersonConversationView: View {
     // MARK: - Helper Methods
 
     private func settlementMessageText(_ settlement: Settlement) -> String {
-        let formatted = CurrencyFormatter.format(settlement.amount)
+        let formatted = CurrencyFormatter.format(settlement.amount, currencyCode: settlement.effectiveCurrency)
         let fromPersonId = settlement.fromPerson?.id
         let toPersonId = settlement.toPerson?.id
 
@@ -776,6 +757,7 @@ struct PersonConversationView: View {
 
     private func deleteSettlementWithUndo(_ settlement: Settlement) {
         undoSettlement.amount = settlement.amount
+        undoSettlement.currency = settlement.currency
         undoSettlement.date = settlement.date ?? Date()
         undoSettlement.note = settlement.note
         undoSettlement.isFullSettlement = settlement.isFullSettlement
@@ -801,6 +783,7 @@ struct PersonConversationView: View {
         let restored = Settlement(context: viewContext)
         restored.id = UUID()
         restored.amount = undoSettlement.amount
+        restored.currency = undoSettlement.currency
         restored.date = undoSettlement.date
         restored.note = undoSettlement.note
         restored.isFullSettlement = undoSettlement.isFullSettlement

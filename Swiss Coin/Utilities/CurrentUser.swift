@@ -31,6 +31,17 @@ final class CurrentUser {
     /// Current user's default color for UI elements
     static let defaultColorHex = AppColors.defaultAvatarColorHex
     
+    /// Floor date for badge system — prevents badges on pre-existing data
+    static var badgeFeatureActivationDate: Date {
+        let key = "badge_feature_activation_date"
+        if let stored = UserDefaults.standard.object(forKey: key) as? Date {
+            return stored
+        }
+        let now = Date()
+        UserDefaults.standard.set(now, forKey: key)
+        return now
+    }
+
     /// Current user's display name
     static let displayName = "You"
     

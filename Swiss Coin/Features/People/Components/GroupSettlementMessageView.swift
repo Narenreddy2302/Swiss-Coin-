@@ -12,7 +12,7 @@ struct GroupSettlementMessageView: View {
     var onDelete: (() -> Void)? = nil
 
     private var messageText: String {
-        let formatted = CurrencyFormatter.format(settlement.amount)
+        let formatted = CurrencyFormatter.format(settlement.amount, currencyCode: settlement.effectiveCurrency)
         let fromPersonId = settlement.fromPerson?.id
         let toPersonId = settlement.toPerson?.id
 
@@ -48,7 +48,7 @@ struct GroupSettlementMessageView: View {
             }
 
             Button {
-                UIPasteboard.general.string = CurrencyFormatter.format(settlement.amount)
+                UIPasteboard.general.string = CurrencyFormatter.format(settlement.amount, currencyCode: settlement.effectiveCurrency)
                 HapticManager.copyAction()
             } label: {
                 Label("Copy Amount", systemImage: "dollarsign.circle")

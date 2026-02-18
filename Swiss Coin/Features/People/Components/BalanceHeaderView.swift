@@ -7,51 +7,16 @@ import SwiftUI
 
 struct BalanceHeaderView: View {
     let person: Person
-    let balance: Double
+    let balance: CurrencyBalance
     let onAvatarTap: () -> Void
 
-    private var balanceText: String {
-        let formatted = CurrencyFormatter.format(abs(balance))
-
-        if balance > 0.01 {
-            return "\(person.firstName) owes you \(formatted)"
-        } else if balance < -0.01 {
-            return "You owe \(person.firstName) \(formatted)"
-        } else {
-            return "All settled up!"
-        }
-    }
-
-    private var balanceTextView: Text {
-        let formatted = CurrencyFormatter.format(abs(balance))
-
-        if balance > 0.01 {
-            return Text("\(person.firstName) owes you ") + Text(formatted).fontWeight(.bold)
-        } else if balance < -0.01 {
-            return Text("You owe \(person.firstName) ") + Text(formatted).fontWeight(.bold)
-        } else {
-            return Text("All settled up!")
-        }
-    }
-
-    private var balanceColor: Color {
-        if balance > 0.01 {
-            return AppColors.positive
-        } else if balance < -0.01 {
-            return AppColors.negative
-        } else {
-            return AppColors.neutral
-        }
-    }
-
     private var balanceBackgroundColor: Color {
-        if balance > 0.01 {
-            return AppColors.positive.opacity(0.1)
-        } else if balance < -0.01 {
-            return AppColors.negative.opacity(0.1)
-        } else {
-            return AppColors.backgroundTertiary
-        }
+        let sorted = balance.sortedCurrencies
+        if sorted.isEmpty { return AppColors.backgroundTertiary }
+        let primary = sorted[0].amount
+        if primary > 0.01 { return AppColors.positive.opacity(0.1) }
+        else if primary < -0.01 { return AppColors.negative.opacity(0.1) }
+        else { return AppColors.backgroundTertiary }
     }
 
     var body: some View {
@@ -79,9 +44,11 @@ struct BalanceHeaderView: View {
             // Balance Card
             HStack {
                 Spacer()
-                balanceTextView
-                    .font(AppTypography.labelLarge())
-                    .foregroundColor(balanceColor)
+                MultiCurrencyBalanceView(
+                    balance: balance,
+                    style: .expanded,
+                    personName: person.firstName
+                )
                 Spacer()
             }
             .padding(.vertical, Spacing.md)

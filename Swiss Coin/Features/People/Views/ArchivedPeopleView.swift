@@ -110,7 +110,7 @@ private struct ArchivedPersonRow: View {
     let onDelete: () -> Void
 
     @State private var showingDeleteAlert = false
-    @State private var balance: Double = 0
+    @State private var balance: CurrencyBalance = CurrencyBalance()
 
     var body: some View {
         HStack(spacing: Spacing.md) {
@@ -131,15 +131,7 @@ private struct ArchivedPersonRow: View {
                     .foregroundColor(AppColors.textPrimary)
                     .lineLimit(1)
 
-                if abs(balance) > 0.01 {
-                    Text(CurrencyFormatter.formatAbsolute(balance))
-                        .font(AppTypography.bodyDefault())
-                        .foregroundColor(balance > 0 ? AppColors.positive : AppColors.negative)
-                } else {
-                    Text("settled up")
-                        .font(AppTypography.bodyDefault())
-                        .foregroundColor(AppColors.neutral)
-                }
+                MultiCurrencyBalanceView(balance: balance, style: .compact)
             }
 
             Spacer()

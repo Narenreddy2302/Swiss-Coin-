@@ -6,47 +6,31 @@ struct MainTabView: View {
 
     @State private var selectedTab = 0
 
-    // Fetch unread reminders for People badge (limited for performance)
+    // Fetch all non-archived persons for badge calculation
     @FetchRequest(fetchRequest: {
-        let request: NSFetchRequest<Reminder> = Reminder.fetchRequest()
-        request.sortDescriptors = [NSSortDescriptor(keyPath: \Reminder.createdDate, ascending: false)]
-        request.predicate = NSPredicate(format: "isRead == NO")
-        request.fetchLimit = 99  // Badge max
+        let request: NSFetchRequest<Person> = Person.fetchRequest()
+        request.sortDescriptors = []
+        request.predicate = NSPredicate(format: "isArchived == NO OR isArchived == nil")
+        request.fetchBatchSize = 50
         return request
     }(), animation: .default)
-    private var unreadReminders: FetchedResults<Reminder>
+    private var allPersons: FetchedResults<Person>
 
-    // Fetch unread chat messages (non-user messages) for People badge (limited for performance)
+    // Fetch all groups for badge calculation
     @FetchRequest(fetchRequest: {
-        let request: NSFetchRequest<ChatMessage> = ChatMessage.fetchRequest()
-        request.sortDescriptors = [NSSortDescriptor(keyPath: \ChatMessage.timestamp, ascending: false)]
-        request.predicate = NSPredicate(format: "isFromUser == NO")
-        request.fetchLimit = 99
+        let request: NSFetchRequest<UserGroup> = UserGroup.fetchRequest()
+        request.sortDescriptors = []
+        request.fetchBatchSize = 50
         return request
     }(), animation: .default)
-    private var incomingMessages: FetchedResults<ChatMessage>
+    private var allGroups: FetchedResults<UserGroup>
 
-    // Fetch active subscriptions for due-soon badge (limited for performance)
-    @FetchRequest(fetchRequest: {
-        let request: NSFetchRequest<Subscription> = Subscription.fetchRequest()
-        request.sortDescriptors = [NSSortDescriptor(keyPath: \Subscription.nextBillingDate, ascending: true)]
-        let threeDaysFromNow: Date = Calendar.current.date(byAdding: .day, value: 3, to: Date()) ?? Date()
-        request.predicate = NSPredicate(format: "isActive == YES AND nextBillingDate <= %@",
-            threeDaysFromNow as NSDate)
-        request.fetchLimit = 99
-        return request
-    }(), animation: .default)
-    private var activeSubscriptions: FetchedResults<Subscription>
-
-    /// Badge count for People tab: unread reminders count
+    /// Badge count for People tab: contacts/groups with new activity since last viewed
     private var peopleBadge: Int {
-        unreadReminders.count
-    }
-
-    /// Badge count for Subscriptions tab: subscriptions due within 3 days
-    /// Now computed directly from fetch results since predicate already filters
-    private var subscriptionsBadge: Int {
-        activeSubscriptions.count
+        let currentUserId = CurrentUser.currentUserId
+        let personCount = allPersons.filter { $0.id != currentUserId && $0.hasNewActivity }.count
+        let groupCount = allGroups.filter { $0.hasNewActivity }.count
+        return personCount + groupCount
     }
 
     var body: some View {
@@ -68,7 +52,6 @@ struct MainTabView: View {
                 .tabItem {
                     Label("Subscriptions", systemImage: "creditcard.fill")
                 }
-                .badge(subscriptionsBadge > 0 ? subscriptionsBadge : 0)
                 .tag(2)
 
             SearchView()

@@ -9,16 +9,15 @@
 import SwiftUI
 
 struct GroupConversationActionBar: View {
-    let balance: Double
-    let memberBalances: [(member: Person, balance: Double)]
-    let membersWhoOweYou: [(member: Person, amount: Double)]
+    let memberBalances: [(member: Person, balance: CurrencyBalance)]
+    let membersWhoOweYou: [(member: Person, balance: CurrencyBalance)]
     let onAdd: () -> Void
     let onSettle: () -> Void
     let onRemind: () -> Void
 
     /// Enable settle if ANY member has a non-zero balance (not just net group total)
     private var canSettle: Bool {
-        memberBalances.contains { abs($0.balance) > 0.01 }
+        memberBalances.contains { !$0.balance.isSettled }
     }
 
     private var canRemind: Bool {

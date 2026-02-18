@@ -27,7 +27,7 @@ struct PeopleView: View {
                 .animation(AppAnimation.standard, value: selectedSegment)
             }
             .background(AppColors.backgroundSecondary)
-            .navigationTitle("Contacts")
+            .navigationTitle("People")
             .navigationBarTitleDisplayMode(.large)
             // Navigation to conversation after contact selection
             .navigationDestination(item: $selectedPersonForConversation) { person in
@@ -150,7 +150,7 @@ struct PersonListView: View {
 
     var body: some View {
         ScrollView {
-            VStack(spacing: Spacing.xl) {
+            VStack(spacing: Spacing.md) {
                 // MARK: - Scrollable Header
                 ContactsScrollHeader(searchText: $searchText, selectedSegment: $selectedSegment)
 
@@ -251,7 +251,6 @@ struct PersonListView: View {
                 Spacer()
                     .frame(height: Spacing.section + Spacing.sm)
             }
-            .padding(.top, Spacing.lg)
         }
         .scrollDismissesKeyboard(.interactively)
         .refreshable {
@@ -482,40 +481,13 @@ struct PersonListRowView: View {
     @State private var showingEditPerson = false
     @State private var showingDeleteConfirmation = false
 
-    @State private var balance: Double = 0
+    @State private var balance: CurrencyBalance = CurrencyBalance()
 
-    private var balanceText: String {
-        let formatted = CurrencyFormatter.formatAbsolute(balance)
-
-        if balance > 0.01 {
-            return "owes you \(formatted)"
-        } else if balance < -0.01 {
-            return "you owe \(formatted)"
-        } else {
-            return "settled up"
-        }
-    }
-
-    private var balanceTextView: Text {
-        let formatted = CurrencyFormatter.formatAbsolute(balance)
-
-        if balance > 0.01 {
-            return Text("owes you ") + Text(formatted).fontWeight(.bold)
-        } else if balance < -0.01 {
-            return Text("you owe ") + Text(formatted).fontWeight(.bold)
-        } else {
-            return Text("settled up")
-        }
-    }
-
-    private var balanceColor: Color {
-        if balance > 0.01 {
-            return AppColors.positive
-        } else if balance < -0.01 {
-            return AppColors.negative
-        } else {
-            return AppColors.neutral
-        }
+    private var primaryBalanceColor: Color {
+        let primary = balance.primaryAmount
+        if primary > 0.01 { return AppColors.positive }
+        else if primary < -0.01 { return AppColors.negative }
+        else { return AppColors.neutral }
     }
 
     var body: some View {
@@ -536,25 +508,24 @@ struct PersonListRowView: View {
                     .foregroundColor(AppColors.textPrimary)
                     .lineLimit(1)
 
-                balanceTextView
-                    .font(AppTypography.bodySmall())
-                    .foregroundColor(balanceColor)
+                MultiCurrencyBalanceView(balance: balance, style: .compact)
                     .lineLimit(1)
             }
 
             Spacer()
 
-            if abs(balance) > 0.01 {
-                Text(CurrencyFormatter.formatAbsolute(balance))
+            if !balance.isSettled {
+                let primary = balance.sortedCurrencies.first!
+                Text(CurrencyFormatter.formatAbsolute(primary.amount, currencyCode: primary.code))
                     .font(AppTypography.financialDefault())
-                    .foregroundColor(balanceColor)
+                    .foregroundColor(primaryBalanceColor)
             }
         }
         .padding(.vertical, Spacing.md)
         .padding(.horizontal, Spacing.lg)
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(person.name ?? "Unknown"), \(balanceText)")
+        .accessibilityLabel("\(person.name ?? "Unknown")")
         .contextMenu {
             Button {
                 HapticManager.lightTap()
@@ -577,7 +548,7 @@ struct PersonListRowView: View {
                 Label("Add Expense", systemImage: "plus.circle")
             }
 
-            if balance > 0.01 {
+            if balance.hasPositive {
                 Button {
                     HapticManager.lightTap()
                     showingReminder = true
@@ -624,7 +595,7 @@ struct PersonListRowView: View {
             AddTransactionPresenter(initialPerson: person)
         }
         .sheet(isPresented: $showingReminder) {
-            ReminderSheetView(person: person, amount: balance)
+            ReminderSheetView(person: person, amount: balance.primaryAmount)
         }
         .alert("Delete Person", isPresented: $showingDeleteConfirmation) {
             Button("Cancel", role: .cancel) {}
@@ -692,7 +663,7 @@ struct GroupListView: View {
         Group {
             if groups.isEmpty && searchText.isEmpty {
                 ScrollView {
-                    VStack(spacing: Spacing.xl) {
+                    VStack(spacing: Spacing.md) {
                         ContactsScrollHeader(searchText: $searchText, selectedSegment: $selectedSegment)
                         GroupEmptyStateView()
                     }
@@ -703,7 +674,7 @@ struct GroupListView: View {
                 }
             } else {
                 ScrollView {
-                    VStack(spacing: Spacing.xl) {
+                    VStack(spacing: Spacing.md) {
                         // Scrollable Header
                         ContactsScrollHeader(searchText: $searchText, selectedSegment: $selectedSegment)
 
@@ -802,40 +773,13 @@ struct GroupListRowView: View {
     @State private var showingEditGroup = false
     @State private var showingDeleteConfirmation = false
 
-    @State private var balance: Double = 0
+    @State private var balance: CurrencyBalance = CurrencyBalance()
 
-    private var balanceText: String {
-        let formatted = CurrencyFormatter.formatAbsolute(balance)
-
-        if balance > 0.01 {
-            return "you're owed \(formatted)"
-        } else if balance < -0.01 {
-            return "you owe \(formatted)"
-        } else {
-            return "settled up"
-        }
-    }
-
-    private var balanceTextView: Text {
-        let formatted = CurrencyFormatter.formatAbsolute(balance)
-
-        if balance > 0.01 {
-            return Text("you're owed ") + Text(formatted).fontWeight(.bold)
-        } else if balance < -0.01 {
-            return Text("you owe ") + Text(formatted).fontWeight(.bold)
-        } else {
-            return Text("settled up")
-        }
-    }
-
-    private var balanceColor: Color {
-        if balance > 0.01 {
-            return AppColors.positive
-        } else if balance < -0.01 {
-            return AppColors.negative
-        } else {
-            return AppColors.neutral
-        }
+    private var primaryBalanceColor: Color {
+        let primary = balance.primaryAmount
+        if primary > 0.01 { return AppColors.positive }
+        else if primary < -0.01 { return AppColors.negative }
+        else { return AppColors.neutral }
     }
 
     private var memberCount: Int {
@@ -865,30 +809,29 @@ struct GroupListRowView: View {
                         .font(AppTypography.bodySmall())
                         .foregroundColor(AppColors.textSecondary)
 
-                    Text("•")
+                    Text("\u{2022}")
                         .font(AppTypography.bodySmall())
                         .foregroundColor(AppColors.textSecondary)
 
-                    balanceTextView
-                        .font(AppTypography.bodySmall())
-                        .foregroundColor(balanceColor)
+                    MultiCurrencyBalanceView(balance: balance, style: .compact)
                 }
                 .lineLimit(1)
             }
 
             Spacer()
 
-            if abs(balance) > 0.01 {
-                Text(CurrencyFormatter.formatAbsolute(balance))
+            if !balance.isSettled {
+                let primary = balance.sortedCurrencies.first!
+                Text(CurrencyFormatter.formatAbsolute(primary.amount, currencyCode: primary.code))
                     .font(AppTypography.financialDefault())
-                    .foregroundColor(balanceColor)
+                    .foregroundColor(primaryBalanceColor)
             }
         }
         .padding(.vertical, Spacing.md)
         .padding(.horizontal, Spacing.lg)
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(group.name ?? "Unknown Group"), \(memberCount) members, \(balanceText)")
+        .accessibilityLabel("\(group.name ?? "Unknown Group"), \(memberCount) members")
         .contextMenu {
             Button {
                 HapticManager.lightTap()
@@ -911,7 +854,7 @@ struct GroupListRowView: View {
                 Label("Add Expense", systemImage: "plus.circle")
             }
 
-            if balance > 0.01 {
+            if balance.hasPositive {
                 Button {
                     HapticManager.lightTap()
                     showingReminders = true
@@ -1014,8 +957,8 @@ private struct ContactsScrollHeader: View {
                 }
             }
             .padding(.horizontal)
-            .padding(.top, Spacing.sm)
-            .padding(.bottom, Spacing.sm)
+            .padding(.top, Spacing.md)
+            .padding(.bottom, Spacing.xs)
         }
     }
 }

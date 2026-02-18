@@ -6,18 +6,15 @@
 import SwiftUI
 
 struct ConversationActionBar: View {
-    let balance: Double
+    let canSettle: Bool
+    let canRemind: Bool
     let onAdd: () -> Void
     let onSettle: () -> Void
     let onRemind: () -> Void
 
-    private var canRemind: Bool {
-        balance > 0.01 // Only show remind when they owe you
-    }
-
     var body: some View {
         StandardActionBar(
-            balance: balance,
+            canSettle: canSettle,
             canRemind: canRemind,
             onAdd: onAdd,
             onSettle: onSettle,

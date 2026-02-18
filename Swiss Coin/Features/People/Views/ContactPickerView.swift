@@ -127,89 +127,85 @@ struct ContactPickerView: View {
                 emptyContactsView
             } else {
                 ScrollView {
-                    VStack(alignment: .leading, spacing: Spacing.xl) {
-                        // Add Manually row
-                        Button {
-                            HapticManager.tap()
-                            showingManualEntry()
-                        } label: {
-                            HStack(spacing: Spacing.md) {
-                                Image(systemName: "person.fill.badge.plus")
-                                    .font(.system(size: IconSize.md))
-                                    .foregroundColor(AppColors.accent)
-                                    .frame(width: AvatarSize.md, height: AvatarSize.md)
-                                    .background(AppColors.accent.opacity(0.1))
-                                    .clipShape(Circle())
+                    VStack(spacing: Spacing.xl) {
+                        contactsSection
+                    }
+                    .padding(.horizontal, Spacing.lg)
+                    .padding(.top, Spacing.lg)
+                    .padding(.bottom, Spacing.section + Spacing.sm)
+                }
+            }
+        }
+    }
 
-                                Text("Add Manually")
-                                    .font(AppTypography.bodyLarge())
-                                    .foregroundColor(AppColors.accent)
+    private var contactsSection: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            // Section header
+            HStack {
+                Text("Phone Contacts")
+                    .font(AppTypography.labelLarge())
+                    .foregroundColor(AppColors.textSecondary)
 
-                                Spacer()
+                Spacer()
 
-                                Image(systemName: "chevron.right")
-                                    .font(.system(size: IconSize.xs, weight: .semibold))
-                                    .foregroundColor(AppColors.textTertiary)
+                Text("\(filteredContacts.count)")
+                    .font(AppTypography.caption())
+                    .foregroundColor(AppColors.textTertiary)
+                    .padding(.horizontal, Spacing.sm)
+                    .padding(.vertical, Spacing.xxs)
+                    .background(
+                        Capsule()
+                            .fill(AppColors.backgroundTertiary)
+                    )
+            }
+            .padding(.horizontal, Spacing.lg)
+            .padding(.bottom, Spacing.sm)
+
+            // Contact rows
+            if filteredContacts.isEmpty {
+                // Search empty state
+                VStack(spacing: Spacing.md) {
+                    Image(systemName: "magnifyingglass")
+                        .font(.system(size: IconSize.xl))
+                        .foregroundColor(AppColors.textTertiary)
+                    Text("No contacts match your search")
+                        .font(AppTypography.bodyDefault())
+                        .foregroundColor(AppColors.textSecondary)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, Spacing.xxxl)
+                .background(
+                    RoundedRectangle(cornerRadius: CornerRadius.card)
+                        .fill(AppColors.cardBackground)
+                        .shadow(color: AppColors.shadowSubtle, radius: 8, x: 0, y: 2)
+                )
+            } else {
+                LazyVStack(spacing: 0) {
+                    ForEach(filteredContacts) { contact in
+                        let isExisting = contactAlreadyExists(contact)
+                        ContactRowView(
+                            contact: contact,
+                            isExisting: isExisting,
+                            onAdd: isExisting ? nil : {
+                                handleContactTap(contact)
                             }
-                            .padding(.vertical, Spacing.md)
-                            .padding(.horizontal, Spacing.lg)
-                            .contentShape(Rectangle())
-                        }
-                        .buttonStyle(PlainButtonStyle())
-                        .background(
-                            RoundedRectangle(cornerRadius: CornerRadius.md)
-                                .fill(AppColors.cardBackground)
                         )
-                        .padding(.horizontal)
+                        .onTapGesture {
+                            handleContactTap(contact)
+                        }
 
-                        // Phone Contacts section
-                        VStack(alignment: .leading, spacing: Spacing.sm) {
-                            HStack(spacing: Spacing.sm) {
-                                Text("PHONE CONTACTS")
-                                    .font(AppTypography.bodySmall())
-                                    .foregroundColor(AppColors.textSecondary)
-
-                                Spacer()
-
-                                Text("\(filteredContacts.count)")
-                                    .font(AppTypography.caption())
-                                    .foregroundColor(AppColors.textSecondary)
-                                    .padding(.horizontal, Spacing.sm)
-                                    .padding(.vertical, Spacing.xxs)
-                                    .background(
-                                        Capsule()
-                                            .fill(AppColors.surface.opacity(0.8))
-                                    )
-                            }
-                            .padding(.horizontal, Spacing.lg)
-
-                            LazyVStack(spacing: 0) {
-                                ForEach(filteredContacts) { contact in
-                                    ContactRowView(
-                                        contact: contact,
-                                        isExisting: contactAlreadyExists(contact)
-                                    )
-                                    .onTapGesture {
-                                        handleContactTap(contact)
-                                    }
-
-                                    if contact.id != filteredContacts.last?.id {
-                                        Divider()
-                                            .padding(.leading, AvatarSize.md + Spacing.md + Spacing.lg)
-                                    }
-                                }
-                            }
-                            .clipShape(RoundedRectangle(cornerRadius: CornerRadius.md))
-                            .background(
-                                RoundedRectangle(cornerRadius: CornerRadius.md)
-                                    .fill(AppColors.cardBackground)
-                            )
-                            .padding(.horizontal)
+                        if contact.id != filteredContacts.last?.id {
+                            Divider()
+                                .padding(.leading, Spacing.lg)
                         }
                     }
-                    .padding(.top, Spacing.lg)
-                    .padding(.bottom, Spacing.section)
                 }
+                .background(
+                    RoundedRectangle(cornerRadius: CornerRadius.card)
+                        .fill(AppColors.cardBackground)
+                        .shadow(color: AppColors.shadowSubtle, radius: 8, x: 0, y: 2)
+                )
+                .clipShape(RoundedRectangle(cornerRadius: CornerRadius.card))
             }
         }
     }
@@ -517,6 +513,7 @@ struct ContactPickerView: View {
 struct ContactRowView: View {
     let contact: ContactsManager.PhoneContact
     let isExisting: Bool
+    var onAdd: (() -> Void)? = nil
 
     var body: some View {
         HStack(spacing: Spacing.md) {
@@ -555,26 +552,24 @@ struct ContactRowView: View {
 
             Spacer()
 
-            // Status indicator
-            if isExisting {
-                HStack(spacing: Spacing.xs) {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: IconSize.sm))
-                        .foregroundColor(AppColors.positive)
-                    Text("Added")
-                        .font(AppTypography.caption())
-                        .foregroundColor(AppColors.positive)
+            // Plus button for non-existing contacts only
+            if !isExisting, let onAdd {
+                Button {
+                    HapticManager.tap()
+                    onAdd()
+                } label: {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.system(size: IconSize.lg))
+                        .foregroundColor(AppColors.accent)
                 }
-            } else {
-                Image(systemName: "chevron.right")
-                    .font(.system(size: IconSize.xs, weight: .semibold))
-                    .foregroundColor(AppColors.textTertiary)
+                .buttonStyle(PlainButtonStyle())
+                .accessibilityLabel("Add \(contact.fullName)")
             }
         }
         .padding(.vertical, Spacing.md)
         .padding(.horizontal, Spacing.lg)
         .contentShape(Rectangle())
-        .opacity(isExisting ? 0.7 : 1.0)
+        .opacity(isExisting ? 0.6 : 1.0)
     }
 }
 
