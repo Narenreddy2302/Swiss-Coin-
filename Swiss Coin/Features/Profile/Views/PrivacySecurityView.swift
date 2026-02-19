@@ -413,7 +413,7 @@ struct PrivacySecurityView: View {
                 viewModel.clearAllData()
             }
         } message: {
-            Text("This will permanently delete all your data and sign you out.")
+            Text("This will permanently delete all your data and reset the app.")
         }
         .sheet(isPresented: $viewModel.showingPINSetup) {
             PINSetupView(

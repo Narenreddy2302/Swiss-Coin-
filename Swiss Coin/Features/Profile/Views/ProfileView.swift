@@ -17,7 +17,7 @@ struct ProfileView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @State private var currentUser: Person?
-    @State private var showingLogoutAlert = false
+    @State private var showingResetAlert = false
     @State private var userPhoto: UIImage?
 
     // Settings
@@ -75,6 +75,14 @@ struct ProfileView: View {
         }
     }
 
+    private var resolvedColorScheme: ColorScheme? {
+        switch themeMode {
+        case "light": return .light
+        case "dark": return .dark
+        default: return nil
+        }
+    }
+
     private var isDarkMode: Binding<Bool> {
         Binding(
             get: {
@@ -84,9 +92,14 @@ struct ProfileView: View {
                 return themeMode == "dark"
             },
             set: { newValue in
+                HapticManager.toggle()
                 let mode = newValue ? "dark" : "light"
-                themeMode = mode
-                ThemeTransitionManager.shared.transition(to: mode, reduceMotion: reduceMotion)
+                let duration = reduceMotion
+                    ? AppAnimation.themeTransitionReducedDuration
+                    : AppAnimation.themeTransitionDuration
+                withAnimation(.easeInOut(duration: duration)) {
+                    themeMode = mode
+                }
             }
         )
     }
@@ -132,11 +145,11 @@ struct ProfileView: View {
                 loadCurrentUser()
                 loadSecuritySettings()
             }
-            .alert("Log Out", isPresented: $showingLogoutAlert) {
+            .alert("Reset App", isPresented: $showingResetAlert) {
                 Button("Cancel", role: .cancel) {}
-                Button("Log Out", role: .destructive) { logOut() }
+                Button("Reset", role: .destructive) { resetApp() }
             } message: {
-                Text("Are you sure you want to log out?")
+                Text("This will erase all your data and start fresh. This action cannot be undone.")
             }
             .alert("Biometric Error", isPresented: $showingBiometricError) {
                 Button("OK", role: .cancel) {}
@@ -150,6 +163,7 @@ struct ProfileView: View {
                 )
             }
         }
+        .preferredColorScheme(resolvedColorScheme)
     }
 
     // MARK: - Sections
@@ -412,12 +426,12 @@ struct ProfileView: View {
     private var logOutSection: some View {
         Button {
             HapticManager.warning()
-            showingLogoutAlert = true
+            showingResetAlert = true
         } label: {
             HStack(spacing: Spacing.xs) {
-                Image(systemName: "rectangle.portrait.and.arrow.right")
+                Image(systemName: "arrow.counterclockwise")
                     .font(.system(size: IconSize.sm))
-                Text("Log Out")
+                Text("Reset App")
                     .font(AppTypography.buttonDefault())
             }
         }
@@ -491,7 +505,7 @@ struct ProfileView: View {
         UserDefaults.standard.set(false, forKey: "pin_enabled")
     }
 
-    private func logOut() {
+    private func resetApp() {
         HapticManager.warning()
         Task { await AuthManager.shared.signOut() }
         dismiss()
