@@ -19,6 +19,7 @@ struct Swiss_CoinApp: App {
 
     init() {
         registerBackgroundSync()
+        configureTabBarAppearance()
     }
 
     var body: some Scene {
@@ -56,6 +57,47 @@ struct Swiss_CoinApp: App {
         default:
             return nil // System default
         }
+    }
+
+    // MARK: - Tab Bar Appearance
+
+    private func configureTabBarAppearance() {
+        let appearance = UITabBarAppearance()
+        appearance.configureWithOpaqueBackground()
+
+        appearance.backgroundColor = UIColor { tc in
+            tc.userInterfaceStyle == .dark
+                ? UIColor(hex: "#2C2C2E")
+                : UIColor(hex: "#F7F5F3")
+        }
+
+        appearance.shadowColor = UIColor { tc in
+            tc.userInterfaceStyle == .dark
+                ? UIColor(hex: "#38383A")
+                : UIColor(hex: "#F0EDEA")
+        }
+
+        let selected = UIColor { tc in
+            tc.userInterfaceStyle == .dark
+                ? UIColor(hex: "#F36D30") : UIColor(hex: "#F35B16")
+        }
+        let unselected = UIColor { tc in
+            tc.userInterfaceStyle == .dark
+                ? UIColor(hex: "#6B6560") : UIColor(hex: "#A8A29E")
+        }
+
+        let itemAppearance = UITabBarItemAppearance()
+        itemAppearance.selected.iconColor = selected
+        itemAppearance.selected.titleTextAttributes = [.foregroundColor: selected]
+        itemAppearance.normal.iconColor = unselected
+        itemAppearance.normal.titleTextAttributes = [.foregroundColor: unselected]
+
+        appearance.stackedLayoutAppearance = itemAppearance
+        appearance.inlineLayoutAppearance = itemAppearance
+        appearance.compactInlineLayoutAppearance = itemAppearance
+
+        UITabBar.appearance().standardAppearance = appearance
+        UITabBar.appearance().scrollEdgeAppearance = appearance
     }
 
     // MARK: - Background Sync
