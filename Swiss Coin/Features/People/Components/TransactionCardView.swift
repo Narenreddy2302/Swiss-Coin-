@@ -325,12 +325,12 @@ struct TransactionCardView: View {
             } label: {
                 Text("Edit")
                     .font(AppTypography.buttonSmall())
-                    .foregroundColor(AppColors.textPrimary)
+                    .foregroundColor(AppColors.textSecondary)
                     .frame(maxWidth: .infinity)
                     .frame(height: ButtonHeight.sm)
                     .background(
                         RoundedRectangle(cornerRadius: CornerRadius.button)
-                            .stroke(AppColors.border, lineWidth: 1)
+                            .stroke(AppColors.borderStrong, lineWidth: 1)
                     )
             }
         }
