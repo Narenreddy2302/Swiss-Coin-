@@ -463,6 +463,11 @@ struct PersonConversationView: View {
                 return (CurrentUser.initials, CurrentUser.defaultColorHex)
             }
             return (person.initials, person.colorHex ?? CurrentUser.defaultColorHex)
+        case .directMessage(let dm):
+            if CurrentUser.isCurrentUser(dm.senderId) {
+                return (CurrentUser.initials, CurrentUser.defaultColorHex)
+            }
+            return (person.initials, person.colorHex ?? CurrentUser.defaultColorHex)
         }
     }
 
@@ -656,6 +661,34 @@ struct PersonConversationView: View {
                     isMessageInputFocused = true
                 }
             )
+
+        case .directMessage(let dm):
+            directMessageBubble(dm)
+        }
+    }
+
+    // MARK: - Direct Message Bubble
+
+    private func directMessageBubble(_ dm: DirectMessage) -> some View {
+        let isFromUser = CurrentUser.isCurrentUser(dm.senderId)
+        return HStack {
+            if isFromUser { Spacer(minLength: Spacing.xxxl) }
+            VStack(alignment: isFromUser ? .trailing : .leading, spacing: Spacing.xxs) {
+                Text(dm.content ?? "")
+                    .font(AppTypography.bodyDefault())
+                    .foregroundColor(isFromUser ? AppColors.userBubbleText : AppColors.otherBubbleText)
+                    .padding(.horizontal, Spacing.md)
+                    .padding(.vertical, Spacing.sm)
+                    .background(isFromUser ? AppColors.userBubble : AppColors.otherBubble)
+                    .cornerRadius(CornerRadius.card)
+
+                if let date = dm.createdAt {
+                    Text(date, style: .time)
+                        .font(AppTypography.caption())
+                        .foregroundColor(AppColors.textTertiary)
+                }
+            }
+            if !isFromUser { Spacer(minLength: Spacing.xxxl) }
         }
     }
 

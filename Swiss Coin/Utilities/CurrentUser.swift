@@ -17,15 +17,10 @@ final class CurrentUser {
     /// The current user's unique identifier
     /// This would typically be stored in UserDefaults or Keychain
     private static var _currentUserId: UUID? = {
-        // For demo purposes, create a consistent UUID
-        // In production, this would be loaded from secure storage
         if let stored = UserDefaults.standard.string(forKey: "currentUserId") {
             return UUID(uuidString: stored)
-        } else {
-            let newId = UUID()
-            UserDefaults.standard.set(newId.uuidString, forKey: "currentUserId")
-            return newId
         }
+        return nil
     }()
     
     /// Current user's default color for UI elements

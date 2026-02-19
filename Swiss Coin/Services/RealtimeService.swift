@@ -8,6 +8,7 @@
 //
 
 import Combine
+import CoreData
 import Foundation
 import Supabase
 import os
@@ -82,6 +83,10 @@ final class RealtimeService: ObservableObject {
         self.channel = channel
         isSubscribed = true
         logger.info("Subscribed to realtime channel for user \(userId.uuidString)")
+
+        // Also subscribe to cross-user direct messages
+        let context = PersistenceController.shared.container.viewContext
+        await ConversationService.shared.subscribeToMessages(context: context)
     }
 
     // MARK: - Unsubscribe

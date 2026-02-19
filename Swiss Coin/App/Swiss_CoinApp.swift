@@ -8,9 +8,12 @@
 import BackgroundTasks
 import CoreData
 import SwiftUI
+import UIKit
+import UserNotifications
 
 @main
 struct Swiss_CoinApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     let persistenceController = PersistenceController.shared
     @AppStorage("theme_mode") private var themeMode = "system"
     @Environment(\.scenePhase) private var scenePhase
@@ -20,6 +23,7 @@ struct Swiss_CoinApp: App {
     init() {
         registerBackgroundSync()
         configureTabBarAppearance()
+        registerForPushNotifications()
     }
 
     var body: some Scene {
@@ -28,6 +32,10 @@ struct Swiss_CoinApp: App {
                 .environment(\.managedObjectContext, persistenceController.container.viewContext)
                 .preferredColorScheme(colorScheme)
                 .tint(AppColors.accent)
+                .onOpenURL { _ in
+                    // Auth callbacks are handled by Supabase SDK automatically.
+                    // No manual processing needed for native Apple Sign-In.
+                }
         }
         .onChange(of: scenePhase) { _, newPhase in
             switch newPhase {
@@ -36,10 +44,18 @@ struct Swiss_CoinApp: App {
                 scheduleBackgroundSync()
             case .active:
                 AppLockManager.shared.appDidEnterForeground()
-                // Trigger sync when app becomes active
                 if AuthManager.shared.authState == .authenticated {
+                    // Re-verify Apple credential hasn't been revoked
+                    Task { await AuthManager.shared.checkAppleCredentialState() }
                     let context = persistenceController.container.viewContext
                     SyncManager.shared.syncAll(context: context)
+
+                    // Run contact discovery if stale (throttled to once per hour)
+                    if ContactDiscoveryService.shared.shouldRunDiscovery {
+                        Task {
+                            await ContactDiscoveryService.shared.discoverContacts(context: context)
+                        }
+                    }
                 }
             default:
                 break
@@ -123,7 +139,25 @@ struct Swiss_CoinApp: App {
         }
     }
 
+    // MARK: - Push Notifications
+
+    private func registerForPushNotifications() {
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { granted, _ in
+            guard granted else { return }
+            DispatchQueue.main.async {
+                UIApplication.shared.registerForRemoteNotifications()
+            }
+        }
+    }
+
+    // MARK: - Background Sync
+
     private func handleBackgroundSync(task: BGAppRefreshTask) {
+        guard AuthManager.shared.authState == .authenticated else {
+            task.setTaskCompleted(success: false)
+            return
+        }
+
         scheduleBackgroundSync() // Schedule the next one
 
         let syncTask = Task {
@@ -139,5 +173,28 @@ struct Swiss_CoinApp: App {
             await syncTask.value
             task.setTaskCompleted(success: true)
         }
+    }
+}
+
+// MARK: - App Delegate for Push Notifications
+
+class AppDelegate: NSObject, UIApplicationDelegate {
+    func application(
+        _ application: UIApplication,
+        didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data
+    ) {
+        let token = deviceToken.map { String(format: "%02x", $0) }.joined()
+
+        Task { @MainActor in
+            guard let userId = AuthManager.shared.currentUserId else { return }
+            try? await SupabaseDataService.shared.upsertDeviceToken(userId: userId, token: token)
+        }
+    }
+
+    func application(
+        _ application: UIApplication,
+        didFailToRegisterForRemoteNotificationsWithError error: Error
+    ) {
+        // Push registration failed — user can still use the app without push
     }
 }

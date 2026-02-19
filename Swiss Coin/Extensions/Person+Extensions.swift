@@ -166,6 +166,18 @@ extension Person {
         return false
     }
 
+    // MARK: - Swiss Coin Status
+
+    /// Whether this person is a registered Swiss Coin user
+    var swissCoinBadgeText: String? {
+        isOnSwissCoin ? "On Swiss Coin" : nil
+    }
+
+    /// Whether cross-user messaging is available with this person
+    var canDirectMessage: Bool {
+        isOnSwissCoin && linkedProfileId != nil
+    }
+
     // MARK: - Comparison and Sorting
     
     /// Sort descriptor for alphabetical name sorting

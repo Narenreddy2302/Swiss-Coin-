@@ -35,6 +35,9 @@ extension FinancialTransaction {
     @NSManaged public var note: String?
     @NSManaged public var updatedAt: Date?
     @NSManaged public var deletedAt: Date?
+    @NSManaged public var isShared: Bool
+    @NSManaged public var sharingStatus: String?
+    @NSManaged public var sharedByProfileId: UUID?
     @NSManaged public var payer: Person?
     @NSManaged public var createdBy: Person?
     @NSManaged public var group: UserGroup?

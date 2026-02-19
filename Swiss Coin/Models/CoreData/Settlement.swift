@@ -34,6 +34,9 @@ extension Settlement {
     @NSManaged public var isFullSettlement: Bool
     @NSManaged public var updatedAt: Date?
     @NSManaged public var deletedAt: Date?
+    @NSManaged public var isShared: Bool
+    @NSManaged public var sharingStatus: String?
+    @NSManaged public var sharedByProfileId: UUID?
     @NSManaged public var fromPerson: Person?
     @NSManaged public var toPerson: Person?
 
