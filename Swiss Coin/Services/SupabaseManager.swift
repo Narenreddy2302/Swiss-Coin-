@@ -2,18 +2,23 @@
 //  SupabaseManager.swift
 //  Swiss Coin
 //
-//  Authentication manager using local UUID identity.
-//  Supabase auth removed — app works fully offline-first via CoreData.
+//  Authentication manager using Supabase + Sign in with Apple.
 //
 
+import AuthenticationServices
 import Combine
+import CoreData
+import CryptoKit
 import Foundation
+import os
+import Supabase
 
 // MARK: - Auth State
 
 enum AuthState: Equatable {
-    case unknown
+    case loading
     case authenticated
+    case needsPhoneEntry
     case unauthenticated
 }
 
@@ -25,52 +30,387 @@ final class AuthManager: ObservableObject {
 
     // MARK: - Published Properties
 
-    @Published private(set) var authState: AuthState = .unknown
+    @Published private(set) var authState: AuthState = .loading
     @Published private(set) var isLoading = false
     @Published private(set) var currentUserId: UUID?
     @Published var errorMessage: String?
 
+    private var authStateTask: Task<Void, Never>?
+    private var timeoutTask: Task<Void, Never>?
+    private var currentNonce: String?
+
     // MARK: - Init
 
     private init() {
-        authenticateLocally()
+        listenForAuthChanges()
+
+        // Sign out immediately if Apple credential is revoked while app is running
+        NotificationCenter.default.addObserver(
+            forName: ASAuthorizationAppleIDProvider.credentialRevokedNotification,
+            object: nil, queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                await self?.signOut()
+            }
+        }
     }
 
-    // MARK: - Legacy Compatibility
+    deinit {
+        authStateTask?.cancel()
+        timeoutTask?.cancel()
+    }
 
-    /// Authenticate locally with a persistent UUID identity
-    func authenticateLocally() {
-        isLoading = true
-        defer { isLoading = false }
+    // MARK: - Auth State Listener
 
-        let userId: UUID
-        if let existingId = CurrentUser.currentUserId {
-            userId = existingId
-        } else {
-            userId = UUID()
-            CurrentUser.setCurrentUser(id: userId)
+    private func listenForAuthChanges() {
+        // Stored timeout: if no auth event resolves within 10s, assume unauthenticated.
+        // Cancelled when auth resolves normally (handleSession, signedOut, initialSession nil).
+        timeoutTask = Task {
+            do {
+                try await Task.sleep(nanoseconds: 10_000_000_000)
+                if self.authState == .loading {
+                    AppLogger.auth.warning("Auth timeout — no session event in 10s, falling back to unauthenticated")
+                    self.authState = .unauthenticated
+                }
+            } catch {
+                // Task was cancelled — auth resolved normally
+            }
         }
 
+        authStateTask = Task {
+            for await (event, session) in SupabaseConfig.client.auth.authStateChanges {
+                switch event {
+                case .initialSession:
+                    self.timeoutTask?.cancel()
+                    if let session {
+                        self.handleSession(session)
+                    } else {
+                        self.authState = .unauthenticated
+                        self.currentUserId = nil
+                    }
+                case .signedIn:
+                    if let session {
+                        self.handleSession(session)
+                    }
+                case .signedOut:
+                    self.timeoutTask?.cancel()
+                    self.currentUserId = nil
+                    self.authState = .unauthenticated
+                case .tokenRefreshed:
+                    if let session {
+                        self.handleSession(session)
+                    }
+                default:
+                    break
+                }
+            }
+        }
+    }
+
+    private func handleSession(_ session: Session) {
+        timeoutTask?.cancel()
+
+        // Legacy phone OTP sessions must be cleared before proceeding
+        if isLegacyPhoneOTPSession(session) {
+            Task { await forceLegacySessionSignOut() }
+            return
+        }
+
+        let userId = session.user.id
         currentUserId = userId
-        UserDefaults.standard.set(false, forKey: "swiss_coin_signed_out")
+        CurrentUser.setCurrentUser(id: userId)
+
+        // Check if phone has been collected
+        if UserDefaults.standard.bool(forKey: "user_phone_collected") {
+            authState = .authenticated
+        } else {
+            // Slow path: check Supabase profiles table
+            Task {
+                await checkProfileHasPhone(userId: userId)
+            }
+        }
+    }
+
+    /// Detects legacy phone OTP sessions from before Apple Sign-In migration.
+    private func isLegacyPhoneOTPSession(_ session: Session) -> Bool {
+        let provider = session.user.appMetadata["provider"]?.stringValue
+        let hasAppleUserId = KeychainHelper.read(key: "apple_user_id") != nil
+        return provider == "phone" && !hasAppleUserId
+    }
+
+    /// Signs out a legacy phone OTP session and clears related UserDefaults.
+    /// Preserves CoreData, theme, and onboarding state.
+    private func forceLegacySessionSignOut() async {
+        do {
+            try await SupabaseConfig.client.auth.signOut()
+        } catch {
+            // Even if remote sign-out fails, clear local state
+        }
+
+        currentUserId = nil
+        CurrentUser.reset()
+        UserDefaults.standard.removeObject(forKey: "user_phone_collected")
+        UserDefaults.standard.removeObject(forKey: "user_phone_e164")
+        UserDefaults.standard.removeObject(forKey: "lastSyncTimestamp")
+        UserDefaults.standard.removeObject(forKey: "supabase_migration_completed")
+        authState = .unauthenticated
+    }
+
+    /// Safety net: ensures the profile row exists after Apple Sign-In.
+    /// The `handle_new_user()` trigger should create it, but if it fails silently
+    /// this self-heals by inserting the row client-side.
+    private func ensureProfileExists(userId: UUID) async {
+        do {
+            let existing: [ProfileDTO] = try await SupabaseConfig.client.from("profiles")
+                .select("id")
+                .eq("id", value: userId.uuidString)
+                .execute().value
+
+            if existing.isEmpty {
+                AppLogger.auth.warning("Profile row missing for user \(userId) — inserting client-side")
+                let displayName = UserDefaults.standard.string(forKey: "apple_given_name") ?? "User"
+                let fullName = UserDefaults.standard.string(forKey: "apple_full_name")
+                let email = KeychainHelper.read(key: "apple_email")
+
+                try await SupabaseConfig.client.from("profiles")
+                    .insert([
+                        "id": userId.uuidString,
+                        "display_name": displayName,
+                        "full_name": fullName,
+                        "email": email,
+                    ] as [String: String?])
+                    .execute()
+            }
+        } catch {
+            // Don't block auth — phone entry will surface the error if the row is truly missing
+            AppLogger.auth.warning("ensureProfileExists failed: \(error.localizedDescription)")
+        }
+    }
+
+    /// Query Supabase to check if the user's profile already has a phone number.
+    /// Skips PhoneEntryView for returning users (e.g., app reinstall).
+    private func checkProfileHasPhone(userId: UUID) async {
+        // Ensure trigger-created profile exists before checking phone
+        await ensureProfileExists(userId: userId)
+
+        do {
+            let profiles: [ProfileDTO] = try await SupabaseConfig.client.from("profiles")
+                .select("id, phone")
+                .eq("id", value: userId.uuidString)
+                .execute().value
+
+            if let profile = profiles.first,
+               let phone = profile.phone, !phone.isEmpty {
+                // Phone already collected — cache and proceed
+                UserDefaults.standard.set(true, forKey: "user_phone_collected")
+                UserDefaults.standard.set(phone, forKey: "user_phone_e164")
+                authState = .authenticated
+            } else {
+                authState = .needsPhoneEntry
+            }
+        } catch {
+            // Network failure — check if we have a cached phone
+            if let cachedPhone = UserDefaults.standard.string(forKey: "user_phone_e164"),
+               !cachedPhone.isEmpty {
+                // Returning user with cached phone — allow through
+                UserDefaults.standard.set(true, forKey: "user_phone_collected")
+                authState = .authenticated
+            } else {
+                // New user or no cache — require phone entry
+                authState = .needsPhoneEntry
+            }
+        }
+    }
+
+    /// Called by PhoneEntryViewModel after successful phone submission.
+    func completePhoneEntry() {
         authState = .authenticated
     }
 
-    // MARK: - Reset App
+    // MARK: - Apple Credential State
 
-    /// Reset all user data and re-authenticate with a fresh identity
+    /// Checks whether the user's Apple credential is still valid.
+    /// Signs out if the credential has been revoked or is not found.
+    func checkAppleCredentialState() async {
+        guard authState == .authenticated,
+              let appleUserId = KeychainHelper.read(key: "apple_user_id")
+        else { return }
+
+        let provider = ASAuthorizationAppleIDProvider()
+        do {
+            let state = try await provider.credentialState(forUserID: appleUserId)
+            if state == .revoked || state == .notFound {
+                await signOut()
+            }
+        } catch {
+            // Can't determine state — don't sign out on transient errors
+        }
+    }
+
+    // MARK: - Sign in with Apple
+
+    /// Configures the Apple Sign-In request with a cryptographic nonce and requested scopes.
+    /// Call this from the `SignInWithAppleButton` request handler.
+    func prepareAppleSignIn(request: ASAuthorizationAppleIDRequest) {
+        let rawNonce = generateNonce()
+        currentNonce = rawNonce
+        request.requestedScopes = [.email, .fullName]
+        request.nonce = sha256(rawNonce)
+    }
+
+    func signInWithApple(credential: ASAuthorizationAppleIDCredential) async throws {
+        isLoading = true
+        errorMessage = nil
+        defer { isLoading = false }
+
+        guard let identityToken = credential.identityToken,
+              let idToken = String(data: identityToken, encoding: .utf8)
+        else {
+            errorMessage = "Unable to retrieve identity token."
+            throw AuthError.missingToken
+        }
+
+        // Store Apple User ID in Keychain for credential revocation checks
+        KeychainHelper.save(key: "apple_user_id", value: credential.user)
+
+        try await SupabaseConfig.client.auth.signInWithIdToken(
+            credentials: .init(
+                provider: .apple,
+                idToken: idToken,
+                nonce: currentNonce
+            )
+        )
+        currentNonce = nil
+
+        // Apple only provides the user's full name on first sign-in.
+        // Persist to UserDefaults since Apple won't provide it again.
+        if let fullName = credential.fullName {
+            var nameParts: [String] = []
+            if let givenName = fullName.givenName {
+                nameParts.append(givenName)
+                UserDefaults.standard.set(givenName, forKey: "apple_given_name")
+            }
+            if let familyName = fullName.familyName {
+                nameParts.append(familyName)
+                UserDefaults.standard.set(familyName, forKey: "apple_family_name")
+            }
+
+            let fullNameString = nameParts.joined(separator: " ")
+            if !fullNameString.isEmpty {
+                UserDefaults.standard.set(fullNameString, forKey: "apple_full_name")
+                _ = try? await SupabaseConfig.client.auth.update(
+                    user: UserAttributes(
+                        data: [
+                            "full_name": .string(fullNameString),
+                            "given_name": .string(fullName.givenName ?? ""),
+                            "family_name": .string(fullName.familyName ?? ""),
+                        ]
+                    )
+                )
+            }
+        }
+
+        // Persist email in Keychain (may be Apple relay address)
+        if let email = credential.email {
+            KeychainHelper.save(key: "apple_email", value: email)
+        }
+
+        // Migrate legacy local data if needed
+        await migrateLegacyUserIfNeeded()
+    }
+
+    // MARK: - Sign Out
+
     func signOut() async {
         isLoading = true
         defer { isLoading = false }
 
+        // Tear down realtime before signing out
+        await RealtimeService.shared.unsubscribe()
+        await ConversationService.shared.unsubscribe()
+
+        do {
+            try await SupabaseConfig.client.auth.signOut()
+        } catch {
+            // Even if remote sign-out fails, clear local state
+        }
+
         currentUserId = nil
         CurrentUser.reset()
+
+        // Clear Keychain (sensitive data)
+        KeychainHelper.delete(key: "apple_user_id")
+        KeychainHelper.delete(key: "apple_email")
+
+        // Clear UserDefaults (non-sensitive)
         UserDefaults.standard.set(false, forKey: "has_seen_onboarding")
         UserDefaults.standard.removeObject(forKey: "supabase_migration_completed")
         UserDefaults.standard.removeObject(forKey: "lastSyncTimestamp")
+        UserDefaults.standard.removeObject(forKey: "user_phone_collected")
+        UserDefaults.standard.removeObject(forKey: "user_phone_e164")
+        UserDefaults.standard.removeObject(forKey: "apple_given_name")
+        UserDefaults.standard.removeObject(forKey: "apple_family_name")
+        UserDefaults.standard.removeObject(forKey: "apple_full_name")
+        UserDefaults.standard.removeObject(forKey: "lastContactDiscoveryDate")
+    }
 
-        // Re-authenticate with fresh identity
-        authenticateLocally()
+    // MARK: - Legacy Migration
+
+    private func migrateLegacyUserIfNeeded() async {
+        guard let newUserId = currentUserId else { return }
+
+        let legacyKey = "legacy_user_migrated"
+        guard !UserDefaults.standard.bool(forKey: legacyKey) else { return }
+
+        // Check if there's a legacy UUID that differs from the Supabase user
+        if let legacyIdString = UserDefaults.standard.string(forKey: "currentUserId"),
+           let legacyId = UUID(uuidString: legacyIdString),
+           legacyId != newUserId
+        {
+            let context = PersistenceController.shared.container.viewContext
+            await context.perform {
+                let request: NSFetchRequest<Person> = Person.fetchRequest()
+                request.predicate = NSPredicate(format: "id == %@", legacyId as CVarArg)
+                request.fetchLimit = 1
+
+                if let legacyPerson = try? context.fetch(request).first {
+                    legacyPerson.id = newUserId
+                    try? context.save()
+                }
+            }
+        }
+
+        UserDefaults.standard.set(true, forKey: legacyKey)
+    }
+
+    // MARK: - Nonce Helpers
+
+    /// Generates a cryptographically random nonce (hex-encoded).
+    private func generateNonce(length: Int = 32) -> String {
+        var bytes = [UInt8](repeating: 0, count: length)
+        let status = SecRandomCopyBytes(kSecRandomDefault, length, &bytes)
+        precondition(status == errSecSuccess, "Failed to generate random nonce")
+        return bytes.map { String(format: "%02x", $0) }.joined()
+    }
+
+    /// Returns the SHA-256 hash of the input string (hex-encoded).
+    private func sha256(_ input: String) -> String {
+        let data = Data(input.utf8)
+        let hash = SHA256.hash(data: data)
+        return hash.map { String(format: "%02x", $0) }.joined()
+    }
+
+    // MARK: - Error Types
+
+    enum AuthError: LocalizedError {
+        case missingToken
+
+        var errorDescription: String? {
+            switch self {
+            case .missingToken:
+                return "Unable to retrieve identity token from Apple."
+            }
+        }
     }
 }
 

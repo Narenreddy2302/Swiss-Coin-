@@ -299,6 +299,96 @@ final class SupabaseDataService {
             .eq("id", value: profile.id.uuidString)
             .execute()
     }
+
+    /// Upsert profile — safe create-or-update for profile setup
+    func upsertProfile(_ profile: ProfileDTO) async throws {
+        try await client.from("profiles").upsert(profile).execute()
+    }
+
+    // MARK: - Conversations
+
+    func fetchConversations() async throws -> [ConversationDTO] {
+        try await client.from("conversations")
+            .select()
+            .order("last_message_at", ascending: false)
+            .execute().value
+    }
+
+    func fetchDirectMessages(conversationId: UUID, since: Date? = nil) async throws -> [DirectMessageDTO] {
+        var query = client.from("direct_messages")
+            .select()
+            .eq("conversation_id", value: conversationId.uuidString)
+        if let since {
+            query = query.gte("created_at", value: formatISO8601(since))
+        }
+        return try await query.order("created_at", ascending: true).execute().value
+    }
+
+    // MARK: - Transaction Participants
+
+    func fetchPendingParticipations() async throws -> [TransactionParticipantDTO] {
+        guard let userId = await ownerId else { return [] }
+        return try await client.from("transaction_participants")
+            .select()
+            .eq("profile_id", value: userId.uuidString)
+            .eq("status", value: "pending")
+            .execute().value
+    }
+
+    func upsertTransactionParticipant(_ participant: TransactionParticipantDTO) async throws {
+        try await client.from("transaction_participants").upsert(participant).execute()
+    }
+
+    func updateParticipantStatus(id: UUID, status: String) async throws {
+        try await client.from("transaction_participants")
+            .update(["status": status, "responded_at": formatISO8601(Date())])
+            .eq("id", value: id.uuidString)
+            .execute()
+    }
+
+    // MARK: - Settlement Participants
+
+    func fetchPendingSettlementParticipations() async throws -> [SettlementParticipantDTO] {
+        guard let userId = await ownerId else { return [] }
+        return try await client.from("settlement_participants")
+            .select()
+            .eq("profile_id", value: userId.uuidString)
+            .eq("status", value: "pending")
+            .execute().value
+    }
+
+    func updateSettlementParticipantStatus(id: UUID, status: String) async throws {
+        try await client.from("settlement_participants")
+            .update(["status": status, "responded_at": formatISO8601(Date())])
+            .eq("id", value: id.uuidString)
+            .execute()
+    }
+
+    // MARK: - Shared Reminders
+
+    func fetchSharedReminders() async throws -> [SharedReminderDTO] {
+        guard let userId = await ownerId else { return [] }
+        return try await client.from("shared_reminders")
+            .select()
+            .eq("to_profile_id", value: userId.uuidString)
+            .eq("is_read", value: false)
+            .execute().value
+    }
+
+    func upsertSharedReminder(_ reminder: SharedReminderDTO) async throws {
+        try await client.from("shared_reminders").upsert(reminder).execute()
+    }
+
+    // MARK: - Device Tokens
+
+    func upsertDeviceToken(userId: UUID, token: String) async throws {
+        let data: [String: String] = [
+            "user_id": userId.uuidString,
+            "token": token,
+            "platform": "ios"
+        ]
+        try await client.from("device_tokens").upsert(data).execute()
+    }
 }
 
 // MARK: - Date Helper

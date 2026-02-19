@@ -2,7 +2,7 @@
 //  ContentView.swift
 //  Swiss Coin
 //
-//  Main content view that handles app routing and lock screen.
+//  Main content view that handles app routing, auth gating, and lock screen.
 //  The lock screen gates the UI while data preloads behind it — modeled after
 //  Cash App and Revolut for an instant-feeling unlock experience.
 //
@@ -15,8 +15,37 @@ struct ContentView: View {
     @StateObject private var lockManager = AppLockManager.shared
     @AppStorage("has_seen_onboarding") private var hasSeenOnboarding = false
     @Environment(\.managedObjectContext) private var viewContext
+    @State private var hasStartedServices = false
 
     var body: some View {
+        Group {
+            switch authManager.authState {
+            case .loading:
+                loadingView
+            case .unauthenticated:
+                SignInView()
+            case .needsPhoneEntry:
+                PhoneEntryView()
+            case .authenticated:
+                authenticatedContent
+            }
+        }
+        .animation(AppAnimation.standard, value: authManager.authState)
+    }
+
+    // MARK: - Loading View
+
+    private var loadingView: some View {
+        ZStack {
+            AppColors.background.ignoresSafeArea()
+            ProgressView()
+                .tint(AppColors.accent)
+        }
+    }
+
+    // MARK: - Authenticated Content
+
+    private var authenticatedContent: some View {
         ZStack {
             // Layer 1: Main app content (renders behind the lock screen so
             // @FetchRequest results and view state are warm on unlock)
@@ -43,15 +72,21 @@ struct ContentView: View {
         .animation(.easeInOut(duration: 0.3), value: lockManager.lockState)
         .onAppear {
             lockManager.performInitialLockCheck()
+            startServicesIfNeeded()
         }
-        .onChange(of: hasSeenOnboarding) { _, newValue in
-            if newValue {
-                Task {
-                    // Start realtime subscription and initial sync
-                    await RealtimeService.shared.subscribe()
-                    await SyncManager.shared.syncNow(context: viewContext)
-                }
-            }
+        .onChange(of: hasSeenOnboarding) { _, _ in
+            startServicesIfNeeded()
+        }
+    }
+
+    // MARK: - Services
+
+    private func startServicesIfNeeded() {
+        guard hasSeenOnboarding, !hasStartedServices else { return }
+        hasStartedServices = true
+        Task {
+            await RealtimeService.shared.subscribe()
+            await SyncManager.shared.syncNow(context: viewContext)
         }
     }
 }

@@ -43,9 +43,9 @@ extension ProfileDTO {
     init(from person: Person, userId: UUID) {
         self.id = userId
         self.displayName = person.name ?? "Me"
-        self.fullName = nil
+        self.fullName = UserDefaults.standard.string(forKey: "apple_full_name")
         self.phone = person.phoneNumber
-        self.email = nil
+        self.email = KeychainHelper.read(key: "apple_email")
         self.photoUrl = nil
         self.colorHex = person.colorHex
         self.isArchived = person.isArchived

@@ -50,6 +50,9 @@ extension Person {
     @NSManaged public var receivedSubscriptionReminders: NSSet?
     @NSManaged public var createdTransactions: NSSet?
     @NSManaged public var payerSplits: NSSet?
+    @NSManaged public var linkedProfileId: UUID?
+    @NSManaged public var isOnSwissCoin: Bool
+    @NSManaged public var conversation: Conversation?
 
 }
 

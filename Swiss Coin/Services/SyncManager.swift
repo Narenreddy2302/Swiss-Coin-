@@ -290,6 +290,9 @@ final class SyncManager: ObservableObject {
         if !messageDTOs.isEmpty {
             try await dataService.upsertMessages(messageDTOs)
         }
+
+        // Push unsynced direct messages (cross-user)
+        try await ConversationService.shared.pushUnsyncedMessages(context: context)
     }
 
     // MARK: - Pull (Supabase → CoreData)

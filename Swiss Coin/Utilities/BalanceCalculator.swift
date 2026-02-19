@@ -21,6 +21,12 @@ extension Person {
         let allTransactions = getMutualTransactions()
 
         for transaction in allTransactions {
+            // Skip shared transactions that are pending or rejected for the recipient
+            if transaction.isShared,
+               let status = transaction.sharingStatus,
+               (status == "pending" || status == "rejected") {
+                continue
+            }
             let currency = transaction.effectiveCurrency
             balance.add(transaction.pairwiseBalance(personA: currentUserId, personB: theirId), currency: currency)
         }
@@ -99,6 +105,13 @@ extension Person {
             .filter { $0.onTransaction == nil }
         items.append(contentsOf: messages.map { ConversationItem.message($0) })
 
+        // Add cross-user direct messages if this person has a linked conversation
+        if let conversation = self.conversation,
+           let dms = conversation.directMessages as? Set<DirectMessage> {
+            let activeDMs = dms.filter { $0.deletedAt == nil }
+            items.append(contentsOf: activeDMs.map { ConversationItem.directMessage($0) })
+        }
+
         // Sort by date ascending (oldest first, like iMessage)
         return items.sorted { $0.date < $1.date }
     }
@@ -126,6 +139,7 @@ enum ConversationItem: Identifiable {
     case settlement(Settlement)
     case reminder(Reminder)
     case message(ChatMessage)
+    case directMessage(DirectMessage)
 
     var id: UUID {
         switch self {
@@ -133,6 +147,7 @@ enum ConversationItem: Identifiable {
         case .settlement(let s): return s.id ?? UUID()
         case .reminder(let r): return r.id ?? UUID()
         case .message(let m): return m.id ?? UUID()
+        case .directMessage(let dm): return dm.id ?? UUID()
         }
     }
 
@@ -142,12 +157,15 @@ enum ConversationItem: Identifiable {
         case .settlement(let s): return s.date ?? Date.distantPast
         case .reminder(let r): return r.createdDate ?? Date.distantPast
         case .message(let m): return m.timestamp ?? Date.distantPast
+        case .directMessage(let dm): return dm.createdAt ?? Date.distantPast
         }
     }
 
     var isMessageType: Bool {
-        if case .message = self { return true }
-        return false
+        switch self {
+        case .message, .directMessage: return true
+        default: return false
+        }
     }
 
     /// True for settlements and reminders — rendered as full-width notification strips

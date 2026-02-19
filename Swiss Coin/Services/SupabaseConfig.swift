@@ -16,7 +16,35 @@ enum SupabaseConfig {
         supabaseURL: projectURL,
         supabaseKey: anonKey,
         options: .init(
-            auth: .init(emitLocalSessionAsInitialSession: true)
+            auth: .init(
+                redirectToURL: URL(string: "swisscoin://auth-callback"),
+                emitLocalSessionAsInitialSession: true
+            )
         )
     )
+
+    /// Shared JSON decoder configured for Supabase date formats (ISO 8601 with fractional seconds).
+    static let decoder: JSONDecoder = {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .custom { decoder in
+            let container = try decoder.singleValueContainer()
+            let string = try container.decode(String.self)
+
+            // Try ISO 8601 with fractional seconds first
+            let formatter = ISO8601DateFormatter()
+            formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            if let date = formatter.date(from: string) {
+                return date
+            }
+
+            // Fall back to without fractional seconds
+            formatter.formatOptions = [.withInternetDateTime]
+            if let date = formatter.date(from: string) {
+                return date
+            }
+
+            throw DecodingError.dataCorruptedError(in: container, debugDescription: "Cannot decode date: \(string)")
+        }
+        return decoder
+    }()
 }

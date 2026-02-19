@@ -145,11 +145,11 @@ struct ProfileView: View {
                 loadCurrentUser()
                 loadSecuritySettings()
             }
-            .alert("Reset App", isPresented: $showingResetAlert) {
+            .alert("Sign Out", isPresented: $showingResetAlert) {
                 Button("Cancel", role: .cancel) {}
-                Button("Reset", role: .destructive) { resetApp() }
+                Button("Sign Out", role: .destructive) { resetApp() }
             } message: {
-                Text("This will erase all your data and start fresh. This action cannot be undone.")
+                Text("You will be signed out and returned to the sign-in screen.")
             }
             .alert("Biometric Error", isPresented: $showingBiometricError) {
                 Button("OK", role: .cancel) {}
@@ -429,9 +429,9 @@ struct ProfileView: View {
             showingResetAlert = true
         } label: {
             HStack(spacing: Spacing.xs) {
-                Image(systemName: "arrow.counterclockwise")
+                Image(systemName: "rectangle.portrait.and.arrow.right")
                     .font(.system(size: IconSize.sm))
-                Text("Reset App")
+                Text("Sign Out")
                     .font(AppTypography.buttonDefault())
             }
         }

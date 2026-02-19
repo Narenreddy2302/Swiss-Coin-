@@ -503,10 +503,21 @@ struct PersonListRowView: View {
                 .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: Spacing.xs) {
-                Text(person.name ?? "Unknown")
-                    .font(AppTypography.headingMedium())
-                    .foregroundColor(AppColors.textPrimary)
-                    .lineLimit(1)
+                HStack(spacing: Spacing.sm) {
+                    Text(person.name ?? "Unknown")
+                        .font(AppTypography.headingMedium())
+                        .foregroundColor(AppColors.textPrimary)
+                        .lineLimit(1)
+
+                    if person.isOnSwissCoin {
+                        Text("On Swiss Coin")
+                            .font(AppTypography.labelSmall())
+                            .foregroundColor(AppColors.accent)
+                            .padding(.horizontal, Spacing.sm)
+                            .padding(.vertical, Spacing.xxs)
+                            .background(Capsule().fill(AppColors.accentMuted))
+                    }
+                }
 
                 MultiCurrencyBalanceView(balance: balance, style: .compact)
                     .lineLimit(1)
