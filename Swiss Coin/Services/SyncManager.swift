@@ -352,10 +352,13 @@ final class SyncManager: ObservableObject {
         self.isSyncSave = true
         defer { self.isSyncSave = false }
 
+        // Capture main-actor-isolated value before entering Sendable closure
+        let currentUserId = AuthManager.shared.currentUserId
+
         try context.performAndWait {
             // Pull profile → current user's Person entity
             if let profileDTO = remoteProfile,
-               let currentUserId = AuthManager.shared.currentUserId {
+               let currentUserId {
                 let currentUser = findOrCreate(Person.self, id: currentUserId, in: context)
                 profileDTO.apply(to: currentUser)
             }
