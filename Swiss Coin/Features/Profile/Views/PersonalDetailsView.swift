@@ -7,7 +7,9 @@
 
 import Combine
 import CoreData
+import CryptoKit
 import PhotosUI
+import Supabase
 import SwiftUI
 
 struct PersonalDetailsView: View {
@@ -16,9 +18,10 @@ struct PersonalDetailsView: View {
     @StateObject private var viewModel = PersonalDetailsViewModel()
     @FocusState private var focusedField: Field?
     @State private var showingDiscardAlert = false
+    @State private var showCountryPicker = false
 
     private enum Field: Hashable {
-        case displayName, fullName, email
+        case displayName, fullName, email, phone
     }
 
     var body: some View {
@@ -92,6 +95,9 @@ struct PersonalDetailsView: View {
                     viewModel.didSelectImage(image)
                 }
             )
+        }
+        .sheet(isPresented: $showCountryPicker) {
+            CountryCodePicker(selectedCountry: $viewModel.selectedCountry)
         }
         .confirmationDialog(
             "Profile Photo",
@@ -214,9 +220,55 @@ struct PersonalDetailsView: View {
 
     private var contactSection: some View {
         Section {
-            LabeledContent("Phone") {
-                Text(viewModel.phoneNumber.isEmpty ? "Not set" : viewModel.formattedPhoneNumber)
-                    .foregroundColor(viewModel.phoneNumber.isEmpty ? AppColors.textTertiary : AppColors.textSecondary)
+            // Phone input with country code picker
+            HStack(spacing: 0) {
+                Button {
+                    HapticManager.lightTap()
+                    showCountryPicker = true
+                } label: {
+                    HStack(spacing: Spacing.xs) {
+                        Text(viewModel.selectedCountry.flag)
+                            .font(.system(size: IconSize.md))
+
+                        Text(viewModel.selectedCountry.dialCode)
+                            .font(AppTypography.bodyLarge())
+                            .foregroundColor(AppColors.textPrimary)
+
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: IconSize.xs))
+                            .foregroundColor(AppColors.textTertiary)
+                    }
+                }
+                .accessibilityLabel("\(viewModel.selectedCountry.name), \(viewModel.selectedCountry.dialCode)")
+                .accessibilityHint("Double tap to change country code")
+
+                Rectangle()
+                    .fill(AppColors.divider)
+                    .frame(width: 1)
+                    .padding(.vertical, Spacing.sm)
+
+                TextField("Phone number", text: Binding(
+                    get: { viewModel.formattedPhoneInput },
+                    set: { newValue in
+                        viewModel.phoneDigits = newValue.filter(\.isNumber)
+                        viewModel.hasChanges = true
+                        viewModel.validatePhone()
+                    }
+                ))
+                .font(AppTypography.bodyLarge())
+                .foregroundColor(AppColors.textPrimary)
+                .keyboardType(.phonePad)
+                .textContentType(.telephoneNumber)
+                .padding(.horizontal, Spacing.md)
+                .focused($focusedField, equals: .phone)
+                .accessibilityLabel("Phone number")
+                .accessibilityHint("Enter your phone number without the country code")
+                .onChange(of: viewModel.phoneDigits) { _, newValue in
+                    let digits = newValue.filter(\.isNumber)
+                    if digits.count > 15 {
+                        viewModel.phoneDigits = String(digits.prefix(15))
+                    }
+                }
             }
 
             TextField("Email", text: $viewModel.email)
@@ -235,9 +287,19 @@ struct PersonalDetailsView: View {
         } header: {
             Text("Contact")
         } footer: {
-            if !viewModel.emailError.isEmpty {
-                Text(viewModel.emailError)
-                    .foregroundColor(AppColors.negative)
+            VStack(alignment: .leading, spacing: Spacing.xs) {
+                if !viewModel.phoneError.isEmpty {
+                    Text(viewModel.phoneError)
+                        .foregroundColor(AppColors.negative)
+                }
+                if !viewModel.emailError.isEmpty {
+                    Text(viewModel.emailError)
+                        .foregroundColor(AppColors.negative)
+                }
+                if viewModel.phoneDigits.isEmpty {
+                    Text("Add your phone number so friends can find you on Swiss Coin.")
+                        .foregroundColor(AppColors.textTertiary)
+                }
             }
         }
     }
@@ -263,10 +325,14 @@ class PersonalDetailsViewModel: ObservableObject {
     // Form fields
     @Published var displayName: String = ""
     @Published var fullName: String = ""
-    @Published var phoneNumber: String = ""
     @Published var email: String = ""
     @Published var profileColor: String = AppColors.defaultAvatarColorHex
     @Published var selectedImage: UIImage?
+
+    // Phone editing
+    @Published var selectedCountry = CountryCode.switzerland
+    @Published var phoneDigits = ""
+    @Published var phoneError = ""
 
     // UI state
     @Published var showingImagePicker = false
@@ -280,6 +346,9 @@ class PersonalDetailsViewModel: ObservableObject {
 
     // Account info
     private var accountCreatedDate: Date?
+    private var originalPhoneE164 = ""
+
+    // MARK: - Computed Properties
 
     var initials: String {
         if displayName.isEmpty {
@@ -293,70 +362,29 @@ class PersonalDetailsViewModel: ObservableObject {
         }
     }
 
-    var formattedPhoneNumber: String {
-        let digits = phoneNumber.filter { $0.isNumber }
-        guard digits.count >= 7 else { return phoneNumber }
+    var isPhoneValid: Bool {
+        if phoneDigits.isEmpty { return true } // Empty is valid (phone is optional here)
+        let digits = phoneDigits.filter(\.isNumber)
+        guard digits.count >= 6, digits.count <= 15 else { return false }
+        let e164 = selectedCountry.dialCode + digits
+        let e164Digits = e164.filter(\.isNumber)
+        return e164Digits.count >= 7 && e164Digits.count <= 15
+    }
 
-        if digits.hasPrefix("41") && digits.count == 11 {
-            let area = String(digits.dropFirst(2).prefix(2))
-            let rest = String(digits.dropFirst(4))
-            let p1 = String(rest.prefix(3))
-            let p2 = String(rest.dropFirst(3).prefix(2))
-            let p3 = String(rest.dropFirst(5))
-            return "+41 \(area) \(p1) \(p2) \(p3)"
-        }
+    var e164Phone: String {
+        let digits = phoneDigits.filter(\.isNumber)
+        guard !digits.isEmpty else { return "" }
+        return selectedCountry.dialCode + digits
+    }
 
-        if digits.hasPrefix("0") && digits.count == 10 {
-            let area = String(digits.prefix(3))
-            let rest = String(digits.dropFirst(3))
-            let p1 = String(rest.prefix(3))
-            let p2 = String(rest.dropFirst(3).prefix(2))
-            let p3 = String(rest.dropFirst(5))
-            return "\(area) \(p1) \(p2) \(p3)"
-        }
-
-        if digits.hasPrefix("1") && digits.count == 11 {
-            let body = String(digits.dropFirst())
-            let area = String(body.prefix(3))
-            let mid = String(body.dropFirst(3).prefix(3))
-            let last = String(body.suffix(4))
-            return "+1 (\(area)) \(mid)-\(last)"
-        }
-
-        if digits.count == 10 && !digits.hasPrefix("0") && !digits.hasPrefix("44") && !digits.hasPrefix("91") {
-            let area = String(digits.prefix(3))
-            let mid = String(digits.dropFirst(3).prefix(3))
-            let last = String(digits.suffix(4))
-            return "(\(area)) \(mid)-\(last)"
-        }
-
-        if digits.hasPrefix("44") && digits.count == 12 {
-            let body = String(digits.dropFirst(2))
-            let p1 = String(body.prefix(4))
-            let p2 = String(body.dropFirst(4))
-            return "+44 \(p1) \(p2)"
-        }
-
-        if digits.hasPrefix("91") && digits.count == 12 {
-            let body = String(digits.dropFirst(2))
-            let p1 = String(body.prefix(5))
-            let p2 = String(body.dropFirst(5))
-            return "+91 \(p1) \(p2)"
-        }
-
-        let hasPlus = phoneNumber.trimmingCharacters(in: .whitespaces).hasPrefix("+")
-        var result = ""
-        for (i, char) in digits.enumerated() {
-            if i > 0 && i % 4 == 0 {
-                result += " "
-            }
-            result.append(char)
-        }
-        return hasPlus ? "+\(result)" : result
+    var formattedPhoneInput: String {
+        let digits = phoneDigits.filter(\.isNumber)
+        guard !digits.isEmpty else { return "" }
+        return Self.formatForDisplay(digits: digits, countryId: selectedCountry.id)
     }
 
     var canSave: Bool {
-        !displayName.isEmpty && emailError.isEmpty && hasChanges
+        !displayName.isEmpty && emailError.isEmpty && phoneError.isEmpty && hasChanges
     }
 
     var hasExistingPhoto: Bool {
@@ -388,13 +416,65 @@ class PersonalDetailsViewModel: ObservableObject {
         return formatter.string(from: now)
     }
 
+    // MARK: - Phone Formatting
+
+    /// Country-aware phone number display grouping.
+    private static func formatForDisplay(digits: String, countryId: String) -> String {
+        let chars = Array(digits)
+        let groups: [Int]
+        switch countryId {
+        case "CH", "AT": groups = [2, 3, 2, 2]      // 79 123 45 67
+        case "US", "CA": groups = [3, 3, 4]          // 555 123 4567
+        case "GB":       groups = [4, 6]             // 7911 123456
+        case "DE":       groups = [3, 4, 4]          // 151 1234 5678
+        case "IN":       groups = [5, 5]             // 98765 43210
+        case "FR", "IT": groups = [1, 2, 2, 2, 2]   // 6 12 34 56 78
+        default:         groups = [3, 3, 3, 3]       // groups of 3
+        }
+
+        var result = ""
+        var index = 0
+        for (i, groupSize) in groups.enumerated() {
+            guard index < chars.count else { break }
+            if i > 0 { result += " " }
+            let end = min(index + groupSize, chars.count)
+            result += String(chars[index..<end])
+            index = end
+        }
+        if index < chars.count {
+            result += " " + String(chars[index...])
+        }
+        return result
+    }
+
+    /// Detect country code from an E.164 phone number.
+    private static func detectCountryCode(from e164: String) -> (country: CountryCode, digits: String)? {
+        guard e164.hasPrefix("+") else { return nil }
+        // Try longest dial codes first to avoid ambiguity (e.g., +1 vs +1xxx)
+        let sorted = CountryCode.all.sorted { $0.dialCode.count > $1.dialCode.count }
+        for country in sorted {
+            if e164.hasPrefix(country.dialCode) {
+                let digits = String(e164.dropFirst(country.dialCode.count))
+                return (country, digits)
+            }
+        }
+        return nil
+    }
+
     // MARK: - Load Data
 
     func loadCurrentUserData(context: NSManagedObjectContext) {
         let currentUser = CurrentUser.getOrCreate(in: context)
         displayName = currentUser.name ?? "You"
         profileColor = currentUser.colorHex ?? AppColors.defaultAvatarColorHex
-        phoneNumber = currentUser.phoneNumber ?? ""
+
+        // Load and parse phone number
+        let storedPhone = currentUser.phoneNumber ?? ""
+        originalPhoneE164 = storedPhone
+        if !storedPhone.isEmpty, let detected = Self.detectCountryCode(from: storedPhone) {
+            selectedCountry = detected.country
+            phoneDigits = detected.digits
+        }
 
         if let photoData = currentUser.photoData, let image = UIImage(data: photoData) {
             selectedImage = image
@@ -426,6 +506,21 @@ class PersonalDetailsViewModel: ObservableObject {
         }
     }
 
+    func validatePhone() {
+        if phoneDigits.isEmpty {
+            phoneError = ""
+            return
+        }
+        let digits = phoneDigits.filter(\.isNumber)
+        if digits.count < 6 {
+            phoneError = "Phone number is too short"
+        } else if digits.count > 15 {
+            phoneError = "Phone number is too long"
+        } else {
+            phoneError = ""
+        }
+    }
+
     // MARK: - Save Changes
 
     func saveChanges(context: NSManagedObjectContext) {
@@ -434,38 +529,100 @@ class PersonalDetailsViewModel: ObservableObject {
         isSaving = true
         HapticManager.save()
 
-        do {
-            let currentUser = CurrentUser.getOrCreate(in: context)
-            currentUser.name = displayName
-            currentUser.colorHex = profileColor
+        Task {
+            do {
+                // 1. Save to CoreData (source of truth)
+                let currentUser = CurrentUser.getOrCreate(in: context)
+                currentUser.name = displayName
+                currentUser.colorHex = profileColor
 
-            if let image = selectedImage {
-                currentUser.photoData = image.jpegData(compressionQuality: 0.8)
-            } else {
-                currentUser.photoData = nil
+                let newPhone = e164Phone
+                let phoneChanged = newPhone != originalPhoneE164
+
+                if phoneChanged {
+                    currentUser.phoneNumber = newPhone.isEmpty ? nil : newPhone
+                }
+
+                if let image = selectedImage {
+                    currentUser.photoData = image.jpegData(compressionQuality: 0.8)
+                } else {
+                    currentUser.photoData = nil
+                }
+
+                try context.save()
+
+                // 2. Save to UserDefaults (cache)
+                UserDefaults.standard.set(email, forKey: "user_email")
+                UserDefaults.standard.set(fullName, forKey: "user_full_name")
+
+                if !newPhone.isEmpty {
+                    UserDefaults.standard.set(newPhone, forKey: "user_phone_e164")
+                    UserDefaults.standard.set(true, forKey: "user_phone_collected")
+                } else if phoneChanged {
+                    UserDefaults.standard.removeObject(forKey: "user_phone_e164")
+                    UserDefaults.standard.set(false, forKey: "user_phone_collected")
+                }
+
+                CurrentUser.updateProfile(
+                    name: displayName,
+                    colorHex: profileColor,
+                    phoneNumber: newPhone.isEmpty ? nil : newPhone,
+                    in: context
+                )
+
+                // 3. Sync to Supabase (real-time backend update)
+                await syncToSupabase(phoneChanged: phoneChanged, newPhone: newPhone)
+
+                // 4. Trigger contact discovery if phone was added or changed
+                if phoneChanged, !newPhone.isEmpty {
+                    await ContactDiscoveryService.shared.discoverContacts(context: context)
+                }
+
+                originalPhoneE164 = newPhone
+                isSaving = false
+                hasChanges = false
+                HapticManager.success()
+                didSave = true
+            } catch {
+                isSaving = false
+                HapticManager.error()
+                errorMessage = "Failed to save: \(error.localizedDescription)"
+                showingError = true
+            }
+        }
+    }
+
+    // MARK: - Supabase Sync
+
+    /// Syncs profile changes to the Supabase `profiles` table in real-time.
+    /// Fails gracefully — CoreData is the source of truth and SyncManager provides
+    /// eventual consistency if this call fails due to network issues.
+    private func syncToSupabase(phoneChanged: Bool, newPhone: String) async {
+        guard let userId = AuthManager.shared.currentUserId else { return }
+
+        do {
+            var updates: [String: String?] = [
+                "display_name": displayName,
+                "full_name": fullName.isEmpty ? nil : fullName,
+                "email": email.isEmpty ? nil : email,
+            ]
+
+            if phoneChanged {
+                updates["phone"] = newPhone.isEmpty ? nil : newPhone
+                if !newPhone.isEmpty {
+                    updates["phone_hash"] = ContactDiscoveryService.hashPhoneNumber(newPhone)
+                } else {
+                    updates["phone_hash"] = nil
+                }
             }
 
-            try context.save()
-
-            UserDefaults.standard.set(email, forKey: "user_email")
-            UserDefaults.standard.set(fullName, forKey: "user_full_name")
-
-            CurrentUser.updateProfile(
-                name: displayName,
-                colorHex: profileColor,
-                phoneNumber: phoneNumber.isEmpty ? nil : phoneNumber,
-                in: context
-            )
-
-            isSaving = false
-            hasChanges = false
-            HapticManager.success()
-            didSave = true
+            try await SupabaseConfig.client.from("profiles")
+                .update(updates)
+                .eq("id", value: userId.uuidString)
+                .execute()
         } catch {
-            isSaving = false
-            HapticManager.error()
-            errorMessage = "Failed to save: \(error.localizedDescription)"
-            showingError = true
+            // Log but don't block — offline-first means CoreData is authoritative
+            AppLogger.auth.warning("Profile sync to Supabase failed: \(error.localizedDescription)")
         }
     }
 
