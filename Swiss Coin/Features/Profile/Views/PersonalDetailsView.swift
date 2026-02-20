@@ -340,6 +340,7 @@ class PersonalDetailsViewModel: ObservableObject {
     @Published var showingError = false
     @Published var errorMessage = ""
     @Published var emailError = ""
+    @Published var phoneError = ""
     @Published var isSaving = false
     @Published var hasChanges = false
     @Published var didSave = false

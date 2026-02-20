@@ -5,6 +5,7 @@ struct AddTransactionPresenter: View {
     @Environment(\.managedObjectContext) private var viewContext
 
     @StateObject private var viewModel: TransactionViewModel
+    @State private var hasPhoneNumber = false
 
     // MARK: - Initialization
 
@@ -35,8 +36,25 @@ struct AddTransactionPresenter: View {
 
     var body: some View {
         NavigationStack {
-            AddTransactionView(viewModel: viewModel)
+            if hasPhoneNumber {
+                AddTransactionView(viewModel: viewModel)
+            } else {
+                PhoneRequiredView()
+            }
         }
         .presentationBackground(AppColors.backgroundSecondary)
+        .onAppear { checkPhoneNumber() }
+        .onReceive(NotificationCenter.default.publisher(for: .NSManagedObjectContextDidSave)) { _ in
+            checkPhoneNumber()
+        }
+    }
+
+    // MARK: - Phone Check
+
+    private func checkPhoneNumber() {
+        let currentUser = CurrentUser.getOrCreate(in: viewContext)
+        let phone = currentUser.phoneNumber ?? ""
+        let digits = phone.filter { $0.isNumber }
+        hasPhoneNumber = digits.count >= 7
     }
 }
