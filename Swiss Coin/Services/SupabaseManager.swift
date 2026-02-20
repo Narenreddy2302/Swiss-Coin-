@@ -127,13 +127,18 @@ final class AuthManager: ObservableObject {
         currentUserId = userId
         CurrentUser.setCurrentUser(id: userId)
 
-        // Check if phone has been collected
-        if UserDefaults.standard.bool(forKey: "user_phone_collected") {
+        // Check if phone has been collected or user chose to skip
+        let phoneCollected = UserDefaults.standard.bool(forKey: "user_phone_collected")
+        let phoneSkipped = UserDefaults.standard.bool(forKey: "user_phone_skipped")
+        
+        if phoneCollected || phoneSkipped {
             // Fast path: cached — no flash
             authState = .authenticated
 
-            // Claim any phantom shares for returning users
-            Task { let _ = await SharedDataService.shared.claimPendingShares() }
+            // Claim any phantom shares for returning users (only if phone collected)
+            if phoneCollected {
+                Task { let _ = await SharedDataService.shared.claimPendingShares() }
+            }
         } else {
             // Slow path: stay in .loading while checking Supabase
             Task {
@@ -517,6 +522,7 @@ final class AuthManager: ObservableObject {
         UserDefaults.standard.removeObject(forKey: "user_email")
         UserDefaults.standard.removeObject(forKey: "user_full_name")
         UserDefaults.standard.removeObject(forKey: "user_phone_collected")
+        UserDefaults.standard.removeObject(forKey: "user_phone_skipped")
         UserDefaults.standard.removeObject(forKey: "user_phone_e164")
 
         authState = .unauthenticated
