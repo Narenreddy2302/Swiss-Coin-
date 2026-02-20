@@ -13,6 +13,7 @@ struct ProfileDTO: Codable, Identifiable, Sendable {
     var displayName: String
     var fullName: String?
     var phone: String?
+    var phoneHash: String?
     var email: String?
     var photoUrl: String?
     var colorHex: String?
@@ -26,6 +27,7 @@ struct ProfileDTO: Codable, Identifiable, Sendable {
         case displayName = "display_name"
         case fullName = "full_name"
         case phone
+        case phoneHash = "phone_hash"
         case email
         case photoUrl = "photo_url"
         case colorHex = "color_hex"
@@ -45,6 +47,11 @@ extension ProfileDTO {
         self.displayName = person.name ?? "Me"
         self.fullName = UserDefaults.standard.string(forKey: "apple_full_name")
         self.phone = person.phoneNumber
+        if let phone = person.phoneNumber, !phone.isEmpty {
+            self.phoneHash = ContactDiscoveryService.hashPhoneNumber(phone)
+        } else {
+            self.phoneHash = nil
+        }
         self.email = KeychainHelper.read(key: "apple_email")
         self.photoUrl = nil
         self.colorHex = person.colorHex

@@ -129,6 +129,10 @@ final class AuthManager: ObservableObject {
                 await checkProfileHasPhone(userId: userId)
             }
         }
+
+        // Sync Apple metadata (name, email) to Supabase profile in the background.
+        // This ensures the profile row has up-to-date Apple data regardless of phone state.
+        Task { await syncAppleMetadataToProfile(userId: userId) }
     }
 
     /// Detects legacy phone OTP sessions from before Apple Sign-In migration.
@@ -184,6 +188,34 @@ final class AuthManager: ObservableObject {
         } catch {
             // Don't block auth — phone entry will surface the error if the row is truly missing
             AppLogger.auth.warning("ensureProfileExists failed: \(error.localizedDescription)")
+        }
+    }
+
+    /// Syncs Apple Sign-In metadata (name, email) to the Supabase profile row.
+    /// The `handle_new_user()` trigger may not capture this data because Apple's name
+    /// is written via `auth.update()` after the trigger fires. This method fills the gap.
+    private func syncAppleMetadataToProfile(userId: UUID) async {
+        await ensureProfileExists(userId: userId)
+
+        let displayName = UserDefaults.standard.string(forKey: "apple_given_name")
+        let fullName = UserDefaults.standard.string(forKey: "apple_full_name")
+        let email = KeychainHelper.read(key: "apple_email")
+
+        // Only update if we have Apple data to push
+        guard displayName != nil || fullName != nil || email != nil else { return }
+
+        do {
+            var updates: [String: String?] = [:]
+            if let displayName { updates["display_name"] = displayName }
+            if let fullName { updates["full_name"] = fullName }
+            if let email { updates["email"] = email }
+
+            try await SupabaseConfig.client.from("profiles")
+                .update(updates)
+                .eq("id", value: userId.uuidString)
+                .execute()
+        } catch {
+            AppLogger.auth.warning("syncAppleMetadataToProfile failed: \(error.localizedDescription)")
         }
     }
 
