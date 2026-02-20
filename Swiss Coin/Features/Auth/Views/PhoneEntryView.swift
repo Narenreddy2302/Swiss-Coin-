@@ -9,6 +9,7 @@
 
 import CoreData
 import CryptoKit
+import Supabase
 import SwiftUI
 
 // MARK: - Phone Entry Step
@@ -259,7 +260,7 @@ struct PhoneEntryView: View {
                     }
                 }
             }
-            .background(AppColors.secondaryBackground)
+            .background(AppColors.backgroundSecondary)
             .clipShape(RoundedRectangle(cornerRadius: CornerRadius.medium))
             .overlay(
                 RoundedRectangle(cornerRadius: CornerRadius.medium)
@@ -289,7 +290,7 @@ struct PhoneEntryView: View {
                 .textContentType(.oneTimeCode)
                 .multilineTextAlignment(.center)
                 .padding(.vertical, Spacing.lg)
-                .background(AppColors.secondaryBackground)
+                .background(AppColors.backgroundSecondary)
                 .clipShape(RoundedRectangle(cornerRadius: CornerRadius.medium))
                 .overlay(
                     RoundedRectangle(cornerRadius: CornerRadius.medium)

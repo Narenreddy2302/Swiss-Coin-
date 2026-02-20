@@ -604,53 +604,46 @@ class PersonalDetailsViewModel: ObservableObject {
         let phoneChanged = newPhone != originalPhoneE164
 
         Task {
-            do {
-                // 1. If phone changed and not empty, check for conflicts via edge function
-                var phoneHandledByServer = false
-                if phoneChanged, !newPhone.isEmpty {
-                    let phoneHash = ContactDiscoveryService.hashPhoneNumber(newPhone)
-                    do {
-                        let result = try await AuthManager.shared.linkPhoneToAccount(
-                            phone: newPhone,
-                            phoneHash: phoneHash,
-                            confirmMerge: false
-                        )
+            // 1. If phone changed and not empty, check for conflicts via edge function
+            var phoneHandledByServer = false
+            if phoneChanged, !newPhone.isEmpty {
+                let phoneHash = ContactDiscoveryService.hashPhoneNumber(newPhone)
+                do {
+                    let result = try await AuthManager.shared.linkPhoneToAccount(
+                        phone: newPhone,
+                        phoneHash: phoneHash,
+                        confirmMerge: false
+                    )
 
-                        switch result.action {
-                        case "phone_set":
-                            phoneHandledByServer = true
-                        case "conflict":
-                            pendingPhone = newPhone
-                            pendingPhoneHash = phoneHash
-                            pendingContext = context
-                            conflictDisplayName = result.existingDisplayName
-                            isSaving = false
-                            showMergeConfirmation = true
-                            return
-                        default:
-                            if let error = result.error {
-                                AppLogger.auth.warning("linkPhoneToAccount check failed: \(error)")
-                            }
+                    switch result.action {
+                    case "phone_set":
+                        phoneHandledByServer = true
+                    case "conflict":
+                        pendingPhone = newPhone
+                        pendingPhoneHash = phoneHash
+                        pendingContext = context
+                        conflictDisplayName = result.existingDisplayName
+                        isSaving = false
+                        showMergeConfirmation = true
+                        return
+                    default:
+                        if let error = result.error {
+                            AppLogger.auth.warning("linkPhoneToAccount check failed: \(error)")
                         }
-                    } catch {
-                        // Edge function unavailable — fall through to direct sync
-                        AppLogger.auth.warning("linkPhoneToAccount unavailable: \(error.localizedDescription)")
                     }
+                } catch {
+                    // Edge function unavailable — fall through to direct sync
+                    AppLogger.auth.warning("linkPhoneToAccount unavailable: \(error.localizedDescription)")
                 }
-
-                // 2. Save locally and sync
-                await finalizeSave(
-                    context: context,
-                    newPhone: newPhone,
-                    phoneChanged: phoneChanged,
-                    phoneHandledByServer: phoneHandledByServer
-                )
-            } catch {
-                isSaving = false
-                HapticManager.error()
-                errorMessage = "Failed to save: \(error.localizedDescription)"
-                showingError = true
             }
+
+            // 2. Save locally and sync
+            await finalizeSave(
+                context: context,
+                newPhone: newPhone,
+                phoneChanged: phoneChanged,
+                phoneHandledByServer: phoneHandledByServer
+            )
         }
     }
 
