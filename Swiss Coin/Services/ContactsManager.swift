@@ -170,15 +170,33 @@ class ContactsManager: ObservableObject {
 
     // MARK: - Person Creation Helpers
 
-    /// Creates a Person entity from a PhoneContact
+    /// Creates a Person entity from a PhoneContact.
+    /// Normalizes the phone number to E.164 format for phantom sharing.
     static func createPerson(from contact: PhoneContact, in context: NSManagedObjectContext) -> Person {
         let newPerson = Person(context: context)
         newPerson.id = UUID()
         newPerson.name = contact.fullName
-        newPerson.phoneNumber = contact.phoneNumbers.first
+        if let rawPhone = contact.phoneNumbers.first {
+            newPerson.phoneNumber = Self.normalizeToE164(rawPhone)
+        }
         newPerson.colorHex = String(format: "#%06X", Int.random(in: 0...0xFFFFFF))
         newPerson.photoData = contact.thumbnailImageData
         return newPerson
+    }
+
+    /// Normalizes a raw phone number to E.164 format.
+    /// Handles formats like "(555) 123-4567", "+41 79 123 45 67", "079 123 45 67".
+    static func normalizeToE164(_ rawPhone: String, defaultDialCode: String = "+1") -> String {
+        let digitsOnly = rawPhone.filter(\.isNumber)
+        if rawPhone.hasPrefix("+") {
+            // Already has country code
+            return "+" + digitsOnly
+        }
+        // Strip leading zero (common in local formats like 079...)
+        if digitsOnly.hasPrefix("0") {
+            return defaultDialCode + String(digitsOnly.dropFirst())
+        }
+        return defaultDialCode + digitsOnly
     }
 
     /// Finds an existing Person entity matching a PhoneContact's phone number

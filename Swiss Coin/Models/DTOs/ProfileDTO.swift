@@ -26,7 +26,7 @@ struct ProfileDTO: Codable, Identifiable, Sendable {
         case id
         case displayName = "display_name"
         case fullName = "full_name"
-        case phone
+        case phone = "phone_number"
         case phoneHash = "phone_hash"
         case email
         case photoUrl = "photo_url"

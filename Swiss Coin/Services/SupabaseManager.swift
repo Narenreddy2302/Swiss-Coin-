@@ -256,6 +256,26 @@ final class AuthManager: ObservableObject {
             }
         }
 
+        // 2b. Last resort — read directly from profiles table
+        if displayName == nil || fullName == nil || email == nil {
+            if let profiles: [ProfileDTO] = try? await SupabaseConfig.client.from("profiles")
+                .select("*").eq("id", value: userId.uuidString).execute().value,
+               let profile = profiles.first {
+                if displayName == nil, !profile.displayName.isEmpty {
+                    displayName = profile.displayName
+                    UserDefaults.standard.set(profile.displayName, forKey: "apple_given_name")
+                }
+                if fullName == nil, let remote = profile.fullName, !remote.isEmpty {
+                    fullName = remote
+                    UserDefaults.standard.set(remote, forKey: "apple_full_name")
+                }
+                if email == nil, let remote = profile.email, !remote.isEmpty {
+                    email = remote
+                    KeychainHelper.save(key: "apple_email", value: remote)
+                }
+            }
+        }
+
         // 3. Populate PersonalDetailsView keys so the profile page shows the data
         if let fullName, !fullName.isEmpty,
            UserDefaults.standard.string(forKey: "user_full_name")?.isEmpty != false {
@@ -436,15 +456,19 @@ final class AuthManager: ObservableObject {
             let fullNameString = nameParts.joined(separator: " ")
             if !fullNameString.isEmpty {
                 UserDefaults.standard.set(fullNameString, forKey: "apple_full_name")
-                _ = try? await SupabaseConfig.client.auth.update(
-                    user: UserAttributes(
-                        data: [
-                            "full_name": .string(fullNameString),
-                            "given_name": .string(fullName.givenName ?? ""),
-                            "family_name": .string(fullName.familyName ?? ""),
-                        ]
+                do {
+                    try await SupabaseConfig.client.auth.update(
+                        user: UserAttributes(
+                            data: [
+                                "full_name": .string(fullNameString),
+                                "given_name": .string(fullName.givenName ?? ""),
+                                "family_name": .string(fullName.familyName ?? ""),
+                            ]
+                        )
                     )
-                )
+                } catch {
+                    AppLogger.auth.warning("auth.update metadata failed: \(error.localizedDescription)")
+                }
             }
         }
 
@@ -550,6 +574,20 @@ final class AuthManager: ObservableObject {
         return hash.map { String(format: "%02x", $0) }.joined()
     }
 
+    // MARK: - Phone Linking
+
+    /// Links a phone number to the current Apple Sign-In account.
+    /// Two-step flow: first call with `confirmMerge: false` to check for conflicts,
+    /// then `confirmMerge: true` to execute the merge if a conflict was found.
+    func linkPhoneToAccount(phone: String, phoneHash: String, confirmMerge: Bool = false) async throws -> PhoneLinkResult {
+        let body = PhoneLinkRequest(phone: phone, phoneHash: phoneHash, confirmMerge: confirmMerge)
+        let response: PhoneLinkResult = try await SupabaseConfig.client.functions.invoke(
+            "link-phone-to-account",
+            options: .init(body: body)
+        )
+        return response
+    }
+
     // MARK: - Error Types
 
     enum AuthError: LocalizedError {
@@ -561,6 +599,40 @@ final class AuthManager: ObservableObject {
                 return "Unable to retrieve identity token from Apple."
             }
         }
+    }
+}
+
+// MARK: - Phone Link Types
+
+/// Request body for the `link-phone-to-account` edge function.
+private struct PhoneLinkRequest: Encodable {
+    let phone: String
+    let phoneHash: String
+    let confirmMerge: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case phone
+        case phoneHash = "phone_hash"
+        case confirmMerge = "confirm_merge"
+    }
+}
+
+/// Response from the `link-phone-to-account` edge function.
+struct PhoneLinkResult: Decodable {
+    let action: String          // "phone_set", "conflict", "accounts_merged", "error"
+    let merged: Bool
+    let existingProfileId: String?
+    let existingDisplayName: String?
+    let dataTransferred: [String: Int]?
+    let error: String?
+
+    enum CodingKeys: String, CodingKey {
+        case action
+        case merged
+        case existingProfileId = "existing_profile_id"
+        case existingDisplayName = "existing_display_name"
+        case dataTransferred = "data_transferred"
+        case error
     }
 }
 

@@ -134,6 +134,17 @@ struct PersonalDetailsView: View {
                 HapticManager.tap()
             }
         }
+        .alert("Account Found", isPresented: $viewModel.showMergeConfirmation) {
+            Button("Link Account") {
+                HapticManager.tap()
+                viewModel.confirmMerge(context: viewContext)
+            }
+            Button("Cancel", role: .cancel) {
+                HapticManager.tap()
+            }
+        } message: {
+            Text("A Swiss Coin account with this phone number already exists\(viewModel.conflictDisplayName.map { " (\($0))" } ?? ""). Would you like to link it to your Apple ID? All your existing data will be preserved.")
+        }
         .interactiveDismissDisabled(viewModel.hasChanges)
         .navigationBarBackButtonHidden(true)
     }
@@ -331,7 +342,7 @@ class PersonalDetailsViewModel: ObservableObject {
     @Published var selectedImage: UIImage?
 
     // Phone editing
-    @Published var selectedCountry = CountryCode.switzerland
+    @Published var selectedCountry = CountryCode.unitedStates
     @Published var phoneDigits = ""
     @Published var phoneError = ""
 
@@ -344,6 +355,13 @@ class PersonalDetailsViewModel: ObservableObject {
     @Published var isSaving = false
     @Published var hasChanges = false
     @Published var didSave = false
+
+    // Merge state
+    @Published var showMergeConfirmation = false
+    @Published var conflictDisplayName: String?
+    private var pendingPhone = ""
+    private var pendingPhoneHash = ""
+    private var pendingContext: NSManagedObjectContext?
 
     // Account info
     private var accountCreatedDate: Date?
@@ -482,7 +500,15 @@ class PersonalDetailsViewModel: ObservableObject {
         }
 
         email = UserDefaults.standard.string(forKey: "user_email") ?? ""
-        fullName = UserDefaults.standard.string(forKey: "user_full_name") ?? ""
+        fullName = UserDefaults.standard.string(forKey: "user_full_name")
+            ?? UserDefaults.standard.string(forKey: "apple_full_name")
+            ?? ""
+
+        if displayName == "You" || displayName == "Me" || displayName == "User" {
+            if let appleName = UserDefaults.standard.string(forKey: "apple_given_name"), !appleName.isEmpty {
+                displayName = appleName
+            }
+        }
 
         if let storedDateString = UserDefaults.standard.string(forKey: "account_created_date"),
            let storedDate = ISO8601DateFormatter().date(from: storedDateString)
@@ -574,68 +600,51 @@ class PersonalDetailsViewModel: ObservableObject {
         isSaving = true
         HapticManager.save()
 
+        let newPhone = e164Phone
+        let phoneChanged = newPhone != originalPhoneE164
+
         Task {
             do {
-                // 1. Save to CoreData (source of truth)
-                let currentUser = CurrentUser.getOrCreate(in: context)
-                currentUser.name = displayName
-                currentUser.colorHex = profileColor
-
-                let newPhone = e164Phone
-                let phoneChanged = newPhone != originalPhoneE164
-
-                if phoneChanged {
-                    currentUser.phoneNumber = newPhone.isEmpty ? nil : newPhone
-                }
-
-                if let image = selectedImage {
-                    currentUser.photoData = image.jpegData(compressionQuality: 0.8)
-                } else {
-                    currentUser.photoData = nil
-                }
-
-                try context.save()
-
-                // 2. Save to UserDefaults (cache)
-                UserDefaults.standard.set(email, forKey: "user_email")
-                UserDefaults.standard.set(fullName, forKey: "user_full_name")
-
-                if !newPhone.isEmpty {
-                    UserDefaults.standard.set(newPhone, forKey: "user_phone_e164")
-                    UserDefaults.standard.set(true, forKey: "user_phone_collected")
-                    AuthManager.shared.completePhoneEntry()
-                } else if phoneChanged {
-                    UserDefaults.standard.removeObject(forKey: "user_phone_e164")
-                    UserDefaults.standard.set(false, forKey: "user_phone_collected")
-                }
-
-                CurrentUser.updateProfile(
-                    name: displayName,
-                    colorHex: profileColor,
-                    phoneNumber: newPhone.isEmpty ? nil : newPhone,
-                    in: context
-                )
-
-                // 3. Sync to Supabase (real-time backend update)
-                await syncToSupabase(phoneChanged: phoneChanged, newPhone: newPhone)
-
-                // 4. Trigger contact discovery if phone was added or changed
+                // 1. If phone changed and not empty, check for conflicts via edge function
+                var phoneHandledByServer = false
                 if phoneChanged, !newPhone.isEmpty {
-                    await ContactDiscoveryService.shared.discoverContacts(context: context)
+                    let phoneHash = ContactDiscoveryService.hashPhoneNumber(newPhone)
+                    do {
+                        let result = try await AuthManager.shared.linkPhoneToAccount(
+                            phone: newPhone,
+                            phoneHash: phoneHash,
+                            confirmMerge: false
+                        )
 
-                    // Claim any phantom shares matching the new phone
-                    let claimResult = await SharedDataService.shared.claimPendingShares()
-                    if let result = claimResult,
-                       (result.claimedTransactions > 0 || result.claimedSettlements > 0 || result.claimedSubscriptions > 0) {
-                        await SyncManager.shared.syncNow(context: context)
+                        switch result.action {
+                        case "phone_set":
+                            phoneHandledByServer = true
+                        case "conflict":
+                            pendingPhone = newPhone
+                            pendingPhoneHash = phoneHash
+                            pendingContext = context
+                            conflictDisplayName = result.existingDisplayName
+                            isSaving = false
+                            showMergeConfirmation = true
+                            return
+                        default:
+                            if let error = result.error {
+                                AppLogger.auth.warning("linkPhoneToAccount check failed: \(error)")
+                            }
+                        }
+                    } catch {
+                        // Edge function unavailable — fall through to direct sync
+                        AppLogger.auth.warning("linkPhoneToAccount unavailable: \(error.localizedDescription)")
                     }
                 }
 
-                originalPhoneE164 = newPhone
-                isSaving = false
-                hasChanges = false
-                HapticManager.success()
-                didSave = true
+                // 2. Save locally and sync
+                await finalizeSave(
+                    context: context,
+                    newPhone: newPhone,
+                    phoneChanged: phoneChanged,
+                    phoneHandledByServer: phoneHandledByServer
+                )
             } catch {
                 isSaving = false
                 HapticManager.error()
@@ -645,12 +654,130 @@ class PersonalDetailsViewModel: ObservableObject {
         }
     }
 
+    /// Called when the user confirms merging their Apple account with an existing phone account.
+    func confirmMerge(context: NSManagedObjectContext) {
+        isSaving = true
+
+        Task {
+            do {
+                let result = try await AuthManager.shared.linkPhoneToAccount(
+                    phone: pendingPhone,
+                    phoneHash: pendingPhoneHash,
+                    confirmMerge: true
+                )
+
+                if result.action == "accounts_merged" {
+                    // Merge succeeded — save locally and trigger full sync to pull absorbed data
+                    await finalizeSave(
+                        context: context,
+                        newPhone: pendingPhone,
+                        phoneChanged: true,
+                        phoneHandledByServer: true
+                    )
+
+                    // Full sync to pull the merged data from the absorbed account
+                    await SyncManager.shared.syncNow(context: context)
+                } else {
+                    isSaving = false
+                    HapticManager.error()
+                    errorMessage = result.error ?? "Account linking failed. Please try again."
+                    showingError = true
+                }
+            } catch {
+                isSaving = false
+                HapticManager.error()
+                errorMessage = "Account linking failed: \(error.localizedDescription)"
+                showingError = true
+            }
+        }
+    }
+
+    /// Shared save logic: write to CoreData, UserDefaults, sync to Supabase, discover contacts.
+    private func finalizeSave(
+        context: NSManagedObjectContext,
+        newPhone: String,
+        phoneChanged: Bool,
+        phoneHandledByServer: Bool
+    ) async {
+        do {
+            // 1. Save to CoreData (source of truth)
+            let currentUser = CurrentUser.getOrCreate(in: context)
+            currentUser.name = displayName
+            currentUser.colorHex = profileColor
+
+            if phoneChanged {
+                currentUser.phoneNumber = newPhone.isEmpty ? nil : newPhone
+            }
+
+            if let image = selectedImage {
+                currentUser.photoData = image.jpegData(compressionQuality: 0.8)
+            } else {
+                currentUser.photoData = nil
+            }
+
+            try context.save()
+
+            // 2. Save to UserDefaults (cache)
+            UserDefaults.standard.set(email, forKey: "user_email")
+            UserDefaults.standard.set(fullName, forKey: "user_full_name")
+
+            if !newPhone.isEmpty {
+                UserDefaults.standard.set(newPhone, forKey: "user_phone_e164")
+                UserDefaults.standard.set(true, forKey: "user_phone_collected")
+                AuthManager.shared.completePhoneEntry()
+            } else if phoneChanged {
+                UserDefaults.standard.removeObject(forKey: "user_phone_e164")
+                UserDefaults.standard.set(false, forKey: "user_phone_collected")
+            }
+
+            CurrentUser.updateProfile(
+                name: displayName,
+                colorHex: profileColor,
+                phoneNumber: newPhone.isEmpty ? nil : newPhone,
+                in: context
+            )
+
+            // 3. Sync to Supabase (skip phone fields if server already handled them)
+            await syncToSupabase(
+                phoneChanged: phoneChanged,
+                newPhone: newPhone,
+                phoneHandledByServer: phoneHandledByServer
+            )
+
+            // 4. Trigger contact discovery if phone was added or changed
+            if phoneChanged, !newPhone.isEmpty {
+                await ContactDiscoveryService.shared.discoverContacts(context: context)
+
+                // Claim any phantom shares matching the new phone
+                let claimResult = await SharedDataService.shared.claimPendingShares()
+                if let result = claimResult,
+                   (result.claimedTransactions > 0 || result.claimedSettlements > 0 || result.claimedSubscriptions > 0) {
+                    await SyncManager.shared.syncNow(context: context)
+                }
+            }
+
+            originalPhoneE164 = newPhone
+            isSaving = false
+            hasChanges = false
+            HapticManager.success()
+            didSave = true
+        } catch {
+            isSaving = false
+            HapticManager.error()
+            errorMessage = "Failed to save: \(error.localizedDescription)"
+            showingError = true
+        }
+    }
+
     // MARK: - Supabase Sync
 
     /// Syncs profile changes to the Supabase `profiles` table in real-time.
     /// Fails gracefully — CoreData is the source of truth and SyncManager provides
     /// eventual consistency if this call fails due to network issues.
-    private func syncToSupabase(phoneChanged: Bool, newPhone: String) async {
+    ///
+    /// - Parameter phoneHandledByServer: When `true`, skip phone/phone_hash fields
+    ///   because the `link-phone-to-account` edge function already set them.
+    private func syncToSupabase(phoneChanged: Bool, newPhone: String, phoneHandledByServer: Bool = false) async {
         guard let userId = AuthManager.shared.currentUserId else { return }
 
         do {
@@ -660,8 +787,8 @@ class PersonalDetailsViewModel: ObservableObject {
                 "email": email.isEmpty ? nil : email,
             ]
 
-            if phoneChanged {
-                updates["phone"] = newPhone.isEmpty ? nil : newPhone
+            if phoneChanged, !phoneHandledByServer {
+                updates["phone_number"] = newPhone.isEmpty ? nil : newPhone
                 if !newPhone.isEmpty {
                     updates["phone_hash"] = ContactDiscoveryService.hashPhoneNumber(newPhone)
                 } else {
