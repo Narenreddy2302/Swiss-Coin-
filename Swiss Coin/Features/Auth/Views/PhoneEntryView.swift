@@ -2,8 +2,8 @@
 //  PhoneEntryView.swift
 //  Swiss Coin
 //
-//  Post-Apple-Sign-In phone entry gate. Users add their phone number
-//  so friends can find and connect with them via contact discovery.
+//  Post-Apple-Sign-In phone verification gate. Users verify their phone number
+//  via SMS OTP so friends can find and connect with them via contact discovery.
 //  Phone is optional — users can skip and add it later in Profile.
 //
 
@@ -11,21 +11,38 @@ import CoreData
 import CryptoKit
 import SwiftUI
 
+// MARK: - Phone Entry Step
+
+private enum PhoneEntryStep {
+    case enterPhone
+    case enterOTP
+}
+
+// MARK: - PhoneEntryView
+
 struct PhoneEntryView: View {
     @ObservedObject private var authManager = AuthManager.shared
     @Environment(\.managedObjectContext) private var viewContext
+
+    // Phone input state
     @State private var selectedCountry = CountryCode.unitedStates
     @State private var phoneDigits = ""
     @State private var showCountryPicker = false
+
+    // OTP input state
+    @State private var otpCode = ""
+    @FocusState private var otpFocused: Bool
+
+    // Flow state
+    @State private var step: PhoneEntryStep = .enterPhone
     @State private var isLoading = false
     @State private var errorMessage = ""
     @State private var showError = false
     @State private var shakeOffset: CGFloat = 0
 
-    // Merge conflict state
-    @State private var showMergeConfirmation = false
-    @State private var conflictDisplayName: String?
-    @State private var pendingPhoneHash = ""
+    // Resend cooldown
+    @State private var resendCooldown = 0
+    @State private var resendTimer: Timer?
 
     @FocusState private var isPhoneFocused: Bool
 
@@ -42,6 +59,10 @@ struct PhoneEntryView: View {
         return digits.count >= 6 && digits.count <= 15
     }
 
+    private var isOTPValid: Bool {
+        otpCode.filter(\.isNumber).count == 6
+    }
+
     private var formattedPhoneInput: String {
         let digits = phoneDigits.filter(\.isNumber)
         guard !digits.isEmpty else { return "" }
@@ -52,6 +73,14 @@ struct PhoneEntryView: View {
         UserDefaults.standard.string(forKey: "apple_given_name")
             ?? UserDefaults.standard.string(forKey: "apple_full_name")
             ?? "there"
+    }
+
+    private var maskedPhone: String {
+        let phone = e164Phone
+        guard phone.count > 4 else { return phone }
+        let lastFour = phone.suffix(4)
+        let masked = String(repeating: "•", count: phone.count - 4)
+        return masked + lastFour
     }
 
     // MARK: - Body
@@ -71,9 +100,16 @@ struct PhoneEntryView: View {
                     Spacer()
                         .frame(height: Spacing.xxxl)
 
-                    // Phone input
-                    phoneInputSection
-                        .offset(x: shakeOffset)
+                    // Input section based on step
+                    Group {
+                        switch step {
+                        case .enterPhone:
+                            phoneInputSection
+                        case .enterOTP:
+                            otpInputSection
+                        }
+                    }
+                    .offset(x: shakeOffset)
 
                     // Error message
                     if showError {
@@ -99,27 +135,20 @@ struct PhoneEntryView: View {
             }
             .scrollDismissesKeyboard(.interactively)
         }
+        .animation(AppAnimation.standard, value: step)
         .animation(AppAnimation.standard, value: showError)
         .animation(AppAnimation.standard, value: isLoading)
         .sheet(isPresented: $showCountryPicker) {
             CountryCodePicker(selectedCountry: $selectedCountry)
-        }
-        .alert("Account Found", isPresented: $showMergeConfirmation) {
-            Button("Link Account") {
-                HapticManager.tap()
-                Task { await confirmMerge() }
-            }
-            Button("Cancel", role: .cancel) {
-                HapticManager.tap()
-            }
-        } message: {
-            Text("A Swiss Coin account with this phone number already exists\(conflictDisplayName.map { " (\($0))" } ?? ""). Would you like to link it to your Apple ID? All your existing data will be preserved.")
         }
         .onAppear {
             // Auto-focus phone input after a brief delay
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                 isPhoneFocused = true
             }
+        }
+        .onDisappear {
+            resendTimer?.invalidate()
         }
     }
 
@@ -133,7 +162,7 @@ struct PhoneEntryView: View {
                     .fill(AppColors.accent.opacity(0.12))
                     .frame(width: 88, height: 88)
 
-                Image(systemName: "person.crop.circle.badge.plus")
+                Image(systemName: step == .enterPhone ? "phone.badge.plus" : "checkmark.message")
                     .font(.system(size: 40))
                     .foregroundStyle(AppColors.accent)
             }
@@ -141,15 +170,27 @@ struct PhoneEntryView: View {
 
             // Welcome text
             VStack(spacing: Spacing.sm) {
-                Text("Welcome, \(displayName)!")
-                    .font(AppTypography.displayMedium())
-                    .foregroundColor(AppColors.textPrimary)
+                if step == .enterPhone {
+                    Text("Welcome, \(displayName)!")
+                        .font(AppTypography.displayMedium())
+                        .foregroundColor(AppColors.textPrimary)
 
-                Text("Add your phone number so friends can find and connect with you on Swiss Coin.")
-                    .font(AppTypography.bodyLarge())
-                    .foregroundColor(AppColors.textSecondary)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
+                    Text("Verify your phone number so friends can find you on Swiss Coin.")
+                        .font(AppTypography.bodyLarge())
+                        .foregroundColor(AppColors.textSecondary)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                } else {
+                    Text("Enter verification code")
+                        .font(AppTypography.displayMedium())
+                        .foregroundColor(AppColors.textPrimary)
+
+                    Text("We sent a 6-digit code to\n\(maskedPhone)")
+                        .font(AppTypography.bodyLarge())
+                        .foregroundColor(AppColors.textSecondary)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
         }
         .accessibilityElement(children: .combine)
@@ -225,10 +266,99 @@ struct PhoneEntryView: View {
                     .stroke(showError ? AppColors.negative : AppColors.divider, lineWidth: 1)
             )
 
-            Text("Your phone number is used for contact discovery only. It's never shared publicly.")
+            Text("We'll send a verification code via SMS.")
                 .font(AppTypography.caption())
                 .foregroundColor(AppColors.textTertiary)
                 .padding(.top, Spacing.xs)
+        }
+    }
+
+    // MARK: - OTP Input Section
+
+    private var otpInputSection: some View {
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            Text("Verification Code")
+                .font(AppTypography.labelLarge())
+                .foregroundColor(AppColors.textSecondary)
+
+            // OTP input field
+            TextField("000000", text: $otpCode)
+                .font(.system(size: 32, weight: .semibold, design: .monospaced))
+                .foregroundColor(AppColors.textPrimary)
+                .keyboardType(.numberPad)
+                .textContentType(.oneTimeCode)
+                .multilineTextAlignment(.center)
+                .padding(.vertical, Spacing.lg)
+                .background(AppColors.secondaryBackground)
+                .clipShape(RoundedRectangle(cornerRadius: CornerRadius.medium))
+                .overlay(
+                    RoundedRectangle(cornerRadius: CornerRadius.medium)
+                        .stroke(showError ? AppColors.negative : AppColors.divider, lineWidth: 1)
+                )
+                .focused($otpFocused)
+                .onChange(of: otpCode) { _, newValue in
+                    // Keep only digits, max 6
+                    let digits = newValue.filter(\.isNumber)
+                    if digits.count > 6 {
+                        otpCode = String(digits.prefix(6))
+                    } else {
+                        otpCode = digits
+                    }
+                    if showError { showError = false }
+
+                    // Auto-submit when 6 digits entered
+                    if otpCode.count == 6 {
+                        Task { await verifyOTP() }
+                    }
+                }
+                .onAppear {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                        otpFocused = true
+                    }
+                }
+
+            // Resend button
+            HStack {
+                Spacer()
+                if resendCooldown > 0 {
+                    Text("Resend code in \(resendCooldown)s")
+                        .font(AppTypography.caption())
+                        .foregroundColor(AppColors.textTertiary)
+                } else {
+                    Button {
+                        HapticManager.lightTap()
+                        Task { await resendOTP() }
+                    } label: {
+                        Text("Resend code")
+                            .font(AppTypography.bodySmall())
+                            .foregroundColor(AppColors.accent)
+                    }
+                    .disabled(isLoading)
+                }
+                Spacer()
+            }
+            .padding(.top, Spacing.sm)
+
+            // Change number button
+            HStack {
+                Spacer()
+                Button {
+                    HapticManager.lightTap()
+                    withAnimation {
+                        step = .enterPhone
+                        otpCode = ""
+                        showError = false
+                        resendTimer?.invalidate()
+                        resendCooldown = 0
+                    }
+                } label: {
+                    Text("Change phone number")
+                        .font(AppTypography.bodySmall())
+                        .foregroundColor(AppColors.textSecondary)
+                }
+                .disabled(isLoading)
+                Spacer()
+            }
         }
     }
 
@@ -236,38 +366,47 @@ struct PhoneEntryView: View {
 
     private var actionSection: some View {
         VStack(spacing: Spacing.md) {
-            // Continue button
+            // Primary action button
             Button {
                 HapticManager.tap()
-                Task { await submitPhone() }
+                Task {
+                    switch step {
+                    case .enterPhone:
+                        await sendOTP()
+                    case .enterOTP:
+                        await verifyOTP()
+                    }
+                }
             } label: {
                 if isLoading {
                     ProgressView()
                         .tint(.white)
                 } else {
-                    Text("Continue")
+                    Text(step == .enterPhone ? "Send Code" : "Verify")
                 }
             }
             .buttonStyle(PrimaryButtonStyle())
-            .disabled(isLoading || phoneDigits.isEmpty || !isPhoneValid)
+            .disabled(isLoading || (step == .enterPhone ? !isPhoneValid : !isOTPValid))
 
-            // Skip button
-            Button {
-                HapticManager.lightTap()
-                skipPhoneEntry()
-            } label: {
-                Text("Skip for now")
-                    .font(AppTypography.bodyDefault())
-                    .foregroundColor(AppColors.textSecondary)
+            // Skip button (only on phone entry step)
+            if step == .enterPhone {
+                Button {
+                    HapticManager.lightTap()
+                    skipPhoneEntry()
+                } label: {
+                    Text("Skip for now")
+                        .font(AppTypography.bodyDefault())
+                        .foregroundColor(AppColors.textSecondary)
+                }
+                .disabled(isLoading)
+                .padding(.top, Spacing.sm)
             }
-            .disabled(isLoading)
-            .padding(.top, Spacing.sm)
         }
     }
 
     // MARK: - Actions
 
-    private func submitPhone() async {
+    private func sendOTP() async {
         guard isPhoneValid else {
             showErrorWithShake("Please enter a valid phone number")
             return
@@ -276,65 +415,65 @@ struct PhoneEntryView: View {
         isLoading = true
         showError = false
 
-        let phone = e164Phone
-        let phoneHash = hashPhoneNumber(phone)
-
         do {
-            let result = try await authManager.linkPhoneToAccount(
-                phone: phone,
-                phoneHash: phoneHash,
-                confirmMerge: false
-            )
+            let result = try await callSendOTP(phone: e164Phone)
 
-            switch result.action {
-            case "phone_set":
-                // Success — save locally and proceed
-                await savePhoneLocally(phone: phone)
+            if result.success {
                 HapticManager.success()
-                authManager.completePhoneEntry()
-
-            case "conflict":
-                // Existing account found — show merge confirmation
-                isLoading = false
-                pendingPhoneHash = phoneHash
-                conflictDisplayName = result.existingDisplayName
-                showMergeConfirmation = true
-
-            case "error":
-                isLoading = false
-                showErrorWithShake(result.error ?? "Failed to save phone number. Please try again.")
-
-            default:
-                isLoading = false
-                showErrorWithShake("Unexpected response. Please try again.")
+                startResendCooldown()
+                withAnimation {
+                    step = .enterOTP
+                }
+            } else {
+                showErrorWithShake(result.error ?? "Failed to send code. Please try again.")
             }
         } catch {
-            isLoading = false
-            showErrorWithShake("Network error. Please check your connection and try again.")
+            showErrorWithShake("Network error. Please check your connection.")
         }
+
+        isLoading = false
     }
 
-    private func confirmMerge() async {
+    private func resendOTP() async {
         isLoading = true
+        showError = false
 
         do {
-            let result = try await authManager.linkPhoneToAccount(
-                phone: e164Phone,
-                phoneHash: pendingPhoneHash,
-                confirmMerge: true
-            )
+            let result = try await callSendOTP(phone: e164Phone)
 
-            if result.action == "accounts_merged" {
+            if result.success {
+                HapticManager.success()
+                startResendCooldown()
+            } else {
+                showErrorWithShake(result.error ?? "Failed to resend code.")
+            }
+        } catch {
+            showErrorWithShake("Network error. Please try again.")
+        }
+
+        isLoading = false
+    }
+
+    private func verifyOTP() async {
+        guard isOTPValid else {
+            showErrorWithShake("Please enter the 6-digit code")
+            return
+        }
+
+        isLoading = true
+        showError = false
+
+        do {
+            let result = try await callVerifyOTP(phone: e164Phone, code: otpCode)
+
+            if result.success {
+                // Verification successful
                 await savePhoneLocally(phone: e164Phone)
                 HapticManager.success()
-
-                // Trigger sync to pull merged data
-                SyncManager.shared.syncAll(context: viewContext)
-
                 authManager.completePhoneEntry()
             } else {
                 isLoading = false
-                showErrorWithShake(result.error ?? "Account linking failed. Please try again.")
+                showErrorWithShake(result.error ?? "Verification failed. Please try again.")
             }
         } catch {
             isLoading = false
@@ -343,10 +482,20 @@ struct PhoneEntryView: View {
     }
 
     private func skipPhoneEntry() {
-        // Mark as skipped so we don't show the gate again this session
-        // User can add phone later in Profile Settings
         UserDefaults.standard.set(true, forKey: "user_phone_skipped")
         authManager.completePhoneEntry()
+    }
+
+    private func startResendCooldown() {
+        resendCooldown = 60
+        resendTimer?.invalidate()
+        resendTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
+            if resendCooldown > 0 {
+                resendCooldown -= 1
+            } else {
+                resendTimer?.invalidate()
+            }
+        }
     }
 
     private func savePhoneLocally(phone: String) async {
@@ -390,6 +539,29 @@ struct PhoneEntryView: View {
         }
     }
 
+    // MARK: - API Calls
+
+    private struct OTPResponse: Decodable {
+        let success: Bool
+        let status: String?
+        let action: String?
+        let error: String?
+    }
+
+    private func callSendOTP(phone: String) async throws -> OTPResponse {
+        return try await SupabaseConfig.client.functions.invoke(
+            "send-phone-otp",
+            options: .init(body: ["phone": phone])
+        )
+    }
+
+    private func callVerifyOTP(phone: String, code: String) async throws -> OTPResponse {
+        return try await SupabaseConfig.client.functions.invoke(
+            "verify-phone-otp",
+            options: .init(body: ["phone": phone, "code": code])
+        )
+    }
+
     // MARK: - Helpers
 
     /// Country-aware phone number display grouping.
@@ -419,13 +591,6 @@ struct PhoneEntryView: View {
             result += " " + String(chars[index...])
         }
         return result
-    }
-
-    /// SHA-256 hash of E.164 phone number for privacy-preserving discovery.
-    private func hashPhoneNumber(_ phone: String) -> String {
-        let data = Data(phone.utf8)
-        let hash = SHA256.hash(data: data)
-        return hash.map { String(format: "%02x", $0) }.joined()
     }
 }
 
