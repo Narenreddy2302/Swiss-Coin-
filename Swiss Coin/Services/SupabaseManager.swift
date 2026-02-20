@@ -120,8 +120,19 @@ final class AuthManager: ObservableObject {
         CurrentUser.setCurrentUser(id: userId)
         authState = .authenticated
 
-        // Ensure profile row exists and has metadata (non-blocking)
-        Task { await ensureProfileExists(userId: userId) }
+        // Check if phone has been collected
+        if UserDefaults.standard.bool(forKey: "user_phone_collected") {
+            authState = .authenticated
+        } else {
+            // Slow path: check Supabase profiles table
+            Task {
+                await checkProfileHasPhone(userId: userId)
+            }
+        }
+
+        // Sync Apple metadata (name, email) to Supabase profile in the background.
+        // This ensures the profile row has up-to-date Apple data regardless of phone state.
+        Task { await syncAppleMetadataToProfile(userId: userId) }
     }
 
     /// Detects legacy phone OTP sessions from before Apple Sign-In migration.
@@ -185,15 +196,54 @@ final class AuthManager: ObservableObject {
                     .execute()
             }
 
-            // Also update local CoreData Person
-            let context = PersistenceController.shared.container.viewContext
-            await context.perform {
-                let person = CurrentUser.getOrCreate(in: context)
-                if let name = UserDefaults.standard.string(forKey: "apple_given_name")
-                    ?? UserDefaults.standard.string(forKey: "apple_full_name") {
-                    person.name = name
-                }
-                try? context.save()
+    /// Syncs Apple Sign-In metadata (name, email) to the Supabase profile row.
+    /// The `handle_new_user()` trigger may not capture this data because Apple's name
+    /// is written via `auth.update()` after the trigger fires. This method fills the gap.
+    private func syncAppleMetadataToProfile(userId: UUID) async {
+        await ensureProfileExists(userId: userId)
+
+        let displayName = UserDefaults.standard.string(forKey: "apple_given_name")
+        let fullName = UserDefaults.standard.string(forKey: "apple_full_name")
+        let email = KeychainHelper.read(key: "apple_email")
+
+        // Only update if we have Apple data to push
+        guard displayName != nil || fullName != nil || email != nil else { return }
+
+        do {
+            var updates: [String: String?] = [:]
+            if let displayName { updates["display_name"] = displayName }
+            if let fullName { updates["full_name"] = fullName }
+            if let email { updates["email"] = email }
+
+            try await SupabaseConfig.client.from("profiles")
+                .update(updates)
+                .eq("id", value: userId.uuidString)
+                .execute()
+        } catch {
+            AppLogger.auth.warning("syncAppleMetadataToProfile failed: \(error.localizedDescription)")
+        }
+    }
+
+    /// Query Supabase to check if the user's profile already has a phone number.
+    /// Skips PhoneEntryView for returning users (e.g., app reinstall).
+    private func checkProfileHasPhone(userId: UUID) async {
+        // Ensure trigger-created profile exists before checking phone
+        await ensureProfileExists(userId: userId)
+
+        do {
+            let profiles: [ProfileDTO] = try await SupabaseConfig.client.from("profiles")
+                .select("id, phone")
+                .eq("id", value: userId.uuidString)
+                .execute().value
+
+            if let profile = profiles.first,
+               let phone = profile.phone, !phone.isEmpty {
+                // Phone already collected — cache and proceed
+                UserDefaults.standard.set(true, forKey: "user_phone_collected")
+                UserDefaults.standard.set(phone, forKey: "user_phone_e164")
+                authState = .authenticated
+            } else {
+                authState = .needsPhoneEntry
             }
         } catch {
             AppLogger.auth.warning("ensureProfileExists failed: \(error.localizedDescription)")
