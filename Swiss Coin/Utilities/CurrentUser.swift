@@ -87,7 +87,8 @@ final class CurrentUser {
     static func createNewUser(in context: NSManagedObjectContext, id: UUID? = nil) -> Person {
         let user = Person(context: context)
         user.id = id ?? UUID()
-        user.name = "Me" // Default name
+        let appleName = UserDefaults.standard.string(forKey: "apple_given_name")
+        user.name = (appleName != nil && !appleName!.isEmpty) ? appleName! : "Me"
         user.colorHex = AppColors.defaultAvatarColorHex
         user.phoneNumber = nil // Will be set when user adds it
         user.photoData = nil // Will be set when user adds photo

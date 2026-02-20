@@ -26,6 +26,11 @@ struct ContentView: View {
                 SignInView()
             case .authenticated:
                 authenticatedContent
+            case .needsPhoneEntry:
+                NavigationStack {
+                    PhoneRequiredView()
+                        .toolbar(.hidden, for: .navigationBar)
+                }
             }
         }
         .animation(AppAnimation.standard, value: authManager.authState)

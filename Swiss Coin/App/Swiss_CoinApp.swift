@@ -21,6 +21,7 @@ struct Swiss_CoinApp: App {
     private static let backgroundSyncTaskId = "com.swisscoin.background-sync"
 
     init() {
+        FreshInstallGuard.clearKeychainIfReinstalled()
         registerBackgroundSync()
         configureTabBarAppearance()
         registerForPushNotifications()

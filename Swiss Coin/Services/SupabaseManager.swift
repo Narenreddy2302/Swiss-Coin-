@@ -19,6 +19,7 @@ enum AuthState: Equatable {
     case loading
     case authenticated
     case unauthenticated
+    case needsPhoneEntry
 }
 
 // MARK: - Auth Manager
@@ -37,6 +38,7 @@ final class AuthManager: ObservableObject {
     private var authStateTask: Task<Void, Never>?
     private var timeoutTask: Task<Void, Never>?
     private var currentNonce: String?
+    private var lastHandledUserId: UUID?
 
     // MARK: - Init
 
@@ -116,15 +118,21 @@ final class AuthManager: ObservableObject {
         }
 
         let userId = session.user.id
+
+        // Deduplicate: Supabase fires both .initialSession and .signedIn on
+        // first sign-in. Skip if we already handled this user's session.
+        guard userId != lastHandledUserId else { return }
+        lastHandledUserId = userId
+
         currentUserId = userId
         CurrentUser.setCurrentUser(id: userId)
-        authState = .authenticated
 
         // Check if phone has been collected
         if UserDefaults.standard.bool(forKey: "user_phone_collected") {
+            // Fast path: cached — no flash
             authState = .authenticated
         } else {
-            // Slow path: check Supabase profiles table
+            // Slow path: stay in .loading while checking Supabase
             Task {
                 await checkProfileHasPhone(userId: userId)
             }
@@ -152,6 +160,7 @@ final class AuthManager: ObservableObject {
         }
 
         currentUserId = nil
+        lastHandledUserId = nil
         CurrentUser.reset()
         UserDefaults.standard.removeObject(forKey: "lastSyncTimestamp")
         UserDefaults.standard.removeObject(forKey: "supabase_migration_completed")
@@ -165,7 +174,7 @@ final class AuthManager: ObservableObject {
     private func ensureProfileExists(userId: UUID) async {
         do {
             let existing: [ProfileDTO] = try await SupabaseConfig.client.from("profiles")
-                .select("id, display_name, full_name, email")
+                .select("*")
                 .eq("id", value: userId.uuidString)
                 .execute().value
 
@@ -195,16 +204,77 @@ final class AuthManager: ObservableObject {
                     .eq("id", value: userId.uuidString)
                     .execute()
             }
+        } catch {
+            AppLogger.auth.warning("ensureProfileExists failed: \(error.localizedDescription)")
+        }
+    }
 
     /// Syncs Apple Sign-In metadata (name, email) to the Supabase profile row.
     /// The `handle_new_user()` trigger may not capture this data because Apple's name
     /// is written via `auth.update()` after the trigger fires. This method fills the gap.
+    ///
+    /// Apple only provides name/email on the FIRST sign-in. On subsequent sign-ins
+    /// the credential fields are nil. After a sign-out the local cache is cleared.
+    /// So we fall back to `session.user.userMetadata` which Supabase always keeps.
     private func syncAppleMetadataToProfile(userId: UUID) async {
         await ensureProfileExists(userId: userId)
 
-        let displayName = UserDefaults.standard.string(forKey: "apple_given_name")
-        let fullName = UserDefaults.standard.string(forKey: "apple_full_name")
-        let email = KeychainHelper.read(key: "apple_email")
+        // 1. Try local cache first (populated on first Apple sign-in)
+        var displayName = UserDefaults.standard.string(forKey: "apple_given_name")
+        var fullName = UserDefaults.standard.string(forKey: "apple_full_name")
+        var email = KeychainHelper.read(key: "apple_email")
+
+        // 2. Fall back to Supabase session metadata (always available from auth.users)
+        if displayName == nil || fullName == nil || email == nil {
+            if let session = try? await SupabaseConfig.client.auth.session {
+                let meta = session.user.userMetadata
+
+                if displayName == nil, let given = meta["given_name"]?.stringValue, !given.isEmpty {
+                    displayName = given
+                    UserDefaults.standard.set(given, forKey: "apple_given_name")
+                }
+                if fullName == nil, let full = meta["full_name"]?.stringValue, !full.isEmpty {
+                    fullName = full
+                    UserDefaults.standard.set(full, forKey: "apple_full_name")
+                }
+                if email == nil {
+                    let sessionEmail = meta["email"]?.stringValue ?? session.user.email
+                    if let resolvedEmail = sessionEmail, !resolvedEmail.isEmpty {
+                        email = resolvedEmail
+                        KeychainHelper.save(key: "apple_email", value: resolvedEmail)
+                    }
+                }
+
+                // Also restore family name if missing
+                if UserDefaults.standard.string(forKey: "apple_family_name") == nil,
+                   let family = meta["family_name"]?.stringValue, !family.isEmpty {
+                    UserDefaults.standard.set(family, forKey: "apple_family_name")
+                }
+            }
+        }
+
+        // 3. Populate PersonalDetailsView keys so the profile page shows the data
+        if let fullName, !fullName.isEmpty,
+           UserDefaults.standard.string(forKey: "user_full_name")?.isEmpty != false {
+            UserDefaults.standard.set(fullName, forKey: "user_full_name")
+        }
+        if let email, !email.isEmpty,
+           UserDefaults.standard.string(forKey: "user_email")?.isEmpty != false {
+            UserDefaults.standard.set(email, forKey: "user_email")
+        }
+
+        // 4. Update CoreData Person.name if still a placeholder
+        if let resolvedName = displayName, !resolvedName.isEmpty {
+            let context = PersistenceController.shared.container.viewContext
+            await context.perform {
+                let person = CurrentUser.getOrCreate(in: context)
+                let current = person.name ?? ""
+                if current.isEmpty || current == "Me" || current == "User" || current == "You" {
+                    person.name = resolvedName
+                    try? context.save()
+                }
+            }
+        }
 
         // Only update if we have Apple data to push
         guard displayName != nil || fullName != nil || email != nil else { return }
@@ -232,7 +302,7 @@ final class AuthManager: ObservableObject {
 
         do {
             let profiles: [ProfileDTO] = try await SupabaseConfig.client.from("profiles")
-                .select("id, phone")
+                .select("*")
                 .eq("id", value: userId.uuidString)
                 .execute().value
 
@@ -241,12 +311,54 @@ final class AuthManager: ObservableObject {
                 // Phone already collected — cache and proceed
                 UserDefaults.standard.set(true, forKey: "user_phone_collected")
                 UserDefaults.standard.set(phone, forKey: "user_phone_e164")
+
+                // Hydrate CoreData + local caches from the remote profile
+                let context = PersistenceController.shared.container.viewContext
+                await context.perform {
+                    let person = CurrentUser.getOrCreate(in: context)
+                    let currentName = person.name ?? ""
+
+                    // Only overwrite placeholder names — preserve user-customized names
+                    if currentName.isEmpty || currentName == "Me" || currentName == "User" || currentName == "You" {
+                        let remoteName = profile.displayName
+                        if !remoteName.isEmpty {
+                            person.name = remoteName
+                        }
+                    }
+
+                    if person.phoneNumber?.isEmpty != false {
+                        person.phoneNumber = phone
+                    }
+
+                    if person.colorHex == nil || person.colorHex == AppColors.defaultAvatarColorHex {
+                        if let remoteColor = profile.colorHex, !remoteColor.isEmpty {
+                            person.colorHex = remoteColor
+                        }
+                    }
+
+                    try? context.save()
+                }
+
+                // Restore local caches from remote profile
+                if let remoteEmail = profile.email, !remoteEmail.isEmpty {
+                    UserDefaults.standard.set(remoteEmail, forKey: "user_email")
+                    KeychainHelper.save(key: "apple_email", value: remoteEmail)
+                }
+                if let remoteFull = profile.fullName, !remoteFull.isEmpty {
+                    UserDefaults.standard.set(remoteFull, forKey: "user_full_name")
+                }
+                let remoteDisplay = profile.displayName
+                if !remoteDisplay.isEmpty {
+                    UserDefaults.standard.set(remoteDisplay, forKey: "apple_given_name")
+                }
+
                 authState = .authenticated
             } else {
                 authState = .needsPhoneEntry
             }
         } catch {
-            AppLogger.auth.warning("ensureProfileExists failed: \(error.localizedDescription)")
+            AppLogger.auth.warning("checkProfileHasPhone failed: \(error.localizedDescription)")
+            authState = .needsPhoneEntry // safe fallback — phone gate is re-entrant
         }
     }
 
@@ -359,6 +471,7 @@ final class AuthManager: ObservableObject {
         }
 
         currentUserId = nil
+        lastHandledUserId = nil
         CurrentUser.reset()
 
         // Clear Keychain (sensitive data)
@@ -366,15 +479,26 @@ final class AuthManager: ObservableObject {
         KeychainHelper.delete(key: "apple_email")
 
         // Clear UserDefaults (non-sensitive)
+        // NOTE: Keep apple_given_name, apple_family_name, apple_full_name across
+        // sign-out because Apple only provides the name on the FIRST sign-in ever.
+        // These are recovered from session.user.userMetadata on re-login, but
+        // preserving locally avoids a race condition on slow networks.
         UserDefaults.standard.set(false, forKey: "has_seen_onboarding")
         UserDefaults.standard.removeObject(forKey: "supabase_migration_completed")
         UserDefaults.standard.removeObject(forKey: "lastSyncTimestamp")
-        UserDefaults.standard.removeObject(forKey: "apple_given_name")
-        UserDefaults.standard.removeObject(forKey: "apple_family_name")
-        UserDefaults.standard.removeObject(forKey: "apple_full_name")
         UserDefaults.standard.removeObject(forKey: "lastContactDiscoveryDate")
+        UserDefaults.standard.removeObject(forKey: "user_email")
+        UserDefaults.standard.removeObject(forKey: "user_full_name")
+        UserDefaults.standard.removeObject(forKey: "user_phone_collected")
+        UserDefaults.standard.removeObject(forKey: "user_phone_e164")
 
         authState = .unauthenticated
+    }
+
+    /// Transitions from the phone entry gate to authenticated state.
+    func completePhoneEntry() {
+        guard authState == .needsPhoneEntry else { return }
+        authState = .authenticated
     }
 
     // MARK: - Legacy Migration
