@@ -6,6 +6,7 @@
 //  Represents contacts owned by the user (not other Supabase users).
 //
 
+import CryptoKit
 import Foundation
 
 struct PersonDTO: Codable, Identifiable, Sendable {
@@ -13,6 +14,7 @@ struct PersonDTO: Codable, Identifiable, Sendable {
     let ownerId: UUID
     var name: String
     var phoneNumber: String?
+    var phoneHash: String?
     var photoUrl: String?
     var colorHex: String?
     var isArchived: Bool
@@ -26,6 +28,7 @@ struct PersonDTO: Codable, Identifiable, Sendable {
         case ownerId = "owner_id"
         case name
         case phoneNumber = "phone_number"
+        case phoneHash = "phone_hash"
         case photoUrl = "photo_url"
         case colorHex = "color_hex"
         case isArchived = "is_archived"
@@ -45,6 +48,18 @@ extension PersonDTO {
         self.ownerId = ownerId
         self.name = person.name ?? ""
         self.phoneNumber = person.phoneNumber
+        // Compute phone hash for phantom sharing lookups
+        if let phone = person.phoneNumber, !phone.isEmpty {
+            let normalized = phone.components(
+                separatedBy: CharacterSet.decimalDigits.inverted
+                    .subtracting(CharacterSet(charactersIn: "+"))
+            ).joined()
+            let data = Data(normalized.utf8)
+            let hash = SHA256.hash(data: data)
+            self.phoneHash = hash.map { String(format: "%02x", $0) }.joined()
+        } else {
+            self.phoneHash = nil
+        }
         self.photoUrl = person.photoURL
         self.colorHex = person.colorHex
         self.isArchived = person.isArchived

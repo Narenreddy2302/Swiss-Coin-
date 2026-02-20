@@ -14,10 +14,11 @@ struct CountryCode: Identifiable, Hashable {
     let flag: String
 
     static let switzerland = CountryCode(id: "CH", name: "Switzerland", dialCode: "+41", flag: "🇨🇭")
+    static let unitedStates = CountryCode(id: "US", name: "United States", dialCode: "+1", flag: "🇺🇸")
 
     static let all: [CountryCode] = [
-        CountryCode(id: "CH", name: "Switzerland", dialCode: "+41", flag: "🇨🇭"),
         CountryCode(id: "US", name: "United States", dialCode: "+1", flag: "🇺🇸"),
+        CountryCode(id: "CH", name: "Switzerland", dialCode: "+41", flag: "🇨🇭"),
         CountryCode(id: "GB", name: "United Kingdom", dialCode: "+44", flag: "🇬🇧"),
         CountryCode(id: "DE", name: "Germany", dialCode: "+49", flag: "🇩🇪"),
         CountryCode(id: "FR", name: "France", dialCode: "+33", flag: "🇫🇷"),

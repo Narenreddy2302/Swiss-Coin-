@@ -10,14 +10,29 @@ struct AddPersonView: View {
     @State private var showingContactPicker = false
     @State private var name: String = ""
     @State private var phoneNumber: String = ""
+    @State private var selectedCountry = CountryCode.unitedStates
+    @State private var showCountryPicker = false
     @State private var showingDuplicateWarning = false
     @State private var duplicatePersonName: String = ""
     @State private var showingNameDuplicateWarning = false
     @State private var isSaving = false
-    
+
     // Navigation state to conversation view
     @State private var newlyCreatedPerson: Person?
     @State private var existingPerson: Person?
+
+    /// The full E.164 phone number composed from country code + digits
+    private var e164Phone: String {
+        let digits = phoneNumber.filter(\.isNumber)
+        guard !digits.isEmpty else { return "" }
+        return selectedCountry.dialCode + digits
+    }
+
+    /// Whether the phone field has a valid number
+    private var isPhoneValid: Bool {
+        let digits = phoneNumber.filter(\.isNumber)
+        return digits.count >= 4
+    }
 
     var body: some View {
         NavigationStack {
@@ -57,11 +72,33 @@ struct AddPersonView: View {
                                     .padding(.leading, Spacing.lg)
 
                                 // Phone Input Row
-                                HStack(spacing: Spacing.md) {
+                                HStack(spacing: Spacing.sm) {
                                     Image(systemName: "phone.fill")
                                         .font(.system(size: IconSize.sm))
                                         .foregroundColor(AppColors.accent)
                                         .frame(width: IconSize.lg)
+
+                                    // Country code selector
+                                    Button {
+                                        HapticManager.tap()
+                                        showCountryPicker = true
+                                    } label: {
+                                        HStack(spacing: Spacing.xxs) {
+                                            Text(selectedCountry.flag)
+                                                .font(.system(size: IconSize.sm))
+                                            Text(selectedCountry.dialCode)
+                                                .font(AppTypography.bodyLarge())
+                                                .foregroundColor(AppColors.textPrimary)
+                                            Image(systemName: "chevron.down")
+                                                .font(.system(size: 10, weight: .semibold))
+                                                .foregroundColor(AppColors.textTertiary)
+                                        }
+                                    }
+                                    .accessibilityLabel("\(selectedCountry.name), \(selectedCountry.dialCode)")
+
+                                    Rectangle()
+                                        .fill(AppColors.divider)
+                                        .frame(width: 1, height: 24)
 
                                     TextField("Phone Number", text: $phoneNumber)
                                         .font(AppTypography.bodyLarge())
@@ -69,14 +106,11 @@ struct AddPersonView: View {
                                         .keyboardType(.phonePad)
                                         .limitTextLength(to: ValidationLimits.maxPhoneLength, text: $phoneNumber)
                                         .onChange(of: phoneNumber) { _, newValue in
-                                            // Filter to only allow valid phone number characters
-                                            let filtered = newValue.filter { char in
-                                                char.isNumber || char == "+" || char == " " || char == "-" || char == "(" || char == ")"
-                                            }
+                                            let filtered = newValue.filter(\.isNumber)
                                             if filtered != newValue {
                                                 phoneNumber = filtered
                                             }
-                                            checkDuplicatePhone(filtered)
+                                            checkDuplicatePhone(e164Phone)
                                         }
                                 }
                                 .padding(.horizontal, Spacing.lg)
@@ -110,6 +144,31 @@ struct AddPersonView: View {
                                     Text("A contact with this name already exists")
                                         .font(AppTypography.caption())
                                         .foregroundColor(AppColors.textSecondary)
+                                }
+                                .padding(.horizontal, Spacing.lg + Spacing.xxs)
+                                .padding(.top, Spacing.xxs)
+                            }
+
+                            // Phone required hint
+                            if !isPhoneValid && !phoneNumber.isEmpty {
+                                HStack(spacing: Spacing.xs) {
+                                    Image(systemName: "info.circle.fill")
+                                        .font(.system(size: IconSize.sm))
+                                        .foregroundColor(AppColors.textSecondary)
+                                    Text("Enter at least 4 digits")
+                                        .font(AppTypography.caption())
+                                        .foregroundColor(AppColors.textSecondary)
+                                }
+                                .padding(.horizontal, Spacing.lg + Spacing.xxs)
+                                .padding(.top, Spacing.xxs)
+                            } else if phoneNumber.isEmpty {
+                                HStack(spacing: Spacing.xs) {
+                                    Image(systemName: "phone.fill")
+                                        .font(.system(size: IconSize.sm))
+                                        .foregroundColor(AppColors.textTertiary)
+                                    Text("Phone number required for sharing transactions")
+                                        .font(AppTypography.caption())
+                                        .foregroundColor(AppColors.textTertiary)
                                 }
                                 .padding(.horizontal, Spacing.lg + Spacing.xxs)
                                 .padding(.top, Spacing.xxs)
@@ -172,8 +231,8 @@ struct AddPersonView: View {
                                 }
                             }
                         }
-                        .buttonStyle(PrimaryButtonStyle(isEnabled: !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !showingDuplicateWarning && !isSaving))
-                        .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || showingDuplicateWarning || isSaving)
+                        .buttonStyle(PrimaryButtonStyle(isEnabled: !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && isPhoneValid && !showingDuplicateWarning && !isSaving))
+                        .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !isPhoneValid || showingDuplicateWarning || isSaving)
                         .padding(.horizontal)
                     }
                     .padding(.top, Spacing.lg)
@@ -193,7 +252,10 @@ struct AddPersonView: View {
                     .navigationBarBackButtonHidden(false)
             }
             .sheet(isPresented: $showingContactPicker) {
-                ContactPicker(name: $name, phoneNumber: $phoneNumber)
+                ContactPicker(name: $name, phoneNumber: $phoneNumber, selectedCountry: $selectedCountry)
+            }
+            .sheet(isPresented: $showCountryPicker) {
+                CountryCodePicker(selectedCountry: $selectedCountry)
             }
         }
     }
@@ -281,26 +343,29 @@ struct AddPersonView: View {
             HapticManager.error()
             return
         }
+        guard isPhoneValid else {
+            HapticManager.error()
+            return
+        }
 
         guard !isSaving else { return }
         isSaving = true
 
-        let trimmedPhone = phoneNumber.trimmingCharacters(in: .whitespacesAndNewlines)
+        // Normalize phone to E.164 format
+        let normalizedPhone = e164Phone
 
         // Check if contact with this phone already exists - navigate to them instead
-        if !trimmedPhone.isEmpty {
-            if let existingPerson = findExistingPerson(byPhone: trimmedPhone) {
-                HapticManager.selectionChanged()
-                self.existingPerson = existingPerson
-                isSaving = false
-                return
-            }
+        if let existingPerson = findExistingPerson(byPhone: normalizedPhone) {
+            HapticManager.selectionChanged()
+            self.existingPerson = existingPerson
+            isSaving = false
+            return
         }
 
         let newPerson = Person(context: viewContext)
         newPerson.id = UUID()
         newPerson.name = trimmedName
-        newPerson.phoneNumber = trimmedPhone.isEmpty ? nil : trimmedPhone
+        newPerson.phoneNumber = normalizedPhone
 
         // Assign a random color hex for avatar - ensure proper 6-digit format
         let randomColor = Int.random(in: 0...0xFFFFFF)
@@ -309,7 +374,7 @@ struct AddPersonView: View {
         do {
             try viewContext.save()
             HapticManager.success()
-            
+
             // Navigate to conversation view instead of just dismissing
             newlyCreatedPerson = newPerson
             isSaving = false
@@ -327,6 +392,7 @@ struct AddPersonView: View {
 struct ContactPicker: UIViewControllerRepresentable {
     @Binding var name: String
     @Binding var phoneNumber: String
+    @Binding var selectedCountry: CountryCode
 
     func makeCoordinator() -> Coordinator {
         Coordinator(self)
@@ -357,7 +423,33 @@ struct ContactPicker: UIViewControllerRepresentable {
             parent.name = "\(givenName) \(familyName)".trimmingCharacters(in: .whitespaces)
 
             if let firstPhoneNumber = contact.phoneNumbers.first?.value.stringValue {
-                parent.phoneNumber = firstPhoneNumber
+                // Detect country code from the imported phone number
+                let digits = firstPhoneNumber.filter(\.isNumber)
+                let hasPlus = firstPhoneNumber.hasPrefix("+")
+
+                if hasPlus {
+                    // Phone has international prefix — detect country code
+                    let fullDigits = "+" + digits
+                    if let matched = CountryCode.all.first(where: { fullDigits.hasPrefix($0.dialCode) }) {
+                        parent.selectedCountry = matched
+                        // Strip the dial code prefix from digits
+                        let dialDigits = matched.dialCode.filter(\.isNumber)
+                        if digits.hasPrefix(dialDigits) {
+                            parent.phoneNumber = String(digits.dropFirst(dialDigits.count))
+                        } else {
+                            parent.phoneNumber = digits
+                        }
+                    } else {
+                        parent.phoneNumber = digits
+                    }
+                } else {
+                    // Local number — strip leading zero if present, keep current country code
+                    if digits.hasPrefix("0") {
+                        parent.phoneNumber = String(digits.dropFirst())
+                    } else {
+                        parent.phoneNumber = digits
+                    }
+                }
             }
         }
     }

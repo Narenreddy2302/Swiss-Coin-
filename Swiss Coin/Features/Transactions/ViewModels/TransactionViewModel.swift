@@ -57,6 +57,8 @@ class TransactionViewModel: ObservableObject {
     // MARK: - Save State
     @Published var isSaving: Bool = false
     @Published var saveCompleted: Bool = false
+    @Published var showPhoneMissingAlert: Bool = false
+    @Published var phoneMissingParticipantNames: [String] = []
 
     // MARK: - Constants
     static let epsilon: Double = 0.01
@@ -577,6 +579,19 @@ class TransactionViewModel: ObservableObject {
     func saveTransaction(completion: @escaping (Bool) -> Void = { _ in }) {
         // 1. Pre-flight validation
         guard isValid else {
+            HapticManager.error()
+            completion(false)
+            return
+        }
+
+        // 1.5. Check all non-current-user participants have phone numbers (required for sharing)
+        let missingPhone = selectedParticipants.filter { person in
+            !CurrentUser.isCurrentUser(person.id) &&
+            (person.phoneNumber == nil || person.phoneNumber?.isEmpty == true)
+        }
+        if !missingPhone.isEmpty {
+            phoneMissingParticipantNames = missingPhone.compactMap { $0.name }
+            showPhoneMissingAlert = true
             HapticManager.error()
             completion(false)
             return
