@@ -44,8 +44,8 @@ final class RealtimeService: ObservableObject {
 
         let channel = SupabaseConfig.client.realtimeV2.channel("user-sync-\(userId.uuidString)")
 
-        // Listen for changes on key tables
-        let tables = [
+        // Listen for changes on key tables (filtered by owner_id)
+        let ownerTables = [
             "financial_transactions",
             "settlements",
             "chat_messages",
@@ -54,7 +54,7 @@ final class RealtimeService: ObservableObject {
             "subscription_reminders",
         ]
 
-        for table in tables {
+        for table in ownerTables {
             let onChange = channel.postgresChange(
                 AnyAction.self,
                 schema: "public",
@@ -71,6 +71,82 @@ final class RealtimeService: ObservableObject {
                         userInfo: ["table": table]
                     )
                 }
+            }
+        }
+
+        // Listen for shared transaction changes (filtered by profile_id)
+        let sharedOnChange = channel.postgresChange(
+            AnyAction.self,
+            schema: "public",
+            table: "transaction_participants",
+            filter: .eq("profile_id", value: userId.uuidString)
+        )
+
+        Task {
+            for await change in sharedOnChange {
+                logger.debug("Realtime shared transaction change: \(String(describing: change))")
+                NotificationCenter.default.post(
+                    name: .supabaseRealtimeChange,
+                    object: nil,
+                    userInfo: ["table": "transaction_participants"]
+                )
+            }
+        }
+
+        // Listen for shared settlement changes
+        let settlementParticipantChange = channel.postgresChange(
+            AnyAction.self,
+            schema: "public",
+            table: "settlement_participants",
+            filter: .eq("profile_id", value: userId.uuidString)
+        )
+
+        Task {
+            for await change in settlementParticipantChange {
+                logger.debug("Realtime shared settlement change: \(String(describing: change))")
+                NotificationCenter.default.post(
+                    name: .supabaseRealtimeChange,
+                    object: nil,
+                    userInfo: ["table": "settlement_participants"]
+                )
+            }
+        }
+
+        // Listen for shared subscription changes
+        let subscriptionParticipantChange = channel.postgresChange(
+            AnyAction.self,
+            schema: "public",
+            table: "subscription_participants",
+            filter: .eq("profile_id", value: userId.uuidString)
+        )
+
+        Task {
+            for await change in subscriptionParticipantChange {
+                logger.debug("Realtime shared subscription change: \(String(describing: change))")
+                NotificationCenter.default.post(
+                    name: .supabaseRealtimeChange,
+                    object: nil,
+                    userInfo: ["table": "subscription_participants"]
+                )
+            }
+        }
+
+        // Listen for shared reminder changes
+        let sharedReminderChange = channel.postgresChange(
+            AnyAction.self,
+            schema: "public",
+            table: "shared_reminders",
+            filter: .eq("to_profile_id", value: userId.uuidString)
+        )
+
+        Task {
+            for await change in sharedReminderChange {
+                logger.debug("Realtime shared reminder change: \(String(describing: change))")
+                NotificationCenter.default.post(
+                    name: .supabaseRealtimeChange,
+                    object: nil,
+                    userInfo: ["table": "shared_reminders"]
+                )
             }
         }
 

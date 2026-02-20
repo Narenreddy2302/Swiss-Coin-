@@ -44,6 +44,8 @@ extension Subscription {
     @NSManaged public var isArchived: Bool
     @NSManaged public var updatedAt: Date?
     @NSManaged public var deletedAt: Date?
+    @NSManaged public var sharingStatus: String?
+    @NSManaged public var sharedByProfileId: UUID?
     @NSManaged public var subscribers: NSSet?
     @NSManaged public var payments: NSSet?
     @NSManaged public var chatMessages: NSSet?

@@ -10,10 +10,11 @@ import Foundation
 struct SharedReminderDTO: Codable, Identifiable, Sendable {
     let id: UUID
     let fromProfileId: UUID
-    let toProfileId: UUID
+    let toProfileId: UUID?
     var amount: Double
     var currency: String?
     var message: String?
+    var phoneHash: String?
     var isRead: Bool
     let createdAt: Date
     var updatedAt: Date
@@ -23,6 +24,7 @@ struct SharedReminderDTO: Codable, Identifiable, Sendable {
         case fromProfileId = "from_profile_id"
         case toProfileId = "to_profile_id"
         case amount, currency, message
+        case phoneHash = "phone_hash"
         case isRead = "is_read"
         case createdAt = "created_at"
         case updatedAt = "updated_at"

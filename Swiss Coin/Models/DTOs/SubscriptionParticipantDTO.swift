@@ -1,15 +1,15 @@
 //
-//  TransactionParticipantDTO.swift
+//  SubscriptionParticipantDTO.swift
 //  Swiss Coin
 //
-//  Codable DTO for the `transaction_participants` Supabase table.
+//  Codable DTO for the `subscription_participants` Supabase table.
 //
 
 import Foundation
 
-struct TransactionParticipantDTO: Codable, Identifiable, Sendable {
+struct SubscriptionParticipantDTO: Codable, Identifiable, Sendable {
     let id: UUID
-    let transactionId: UUID
+    let subscriptionId: UUID
     let profileId: UUID?
     var status: String
     var role: String
@@ -22,7 +22,7 @@ struct TransactionParticipantDTO: Codable, Identifiable, Sendable {
 
     enum CodingKeys: String, CodingKey {
         case id
-        case transactionId = "transaction_id"
+        case subscriptionId = "subscription_id"
         case profileId = "profile_id"
         case status, role
         case localPersonId = "local_person_id"

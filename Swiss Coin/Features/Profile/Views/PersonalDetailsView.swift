@@ -603,7 +603,7 @@ class PersonalDetailsViewModel: ObservableObject {
                 if !newPhone.isEmpty {
                     UserDefaults.standard.set(newPhone, forKey: "user_phone_e164")
                     UserDefaults.standard.set(true, forKey: "user_phone_collected")
-                    await AuthManager.shared.completePhoneEntry()
+                    AuthManager.shared.completePhoneEntry()
                 } else if phoneChanged {
                     UserDefaults.standard.removeObject(forKey: "user_phone_e164")
                     UserDefaults.standard.set(false, forKey: "user_phone_collected")
@@ -622,6 +622,13 @@ class PersonalDetailsViewModel: ObservableObject {
                 // 4. Trigger contact discovery if phone was added or changed
                 if phoneChanged, !newPhone.isEmpty {
                     await ContactDiscoveryService.shared.discoverContacts(context: context)
+
+                    // Claim any phantom shares matching the new phone
+                    let claimResult = await SharedDataService.shared.claimPendingShares()
+                    if let result = claimResult,
+                       (result.claimedTransactions > 0 || result.claimedSettlements > 0 || result.claimedSubscriptions > 0) {
+                        await SyncManager.shared.syncNow(context: context)
+                    }
                 }
 
                 originalPhoneE164 = newPhone

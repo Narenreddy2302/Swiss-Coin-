@@ -194,9 +194,10 @@ final class SyncManager: ObservableObject {
             try await dataService.setGroupMembers(groupId: entry.groupId, personIds: entry.memberIds)
         }
 
-        // Push transactions
+        // Push transactions (exclude shared-from-others)
         let txnDTOs: [TransactionDTO] = await context.perform {
             let request: NSFetchRequest<FinancialTransaction> = FinancialTransaction.fetchRequest()
+            request.predicate = NSPredicate(format: "isShared == NO OR isShared == nil")
             let txns = (try? context.fetch(request)) ?? []
             return txns.map { TransactionDTO(from: $0, ownerId: ownerId) }
         }
@@ -204,9 +205,10 @@ final class SyncManager: ObservableObject {
             try await dataService.upsertTransactions(txnDTOs)
         }
 
-        // Push transaction splits & payers
+        // Push transaction splits & payers (exclude shared-from-others)
         let (splitDTOs, payerDTOs): ([TransactionSplitDTO], [TransactionPayerDTO]) = await context.perform {
             let request: NSFetchRequest<FinancialTransaction> = FinancialTransaction.fetchRequest()
+            request.predicate = NSPredicate(format: "isShared == NO OR isShared == nil")
             let txns = (try? context.fetch(request)) ?? []
             var allSplits: [TransactionSplitDTO] = []
             var allPayers: [TransactionPayerDTO] = []
@@ -222,9 +224,10 @@ final class SyncManager: ObservableObject {
         try await dataService.upsertSplits(splitDTOs)
         try await dataService.upsertPayers(payerDTOs)
 
-        // Push settlements
+        // Push settlements (exclude shared-from-others)
         let settlementDTOs: [SettlementDTO] = await context.perform {
             let request: NSFetchRequest<Settlement> = Settlement.fetchRequest()
+            request.predicate = NSPredicate(format: "isShared == NO OR isShared == nil")
             let settlements = (try? context.fetch(request)) ?? []
             return settlements.map { SettlementDTO(from: $0, ownerId: ownerId) }
         }
@@ -242,9 +245,10 @@ final class SyncManager: ObservableObject {
             try await dataService.upsertReminders(reminderDTOs)
         }
 
-        // Push subscriptions
+        // Push subscriptions (exclude shared-from-others)
         let subDTOs: [SubscriptionDTO] = await context.perform {
             let request: NSFetchRequest<Subscription> = Subscription.fetchRequest()
+            request.predicate = NSPredicate(format: "isShared == NO OR isShared == nil")
             let subs = (try? context.fetch(request)) ?? []
             return subs.map { SubscriptionDTO(from: $0, ownerId: ownerId) }
         }
@@ -252,10 +256,11 @@ final class SyncManager: ObservableObject {
             try await dataService.upsertSubscriptions(subDTOs)
         }
 
-        // Push subscription children (subscribers, payments, settlements, reminders)
+        // Push subscription children (subscribers, payments, settlements, reminders) — exclude shared
         let (subSubscriberData, subPaymentDTOs, subSettlementDTOs, subReminderDTOs):
             ([(subId: UUID, personIds: [UUID])], [SubscriptionPaymentDTO], [SubscriptionSettlementDTO], [SubscriptionReminderDTO]) = await context.perform {
             let request: NSFetchRequest<Subscription> = Subscription.fetchRequest()
+            request.predicate = NSPredicate(format: "isShared == NO OR isShared == nil")
             let subs = (try? context.fetch(request)) ?? []
             var subscriberData: [(subId: UUID, personIds: [UUID])] = []
             var payments: [SubscriptionPaymentDTO] = []
@@ -293,6 +298,50 @@ final class SyncManager: ObservableObject {
 
         // Push unsynced direct messages (cross-user)
         try await ConversationService.shared.pushUnsyncedMessages(context: context)
+
+        // Process transaction shares: create participant records for contacts with phones
+        let shareableIds: [UUID] = await context.perform {
+            let request: NSFetchRequest<FinancialTransaction> = FinancialTransaction.fetchRequest()
+            request.predicate = NSPredicate(format: "(isShared == NO OR isShared == nil) AND SUBQUERY(splits, $s, $s.owedBy.phoneNumber != nil AND $s.owedBy.phoneNumber != '').@count > 0")
+            let txns = (try? context.fetch(request)) ?? []
+            return txns.compactMap(\.id)
+        }
+        if !shareableIds.isEmpty {
+            await SharedDataService.shared.processShares(transactionIds: shareableIds)
+        }
+
+        // Process settlement shares
+        let shareableSettlementIds: [UUID] = await context.perform {
+            let request: NSFetchRequest<Settlement> = Settlement.fetchRequest()
+            request.predicate = NSPredicate(format: "(isShared == NO OR isShared == nil) AND fromPerson.phoneNumber != nil AND fromPerson.phoneNumber != ''")
+            let settlements = (try? context.fetch(request)) ?? []
+            return settlements.compactMap(\.id)
+        }
+        if !shareableSettlementIds.isEmpty {
+            await SharedDataService.shared.processSettlementShares(settlementIds: shareableSettlementIds)
+        }
+
+        // Process subscription shares
+        let shareableSubIds: [UUID] = await context.perform {
+            let request: NSFetchRequest<Subscription> = Subscription.fetchRequest()
+            request.predicate = NSPredicate(format: "(isShared == NO OR isShared == nil) AND SUBQUERY(subscribers, $s, $s.phoneNumber != nil AND $s.phoneNumber != '').@count > 0")
+            let subs = (try? context.fetch(request)) ?? []
+            return subs.compactMap(\.id)
+        }
+        if !shareableSubIds.isEmpty {
+            await SharedDataService.shared.processSubscriptionShares(subscriptionIds: shareableSubIds)
+        }
+
+        // Process reminder shares
+        let shareableReminderIds: [UUID] = await context.perform {
+            let request: NSFetchRequest<Reminder> = Reminder.fetchRequest()
+            request.predicate = NSPredicate(format: "toPerson.phoneNumber != nil AND toPerson.phoneNumber != ''")
+            let reminders = (try? context.fetch(request)) ?? []
+            return reminders.compactMap(\.id)
+        }
+        if !shareableReminderIds.isEmpty {
+            await SharedDataService.shared.processReminderShares(reminderIds: shareableReminderIds)
+        }
     }
 
     // MARK: - Pull (Supabase → CoreData)
@@ -350,6 +399,12 @@ final class SyncManager: ObservableObject {
             remoteSubSettlements[subId] = try await dataService.fetchSubscriptionSettlements(subscriptionId: subId)
             remoteSubReminders[subId] = try await dataService.fetchSubscriptionReminders(subscriptionId: subId)
         }
+
+        // Pull shared data from other users
+        try await SharedDataService.shared.pullSharedTransactions(context: context, since: since)
+        try await SharedDataService.shared.pullSharedSettlements(context: context, since: since)
+        try await SharedDataService.shared.pullSharedSubscriptions(context: context, since: since)
+        try await SharedDataService.shared.pullSharedReminders(context: context, since: since)
 
         // Apply all changes to CoreData
         self.isSyncSave = true
