@@ -8,6 +8,7 @@
 import Combine
 import CoreData
 import CryptoKit
+import os
 import PhotosUI
 import Supabase
 import SwiftUI
@@ -340,7 +341,6 @@ class PersonalDetailsViewModel: ObservableObject {
     @Published var showingError = false
     @Published var errorMessage = ""
     @Published var emailError = ""
-    @Published var phoneError = ""
     @Published var isSaving = false
     @Published var hasChanges = false
     @Published var didSave = false
@@ -489,6 +489,50 @@ class PersonalDetailsViewModel: ObservableObject {
         {
             accountCreatedDate = storedDate
         }
+
+        // If email or fullName are empty, fetch from Supabase profile
+        if email.isEmpty || fullName.isEmpty {
+            Task { await fetchProfileFromSupabase() }
+        }
+    }
+
+    /// Fetches email and full name from Supabase profile when local cache is empty.
+    private func fetchProfileFromSupabase() async {
+        guard let userId = AuthManager.shared.currentUserId else { return }
+
+        do {
+            let profiles: [ProfileDTO] = try await SupabaseConfig.client.from("profiles")
+                .select("*")
+                .eq("id", value: userId.uuidString)
+                .execute().value
+
+            guard let profile = profiles.first else { return }
+
+            if email.isEmpty, let remoteEmail = profile.email, !remoteEmail.isEmpty {
+                email = remoteEmail
+                UserDefaults.standard.set(remoteEmail, forKey: "user_email")
+            }
+            if fullName.isEmpty, let remoteName = profile.fullName, !remoteName.isEmpty {
+                fullName = remoteName
+                UserDefaults.standard.set(remoteName, forKey: "user_full_name")
+            }
+            if displayName == "You" || displayName == "Me" || displayName == "User" {
+                displayName = profile.displayName
+
+                // Persist to CoreData so the name survives even if user cancels
+                let context = PersistenceController.shared.container.viewContext
+                await context.perform {
+                    let person = CurrentUser.getOrCreate(in: context)
+                    let current = person.name ?? ""
+                    if current.isEmpty || current == "Me" || current == "User" || current == "You" {
+                        person.name = profile.displayName
+                        try? context.save()
+                    }
+                }
+            }
+        } catch {
+            // Non-critical — UserDefaults will be populated on next sync
+        }
     }
 
     // MARK: - Validation
@@ -559,6 +603,7 @@ class PersonalDetailsViewModel: ObservableObject {
                 if !newPhone.isEmpty {
                     UserDefaults.standard.set(newPhone, forKey: "user_phone_e164")
                     UserDefaults.standard.set(true, forKey: "user_phone_collected")
+                    await AuthManager.shared.completePhoneEntry()
                 } else if phoneChanged {
                     UserDefaults.standard.removeObject(forKey: "user_phone_e164")
                     UserDefaults.standard.set(false, forKey: "user_phone_collected")

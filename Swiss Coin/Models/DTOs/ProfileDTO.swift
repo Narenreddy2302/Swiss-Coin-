@@ -64,7 +64,10 @@ extension ProfileDTO {
     /// Apply DTO values back to a Person entity (current user)
     func apply(to person: Person) {
         person.name = displayName
-        person.phoneNumber = phone
+        // Don't clear phone locally if remote is nil — offline-first principle
+        if let phone, !phone.isEmpty {
+            person.phoneNumber = phone
+        }
         person.colorHex = colorHex
         person.isArchived = isArchived
         person.lastViewedDate = lastViewedDate
