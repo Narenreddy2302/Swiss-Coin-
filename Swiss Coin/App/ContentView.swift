@@ -27,10 +27,8 @@ struct ContentView: View {
             case .authenticated:
                 authenticatedContent
             case .needsPhoneEntry:
-                NavigationStack {
-                    PhoneRequiredView()
-                        .toolbar(.hidden, for: .navigationBar)
-                }
+                PhoneEntryView()
+                    .environment(\.managedObjectContext, viewContext)
             }
         }
         .animation(AppAnimation.standard, value: authManager.authState)
