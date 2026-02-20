@@ -18,7 +18,6 @@ import Supabase
 enum AuthState: Equatable {
     case loading
     case authenticated
-    case needsPhoneEntry
     case unauthenticated
 }
 
@@ -119,16 +118,10 @@ final class AuthManager: ObservableObject {
         let userId = session.user.id
         currentUserId = userId
         CurrentUser.setCurrentUser(id: userId)
+        authState = .authenticated
 
-        // Check if phone has been collected
-        if UserDefaults.standard.bool(forKey: "user_phone_collected") {
-            authState = .authenticated
-        } else {
-            // Slow path: check Supabase profiles table
-            Task {
-                await checkProfileHasPhone(userId: userId)
-            }
-        }
+        // Ensure profile row exists and has metadata (non-blocking)
+        Task { await ensureProfileExists(userId: userId) }
     }
 
     /// Detects legacy phone OTP sessions from before Apple Sign-In migration.
@@ -149,29 +142,28 @@ final class AuthManager: ObservableObject {
 
         currentUserId = nil
         CurrentUser.reset()
-        UserDefaults.standard.removeObject(forKey: "user_phone_collected")
-        UserDefaults.standard.removeObject(forKey: "user_phone_e164")
         UserDefaults.standard.removeObject(forKey: "lastSyncTimestamp")
         UserDefaults.standard.removeObject(forKey: "supabase_migration_completed")
         authState = .unauthenticated
     }
 
-    /// Safety net: ensures the profile row exists after Apple Sign-In.
-    /// The `handle_new_user()` trigger should create it, but if it fails silently
-    /// this self-heals by inserting the row client-side.
+    /// Ensures the profile row exists after Apple Sign-In and populates
+    /// display_name, full_name, and email if missing.
+    /// The `handle_new_user()` trigger should create the row, but if it fails
+    /// silently this self-heals by inserting or patching client-side.
     private func ensureProfileExists(userId: UUID) async {
         do {
             let existing: [ProfileDTO] = try await SupabaseConfig.client.from("profiles")
-                .select("id")
+                .select("id, display_name, full_name, email")
                 .eq("id", value: userId.uuidString)
                 .execute().value
 
+            let displayName = UserDefaults.standard.string(forKey: "apple_given_name") ?? "User"
+            let fullName = UserDefaults.standard.string(forKey: "apple_full_name")
+            let email = KeychainHelper.read(key: "apple_email")
+
             if existing.isEmpty {
                 AppLogger.auth.warning("Profile row missing for user \(userId) — inserting client-side")
-                let displayName = UserDefaults.standard.string(forKey: "apple_given_name") ?? "User"
-                let fullName = UserDefaults.standard.string(forKey: "apple_full_name")
-                let email = KeychainHelper.read(key: "apple_email")
-
                 try await SupabaseConfig.client.from("profiles")
                     .insert([
                         "id": userId.uuidString,
@@ -180,51 +172,32 @@ final class AuthManager: ObservableObject {
                         "email": email,
                     ] as [String: String?])
                     .execute()
+            } else if let profile = existing.first,
+                      profile.fullName == nil || profile.fullName?.isEmpty == true {
+                // Profile exists but missing name/email — patch it
+                try await SupabaseConfig.client.from("profiles")
+                    .update([
+                        "display_name": displayName,
+                        "full_name": fullName,
+                        "email": email,
+                    ] as [String: String?])
+                    .eq("id", value: userId.uuidString)
+                    .execute()
+            }
+
+            // Also update local CoreData Person
+            let context = PersistenceController.shared.container.viewContext
+            await context.perform {
+                let person = CurrentUser.getOrCreate(in: context)
+                if let name = UserDefaults.standard.string(forKey: "apple_given_name")
+                    ?? UserDefaults.standard.string(forKey: "apple_full_name") {
+                    person.name = name
+                }
+                try? context.save()
             }
         } catch {
-            // Don't block auth — phone entry will surface the error if the row is truly missing
             AppLogger.auth.warning("ensureProfileExists failed: \(error.localizedDescription)")
         }
-    }
-
-    /// Query Supabase to check if the user's profile already has a phone number.
-    /// Skips PhoneEntryView for returning users (e.g., app reinstall).
-    private func checkProfileHasPhone(userId: UUID) async {
-        // Ensure trigger-created profile exists before checking phone
-        await ensureProfileExists(userId: userId)
-
-        do {
-            let profiles: [ProfileDTO] = try await SupabaseConfig.client.from("profiles")
-                .select("id, phone")
-                .eq("id", value: userId.uuidString)
-                .execute().value
-
-            if let profile = profiles.first,
-               let phone = profile.phone, !phone.isEmpty {
-                // Phone already collected — cache and proceed
-                UserDefaults.standard.set(true, forKey: "user_phone_collected")
-                UserDefaults.standard.set(phone, forKey: "user_phone_e164")
-                authState = .authenticated
-            } else {
-                authState = .needsPhoneEntry
-            }
-        } catch {
-            // Network failure — check if we have a cached phone
-            if let cachedPhone = UserDefaults.standard.string(forKey: "user_phone_e164"),
-               !cachedPhone.isEmpty {
-                // Returning user with cached phone — allow through
-                UserDefaults.standard.set(true, forKey: "user_phone_collected")
-                authState = .authenticated
-            } else {
-                // New user or no cache — require phone entry
-                authState = .needsPhoneEntry
-            }
-        }
-    }
-
-    /// Called by PhoneEntryViewModel after successful phone submission.
-    func completePhoneEntry() {
-        authState = .authenticated
     }
 
     // MARK: - Apple Credential State
@@ -346,12 +319,12 @@ final class AuthManager: ObservableObject {
         UserDefaults.standard.set(false, forKey: "has_seen_onboarding")
         UserDefaults.standard.removeObject(forKey: "supabase_migration_completed")
         UserDefaults.standard.removeObject(forKey: "lastSyncTimestamp")
-        UserDefaults.standard.removeObject(forKey: "user_phone_collected")
-        UserDefaults.standard.removeObject(forKey: "user_phone_e164")
         UserDefaults.standard.removeObject(forKey: "apple_given_name")
         UserDefaults.standard.removeObject(forKey: "apple_family_name")
         UserDefaults.standard.removeObject(forKey: "apple_full_name")
         UserDefaults.standard.removeObject(forKey: "lastContactDiscoveryDate")
+
+        authState = .unauthenticated
     }
 
     // MARK: - Legacy Migration

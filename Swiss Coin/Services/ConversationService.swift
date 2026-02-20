@@ -129,7 +129,10 @@ final class ConversationService: ObservableObject {
         let now = Date()
 
         // 1. Create DirectMessage in CoreData immediately (optimistic)
+        let conversationObjectID = conversation.objectID
         await context.perform {
+            let convo = context.object(with: conversationObjectID) as! Conversation
+
             let dm = DirectMessage(context: context)
             dm.id = messageId
             dm.content = content
@@ -137,10 +140,10 @@ final class ConversationService: ObservableObject {
             dm.status = "sent"
             dm.isSynced = false
             dm.createdAt = now
-            dm.conversation = conversation
+            dm.conversation = convo
 
-            conversation.lastMessageAt = now
-            conversation.lastMessagePreview = String(content.prefix(100))
+            convo.lastMessageAt = now
+            convo.lastMessagePreview = String(content.prefix(100))
 
             try? context.save()
         }

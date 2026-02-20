@@ -24,8 +24,6 @@ struct ContentView: View {
                 loadingView
             case .unauthenticated:
                 SignInView()
-            case .needsPhoneEntry:
-                PhoneEntryView()
             case .authenticated:
                 authenticatedContent
             }

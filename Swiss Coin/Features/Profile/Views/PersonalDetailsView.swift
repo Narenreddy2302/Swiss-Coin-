@@ -18,7 +18,7 @@ struct PersonalDetailsView: View {
     @State private var showingDiscardAlert = false
 
     private enum Field: Hashable {
-        case displayName, fullName, email
+        case displayName, fullName, phone, email
     }
 
     var body: some View {
@@ -214,10 +214,23 @@ struct PersonalDetailsView: View {
 
     private var contactSection: some View {
         Section {
-            LabeledContent("Phone") {
-                Text(viewModel.phoneNumber.isEmpty ? "Not set" : viewModel.formattedPhoneNumber)
-                    .foregroundColor(viewModel.phoneNumber.isEmpty ? AppColors.textTertiary : AppColors.textSecondary)
-            }
+            TextField("Phone Number", text: $viewModel.phoneNumber)
+                .textContentType(.telephoneNumber)
+                .keyboardType(.phonePad)
+                .font(AppTypography.bodyLarge())
+                .foregroundColor(AppColors.textPrimary)
+                .focused($focusedField, equals: .phone)
+                .limitTextLength(to: ValidationLimits.maxPhoneLength, text: $viewModel.phoneNumber)
+                .onChange(of: viewModel.phoneNumber) { _, newValue in
+                    let filtered = newValue.filter { char in
+                        char.isNumber || char == "+" || char == " " || char == "-" || char == "(" || char == ")"
+                    }
+                    if filtered != newValue {
+                        viewModel.phoneNumber = filtered
+                    }
+                    viewModel.hasChanges = true
+                    viewModel.validatePhone(filtered)
+                }
 
             TextField("Email", text: $viewModel.email)
                 .textContentType(.emailAddress)
@@ -235,9 +248,15 @@ struct PersonalDetailsView: View {
         } header: {
             Text("Contact")
         } footer: {
-            if !viewModel.emailError.isEmpty {
-                Text(viewModel.emailError)
-                    .foregroundColor(AppColors.negative)
+            VStack(alignment: .leading, spacing: Spacing.xs) {
+                if !viewModel.phoneError.isEmpty {
+                    Text(viewModel.phoneError)
+                        .foregroundColor(AppColors.negative)
+                }
+                if !viewModel.emailError.isEmpty {
+                    Text(viewModel.emailError)
+                        .foregroundColor(AppColors.negative)
+                }
             }
         }
     }
@@ -274,6 +293,7 @@ class PersonalDetailsViewModel: ObservableObject {
     @Published var showingError = false
     @Published var errorMessage = ""
     @Published var emailError = ""
+    @Published var phoneError = ""
     @Published var isSaving = false
     @Published var hasChanges = false
     @Published var didSave = false
@@ -356,7 +376,7 @@ class PersonalDetailsViewModel: ObservableObject {
     }
 
     var canSave: Bool {
-        !displayName.isEmpty && emailError.isEmpty && hasChanges
+        !displayName.isEmpty && emailError.isEmpty && phoneError.isEmpty && hasChanges
     }
 
     var hasExistingPhoto: Bool {
@@ -426,6 +446,19 @@ class PersonalDetailsViewModel: ObservableObject {
         }
     }
 
+    func validatePhone(_ phone: String) {
+        if phone.isEmpty {
+            phoneError = ""
+            return
+        }
+        let digits = phone.filter { $0.isNumber }
+        if digits.count < 7 {
+            phoneError = "Phone number must have at least 7 digits"
+        } else {
+            phoneError = ""
+        }
+    }
+
     // MARK: - Save Changes
 
     func saveChanges(context: NSManagedObjectContext) {
@@ -438,6 +471,7 @@ class PersonalDetailsViewModel: ObservableObject {
             let currentUser = CurrentUser.getOrCreate(in: context)
             currentUser.name = displayName
             currentUser.colorHex = profileColor
+            currentUser.phoneNumber = phoneNumber.isEmpty ? nil : phoneNumber
 
             if let image = selectedImage {
                 currentUser.photoData = image.jpegData(compressionQuality: 0.8)
