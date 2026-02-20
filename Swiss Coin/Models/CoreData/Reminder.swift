@@ -20,9 +20,11 @@ extension Reminder {
     @NSManaged public var id: UUID?
     @NSManaged public var createdDate: Date?
     @NSManaged public var amount: Double
+    @NSManaged public var currency: String?
     @NSManaged public var message: String?
     @NSManaged public var isRead: Bool
     @NSManaged public var isCleared: Bool
+    @NSManaged public var isShared: Bool
     @NSManaged public var toPerson: Person?
 
 }

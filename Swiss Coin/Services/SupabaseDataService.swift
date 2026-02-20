@@ -364,6 +364,15 @@ final class SupabaseDataService {
             .execute()
     }
 
+    // MARK: - Subscription Participants
+
+    func updateSubscriptionParticipantStatus(id: UUID, status: String) async throws {
+        try await client.from("subscription_participants")
+            .update(["status": status, "responded_at": formatISO8601(Date())])
+            .eq("id", value: id.uuidString)
+            .execute()
+    }
+
     // MARK: - Shared Reminders
 
     func fetchSharedReminders() async throws -> [SharedReminderDTO] {

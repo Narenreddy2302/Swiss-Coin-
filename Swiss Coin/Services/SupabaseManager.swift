@@ -131,6 +131,9 @@ final class AuthManager: ObservableObject {
         if UserDefaults.standard.bool(forKey: "user_phone_collected") {
             // Fast path: cached — no flash
             authState = .authenticated
+
+            // Claim any phantom shares for returning users
+            Task { let _ = await SharedDataService.shared.claimPendingShares() }
         } else {
             // Slow path: stay in .loading while checking Supabase
             Task {
