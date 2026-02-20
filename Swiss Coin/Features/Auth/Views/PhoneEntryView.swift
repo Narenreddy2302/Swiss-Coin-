@@ -428,7 +428,9 @@ struct PhoneEntryView: View {
                 showErrorWithShake(result.error ?? "Failed to send code. Please try again.")
             }
         } catch {
-            showErrorWithShake("Network error. Please check your connection.")
+            // Log actual error for debugging
+            print("sendOTP error: \(error)")
+            showErrorWithShake("Connection error: \(error.localizedDescription)")
         }
 
         isLoading = false
@@ -477,7 +479,8 @@ struct PhoneEntryView: View {
             }
         } catch {
             isLoading = false
-            showErrorWithShake("Network error. Please try again.")
+            print("verifyOTP error: \(error)")
+            showErrorWithShake("Verification error: \(error.localizedDescription)")
         }
     }
 
@@ -549,6 +552,13 @@ struct PhoneEntryView: View {
     }
 
     private func callSendOTP(phone: String) async throws -> OTPResponse {
+        // Ensure we have an active session
+        guard let session = try? await SupabaseConfig.client.auth.session else {
+            return OTPResponse(success: false, status: nil, action: nil, error: "Not authenticated")
+        }
+        
+        print("Calling send-phone-otp with session user: \(session.user.id)")
+        
         return try await SupabaseConfig.client.functions.invoke(
             "send-phone-otp",
             options: .init(body: ["phone": phone])
@@ -556,6 +566,11 @@ struct PhoneEntryView: View {
     }
 
     private func callVerifyOTP(phone: String, code: String) async throws -> OTPResponse {
+        // Ensure we have an active session
+        guard let _ = try? await SupabaseConfig.client.auth.session else {
+            return OTPResponse(success: false, status: nil, action: nil, error: "Not authenticated")
+        }
+        
         return try await SupabaseConfig.client.functions.invoke(
             "verify-phone-otp",
             options: .init(body: ["phone": phone, "code": code])
