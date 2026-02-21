@@ -579,6 +579,28 @@ final class AuthManager: ObservableObject {
         return hash.map { String(format: "%02x", $0) }.joined()
     }
 
+    // MARK: - Phone Profile Update
+
+    /// Updates the Supabase profile with verified phone number and hash.
+    func updatePhoneProfile(phone: String) async {
+        guard let userId = currentUserId else { return }
+
+        let phoneHash = ContactDiscoveryService.hashPhoneNumber(phone)
+
+        do {
+            try await SupabaseConfig.client.from("profiles")
+                .update(PhoneProfileUpdate(
+                    phone_number: phone,
+                    phone_hash: phoneHash,
+                    phone_verified: true
+                ))
+                .eq("id", value: userId.uuidString)
+                .execute()
+        } catch {
+            AppLogger.auth.warning("Failed to update phone profile: \(error.localizedDescription)")
+        }
+    }
+
     // MARK: - Phone Linking
 
     /// Links a phone number to the current Apple Sign-In account.
@@ -605,6 +627,15 @@ final class AuthManager: ObservableObject {
             }
         }
     }
+}
+
+// MARK: - Phone Profile Types
+
+/// Encodable payload for updating phone verification fields on a profile.
+private struct PhoneProfileUpdate: Encodable {
+    let phone_number: String
+    let phone_hash: String
+    let phone_verified: Bool
 }
 
 // MARK: - Phone Link Types
