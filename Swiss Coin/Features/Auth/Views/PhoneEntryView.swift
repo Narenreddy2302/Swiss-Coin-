@@ -4,11 +4,12 @@
 //
 //  Post-Apple-Sign-In phone verification gate. Users verify their phone number
 //  via SMS OTP so friends can find and connect with them via contact discovery.
-//  Phone is optional — users can skip and add it later in Profile.
+//  Phone verification is mandatory for contact discovery.
 //
 
 import CoreData
 import CryptoKit
+import Functions
 import Supabase
 import SwiftUI
 
@@ -388,20 +389,6 @@ struct PhoneEntryView: View {
             }
             .buttonStyle(PrimaryButtonStyle())
             .disabled(isLoading || (step == .enterPhone ? !isPhoneValid : !isOTPValid))
-
-            // Skip button (only on phone entry step)
-            if step == .enterPhone {
-                Button {
-                    HapticManager.lightTap()
-                    skipPhoneEntry()
-                } label: {
-                    Text("Skip for now")
-                        .font(AppTypography.bodyDefault())
-                        .foregroundColor(AppColors.textSecondary)
-                }
-                .disabled(isLoading)
-                .padding(.top, Spacing.sm)
-            }
         }
     }
 
@@ -428,9 +415,22 @@ struct PhoneEntryView: View {
             } else {
                 showErrorWithShake(result.error ?? "Failed to send code. Please try again.")
             }
+        } catch let functionsError as FunctionsError {
+            if case .httpError(let code, let data) = functionsError {
+                print("FunctionsError.httpError code: \(code), body: \(String(data: data, encoding: .utf8) ?? "nil")")
+                if let body = try? JSONDecoder().decode(OTPResponse.self, from: data) {
+                    showErrorWithShake(body.error ?? "Failed to send code. Please try again.")
+                } else {
+                    // Decode failed — try to show raw response
+                    let raw = String(data: data, encoding: .utf8) ?? "Unknown error"
+                    showErrorWithShake(raw)
+                }
+            } else {
+                print("FunctionsError (not httpError): \(functionsError)")
+                showErrorWithShake("Relay error. Please try again.")
+            }
         } catch {
-            // Log actual error for debugging
-            print("sendOTP error: \(error)")
+            print("Unexpected error calling send-phone-otp: \(error)")
             showErrorWithShake("Connection error: \(error.localizedDescription)")
         }
 
@@ -450,8 +450,15 @@ struct PhoneEntryView: View {
             } else {
                 showErrorWithShake(result.error ?? "Failed to resend code.")
             }
+        } catch let functionsError as FunctionsError {
+            if case .httpError(_, let data) = functionsError,
+               let body = try? JSONDecoder().decode(OTPResponse.self, from: data) {
+                showErrorWithShake(body.error ?? "Failed to resend code.")
+            } else {
+                showErrorWithShake("Connection error. Please try again.")
+            }
         } catch {
-            showErrorWithShake("Network error. Please try again.")
+            showErrorWithShake("Connection error. Please try again.")
         }
 
         isLoading = false
@@ -478,16 +485,18 @@ struct PhoneEntryView: View {
                 isLoading = false
                 showErrorWithShake(result.error ?? "Verification failed. Please try again.")
             }
+        } catch let functionsError as FunctionsError {
+            isLoading = false
+            if case .httpError(_, let data) = functionsError,
+               let body = try? JSONDecoder().decode(OTPResponse.self, from: data) {
+                showErrorWithShake(body.error ?? "Verification failed. Please try again.")
+            } else {
+                showErrorWithShake("Connection error. Please try again.")
+            }
         } catch {
             isLoading = false
-            print("verifyOTP error: \(error)")
-            showErrorWithShake("Verification error: \(error.localizedDescription)")
+            showErrorWithShake("Connection error. Please check your internet and try again.")
         }
-    }
-
-    private func skipPhoneEntry() {
-        UserDefaults.standard.set(true, forKey: "user_phone_skipped")
-        authManager.completePhoneEntry()
     }
 
     private func startResendCooldown() {

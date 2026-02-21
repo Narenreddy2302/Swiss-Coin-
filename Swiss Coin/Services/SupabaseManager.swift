@@ -127,11 +127,10 @@ final class AuthManager: ObservableObject {
         currentUserId = userId
         CurrentUser.setCurrentUser(id: userId)
 
-        // Check if phone has been collected or user chose to skip
+        // Check if phone has been collected
         let phoneCollected = UserDefaults.standard.bool(forKey: "user_phone_collected")
-        let phoneSkipped = UserDefaults.standard.bool(forKey: "user_phone_skipped")
-        
-        if phoneCollected || phoneSkipped {
+
+        if phoneCollected {
             // Fast path: cached — no flash
             authState = .authenticated
 
