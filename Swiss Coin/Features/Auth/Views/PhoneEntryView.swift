@@ -2,15 +2,13 @@
 //  PhoneEntryView.swift
 //  Swiss Coin
 //
-//  Post-Apple-Sign-In phone verification gate. Users verify their phone number
-//  via SMS OTP so friends can find and connect with them via contact discovery.
-//  Phone verification is mandatory for contact discovery.
+//  Post-Apple-Sign-In phone verification using Firebase Phone Auth.
+//  Users verify their phone number via SMS OTP for contact discovery.
 //
 
 import CoreData
 import CryptoKit
-import Functions
-import Supabase
+import FirebaseAuth
 import SwiftUI
 
 // MARK: - Phone Entry Step
@@ -34,6 +32,9 @@ struct PhoneEntryView: View {
     // OTP input state
     @State private var otpCode = ""
     @FocusState private var otpFocused: Bool
+
+    // Firebase verification
+    @State private var verificationID: String?
 
     // Flow state
     @State private var step: PhoneEntryStep = .enterPhone
@@ -144,7 +145,6 @@ struct PhoneEntryView: View {
             CountryCodePicker(selectedCountry: $selectedCountry)
         }
         .onAppear {
-            // Auto-focus phone input after a brief delay
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                 isPhoneFocused = true
             }
@@ -158,7 +158,6 @@ struct PhoneEntryView: View {
 
     private var heroSection: some View {
         VStack(spacing: Spacing.lg) {
-            // Icon
             ZStack {
                 Circle()
                     .fill(AppColors.accent.opacity(0.12))
@@ -170,7 +169,6 @@ struct PhoneEntryView: View {
             }
             .accessibilityHidden(true)
 
-            // Welcome text
             VStack(spacing: Spacing.sm) {
                 if step == .enterPhone {
                     Text("Welcome, \(displayName)!")
@@ -207,7 +205,6 @@ struct PhoneEntryView: View {
                 .foregroundColor(AppColors.textSecondary)
 
             HStack(spacing: 0) {
-                // Country code button
                 Button {
                     HapticManager.lightTap()
                     isPhoneFocused = false
@@ -231,13 +228,11 @@ struct PhoneEntryView: View {
                 .accessibilityLabel("\(selectedCountry.name), \(selectedCountry.dialCode)")
                 .accessibilityHint("Double tap to change country code")
 
-                // Divider
                 Rectangle()
                     .fill(AppColors.divider)
                     .frame(width: 1)
                     .padding(.vertical, Spacing.sm)
 
-                // Phone number input
                 TextField("Enter phone number", text: Binding(
                     get: { formattedPhoneInput },
                     set: { newValue in
@@ -261,7 +256,7 @@ struct PhoneEntryView: View {
                     }
                 }
             }
-            .background(AppColors.backgroundSecondary)
+            .background(AppColors.secondaryBackground)
             .clipShape(RoundedRectangle(cornerRadius: CornerRadius.medium))
             .overlay(
                 RoundedRectangle(cornerRadius: CornerRadius.medium)
@@ -283,7 +278,6 @@ struct PhoneEntryView: View {
                 .font(AppTypography.labelLarge())
                 .foregroundColor(AppColors.textSecondary)
 
-            // OTP input field
             TextField("000000", text: $otpCode)
                 .font(.system(size: 32, weight: .semibold, design: .monospaced))
                 .foregroundColor(AppColors.textPrimary)
@@ -291,7 +285,7 @@ struct PhoneEntryView: View {
                 .textContentType(.oneTimeCode)
                 .multilineTextAlignment(.center)
                 .padding(.vertical, Spacing.lg)
-                .background(AppColors.backgroundSecondary)
+                .background(AppColors.secondaryBackground)
                 .clipShape(RoundedRectangle(cornerRadius: CornerRadius.medium))
                 .overlay(
                     RoundedRectangle(cornerRadius: CornerRadius.medium)
@@ -299,7 +293,6 @@ struct PhoneEntryView: View {
                 )
                 .focused($otpFocused)
                 .onChange(of: otpCode) { _, newValue in
-                    // Keep only digits, max 6
                     let digits = newValue.filter(\.isNumber)
                     if digits.count > 6 {
                         otpCode = String(digits.prefix(6))
@@ -329,7 +322,7 @@ struct PhoneEntryView: View {
                 } else {
                     Button {
                         HapticManager.lightTap()
-                        Task { await resendOTP() }
+                        Task { await sendOTP() }
                     } label: {
                         Text("Resend code")
                             .font(AppTypography.bodySmall())
@@ -349,6 +342,7 @@ struct PhoneEntryView: View {
                     withAnimation {
                         step = .enterPhone
                         otpCode = ""
+                        verificationID = nil
                         showError = false
                         resendTimer?.invalidate()
                         resendCooldown = 0
@@ -368,7 +362,6 @@ struct PhoneEntryView: View {
 
     private var actionSection: some View {
         VStack(spacing: Spacing.md) {
-            // Primary action button
             Button {
                 HapticManager.tap()
                 Task {
@@ -389,10 +382,24 @@ struct PhoneEntryView: View {
             }
             .buttonStyle(PrimaryButtonStyle())
             .disabled(isLoading || (step == .enterPhone ? !isPhoneValid : !isOTPValid))
+
+            // Skip button (only on phone entry step)
+            if step == .enterPhone {
+                Button {
+                    HapticManager.lightTap()
+                    skipPhoneEntry()
+                } label: {
+                    Text("Skip for now")
+                        .font(AppTypography.bodyDefault())
+                        .foregroundColor(AppColors.textSecondary)
+                }
+                .disabled(isLoading)
+                .padding(.top, Spacing.sm)
+            }
         }
     }
 
-    // MARK: - Actions
+    // MARK: - Firebase Phone Auth
 
     private func sendOTP() async {
         guard isPhoneValid else {
@@ -404,61 +411,22 @@ struct PhoneEntryView: View {
         showError = false
 
         do {
-            let result = try await callSendOTP(phone: e164Phone)
-
-            if result.success {
-                HapticManager.success()
-                startResendCooldown()
-                withAnimation {
-                    step = .enterOTP
-                }
-            } else {
-                showErrorWithShake(result.error ?? "Failed to send code. Please try again.")
-            }
-        } catch let functionsError as FunctionsError {
-            if case .httpError(let code, let data) = functionsError {
-                print("FunctionsError.httpError code: \(code), body: \(String(data: data, encoding: .utf8) ?? "nil")")
-                if let body = try? JSONDecoder().decode(OTPResponse.self, from: data) {
-                    showErrorWithShake(body.error ?? "Failed to send code. Please try again.")
-                } else {
-                    // Decode failed — try to show raw response
-                    let raw = String(data: data, encoding: .utf8) ?? "Unknown error"
-                    showErrorWithShake(raw)
-                }
-            } else {
-                print("FunctionsError (not httpError): \(functionsError)")
-                showErrorWithShake("Relay error. Please try again.")
+            let verificationID = try await PhoneAuthProvider.provider().verifyPhoneNumber(
+                e164Phone,
+                uiDelegate: nil
+            )
+            
+            self.verificationID = verificationID
+            HapticManager.success()
+            startResendCooldown()
+            
+            withAnimation {
+                step = .enterOTP
             }
         } catch {
-            print("Unexpected error calling send-phone-otp: \(error)")
-            showErrorWithShake("Connection error: \(error.localizedDescription)")
-        }
-
-        isLoading = false
-    }
-
-    private func resendOTP() async {
-        isLoading = true
-        showError = false
-
-        do {
-            let result = try await callSendOTP(phone: e164Phone)
-
-            if result.success {
-                HapticManager.success()
-                startResendCooldown()
-            } else {
-                showErrorWithShake(result.error ?? "Failed to resend code.")
-            }
-        } catch let functionsError as FunctionsError {
-            if case .httpError(_, let data) = functionsError,
-               let body = try? JSONDecoder().decode(OTPResponse.self, from: data) {
-                showErrorWithShake(body.error ?? "Failed to resend code.")
-            } else {
-                showErrorWithShake("Connection error. Please try again.")
-            }
-        } catch {
-            showErrorWithShake("Connection error. Please try again.")
+            print("Firebase sendOTP error: \(error)")
+            let errorMessage = mapFirebaseError(error)
+            showErrorWithShake(errorMessage)
         }
 
         isLoading = false
@@ -470,33 +438,68 @@ struct PhoneEntryView: View {
             return
         }
 
+        guard let verificationID = verificationID else {
+            showErrorWithShake("Verification expired. Please request a new code.")
+            return
+        }
+
         isLoading = true
         showError = false
 
         do {
-            let result = try await callVerifyOTP(phone: e164Phone, code: otpCode)
+            let credential = PhoneAuthProvider.provider().credential(
+                withVerificationID: verificationID,
+                verificationCode: otpCode
+            )
 
-            if result.success {
-                // Verification successful
-                await savePhoneLocally(phone: e164Phone)
-                HapticManager.success()
-                authManager.completePhoneEntry()
-            } else {
-                isLoading = false
-                showErrorWithShake(result.error ?? "Verification failed. Please try again.")
-            }
-        } catch let functionsError as FunctionsError {
-            isLoading = false
-            if case .httpError(_, let data) = functionsError,
-               let body = try? JSONDecoder().decode(OTPResponse.self, from: data) {
-                showErrorWithShake(body.error ?? "Verification failed. Please try again.")
-            } else {
-                showErrorWithShake("Connection error. Please try again.")
-            }
+            // Sign in with Firebase to verify the code
+            let result = try await Auth.auth().signIn(with: credential)
+            
+            print("Firebase phone verified for: \(result.user.phoneNumber ?? "unknown")")
+            
+            // Save phone locally and update Supabase profile
+            await savePhoneLocally(phone: e164Phone)
+            
+            // Sign out of Firebase (we only used it for verification)
+            try? Auth.auth().signOut()
+            
+            HapticManager.success()
+            authManager.completePhoneEntry()
+            
         } catch {
             isLoading = false
-            showErrorWithShake("Connection error. Please check your internet and try again.")
+            print("Firebase verifyOTP error: \(error)")
+            let errorMessage = mapFirebaseError(error)
+            showErrorWithShake(errorMessage)
         }
+    }
+
+    private func mapFirebaseError(_ error: Error) -> String {
+        let nsError = error as NSError
+        
+        switch nsError.code {
+        case AuthErrorCode.invalidPhoneNumber.rawValue:
+            return "Invalid phone number. Please check and try again."
+        case AuthErrorCode.missingPhoneNumber.rawValue:
+            return "Please enter a phone number."
+        case AuthErrorCode.quotaExceeded.rawValue:
+            return "Too many requests. Please try again later."
+        case AuthErrorCode.invalidVerificationCode.rawValue:
+            return "Incorrect code. Please try again."
+        case AuthErrorCode.sessionExpired.rawValue:
+            return "Code expired. Please request a new one."
+        case AuthErrorCode.tooManyRequests.rawValue:
+            return "Too many attempts. Please wait and try again."
+        case AuthErrorCode.networkError.rawValue:
+            return "Network error. Please check your connection."
+        default:
+            return error.localizedDescription
+        }
+    }
+
+    private func skipPhoneEntry() {
+        UserDefaults.standard.set(true, forKey: "user_phone_skipped")
+        authManager.completePhoneEntry()
     }
 
     private func startResendCooldown() {
@@ -524,10 +527,32 @@ struct PhoneEntryView: View {
             try? viewContext.save()
         }
 
+        // Update Supabase profile with phone hash
+        await updateSupabaseProfile(phone: phone)
+
         // Trigger contact discovery
         Task {
             await ContactDiscoveryService.shared.discoverContacts(context: viewContext)
             let _ = await SharedDataService.shared.claimPendingShares()
+        }
+    }
+
+    private func updateSupabaseProfile(phone: String) async {
+        guard let userId = AuthManager.shared.currentUserId else { return }
+        
+        let phoneHash = hashPhoneNumber(phone)
+        
+        do {
+            try await SupabaseConfig.client.from("profiles")
+                .update([
+                    "phone_number": phone,
+                    "phone_hash": phoneHash,
+                    "phone_verified": true
+                ])
+                .eq("id", value: userId.uuidString)
+                .execute()
+        } catch {
+            print("Failed to update Supabase profile: \(error)")
         }
     }
 
@@ -536,7 +561,6 @@ struct PhoneEntryView: View {
         showError = true
         HapticManager.error()
 
-        // Shake animation
         withAnimation(.spring(response: 0.1, dampingFraction: 0.3)) {
             shakeOffset = 10
         }
@@ -552,55 +576,19 @@ struct PhoneEntryView: View {
         }
     }
 
-    // MARK: - API Calls
-
-    private struct OTPResponse: Decodable {
-        let success: Bool
-        let status: String?
-        let action: String?
-        let error: String?
-    }
-
-    private func callSendOTP(phone: String) async throws -> OTPResponse {
-        // Ensure we have an active session
-        guard let session = try? await SupabaseConfig.client.auth.session else {
-            return OTPResponse(success: false, status: nil, action: nil, error: "Not authenticated")
-        }
-        
-        print("Calling send-phone-otp with session user: \(session.user.id)")
-        
-        return try await SupabaseConfig.client.functions.invoke(
-            "send-phone-otp",
-            options: .init(body: ["phone": phone])
-        )
-    }
-
-    private func callVerifyOTP(phone: String, code: String) async throws -> OTPResponse {
-        // Ensure we have an active session
-        guard let _ = try? await SupabaseConfig.client.auth.session else {
-            return OTPResponse(success: false, status: nil, action: nil, error: "Not authenticated")
-        }
-        
-        return try await SupabaseConfig.client.functions.invoke(
-            "verify-phone-otp",
-            options: .init(body: ["phone": phone, "code": code])
-        )
-    }
-
     // MARK: - Helpers
 
-    /// Country-aware phone number display grouping.
     private func formatForDisplay(digits: String, countryId: String) -> String {
         let chars = Array(digits)
         let groups: [Int]
         switch countryId {
-        case "CH", "AT": groups = [2, 3, 2, 2]      // 79 123 45 67
-        case "US", "CA": groups = [3, 3, 4]          // 555 123 4567
-        case "GB":       groups = [4, 6]             // 7911 123456
-        case "DE":       groups = [3, 4, 4]          // 151 1234 5678
-        case "IN":       groups = [5, 5]             // 98765 43210
-        case "FR", "IT": groups = [1, 2, 2, 2, 2]   // 6 12 34 56 78
-        default:         groups = [3, 3, 3, 3]       // groups of 3
+        case "CH", "AT": groups = [2, 3, 2, 2]
+        case "US", "CA": groups = [3, 3, 4]
+        case "GB": groups = [4, 6]
+        case "DE": groups = [3, 4, 4]
+        case "IN": groups = [5, 5]
+        case "FR", "IT": groups = [1, 2, 2, 2, 2]
+        default: groups = [3, 3, 3, 3]
         }
 
         var result = ""
@@ -616,6 +604,12 @@ struct PhoneEntryView: View {
             result += " " + String(chars[index...])
         }
         return result
+    }
+
+    private func hashPhoneNumber(_ phone: String) -> String {
+        let data = Data(phone.utf8)
+        let hash = SHA256.hash(data: data)
+        return hash.map { String(format: "%02x", $0) }.joined()
     }
 }
 
