@@ -7,7 +7,6 @@
 //
 
 import CoreData
-import CryptoKit
 import FirebaseAuth
 import SwiftUI
 
@@ -256,7 +255,7 @@ struct PhoneEntryView: View {
                     }
                 }
             }
-            .background(AppColors.secondaryBackground)
+            .background(AppColors.backgroundSecondary)
             .clipShape(RoundedRectangle(cornerRadius: CornerRadius.medium))
             .overlay(
                 RoundedRectangle(cornerRadius: CornerRadius.medium)
@@ -285,7 +284,7 @@ struct PhoneEntryView: View {
                 .textContentType(.oneTimeCode)
                 .multilineTextAlignment(.center)
                 .padding(.vertical, Spacing.lg)
-                .background(AppColors.secondaryBackground)
+                .background(AppColors.backgroundSecondary)
                 .clipShape(RoundedRectangle(cornerRadius: CornerRadius.medium))
                 .overlay(
                     RoundedRectangle(cornerRadius: CornerRadius.medium)
@@ -401,7 +400,7 @@ struct PhoneEntryView: View {
 
     // MARK: - Firebase Phone Auth
 
-    private func sendOTP() async {
+    @MainActor private func sendOTP() async {
         guard isPhoneValid else {
             showErrorWithShake("Please enter a valid phone number")
             return
@@ -432,7 +431,7 @@ struct PhoneEntryView: View {
         isLoading = false
     }
 
-    private func verifyOTP() async {
+    @MainActor private func verifyOTP() async {
         guard isOTPValid else {
             showErrorWithShake("Please enter the 6-digit code")
             return
@@ -514,7 +513,7 @@ struct PhoneEntryView: View {
         }
     }
 
-    private func savePhoneLocally(phone: String) async {
+    @MainActor private func savePhoneLocally(phone: String) async {
         // Save to UserDefaults
         UserDefaults.standard.set(phone, forKey: "user_phone_e164")
         UserDefaults.standard.set(true, forKey: "user_phone_collected")
@@ -528,31 +527,12 @@ struct PhoneEntryView: View {
         }
 
         // Update Supabase profile with phone hash
-        await updateSupabaseProfile(phone: phone)
+        await AuthManager.shared.updatePhoneProfile(phone: phone)
 
         // Trigger contact discovery
         Task {
             await ContactDiscoveryService.shared.discoverContacts(context: viewContext)
             let _ = await SharedDataService.shared.claimPendingShares()
-        }
-    }
-
-    private func updateSupabaseProfile(phone: String) async {
-        guard let userId = AuthManager.shared.currentUserId else { return }
-        
-        let phoneHash = hashPhoneNumber(phone)
-        
-        do {
-            try await SupabaseConfig.client.from("profiles")
-                .update([
-                    "phone_number": phone,
-                    "phone_hash": phoneHash,
-                    "phone_verified": true
-                ])
-                .eq("id", value: userId.uuidString)
-                .execute()
-        } catch {
-            print("Failed to update Supabase profile: \(error)")
         }
     }
 
@@ -606,11 +586,6 @@ struct PhoneEntryView: View {
         return result
     }
 
-    private func hashPhoneNumber(_ phone: String) -> String {
-        let data = Data(phone.utf8)
-        let hash = SHA256.hash(data: data)
-        return hash.map { String(format: "%02x", $0) }.joined()
-    }
 }
 
 // MARK: - Preview
