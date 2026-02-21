@@ -7,6 +7,7 @@
 
 import BackgroundTasks
 import CoreData
+import FirebaseCore
 import SwiftUI
 import UIKit
 import UserNotifications
@@ -21,6 +22,9 @@ struct Swiss_CoinApp: App {
     private static let backgroundSyncTaskId = "com.swisscoin.background-sync"
 
     init() {
+        // Initialize Firebase for phone authentication
+        FirebaseApp.configure()
+        
         FreshInstallGuard.clearKeychainIfReinstalled()
         registerBackgroundSync()
         configureTabBarAppearance()
