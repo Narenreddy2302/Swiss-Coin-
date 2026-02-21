@@ -117,8 +117,31 @@ serve(async (req: Request) => {
         );
       }
 
+      // 20003 = Authentication error (bad SID or AUTH_TOKEN)
+      if (twilioData.code === 20003) {
+        return new Response(
+          JSON.stringify({ success: false, error: "SMS service authentication failed" }),
+          {
+            status: 500,
+            headers: { ...corsHeaders(), "Content-Type": "application/json" },
+          }
+        );
+      }
+
+      // 20404 = Resource not found (bad VERIFY_SID)
+      if (twilioData.code === 20404) {
+        return new Response(
+          JSON.stringify({ success: false, error: "SMS service misconfigured" }),
+          {
+            status: 500,
+            headers: { ...corsHeaders(), "Content-Type": "application/json" },
+          }
+        );
+      }
+
+      const twilioMessage = twilioData.message || "Failed to send verification code";
       return new Response(
-        JSON.stringify({ success: false, error: "Failed to send verification code" }),
+        JSON.stringify({ success: false, error: twilioMessage, code: twilioData.code }),
         {
           status: 500,
           headers: { ...corsHeaders(), "Content-Type": "application/json" },
