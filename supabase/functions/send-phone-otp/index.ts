@@ -139,6 +139,17 @@ serve(async (req: Request) => {
         );
       }
 
+      // 60238 = Verification blocked (fraud prevention, geo-restrictions, or trial limits)
+      if (twilioData.code === 60238) {
+        return new Response(
+          JSON.stringify({ success: false, error: "Unable to send SMS to this number. Please try a different number." }),
+          {
+            status: 400,
+            headers: { ...corsHeaders(), "Content-Type": "application/json" },
+          }
+        );
+      }
+
       const twilioMessage = twilioData.message || "Failed to send verification code";
       return new Response(
         JSON.stringify({ success: false, error: twilioMessage, code: twilioData.code }),
