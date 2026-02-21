@@ -49,3 +49,4 @@ playground.xcworkspace
 # Environment files
 *.env
 *.env.*
+GoogleService-Info.plist
